@@ -5,7 +5,7 @@ mod common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::time::{Duration, Instant};
-use zendo::app::{App, Focus, Item, session_key};
+use zendo::app::{App, Focus, session_key};
 use zendo::session::{Command, State};
 
 fn mock() -> Command {
@@ -86,20 +86,41 @@ async fn left_sessions_keep_running() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// SESSIONS-4: while a Claude Code session runs, its chat sends no question.
+// SESSIONS-4: while a Claude Code session runs, its chat sends the question to Claude Code, not to
+// the agent.
 #[tokio::test(flavor = "multi_thread")]
-async fn chat_of_an_open_session_sends_no_question() {
+async fn chat_of_an_open_session_goes_to_claude_code() {
     let (root, mut a) = app_with_cli("sessions-one-writer");
     chat_on(&mut a, 0);
     ctrl(&mut a, 'o');
+    wait(&mut a, 10, |a| counter(a, 0) >= 1);
     leave(&mut a);
     a.focus = Focus::Claude;
     typ(&mut a, "hello");
     key(&mut a, KeyCode::Enter);
     let t = &a.threads[&session_key(0)];
     assert!(t.busy.is_none(), "no prompt went to the agent");
-    assert!(!t.items.iter().any(|i| matches!(i, Item::User(_))), "no question in the thread");
-    assert!(t.items.iter().any(|i| matches!(i, Item::Info(s) if s.contains("Claude Code"))), "the chat says why");
+    wait(&mut a, 5, |a| a.cli.text(0).contains("got: hello"));
+    a.cli.stop_all();
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// SESSIONS-20: the chat of an agent session shows the state of its Claude Code session.
+#[tokio::test(flavor = "multi_thread")]
+async fn chat_shows_the_state_of_its_claude_code_session() {
+    let (root, mut a) = app_with_cli("sessions-chat-state");
+    chat_on(&mut a, 0);
+    ctrl(&mut a, 'o');
+    wait(&mut a, 10, |a| counter(a, 0) >= 1);
+    leave(&mut a);
+    let screen = draw(&mut a, 160, 30).join("\n");
+    assert!(screen.contains("Claude Code works"), "{screen}");
+    ctrl(&mut a, 'o');
+    typ(&mut a, "w");
+    leave(&mut a);
+    wait(&mut a, 5, |a| a.cli.state(0) == Some(State::Waits));
+    let screen = draw(&mut a, 160, 30).join("\n");
+    assert!(screen.contains("Claude Code waits for you"), "{screen}");
     a.cli.stop_all();
     let _ = std::fs::remove_dir_all(&root);
 }

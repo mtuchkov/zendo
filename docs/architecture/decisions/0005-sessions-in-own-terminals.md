@@ -52,7 +52,8 @@ as the agent module does for ACP.
   zendo draws the screen of `vt100` into the ratatui buffer itself, so no widget crate pins the
   version of ratatui.
 - `handoff()` in `src/tui/mod.rs` goes away; the input thread no longer pauses.
-- A thread has one writer at a time: the ACP connection or the Claude Code session (SESSIONS-4).
+- A thread has one writer at a time: the ACP connection or the Claude Code session. While the
+  Claude Code session runs, the chat types its questions into it (SESSIONS-4).
   After a Claude Code session ends, zendo opens the agent session again (SESSIONS-13).
 - The hooks depend on the hook events of Claude Code; a change of them is a change of zendo, with a
   check by `zendo doctor`.

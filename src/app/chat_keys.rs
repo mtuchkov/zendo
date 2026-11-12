@@ -7,11 +7,7 @@ impl App {
         let pending = self.threads.get(&key).and_then(|t| t.pending()).is_some();
         let busy = self.threads.get(&key).is_some_and(|t| t.busy.is_some());
         match act {
-            Some("back") if busy && !pending => {
-                if let Some(a) = &self.agent {
-                    a.send(Cmd::Cancel { key });
-                }
-            }
+            Some("back") if busy && !pending => self.stop_answer(key),
             Some("back") if self.say.is_some() => {
                 self.say = None;
                 self.input.take();
@@ -43,15 +39,34 @@ impl App {
                 self.input.backspace();
                 self.input.type_str("\n");
             }
-            Some("send") if self.cli_blocks() => {}
-            Some("send") if !busy => self.send_input(),
-            Some("send") => {}
+            Some("send") if self.cli.running(self.state.session.min(SESSIONS - 1)) => self.send_to_cli(),
+            Some("send") => self.send_input(),
             // A proposal key is text when there is no proposal.
             Some("allow" | "always" | "edit_first" | "discard") | None => self.input_key(k),
             Some(a) => self.input_action(a),
         }
         self.update_at();
         self.update_slash();
+    }
+
+    /// `esc` while the agent answers: stop it, and put the queued questions back into the input
+    /// (CLAUDE-34).
+    fn stop_answer(&mut self, key: String) {
+        if let Some(a) = &self.agent {
+            a.send(Cmd::Cancel { key: key.clone() });
+        }
+        self.queue_to_input(&key);
+    }
+
+    /// The queued questions of a thread go back into the chat input, before what it holds.
+    pub(crate) fn queue_to_input(&mut self, key: &str) {
+        let Some(t) = self.threads.get_mut(key).filter(|t| !t.queue.is_empty()) else { return };
+        let mut parts: Vec<String> = t.queue.drain(..).map(|o| o.question).collect();
+        let now = self.input.take();
+        if !now.is_empty() {
+            parts.push(now);
+        }
+        self.input.type_str(&parts.join("\n"));
     }
 
     fn new_thread(&mut self, key: String) {

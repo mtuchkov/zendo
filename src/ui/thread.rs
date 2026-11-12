@@ -19,7 +19,9 @@ pub(crate) fn panel_lines(app: &App, t: &Theme, w: usize) -> Vec<Line<'static>> 
     let key = app.key();
     let dim = Style::new().fg(t.dim);
     let Some(th) = app.threads.get(&key).filter(|th| !th.items.is_empty() || th.busy.is_some()) else {
-        return empty_thread(app, &app.scope(), dim, w);
+        let mut out = empty_thread(app, &app.scope(), dim, w);
+        out.extend(cli_line(app, t));
+        return out;
     };
     let mut out: Vec<Line<'static>> = Vec::new();
     for it in &th.items {
@@ -39,7 +41,25 @@ pub(crate) fn panel_lines(app: &App, t: &Theme, w: usize) -> Vec<Line<'static>> 
         let word = if th.thinking { "thinking" } else { "working" };
         out.push(Line::styled(format!("{word} {} {} s", SPIN[(e.as_millis() / 300) as usize % 4], e.as_secs()), dim));
     }
+    for q in &th.queue {
+        out.extend(markdown::wrap(vec![Span::styled(format!("queued › {}", question_of(&q.question)), dim)], w, "", "         "));
+    }
+    out.extend(cli_line(app, t));
     out
+}
+
+/// The state of the Claude Code session of the agent session in the chat (SESSIONS-20).
+fn cli_line(app: &App, t: &Theme) -> Option<Line<'static>> {
+    use crate::session::State;
+    let state = app.cli.state(app.state.session.min(crate::app::SESSIONS - 1))?;
+    let key = app.keys.first(crate::keys::Pane::Chat, "handoff");
+    let spin = SPIN[(app.cli.since().as_millis() / 300) as usize % 4];
+    let (text, color) = match state {
+        State::Works => (format!("Claude Code works {spin}"), t.dim),
+        State::Waits => ("Claude Code waits for you".to_string(), t.acc),
+        State::Idle => ("Claude Code is idle".to_string(), t.dim),
+    };
+    Some(Line::from(vec![Span::styled(text, Style::new().fg(color)), Span::styled(format!(" · {key} shows it"), Style::new().fg(t.dim))]))
 }
 
 /// The question in a message that zendo sent: a replayed message has the context before it.

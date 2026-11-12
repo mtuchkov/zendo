@@ -85,15 +85,24 @@ impl App {
             attach.push(Attachment::File(p.clone()));
         }
         let sent = file.as_ref().map(|p| self.rel(p));
+        let out = Outgoing { question, text, attach, sent, command };
+        self.panel_scroll = 0;
+        match self.threads.get_mut(&key).filter(|t| t.busy.is_some()) {
+            Some(t) => t.queue.push(out),
+            None => self.dispatch(key, out),
+        }
+    }
+
+    /// Send a question to the agent now.
+    pub(crate) fn dispatch(&mut self, key: String, out: Outgoing) {
         let known = self.state.session(&self.cfg.agent, &key);
         let t = self.thread(&key);
-        t.items.push(Item::User(question));
+        t.items.push(Item::User(out.question));
         t.busy = Some(Instant::now());
-        t.primed |= !command;
-        t.files.push(sent);
-        self.panel_scroll = 0;
+        t.primed |= !out.command;
+        t.files.push(out.sent);
         if let Some(a) = &self.agent {
-            a.send(Cmd::Prompt { key, known, text, attach });
+            a.send(Cmd::Prompt { key, known, text: out.text, attach: out.attach });
         }
     }
 

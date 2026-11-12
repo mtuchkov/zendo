@@ -81,8 +81,44 @@ impl App {
         }
     }
 
-    /// The chat of an agent session whose Claude Code session runs sends no question (SESSIONS-4).
-    /// True when it says so.
+    /// `enter` in the chat of an agent session whose Claude Code session runs: the question goes to
+    /// Claude Code as typed, and Claude Code queues it while it works (SESSIONS-4). A file chip goes
+    /// as `@path`, a selection chip as its text after the question.
+    pub(crate) fn send_to_cli(&mut self) {
+        let n = self.active();
+        let q = self.input.take();
+        let chips: Vec<Chip> = std::mem::take(&mut self.chips).into_iter().filter(|c| q.contains(c.label.as_str())).collect();
+        let mut text = q.clone();
+        let mut after = Vec::new();
+        for c in &chips {
+            let with = match (&c.attach, &c.context) {
+                (Some(a), _) => format!("@{}", a.path().strip_prefix(&self.cfg.root).unwrap_or(a.path()).display()),
+                (None, Some(ctx)) => {
+                    after.push(ctx.clone());
+                    String::new()
+                }
+                _ => String::new(),
+            };
+            text = text.replacen(&c.label, &with, 1);
+        }
+        let text = std::iter::once(text.trim().to_string()).chain(after).filter(|s| !s.is_empty()).collect::<Vec<_>>().join("\n\n");
+        if text.is_empty() {
+            return;
+        }
+        let bracketed = self.cli.with_screen(n, |s| s.bracketed_paste()).unwrap_or(false);
+        // Without bracketed paste a new line would send the question: alt-enter is a new line.
+        let body = if bracketed { text } else { text.replace('\n', "\x1b\r") };
+        self.cli.write(n, &keys::paste(&body, bracketed));
+        self.cli.write(n, b"\r");
+        let key = self.key();
+        let t = self.thread(&key);
+        t.items.push(Item::User(q));
+        t.items.push(Item::Info("sent to Claude Code; it queues the message while it works".into()));
+        self.panel_scroll = 0;
+    }
+
+    /// Other questions of the chat of an agent session whose Claude Code session runs, such as a
+    /// split or a question about the delta, do not go (SESSIONS-4). True when it says so.
     pub(crate) fn cli_blocks(&mut self) -> bool {
         if !self.cli.running(self.active()) {
             return false;

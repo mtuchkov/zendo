@@ -126,8 +126,10 @@ fn input_hint(app: &App, key: &str, pending: bool) -> String {
     let busy = app.threads.get(key).is_some_and(|th| th.busy.is_some());
     if pending {
         "answer the proposal above: a, e or x".to_string()
+    } else if app.cli.running(app.state.session.min(crate::app::SESSIONS - 1)) {
+        "goes to Claude Code, which queues it while it works".to_string()
     } else if busy {
-        "esc to stop".to_string()
+        "enter queues the next question · esc stops".to_string()
     } else if app.ask_context.is_some() {
         format!("ask about {}, or press enter", if app.ask_about.is_empty() { "it" } else { app.ask_about })
     } else if app.scope() == ALL_KEY {

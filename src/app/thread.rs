@@ -53,6 +53,21 @@ pub struct Thread {
     pub files: Vec<Option<String>>,
     /// zendo asked the agent to open the session of this thread.
     pub opened: bool,
+    /// Questions that wait for the end of the turn (CLAUDE-33).
+    pub queue: Vec<Outgoing>,
+}
+
+/// A question as it goes to the agent: the text with its context, and the files.
+#[derive(Clone, Debug)]
+pub struct Outgoing {
+    /// What the user asked, as the thread shows it.
+    pub question: String,
+    pub text: String,
+    pub attach: Vec<Attachment>,
+    /// The file that went with it, for CLAUDE-26.
+    pub sent: Option<String>,
+    /// A slash command: no context.
+    pub command: bool,
 }
 
 impl Thread {

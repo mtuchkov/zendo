@@ -141,7 +141,11 @@ impl App {
         if stop == "cancelled" {
             t.items.push(Item::Info("stopped".into()));
         }
+        let next = (!t.queue.is_empty()).then(|| t.queue.remove(0));
         self.reload_after_agent();
+        if let Some(out) = next {
+            self.dispatch(key, out);
+        }
     }
 
     fn on_exited(&mut self, text: String) {
@@ -154,6 +158,8 @@ impl App {
             t.opened = false;
         }
         self.agent_down = Some(text);
+        let key = self.key();
+        self.queue_to_input(&key);
     }
 }
 

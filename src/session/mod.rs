@@ -68,17 +68,24 @@ pub struct Sessions {
     slots: Vec<Option<Cli>>,
     /// The size of the screen of a session: rows, columns.
     size: (u16, u16),
+    /// For the spinners.
+    born: Instant,
 }
 
 impl Default for Sessions {
     fn default() -> Self {
-        Sessions { command: None, view: None, quit_asked: None, notify: Arc::default(), slots: (0..SESSIONS).map(|_| None).collect(), size: (23, 80) }
+        Sessions { command: None, view: None, quit_asked: None, notify: Arc::default(), slots: (0..SESSIONS).map(|_| None).collect(), size: (23, 80), born: Instant::now() }
     }
 }
 
 impl Sessions {
     fn cli(&self, n: usize) -> Option<&Cli> {
         self.slots.get(n).and_then(Option::as_ref)
+    }
+
+    /// The time since zendo started, for the spinners.
+    pub fn since(&self) -> Duration {
+        self.born.elapsed()
     }
 
     pub fn running(&self, n: usize) -> bool {
