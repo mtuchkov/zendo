@@ -9,6 +9,7 @@ mod events;
 mod files;
 mod files_new;
 mod files_ops;
+mod file_prompt;
 mod info;
 mod input;
 mod modes;
@@ -24,6 +25,7 @@ mod write;
 pub mod write_rows;
 
 pub use at::{AT_ROWS, AtPick};
+pub use file_prompt::FilePrompt;
 pub use say::Say;
 pub use slash::Slash;
 pub use thread::*;
@@ -95,6 +97,8 @@ pub struct RecapJob {
     pub failed: Option<String>,
     /// Not a recap: a title and front matter for the file.
     pub meta: Option<crate::agent::work::Meta>,
+    /// Not a recap: the confusing lines of the file.
+    pub review: bool,
 }
 
 #[derive(Default)]
@@ -174,6 +178,7 @@ pub struct App {
     pub visit: Option<Visit>,
     pub recap_job: Option<RecapJob>,
     pub recap_queue: VecDeque<String>,
+    pub reviews: crate::agent::work::Reviews,
     /// Files to get a title or front matter from the agent, after write mode.
     pub meta_queue: VecDeque<String>,
     pub auto_recaps: Vec<Instant>,
@@ -263,37 +268,5 @@ pub const ALL_KEY: &str = "(all notes)";
 /// The word limit of a document when project-structure.toml does not set one.
 pub const DEFAULT_WORDS: usize = 1000;
 pub const SPLIT_PROMPT: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/split-document.md"));
-
-/// A question about a file, in the status bar.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum FilePrompt {
-    /// Delete this file? `y` deletes it.
-    Delete(PathBuf),
-    /// The new name of this file, as the user types it.
-    Rename(PathBuf, String),
-    /// The folder to move this file to, from the repository root, as the user types it.
-    Move(PathBuf, String),
-    /// The path of a new file, from the repository root.
-    NewFile(String),
-    /// The path of a new folder, from the repository root.
-    NewFolder(String),
-}
-
-impl FilePrompt {
-    /// The text field of the question, when it has one.
-    pub fn field(&self) -> Option<&String> {
-        match self {
-            FilePrompt::Delete(_) => None,
-            FilePrompt::Rename(_, t) | FilePrompt::Move(_, t) | FilePrompt::NewFile(t) | FilePrompt::NewFolder(t) => Some(t),
-        }
-    }
-
-    fn field_mut(&mut self) -> Option<&mut String> {
-        match self {
-            FilePrompt::Delete(_) => None,
-            FilePrompt::Rename(_, t) | FilePrompt::Move(_, t) | FilePrompt::NewFile(t) | FilePrompt::NewFolder(t) => Some(t),
-        }
-    }
-}
 
 pub const DELTA_QUESTION: &str = "What do these changes break or leave open?";

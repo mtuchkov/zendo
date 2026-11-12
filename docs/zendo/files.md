@@ -19,7 +19,9 @@ opens and closes with `ctrl-shift-b` or `alt-b` in every pane, or `e` in read mo
 - **docs**: the files that match `**/docs/**`;
 - **all**: every markdown file;
 - **text**: every text file: markdown, code and configuration. A file that is not markdown opens in
-  the note pane as code, in the colors of its language;
+  the note pane as code, in the colors of its language, 120 chars wide, wrapped, with line numbers.
+  A wrapped line has its number on its first row only. Write mode shows code the same way, does
+  not break long lines, and keeps the indent on `enter`;
 - **folders**: every folder, also an empty one or one without markdown, and every markdown file.
 
 At the bottom, the tree shows what the selected item is (`about`) and the start of its rules for
@@ -85,10 +87,13 @@ status bar.
 | FILES-19 | Event      | When the user makes a new markdown file in a folder whose entry names a `template`, the system shall start the file from the template, with the title from the file name. | User, 2026-11-12 |
 | FILES-20 | Ubiquitous | The system shall have a text view that shows every text file that git does not ignore: a file of at most 2 MB whose start is UTF-8 without a NUL byte. | User, 2026-11-12 |
 | FILES-21 | Event      | When the user opens a file that is not markdown, the system shall show it as code in the colors of its language, for every language that zendo knows. | User, 2026-11-12 |
+| FILES-22 | Ubiquitous | The system shall show a code file 120 chars wide, wrapped, with the number of each line on its first row only. | User, 2026-11-12 |
+| FILES-23 | Ubiquitous | The system shall show a code file in write mode as in read mode, and shall not break its long lines. | User, 2026-11-12 |
 
 Tests that verify detailed requirements: `rows_join_single_folders_and_collapse` (FILES-5, FILES-6),
 `find_filters_files_by_name` (FILES-11),
 `a_new_name_stays_in_the_folder_and_keeps_the_extension` (FILES-13),
 `the_folders_view_shows_empty_folders` (FILES-17), `the_text_view_shows_every_text_file` (FILES-20),
-`a_whole_file_uses_every_language_that_zendo_knows` and `tests/tree_text.rs` (FILES-20, FILES-21), `a_new_file_starts_from_the_template_of_its_folder`
+`a_whole_file_uses_every_language_that_zendo_knows` and `tests/tree_text.rs` (FILES-20 to FILES-23),
+`a_long_line_wraps_and_each_row_knows_where_it_starts` (FILES-22), `a_new_file_starts_from_the_template_of_its_folder`
 (FILES-19), and the flows in `tests/ui_flows.rs` (FILES-11, FILES-14 to FILES-16, FILES-18).

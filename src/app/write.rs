@@ -26,6 +26,7 @@ impl App {
             }
             "toggle_tree" => self.toggle_tree(),
             "say" => self.start_say(),
+            "review" => self.review_key(),
             "chat" => {
                 self.save();
                 self.toggle_chat();
@@ -110,16 +111,24 @@ impl App {
             self.write_vertical(*delta);
             return false;
         }
+        let prose = !self.editor_path.as_deref().is_some_and(crate::text::code::is_code);
         let e = &mut self.editor;
         match k.code {
             KeyCode::Char(c) if !ctrl => {
                 e.type_char(c);
-                // A line longer than the text column breaks at a word.
-                e.hard_wrap(w);
+                // A line of prose longer than the text column breaks at a word; code only wraps.
+                if prose {
+                    e.hard_wrap(w);
+                }
             }
             KeyCode::Enter => {
                 e.delete_selection();
-                e.split_line(true)
+                // Prose goes on with the list; code keeps the indent of the line.
+                let indent: String = e.lines[e.row].chars().take_while(|c| c.is_whitespace()).collect();
+                e.split_line(prose);
+                if !prose {
+                    e.type_str(&indent);
+                }
             }
             KeyCode::Backspace => e.delete_selection_or(Editor::backspace),
             KeyCode::Delete => e.delete_selection_or(Editor::delete),

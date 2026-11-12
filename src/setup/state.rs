@@ -56,6 +56,9 @@ pub struct FileState {
     pub seen: Option<Snapshot>,
     #[serde(default)]
     pub recap: Option<Recap>,
+    /// The confusing lines of the file, on request.
+    #[serde(default)]
+    pub review: Option<Review>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -74,6 +77,15 @@ pub struct Recap {
     pub at: DateTime<Local>,
     /// Written while Claude was idle (true) or on request (false).
     pub auto: bool,
+}
+
+/// The review of a file: a summary, and the confusing lines (from 0) with why.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Review {
+    pub summary: String,
+    pub lines: Vec<(usize, String)>,
+    pub of_hash: String,
+    pub at: DateTime<Local>,
 }
 
 /// FNV-1a, stable across Rust versions (unlike `DefaultHasher`).

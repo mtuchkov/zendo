@@ -2,8 +2,10 @@
 
 mod meta;
 mod recap;
+mod review;
 
 pub use meta::*;
+pub use review::*;
 
 use crate::agent::Cmd;
 use crate::app::{App, Base, Focus, IDLE, AUTO_PER_HOUR, ENGAGED, Mode, RecapJob, Visit};

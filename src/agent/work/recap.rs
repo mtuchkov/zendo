@@ -1,6 +1,30 @@
 //! Recaps: when they run, and what they keep.
 use super::*;
 
+const RECAP_PROMPT: &str = "Write a recap of this file, for me to read tomorrow morning.\n\
+    Rules: at most 4 short markdown bullets, no preamble, no heading. Do not use tools and do not edit files.\n\
+    1) What the file is about as a whole: what it decides, proposes or does.\n\
+    2) What the changes below do and why they matter: the changes against git HEAD, or else the last commit of the file. Say which one.\n\
+    No open questions.\n\n";
+pub const GIT_CHANGES: &str = "--- changes against git HEAD, not committed ---";
+pub const LAST_COMMIT: &str = "--- no changes against git HEAD; the last commit of the file ---";
+/// The last commit goes to the agent up to this many chars.
+const COMMIT_MAX: usize = 8000;
+
+impl App {
+    /// The last commit that changed the file: its id, date, message and diff, shortened.
+    pub fn last_commit(&self, rel: &str) -> Option<String> {
+        let out = std::process::Command::new("git")
+            .args(["log", "-1", "--date=short", "--format=%h %ad %s%n%b", "-p", "--", rel])
+            .current_dir(&self.cfg.root)
+            .stderr(std::process::Stdio::null())
+            .output()
+            .ok()?;
+        let text = String::from_utf8_lossy(&out.stdout);
+        (out.status.success() && !text.trim().is_empty()).then(|| text.chars().take(COMMIT_MAX).collect())
+    }
+}
+
 impl App {
     /// Recap the note on screen now.
     pub fn recap_now(&mut self) {
@@ -58,7 +82,7 @@ impl App {
         if !self.agent_idle() {
             return;
         }
-        if self.meta_tick() {
+        if self.review_tick() || self.meta_tick() {
             return;
         }
         let (rel, auto) = if let Some(r) = self.recap_queue.pop_front() {
@@ -78,27 +102,26 @@ impl App {
         };
         let path = self.cfg.root.join(&rel);
         let Ok(text) = std::fs::read_to_string(&path) else { return };
-        let prev = self.state.files.get(&rel).and_then(|f| f.recap.clone());
-        let mut prompt = String::from(
-            "Write a recap of this architecture note, for me to read tomorrow morning.\n\
-             Rules: at most 4 short markdown bullets, no preamble, no heading.\n\
-             1) What the note decides or proposes. 2) What changed since the last recap, if a diff is given.\n\
-             3) The one open question that matters most. Do not use tools and do not edit files.\n\n",
-        );
-        prompt.push_str(&format!("Note file: {}\n--- note ---\n{}\n", path.display(), text));
-        if let Some(p) = &prev {
-            let d = delta::unified(&p.of_text, &text, &rel);
-            if d.trim().is_empty() {
-                prompt.push_str("--- no changes since the last recap ---\n");
-            } else {
-                prompt.push_str(&format!("--- changes since the last recap ({}) ---\n{d}\n", p.at.format("%a %H:%M")));
-            }
-        }
+        let prompt = self.recap_prompt(&rel, &path, &text);
         let key = format!("{RECAP_PREFIX}{rel}");
-        self.recap_job = Some(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto, failed: None, meta: None });
+        self.recap_job = Some(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto, failed: None, meta: None, review: false });
         if let Some(a) = &self.agent {
             a.send(Cmd::Prompt { key, known: None, text: prompt, attach: vec![] });
         }
+    }
+
+    /// The recap prompt: the file, and its changes against git HEAD, or else its last commit.
+    fn recap_prompt(&self, rel: &str, path: &std::path::Path, text: &str) -> String {
+        let mut prompt = String::from(RECAP_PROMPT);
+        prompt.push_str(&format!("File: {}\n--- file ---\n{text}\n", path.display()));
+        let head = self.git_head(rel);
+        let d = head.as_deref().map(|h| delta::unified(h, text, rel)).unwrap_or_default();
+        match (head, self.last_commit(rel)) {
+            (Some(_), _) if !d.trim().is_empty() => prompt.push_str(&format!("{GIT_CHANGES}\n{d}\n")),
+            (Some(_), Some(c)) => prompt.push_str(&format!("{LAST_COMMIT}\n{c}\n")),
+            _ => prompt.push_str("--- the file is not in git yet ---\n"),
+        }
+        prompt
     }
 
     /// The recap turn ended: keep the text, drop the throwaway session.
@@ -109,6 +132,9 @@ impl App {
         }
         if job.meta.is_some() {
             return self.meta_done(job);
+        }
+        if job.review {
+            return self.review_done(job);
         }
         let text = job.buf.trim().to_string();
         if let Some(e) = job.failed.filter(|_| text.is_empty()) {

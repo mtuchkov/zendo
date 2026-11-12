@@ -24,7 +24,7 @@ tree,
 `ctrl-←` and `ctrl-→` move the edge of the pane in focus, `alt-=` and `alt--` make the
 text column wider or narrower (kept for the repository). The font size is the terminal's own: most
 terminals change it with `ctrl-+` and `ctrl--`. In read mode: `w` switches the layout,
-`t` switches the theme, `?` shows all keys.
+`t` switches the theme, `f1` (or `?`) shows all keys.
 
 ## Architecturally significant requirements
 
@@ -71,7 +71,8 @@ terminals change it with `ctrl-+` and `ctrl--`. In read mode: `w` switches the l
 | PANES-14 | Event      | When the user turns the mouse wheel, the system shall scroll the pane under the pointer.                                             | Design           |
 | PANES-20 | Event      | When scroll events come faster than one each 40 ms, as from a trackpad, the system shall scroll one line for each event and draw once for all the events that are waiting. | User, 2026-11-12 |
 | PANES-15 | Event      | When the user presses `t`, the system shall show the next of the four themes, and keep the choice.                                   | User, 2026-11-11 |
-| PANES-16 | Event      | When the user presses `?` or `f1`, the system shall show the keys of the pane in focus and the global keys.                         | Design           |
+| PANES-16 | Event      | When the user presses `f1` or `alt-?` in any pane or mode, the system shall show the keys of the pane in focus, or of the mode, and the global keys. | User, 2026-11-12 |
+| PANES-26 | Ubiquitous | The system shall show the key of the help first in the status bar, in every pane and mode.                                          | User, 2026-11-12 |
 | PANES-17 | Ubiquitous | The system shall take the keys of every action of every pane from the default keymap file that it ships, then from the keymap file that the config names, then from `[keys.<pane>]` in the config. | User, 2026-11-11 |
 | PANES-18 | Ubiquitous | The system shall have a key for every action, and no buttons.                                                                         | User, 2026-11-11 |
 | PANES-19 | Unwanted   | If `[keys]` in the config names an unknown pane, action or key, then the system shall keep the default keys and tell the user.       | Design           |

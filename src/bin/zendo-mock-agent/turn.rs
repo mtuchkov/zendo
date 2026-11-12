@@ -57,10 +57,20 @@ async fn scripted(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, t
     if text.contains("You are moving the notes") || text.contains("You are consolidating the notes") {
         return move_notes(cx, sid, text).await.map(Some);
     }
+    if text.contains("that a reader will find confusing") {
+        let line = text.lines().find(|l| l.contains("| ") && l.contains("soon")).and_then(|l| l.split('|').next()).map_or("1", str::trim).to_string();
+        stream(cx, sid, &format!("SUMMARY: The mock agent read the file.\nLINE {line}: \"soon\" says no time.\nEND")).await?;
+        return Ok(Some(StopReason::EndTurn));
+    }
     if text.contains("Write a recap") {
         let title = text.lines().find_map(|l| l.strip_prefix("# ")).unwrap_or("this note").trim().to_string();
-        let changed = if text.contains("--- changes since the last recap") { "Changed since the last recap: one new requirement." } else { "First recap of this note." };
-        stream(cx, sid, &format!("- Decides: {title}.\n- {changed}\n- Open: what is the retention for the log?")).await?;
+        let commit = text.lines().skip_while(|l| !l.starts_with("--- no changes against git HEAD")).nth(1);
+        let changed = match commit {
+            _ if text.contains("--- changes against git HEAD") => "Changes against git HEAD: one new requirement.".to_string(),
+            Some(c) => format!("Last commit: {}.", c.split_whitespace().skip(2).collect::<Vec<_>>().join(" ")),
+            None => "The file is not in git yet.".to_string(),
+        };
+        stream(cx, sid, &format!("- Decides: {title}.\n- {changed}")).await?;
         return Ok(Some(StopReason::EndTurn));
     }
     Ok(None)

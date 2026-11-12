@@ -60,6 +60,7 @@ impl App {
             "tree" => self.toggle_tree(),
             "upgrade" => self.upgrade(),
             "recap" => self.recap_now(),
+            "review" => self.review_key(),
             "recap_toggle" => {
                 self.state.show_recap = !self.state.show_recap;
                 self.state.save(&self.cfg.root);

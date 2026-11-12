@@ -31,7 +31,7 @@ pub(crate) fn draw_themes(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     f.render_widget(Paragraph::new(lines), inner);
 }
 
-/// All keys of the pane where `?` was pressed, and the global keys, from the keymap.
+/// All keys of the pane where the help key was pressed, and the global keys, from the keymap.
 pub(crate) fn draw_help(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     use crate::keys::{ACTIONS, Pane};
     let pane = app.help_pane;
@@ -50,7 +50,7 @@ pub(crate) fn draw_help(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     }
     items.push(Line::raw(""));
     items.push(head(Pane::Global));
-    for a in ACTIONS.iter().filter(|a| a.pane == Pane::Global) {
+    for a in ACTIONS.iter().filter(|a| a.pane == Pane::Global && pane != Pane::Global) {
         items.push(row(Pane::Global, a.name, a.help));
     }
     items.push(Line::raw(""));

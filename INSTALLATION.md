@@ -103,7 +103,7 @@ Everything works the same, except the hand-off to the command line (`ctrl-o`): i
 
 ## Keys
 
-Every key of every pane is in the keymap; `?` (or `f1`) shows the keys of the pane you are in. zendo
+Every key of every pane is in the keymap; `f1` (or `alt-?`, and `?` in read mode) shows the keys of the pane or mode you are in; GNOME Terminal takes `f1` for its own help unless you turn that shortcut off. zendo
 ships its default keys as a file. To make your own keymap, start from it and name it in the config:
 
 ```sh

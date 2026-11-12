@@ -3,7 +3,10 @@ use super::*;
 
 pub(crate) fn draw_status(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     let claude = app.panel && app.focus == Focus::Claude && matches!(app.mode, Mode::Read | Mode::Write);
-    let (badge, color, keys) = status_keys(app, t, claude);
+    let (badge, color, mut keys) = status_keys(app, t, claude);
+    // The key of the help, in every pane and mode, first: it is always on the screen.
+    keys.retain(|(_, v)| v != "keys");
+    keys.insert(0, (app.keys.first(crate::keys::Pane::Global, "help"), "keys".into()));
     let mut spans = vec![Span::raw("  "), Span::styled(format!(" {badge} "), Style::new().bg(color).fg(t.bg).add_modifier(Modifier::BOLD)), Span::raw("  ")];
     for (k, v) in keys {
         spans.push(Span::styled(k, Style::new().fg(t.fg)));

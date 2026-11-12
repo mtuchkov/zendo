@@ -7,6 +7,14 @@ mod select;
 
 use unicode_width::UnicodeWidthChar;
 
+/// A tab shows as this many spaces.
+pub const TAB_WIDTH: usize = 4;
+
+/// The columns of a char on the screen: a tab is TAB_WIDTH.
+pub fn char_width(c: char) -> usize {
+    if c == '\t' { TAB_WIDTH } else { c.width().unwrap_or(0) }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct Editor {
     pub lines: Vec<String>,
@@ -103,7 +111,7 @@ impl Editor {
             }
         }
         let s = segs[best];
-        let x = chars[s.start..self.col.min(chars.len()).max(s.start)].iter().map(|c| c.width().unwrap_or(0)).sum();
+        let x = chars[s.start..self.col.min(chars.len()).max(s.start)].iter().map(|c| char_width(*c)).sum();
         (best, x)
     }
 }
@@ -122,7 +130,7 @@ pub fn wrap_line(line: &str, width: usize) -> Vec<(usize, usize)> {
         let mut end = start;
         let mut last_space = None;
         while end < chars.len() {
-            let cw = chars[end].width().unwrap_or(0);
+            let cw = char_width(chars[end]);
             if w + cw > width { break }
             if chars[end] == ' ' { last_space = Some(end) }
             w += cw;

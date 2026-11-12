@@ -31,6 +31,10 @@ impl App {
             self.mode = self.back;
             return;
         }
+        // f1 shows the keys of the pane or the mode, from everywhere.
+        if self.keys.local(Pane::Global, &k) == Some("help") {
+            return self.open_help(self.help_pane_now());
+        }
         if self.file_prompt.is_some() {
             return self.key_file_prompt(k);
         }
@@ -104,6 +108,15 @@ impl App {
             _ => return false,
         }
         true
+    }
+
+    /// The pane whose keys the help shows: the pane in focus, the notes list, or only the global keys.
+    fn help_pane_now(&self) -> crate::keys::Pane {
+        match self.mode {
+            Mode::Read | Mode::Write => self.key_pane(),
+            Mode::Notes => crate::keys::Pane::Notes,
+            _ => crate::keys::Pane::Global,
+        }
     }
 
     pub fn open_help(&mut self, pane: crate::keys::Pane) {

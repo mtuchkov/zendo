@@ -23,38 +23,52 @@ pub(crate) fn note_head(app: &App, note: &Note, width: usize, t: &Theme, title: 
     lines.extend(markdown::wrap(meta, width, "", ""));
     lines.push(Line::raw(""));
     lines.extend(recap_lines(app, note, width, t));
+    lines.extend(review_lines(app, note, width, t));
     lines
 }
 
 pub(crate) fn read_lines(app: &App, note: &Note, width: usize, t: &Theme) -> (Vec<Line<'static>>, Vec<usize>, Vec<usize>) {
-    let mut lines = note_head(app, note, width, t, title_rows(&note.title, width, t));
+    let lines = note_head(app, note, width, t, title_rows(&note.title, width, t));
     let head = lines.len();
 
     // A pending edit to this note shows inline, marked.
-    let key = app.key();
-    let proposal = app.threads.get(&key).and_then(|th| {
-        th.items.iter().rev().find_map(|it| match it {
-            Item::Proposal { diffs, state: Answered::Pending, .. } => diffs.iter().find(|d| d.path == note.path).cloned(),
-            _ => None,
-        })
-    });
+    let proposal = pending_edit(app, &note.path);
+    if proposal.is_none() && code::is_code(&note.path) {
+        let body: Vec<String> = note.body.lines().map(str::to_string).collect();
+        return with_head(lines, head, code::render(&body, &code::lang_of(&note.path), width, t));
+    }
     let mut src = match proposal {
         Some(d) => markdown::diff_lines(d.old.as_deref().unwrap_or(&note.body), &d.new),
         None => markdown::plain(&note.body),
     };
-    // A file that is not markdown (code, a .toml) shows as code, in the colors of its language.
-    let ext = note.path.extension().map(|e| e.to_string_lossy().into_owned()).unwrap_or_default();
-    if ext != "md" {
-        let lang = if ext.is_empty() { note.path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default() } else { ext };
-        src.insert(0, (format!("```{lang} {}", markdown::FILE_FENCE), Mark::None));
+    // A code file with a proposal shows the diff as a code block.
+    if code::is_code(&note.path) {
+        src.insert(0, (format!("```{} {}", code::lang_of(&note.path), markdown::FILE_FENCE), Mark::None));
         src.push(("```".into(), Mark::None));
     }
-    let r = markdown::render(&src, width, t, true);
+    with_head(lines, head, markdown::render(&src, width, t, true))
+}
+
+/// The head lines, then the text; the rows of the source lines and the words count the head too.
+fn with_head(mut lines: Vec<Line<'static>>, head: usize, r: markdown::Rendered) -> (Vec<Line<'static>>, Vec<usize>, Vec<usize>) {
     let rows = r.rows.iter().map(|x| x + head).collect();
     let mut words = vec![0; head];
     words.extend(r.words);
     lines.extend(r.lines);
     (lines, rows, words)
+}
+
+/// The edit to this file that waits for the answer of the user.
+fn pending_edit(app: &App, path: &std::path::Path) -> Option<crate::agent::DiffView> {
+    app.threads.get(&app.key())?.items.iter().rev().find_map(|it| match it {
+        Item::Proposal { diffs, state: Answered::Pending, .. } => diffs.iter().find(|d| d.path == path).cloned(),
+        _ => None,
+    })
+}
+
+/// The file shows as code with line numbers: it is not markdown, and no edit to it waits.
+pub(crate) fn shows_code(app: &App, path: &std::path::Path) -> bool {
+    code::is_code(path) && pending_edit(app, path).is_none()
 }
 
 /// The recap block under the title, when there is one.
@@ -104,19 +118,14 @@ pub fn source_rows(app: &App, width: usize) -> Vec<usize> {
 }
 
 pub(crate) fn draw_read(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
-    let col = column(area, app.column_width());
-    app.text_width = col.width as usize;
-    let Some(note) = app.note().cloned() else {
-        let msg = vec![
-            Line::styled("No notes yet.", Style::new().fg(t.fg).add_modifier(Modifier::BOLD)),
-            Line::raw(""),
-            Line::styled(format!("Press n to write the first one. It goes to {}.", app.rel(&app.cfg.notes_dir)), Style::new().fg(t.dim)),
-            Line::styled("Press c to talk to Claude, ? for keys.", Style::new().fg(t.dim)),
-        ];
-        let y = col.y + col.height / 3;
-        f.render_widget(Paragraph::new(msg), Rect { y, height: col.height.saturating_sub(y - col.y), ..col });
-        return;
+    let note = app.note().cloned();
+    let code = note.as_ref().is_some_and(|n| shows_code(app, &n.path));
+    let (gut, col) = match &note {
+        Some(n) if code => code_column(area, n.body.lines().count()),
+        _ => (Rect::default(), column(area, app.column_width())),
     };
+    app.text_width = col.width as usize;
+    let Some(note) = note else { return draw_no_notes(f, app, t, col) };
     app.regions.push((crate::text::select::Region::Note, col));
     let (lines, rows, words) = read_lines(app, &note, col.width as usize, t);
     app.word_limit = app.word_limit_for(&note.path);
@@ -147,8 +156,21 @@ pub(crate) fn draw_read(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let active = app.mode == Mode::Read && app.focus == Focus::Note;
     let len = app.read_text.get(app.read_cursor).map_or(0, |r| r.trim_end().chars().count());
     app.read_col = app.read_col.min(len.saturating_sub(1));
-    let view: Vec<Line> = lines.into_iter().enumerate().skip(app.scroll).take(h).map(|(i, l)| if active { mark_row(app, t, i, l, col.width as usize) } else { l }).collect();
+    let marks = confusing_rows(app, &app.rel(&note.path), &note.body, &app.read_rows, lines.len());
+    let w = col.width as usize;
+    let view: Vec<Line> = lines
+        .into_iter()
+        .enumerate()
+        .skip(app.scroll)
+        .take(h)
+        .map(|(i, l)| if marks.contains(&i) { tint(l, confusing(t), w) } else { l })
+        .zip(app.scroll..)
+        .map(|(l, i)| if active { mark_row(app, t, i, l, w) } else { l })
+        .collect();
     f.render_widget(Paragraph::new(view), col);
+    if code {
+        draw_gutter(f, t, gut, &app.read_rows, app.scroll, active.then_some(app.read_cursor));
+    }
     if let Some(row) = say_row_read(app, &note) {
         say_arrow(f, app, t, area, col, row);
     }
@@ -158,6 +180,18 @@ pub(crate) fn draw_read(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
         let x: usize = row.chars().take(app.read_col).map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
         f.set_cursor_position((col.x + (x as u16).min(col.width.saturating_sub(1)), col.y + (app.read_cursor - app.scroll) as u16));
     }
+}
+
+/// The read pane when there is no note.
+fn draw_no_notes(f: &mut Frame, app: &App, t: &Theme, col: Rect) {
+    let msg = vec![
+        Line::styled("No notes yet.", Style::new().fg(t.fg).add_modifier(Modifier::BOLD)),
+        Line::raw(""),
+        Line::styled(format!("Press n to write the first one. It goes to {}.", app.rel(&app.cfg.notes_dir)), Style::new().fg(t.dim)),
+        Line::styled("Press c to talk to Claude, f1 for keys.", Style::new().fg(t.dim)),
+    ];
+    let y = col.y + col.height / 3;
+    f.render_widget(Paragraph::new(msg), Rect { y, height: col.height.saturating_sub(y - col.y), ..col });
 }
 
 /// The cursor line and the selection on one row.

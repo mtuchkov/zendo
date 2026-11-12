@@ -16,7 +16,7 @@
 quit = ["ctrl-q", "ctrl-c"]  # quit
 toggle_tree = ["alt-b", "ctrl-shift-b"]  # file tree
 next_pane = ["tab"]  # next pane
-help = ["f1"]  # the keys of this pane
+help = ["f1", "alt-?"]  # the keys of this pane
 wider = ["alt-="]  # a wider text column
 narrower = ["alt--"]  # a narrower text column
 edge_left = ["ctrl-left"]  # move the edge of the pane in focus
@@ -48,6 +48,7 @@ delta = ["d"]  # delta
 tree = ["e"]  # file tree
 recap = ["r"]  # recap now
 recap_toggle = ["R"]  # show / hide the recap
+review = ["ctrl-r"]  # twice: Claude marks the confusing lines and sums up the file
 layout = ["w"]  # standard / wide screen
 theme = ["t"]  # theme
 help = ["?"]  # all keys
@@ -67,6 +68,7 @@ say = ["alt-s", "ctrl-shift-s"]  # here is what I want to say: the agent writes 
 chat = ["ctrl-g", "ctrl-shift-c"]  # chat on / off: saves first
 add_to_chat = ["alt-a", "ctrl-shift-a"]  # add the selection, or the line, to the chat
 delta = ["ctrl-d"]  # delta
+review = ["ctrl-r"]  # twice: Claude marks the confusing lines and sums up the file
 toggle_tree = ["alt-b", "ctrl-shift-b", "ctrl-e"]  # file tree
 bold = ["ctrl-b"]  # **bold** the selection or the word
 italic = ["ctrl-i", "alt-i"]  # *italic* the selection or the word

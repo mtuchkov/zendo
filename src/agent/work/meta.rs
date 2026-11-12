@@ -51,7 +51,7 @@ impl App {
             .replace("{{FILE}}", &rel)
             .replace("{{TEXT}}", &text);
         let key = format!("{RECAP_PREFIX}meta {rel}");
-        self.recap_job = Some(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto: true, failed: None, meta: Some(meta) });
+        self.recap_job = Some(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto: true, failed: None, meta: Some(meta), review: false });
         if let Some(a) = &self.agent {
             a.send(Cmd::Prompt { key, known: None, text: prompt, attach: vec![] });
         }

@@ -2,24 +2,28 @@
 
 pub mod theme;
 mod chat;
+mod code_pane;
 mod delta_pane;
 mod layout;
 mod lists;
 mod overlays;
 mod paint;
 mod read;
+mod review;
 mod status;
 mod thread;
 mod tree;
 mod write;
 
 use chat::*;
+use code_pane::*;
 use delta_pane::*;
 pub use layout::*;
 use lists::*;
 use overlays::*;
 pub use paint::*;
 pub use read::*;
+use review::*;
 use status::*;
 pub use thread::*;
 use tree::*;
@@ -28,6 +32,7 @@ use write::*;
 use crate::app::{ALL_KEY, Answered, App, Focus, Item, Mode};
 use crate::docs::delta;
 use crate::text::select::Region;
+use crate::text::code;
 use crate::text::markdown::{self, Mark};
 use crate::docs::notes::Note;
 use crate::ui::theme::{THEMES, Theme};

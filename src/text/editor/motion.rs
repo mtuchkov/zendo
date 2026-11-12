@@ -50,7 +50,7 @@ impl Editor {
         let mut w = 0;
         let mut col = seg.start;
         while col < seg.end {
-            let cw = chars[col].width().unwrap_or(0);
+            let cw = char_width(chars[col]);
             if w + cw > x { break }
             w += cw;
             col += 1;

@@ -2,7 +2,6 @@
 //! the end of one source line and the start of the next; the row with the cursor shows its span as
 //! source, so the wrap of the paragraph stays as in read mode.
 use super::*;
-use unicode_width::UnicodeWidthChar;
 
 /// One row on the screen and the source chars on it. The end of a source line inside the row is a
 /// space at the position after its last char.
@@ -52,14 +51,14 @@ impl RowSpan {
 
     /// The column of a source position on the row.
     pub fn x_of(&self, pos: (usize, usize)) -> usize {
-        self.indent + self.chars.iter().take_while(|(p, _)| *p < pos).map(|(_, ch)| ch.width().unwrap_or(0)).sum::<usize>()
+        self.indent + self.chars.iter().take_while(|(p, _)| *p < pos).map(|(_, ch)| crate::text::editor::char_width(*ch)).sum::<usize>()
     }
 
     /// The source position at a column: the char there, or the last place on the row.
     pub fn at_x(&self, x: usize) -> (usize, usize) {
         let mut w = self.indent;
         for (p, ch) in &self.chars {
-            let cw = ch.width().unwrap_or(0);
+            let cw = crate::text::editor::char_width(*ch);
             if w + cw > x {
                 return *p;
             }
