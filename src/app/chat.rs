@@ -231,8 +231,11 @@ impl App {
             all.extend(ctx);
             self.ask_context = Some(all.join("\n"));
         }
-        if q.trim().is_empty() && self.ask_context.is_some() {
-            q = self.ask_default.take().unwrap_or_else(|| DELTA_QUESTION.into());
+        // Only chips, or nothing: the default question goes after the chips.
+        let bare = chips::chip_ranges(&q).into_iter().rev().fold(q.clone(), |t, (a, b)| t.chars().take(a).chain(t.chars().skip(b)).collect());
+        if bare.trim().is_empty() && self.ask_context.is_some() {
+            let default = self.ask_default.take().unwrap_or_else(|| DELTA_QUESTION.into());
+            q = format!("{} {default}", q.trim()).trim().to_string();
         }
         let scope = self.scope();
         self.ask(q, scope);

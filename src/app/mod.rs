@@ -27,7 +27,7 @@ pub mod write_rows;
 
 pub use at::{AT_ROWS, AtPick};
 pub use file_prompt::FilePrompt;
-pub use say::Say;
+pub use say::{SAY_HERE, Say};
 pub use slash::Slash;
 pub use thread::*;
 pub use transcript::{CHAT_MARK, Transcript};

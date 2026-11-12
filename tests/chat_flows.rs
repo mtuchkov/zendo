@@ -156,3 +156,21 @@ async fn tab_goes_to_the_transcript_to_select_copy_and_add() {
     assert!(!a.transcript.on, "esc: back to the input");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// NOTE-25, NOTE-33: say here puts a chip with the line of the mark in the input; sent alone, it
+// asks the default question.
+#[tokio::test]
+async fn say_here_is_a_chip_with_the_line_and_sends_a_default_question() {
+    let root = repo("chat-say", &files());
+    let mut a = app(&root);
+    a.open_file(root.join(A));
+    draw(&mut a, 140, 30);
+    a.read_cursor = a.read_text.iter().position(|r| r.contains("one")).unwrap();
+    a.on_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::ALT));
+    assert_eq!(a.input.text(), "⟦write here :3⟧ ");
+    key(&mut a, KeyCode::Enter);
+    until(&mut a, |a| a.threads.get(CHAT_KEY).is_some_and(|t| !t.items.is_empty())).await;
+    let asked = a.threads[CHAT_KEY].items.iter().find_map(|i| if let Item::User(s) = i { Some(s.clone()) } else { None }).unwrap();
+    assert_eq!(asked, format!("⟦write here :3⟧ {}", zendo::app::SAY_HERE));
+    let _ = std::fs::remove_dir_all(&root);
+}

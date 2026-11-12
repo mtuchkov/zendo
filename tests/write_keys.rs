@@ -55,7 +55,7 @@ async fn alt_a_s_b_work_in_read_and_write_mode() {
         a.input.take();
         a.focus = Focus::Note;
         alt(&mut a, 's');
-        assert!(a.say.is_some() && a.input.text().starts_with("Here is what I want to say here: "), "alt-s, write {write}");
+        assert!(a.say.is_some() && a.input.text().starts_with("⟦write here :"), "alt-s, write {write}");
         a.say = None;
         a.input.take();
         a.focus = Focus::Note;

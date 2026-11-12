@@ -14,8 +14,14 @@ pub struct Say {
     pub rewrite: bool,
 }
 
-pub const SAY_HERE: &str = "Here is what I want to say here: ";
-pub const SAY_DIFFERENTLY: &str = "I want to say differently here: ";
+/// The question when the user sends the chip of say here alone.
+pub const SAY_HERE: &str = "Write here what fits between the paragraph above and the paragraph below.";
+pub const SAY_DIFFERENTLY: &str = "Write the selected text again, clearer and shorter.";
+
+/// The chip of say here: what the agent does, and the line of the mark, as `write here :386`.
+pub fn say_label(rewrite: bool, line: usize) -> String {
+    format!("{} :{}", if rewrite { "rewrite this" } else { "write here" }, line + 1)
+}
 
 fn blank(lines: &[&str], i: usize) -> bool {
     lines.get(i).is_none_or(|l| l.trim().is_empty())
@@ -101,10 +107,12 @@ impl App {
         self.read_anchor = None;
         self.open_panel();
         self.say = Some(Say { path, line: mark.0, col: mark.1, key: self.key(), rewrite });
-        self.ask_context = Some(ctx);
         self.ask_about = if rewrite { "the selection" } else { "the mark" };
+        self.ask_default = Some((if rewrite { SAY_DIFFERENTLY } else { SAY_HERE }).to_string());
         self.input.take();
-        self.input.type_str(if rewrite { SAY_DIFFERENTLY } else { SAY_HERE });
+        self.chips.clear();
+        // The chip brings the place and the task; the user writes the idea after it.
+        self.add_chip(say_label(rewrite, mark.0), Some(format!("{ctx}\nThe idea of the user is the question.")), None, false);
         self.focus = Focus::Claude;
     }
 

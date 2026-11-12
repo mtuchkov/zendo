@@ -137,7 +137,7 @@ async fn at_adds_a_file_chip_that_moves_and_goes_as_one() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// NOTE-25, NOTE-27: ctrl-shift-s shows the arrow and starts the sentence; the end of the answer removes it.
+// NOTE-25, NOTE-27: ctrl-shift-s shows the arrow and puts the chip of the place in the input; the end of the answer removes it.
 #[tokio::test]
 async fn say_marks_the_place_until_the_answer_ends() {
     let root = repo("flow-say", &files());
@@ -145,7 +145,8 @@ async fn say_marks_the_place_until_the_answer_ends() {
     draw(&mut a, 120, 30);
     a.read_cursor = a.read_text.iter().position(|r| r.starts_with("The first")).unwrap();
     ctrl_shift(&mut a, 's');
-    assert!(a.input.text().starts_with("Here is what I want to say here: "));
+    assert_eq!(a.input.text(), "⟦write here :3⟧ ", "a chip with the line of the mark");
+    assert!(a.chips[0].context.as_deref().is_some_and(|c| c.contains("line 3")));
     a.focus = Focus::Note;
     let screen = draw(&mut a, 120, 30);
     let row = screen.iter().find(|r| r.contains("The first paragraph")).unwrap();
@@ -248,7 +249,7 @@ async fn say_and_add_to_chat_work_in_write_mode() {
     key(&mut a, KeyCode::Char('i'));
     draw(&mut a, 120, 30);
     ctrl_shift(&mut a, 's');
-    assert!(a.input.text().starts_with("Here is what I want to say here: "), "{}", a.input.text());
+    assert!(a.input.text().starts_with("⟦write here :3⟧"), "{}", a.input.text());
     a.focus = Focus::Note;
     let screen = draw(&mut a, 120, 30);
     let row = screen.iter().find(|r| r.contains("The first paragraph")).unwrap();
