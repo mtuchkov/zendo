@@ -295,3 +295,26 @@ async fn alt_shift_selects_words_in_read_mode_and_the_chat() {
     assert_eq!(a.input.selected_text().as_deref(), Some("two"));
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// NOTE-18, PANES: ctrl-shift-c or ctrl-g in write mode saves and opens the chat pane beside the text.
+#[tokio::test]
+async fn ctrl_shift_c_opens_the_chat_in_write_mode() {
+    let root = repo("flow-write-chat", &files());
+    let mut a = app(&root);
+    draw(&mut a, 140, 30);
+    key(&mut a, KeyCode::Char('i'));
+    draw(&mut a, 140, 30);
+    ctrl_shift(&mut a, 'c');
+    let screen = draw(&mut a, 140, 30);
+    assert!(a.panel, "the chat is open");
+    assert_eq!(a.focus, Focus::Claude);
+    assert!(screen.iter().any(|r| r.contains("The first paragraph")), "the text stays: {screen:#?}");
+    assert!(screen.iter().rev().any(|r| r.contains("AGENT")), "the chat pane: {screen:#?}");
+    key(&mut a, KeyCode::Esc);
+    assert_eq!(a.focus, Focus::Note, "esc goes back to the text");
+    assert_eq!(a.mode, zendo::app::Mode::Write, "still writing");
+    assert!(!a.panel, "esc with an empty input closes the chat");
+    ctrl(&mut a, 'g');
+    assert!(a.panel && a.focus == Focus::Claude, "ctrl-g opens it in any terminal");
+    let _ = std::fs::remove_dir_all(&root);
+}

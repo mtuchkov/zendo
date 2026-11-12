@@ -28,7 +28,7 @@ matches the chars of the formatted text with the chars of the source and skips t
 
 `ctrl-shift-h j k l`, `ctrl-shift` and the arrows, and Shift and the arrows select (`alt-shift` and
 an arrow: a word); `ctrl-shift-s` says it here, `ctrl-shift-a` adds the
-selection or the line to the chat, `ctrl-shift-c` saves and opens the chat; `ctrl-c`, `ctrl-x` and `ctrl-v` copy, cut and
+selection or the line to the chat, `ctrl-shift-c` or `ctrl-g` (in any terminal) saves and opens the chat; `ctrl-c`, `ctrl-x` and `ctrl-v` copy, cut and
 paste with the system clipboard; `ctrl-b`, `ctrl-i` and `ctrl-u` make the selection or the word
 bold, italic or underlined. When the user leaves write mode, and the file has no `# ` title, or it
 is a doc outside the notes folder without front matter, the agent writes the missing part in a
