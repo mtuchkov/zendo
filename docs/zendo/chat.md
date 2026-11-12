@@ -4,14 +4,14 @@ revision: "1"
 date: "2026-11-12"
 parent: "zendo.md"
 prev: "sessions.md"
-next: "project-structure.md"
+next: "terminal.md"
 level: "the chat input: lines, chips, attachments and @ file suggestions"
 note: "Agent draft, split from claude.md. Not reviewed by the user."
 ---
 
 # Chat
 
-The chat input is where the user writes to the agent. The connection, threads and proposals are in
+The chat input is where the user writes to the agent. The connection, threads and edits are in
 [Claude](claude.md).
 
 **The chat input** is an editor: the arrows and the word keys move in it, every word can change.

@@ -22,9 +22,9 @@ selection again clearer and shorter. The arrow goes away when the answer ends, o
 `esc` in the chat or in the note.
 
 The agent gets the place (the file and the line), the quoted paragraphs, and the task: connect the
-idea with the text around it, keep the style and the level of detail of the document, and propose
-one edit that changes nothing else. The edit comes back as a proposal, as every edit does (see
-[Claude](claude.md)). The note pane is in [Notes](notes.md).
+idea with the text around it, keep the style and the level of detail of the document, and make
+one edit that changes nothing else. zendo allows the edit at once, as
+every edit (see [Claude](claude.md)). The note pane is in [Notes](notes.md).
 
 ## Detailed requirements
 

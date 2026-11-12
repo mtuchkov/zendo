@@ -15,28 +15,36 @@ pub(crate) fn kind_verb(kind: &str) -> &str {
     }
 }
 
-pub(crate) fn panel_lines(app: &App, t: &Theme, w: usize) -> Vec<Line<'static>> {
+/// The shell blocks of a thread: their first row, the row after them, their command.
+pub(crate) type Blocks = Vec<(usize, usize, String)>;
+
+pub(crate) fn panel_lines(app: &App, t: &Theme, w: usize) -> (Vec<Line<'static>>, Blocks) {
     let key = app.key();
     let dim = Style::new().fg(t.dim);
     let Some(th) = app.threads.get(&key).filter(|th| !th.items.is_empty() || th.busy.is_some()) else {
         let mut out = empty_thread(app, &app.scope(), dim, w);
         out.extend(cli_line(app, t));
-        return out;
+        return (out, Vec::new());
     };
     let mut out: Vec<Line<'static>> = Vec::new();
+    let mut blocks = Blocks::new();
     for it in &th.items {
         match it {
             Item::User(s) => out.extend(user_lines(question_of(s), t, w)),
-            Item::Agent(s) => out.extend(agent_lines(s, t, w)),
+            Item::Agent(s) => {
+                let (lines, b) = agent_blocks(s, t, w);
+                let base = out.len();
+                blocks.extend(b.into_iter().map(|(a, z, c)| (a + base, z + base, c)));
+                out.extend(lines);
+            }
             Item::Tools { uses, started, took } => out.extend(tool_lines(app, uses, took.unwrap_or_else(|| started.elapsed()), dim, w)),
-            Item::Proposal { title, diffs, choices, state, .. } => out.extend(proposal_lines(title, diffs, choices, state, t, w)),
             Item::Blocked(s) => out.extend(markdown::wrap(vec![Span::styled(format!("blocked a shell command: {s}"), dim)], w, "", "")),
             Item::Info(s) => out.push(Line::styled(s.clone(), dim.add_modifier(Modifier::ITALIC))),
             Item::Error(s) => out.extend(markdown::wrap(vec![Span::styled(s.clone(), Style::new().fg(t.del))], w, "", "")),
         }
         out.push(Line::raw(""));
     }
-    if let Some(start) = th.busy.filter(|_| th.pending().is_none()) {
+    if let Some(start) = th.busy {
         let e = start.elapsed();
         let word = if th.thinking { "thinking" } else { "working" };
         out.push(Line::styled(format!("{word} {} {} s", SPIN[(e.as_millis() / 300) as usize % 4], e.as_secs()), dim));
@@ -45,7 +53,43 @@ pub(crate) fn panel_lines(app: &App, t: &Theme, w: usize) -> Vec<Line<'static>> 
         out.extend(markdown::wrap(vec![Span::styled(format!("queued › {}", question_of(&q.question)), dim)], w, "", "         "));
     }
     out.extend(cli_line(app, t));
-    out
+    (out, blocks)
+}
+
+/// The play button of a shell block: green, at the right end of its first row (TERM-8).
+pub(crate) const PLAY: &str = "▶";
+
+/// The play button at the right end of `l`: the padding of a code block gives way to it.
+fn put_play(l: &mut Line<'static>, t: &Theme, w: usize) {
+    let used = |l: &Line| l.spans.iter().map(|s| s.content.width()).sum::<usize>();
+    while used(l) + 2 > w {
+        let Some(last) = l.spans.last_mut() else { break };
+        let text = last.content.to_string();
+        let Some(cut) = text.strip_suffix(' ') else { break };
+        last.content = cut.to_string().into();
+    }
+    let pad = w.saturating_sub(used(l) + 2);
+    l.spans.push(Span::styled(" ".repeat(pad), l.spans.last().map(|s| s.style).unwrap_or_default()));
+    l.spans.push(Span::styled(PLAY, Style::new().fg(t.add).add_modifier(Modifier::BOLD)));
+}
+
+/// A message of the agent with a play button on each shell block, and the rows of the blocks.
+fn agent_blocks(s: &str, t: &Theme, w: usize) -> (Vec<Line<'static>>, Blocks) {
+    let on_panel = Theme { panel: t.bg, ..*t };
+    let src = s.trim_end();
+    let r = markdown::render(&markdown::plain(src), w, &on_panel, false);
+    let mut lines = r.lines;
+    let n = lines.len();
+    let row = |i: usize| r.rows.get(i).copied().unwrap_or(n);
+    let mut blocks = Blocks::new();
+    for b in crate::text::shell::blocks(src) {
+        let (first, end) = (row(b.fence), row(b.close).max(row(b.fence) + 1));
+        if let Some(l) = lines.get_mut(first) {
+            put_play(l, t, w);
+        }
+        blocks.push((first, end.min(n), b.command));
+    }
+    (lines, blocks)
 }
 
 /// The state of the Claude Code session of the agent session in the chat (SESSIONS-20).
@@ -94,7 +138,7 @@ fn empty_thread(app: &App, key: &str, dim: Style, w: usize) -> Vec<Line<'static>
     for s in [
         format!("Ask about {what}."),
         String::new(),
-        format!("{who} reads {reads}. An edit comes back as a proposal: nothing is written until you press a."),
+        format!("{who} reads {reads}, and edits files without a question."),
         String::new(),
         "Shell commands are blocked.".to_string(),
     ] {
@@ -119,76 +163,6 @@ fn tool_lines(app: &App, uses: &[crate::app::ToolUse], took: std::time::Duration
     if app.details {
         for u in uses {
             out.extend(markdown::wrap(vec![Span::styled(u.title.clone(), dim)], w, "  · ", "    "));
-        }
-    }
-    out
-}
-
-/// A proposal: its title, the diffs, and the keys or the answer.
-fn proposal_lines(title: &str, diffs: &[crate::agent::DiffView], choices: &[crate::agent::Choice], state: &Answered, t: &Theme, w: usize) -> Vec<Line<'static>> {
-    let dim = Style::new().fg(t.dim);
-    let mut out = markdown::wrap(vec![Span::styled(title.to_string(), dim)], w, "", "");
-    for d in diffs {
-        out.extend(diff_box(d.old.as_deref().unwrap_or(""), &d.new, w, t));
-    }
-    if diffs.is_empty() {
-        out.push(Line::styled("Claude asks to run this tool.", Style::new().fg(t.fg)));
-    }
-    let key = |k: &str, label: &str| vec![Span::styled(k.to_string(), Style::new().fg(t.fg).add_modifier(Modifier::BOLD)), Span::styled(format!(" {label}   "), dim)];
-    match state {
-        Answered::Pending => {
-            let mut spans = key("a", if diffs.is_empty() { "allow" } else { "apply" });
-            if choices.iter().any(|c| c.allow && c.always) {
-                spans.extend(key("A", "always"));
-            }
-            if !diffs.is_empty() {
-                spans.extend(key("e", "edit first"));
-            }
-            spans.extend(key("x", "discard"));
-            out.push(Line::from(spans));
-        }
-        Answered::Applied => out.push(Line::styled("applied", Style::new().fg(t.add))),
-        Answered::Discarded => out.push(Line::styled("discarded", dim)),
-        Answered::EditFirst => out.push(Line::styled("you are editing it", Style::new().fg(t.acc2))),
-    }
-    out
-}
-
-/// Changed lines with one line of context, in a box.
-pub(crate) fn diff_box(old: &str, new: &str, w: usize, t: &Theme) -> Vec<Line<'static>> {
-    let d = markdown::diff_lines(old, new);
-    let changed: Vec<bool> = d.iter().map(|(_, m)| *m != Mark::None).collect();
-    let near = |i: usize| (i.saturating_sub(1)..=(i + 1).min(d.len().saturating_sub(1))).any(|j| changed.get(j) == Some(&true));
-    let fill = Style::new().bg(t.bg);
-    let mut out = Vec::new();
-    let mut gap = false;
-    for (i, (text, mark)) in d.iter().enumerate() {
-        if !near(i) {
-            gap = true;
-            continue;
-        }
-        if gap && !out.is_empty() {
-            out.push(Line::styled(" …", Style::new().fg(t.dim).bg(t.bg)));
-        }
-        gap = false;
-        // Show list dashes as bullets, so they do not read as removed lines.
-        let text = match text.trim_start().strip_prefix("- ") {
-            Some(rest) => format!("{}• {rest}", &text[..text.len() - text.trim_start().len()]),
-            None => text.clone(),
-        };
-        let (p, style) = match mark {
-            Mark::Added => ("+ ", Style::new().fg(t.add)),
-            Mark::Removed => ("- ", Style::new().fg(t.del)),
-            Mark::None => ("  ", Style::new().fg(t.dim)),
-        };
-        for l in markdown::wrap(vec![Span::styled(text, style)], w.saturating_sub(2), &format!(" {p}"), "   ") {
-            let mut l = l.style(fill);
-            if let Some(first) = l.spans.first_mut() {
-                first.style = style;
-            }
-            let used: usize = l.spans.iter().map(|s| s.content.width()).sum();
-            l.spans.push(Span::raw(" ".repeat(w.saturating_sub(used))));
-            out.push(l);
         }
     }
     out

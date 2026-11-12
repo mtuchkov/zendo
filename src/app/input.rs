@@ -95,6 +95,8 @@ impl App {
             }
             "toggle_tree" => self.toggle_tree(),
             "next_session" => self.switch_session(self.state.session + 1),
+            "terminal" => self.terminal_key(false),
+            "terminal_run" => self.terminal_key(true),
             s if s.starts_with("session_") => self.switch_session(s[8..].parse::<usize>().map_or(0, |n| n - 1)),
             "wider" => self.change_width(4),
             "narrower" => self.change_width(-4),

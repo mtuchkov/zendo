@@ -147,40 +147,6 @@ impl App {
         if rules.is_empty() { rules } else { rules + "\n" }
     }
 
-    pub fn answer(&mut self, how: char) {
-        let key = self.key();
-        let Some((i, request)) = self.threads.get(&key).and_then(|t| t.pending()) else { return };
-        let Item::Proposal { choices, diffs, .. } = &self.threads[&key].items[i] else { return };
-        let allow_once = choices.iter().find(|c| c.allow && !c.always).or_else(|| choices.iter().find(|c| c.allow));
-        let allow_always = choices.iter().find(|c| c.allow && c.always);
-        let reject = choices.iter().find(|c| !c.allow && !c.always).or_else(|| choices.iter().find(|c| !c.allow));
-        let (option, state) = match how {
-            'a' => (allow_once.map(|c| c.id.clone()), Answered::Applied),
-            'A' => (allow_always.or(allow_once).map(|c| c.id.clone()), Answered::Applied),
-            'e' => (reject.map(|c| c.id.clone()), Answered::EditFirst),
-            _ => (reject.map(|c| c.id.clone()), Answered::Discarded),
-        };
-        let proposed = diffs.first().cloned();
-        if let Some(a) = &self.agent {
-            a.send(Cmd::Answer { request, option });
-        }
-        if let Some(Item::Proposal { state: s, .. }) = self.threads.get_mut(&key).and_then(|t| t.items.get_mut(i)) {
-            *s = state.clone();
-        }
-        if state == Answered::EditFirst
-            && let Some(d) = proposed {
-                // Open the proposed text in the editor; nothing is written yet.
-                self.current = Some(d.path.clone());
-                self.editor = Editor::new(d.new.trim_end_matches('\n'));
-                self.editor_path = Some(d.path.clone());
-                self.editor.dirty = true;
-                self.last_edit = Instant::now() + Duration::from_secs(3600);
-                self.mode = Mode::Write;
-                self.focus = Focus::Note;
-                self.flash("edit the proposal, then esc to save it");
-            }
-    }
-
     /// The agent may have written a note. Pick up the change.
     pub fn reload_after_agent(&mut self) {
         self.reload();

@@ -4,10 +4,9 @@ use super::*;
 impl App {
     pub(crate) fn key_panel(&mut self, k: KeyEvent, act: Option<&str>) {
         let key = self.key();
-        let pending = self.threads.get(&key).and_then(|t| t.pending()).is_some();
         let busy = self.threads.get(&key).is_some_and(|t| t.busy.is_some());
         match act {
-            Some("back") if busy && !pending => self.stop_answer(key),
+            Some("back") if busy => self.stop_answer(key),
             Some("back") if self.say.is_some() => {
                 self.say = None;
                 self.input.take();
@@ -26,13 +25,6 @@ impl App {
             Some("handoff") => self.open_cli(),
             Some("scroll_up") => self.panel_scroll += self.view_height / 2,
             Some("scroll_down") => self.panel_scroll = self.panel_scroll.saturating_sub(self.view_height / 2),
-            Some(a @ ("allow" | "always" | "edit_first" | "discard")) if pending => self.answer(match a {
-                "allow" => 'a',
-                "always" => 'A',
-                "edit_first" => 'e',
-                _ => 'x',
-            }),
-            _ if pending => {}
             // `\` and Enter is a new line in every terminal, as in Claude Code: a terminal without the
             // kitty keyboard protocol sends Shift-Enter as a plain Enter.
             Some("send") if self.input.col > 0 && self.input.lines[self.input.row].chars().nth(self.input.col - 1) == Some('\\') => {
@@ -41,8 +33,7 @@ impl App {
             }
             Some("send") if self.cli.running(self.state.session.min(SESSIONS - 1)) => self.send_to_cli(),
             Some("send") => self.send_input(),
-            // A proposal key is text when there is no proposal.
-            Some("allow" | "always" | "edit_first" | "discard") | None => self.input_key(k),
+            None => self.input_key(k),
             Some(a) => self.input_action(a),
         }
         self.update_at();

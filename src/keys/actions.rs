@@ -23,6 +23,8 @@ pub const ACTIONS: &[Action] = &[
     a(Global, "session_4", "agent session 4"),
     a(Global, "session_5", "agent session 5"),
     a(Global, "next_session", "the next agent session"),
+    a(Global, "terminal", "put the shell block under the cursor into a terminal; elsewhere the F5 terminal"),
+    a(Global, "terminal_run", "put the shell block under the cursor into a terminal and run it"),
     // read
     a(Read, "down", "cursor down"),
     a(Read, "up", "cursor up"),
@@ -98,10 +100,6 @@ pub const ACTIONS: &[Action] = &[
     a(Chat, "handoff", "open the Claude Code session"),
     a(Chat, "scroll_up", "scroll up"),
     a(Chat, "scroll_down", "scroll down"),
-    a(Chat, "allow", "proposal: allow"),
-    a(Chat, "always", "proposal: allow always"),
-    a(Chat, "edit_first", "proposal: edit first"),
-    a(Chat, "discard", "proposal: discard"),
     a(Chat, "select_left", "select left"),
     a(Chat, "select_right", "select right"),
     a(Chat, "select_word_left", "select a word left"),
@@ -183,5 +181,5 @@ pub const ACTIONS: &[Action] = &[
     a(Notes, "delete", "delete the file"),
     a(Notes, "close", "close"),
     // the session view
-    a(Session, "leave", "back to zendo; Claude Code runs on"),
+    a(Session, "leave", "back to zendo; the program runs on"),
 ];

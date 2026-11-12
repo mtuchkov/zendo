@@ -30,10 +30,12 @@ impl App {
             }
             Event::Thought { key } => self.thread(&key).thinking = true,
             Event::Tool { key, id, title, kind, done } => self.on_tool(key, ToolUse { id, title, kind }, done),
-            Event::Permission { key, request, title, kind: _, diffs, choices } => {
-                let t = self.thread(&key);
-                t.items.push(Item::Proposal { request, title, diffs, choices, state: Answered::Pending });
-                self.panel_scroll = 0;
+            // The agent edits without a question to the user (CLAUDE-33); the tool line shows it.
+            Event::Permission { request, choices, .. } => {
+                let allow = choices.iter().find(|c| c.allow && !c.always).or_else(|| choices.iter().find(|c| c.allow));
+                if let Some(a) = &self.agent {
+                    a.send(Cmd::Answer { request, option: allow.map(|c| c.id.clone()) });
+                }
             }
             Event::Blocked { key, title } => self.thread(&key).items.push(Item::Blocked(title)),
             Event::TurnEnd { key, stop } => self.on_turn_end(key, stop),

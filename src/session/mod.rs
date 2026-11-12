@@ -8,8 +8,10 @@
 mod hooks;
 pub mod keys;
 mod pty;
+mod shells;
 
 pub use pty::Cli;
+pub use shells::{TERMINALS, shell};
 
 use crate::app::SESSIONS;
 use std::path::Path;
@@ -55,7 +57,8 @@ impl State {
 /// The time to quit again after the question (SESSIONS-19).
 pub const QUIT_AGAIN: Duration = Duration::from_secs(5);
 
-/// The Claude Code sessions of the five agent sessions.
+/// The Claude Code sessions of the five agent sessions, then the shells of the five terminals
+/// (docs/zendo/terminal.md): slot `n` of a terminal is `shell(i)`.
 pub struct Sessions {
     /// The command line; `None`: the one of the agent profile.
     pub command: Option<Command>,
@@ -65,7 +68,11 @@ pub struct Sessions {
     pub quit_asked: Option<Instant>,
     /// Wakes the terminal loop when a session prints.
     pub notify: Arc<tokio::sync::Notify>,
+    /// The shell of the terminals; `None`: `$SHELL`, else `/bin/sh`.
+    pub shell: Option<String>,
     slots: Vec<Option<Cli>>,
+    /// Text for a shell when its prompt is ready, and whether `enter` runs it.
+    pending: Vec<Option<(String, bool)>>,
     /// The size of the screen of a session: rows, columns.
     size: (u16, u16),
     /// For the spinners.
@@ -74,7 +81,8 @@ pub struct Sessions {
 
 impl Default for Sessions {
     fn default() -> Self {
-        Sessions { command: None, view: None, quit_asked: None, notify: Arc::default(), slots: (0..SESSIONS).map(|_| None).collect(), size: (23, 80), born: Instant::now() }
+        let all = SESSIONS + TERMINALS;
+        Sessions { command: None, view: None, quit_asked: None, notify: Arc::default(), shell: None, slots: (0..all).map(|_| None).collect(), pending: vec![None; all], size: (23, 80), born: Instant::now() }
     }
 }
 
@@ -92,12 +100,14 @@ impl Sessions {
         self.cli(n).is_some()
     }
 
+    /// A Claude Code session runs, or a terminal runs a command: quit asks first (SESSIONS-6, TERM-18).
     pub fn any_running(&self) -> bool {
-        self.slots.iter().any(Option::is_some)
+        self.count() > 0
     }
 
+    /// The Claude Code sessions that run, and the terminals that run a command.
     pub fn count(&self) -> usize {
-        self.slots.iter().flatten().count()
+        self.slots.iter().enumerate().filter(|(n, s)| s.as_ref().is_some_and(|c| *n < SESSIONS || c.busy())).count()
     }
 
     pub fn state(&self, n: usize) -> Option<State> {
@@ -158,8 +168,10 @@ impl Sessions {
         let ended: Vec<usize> = self.slots.iter_mut().enumerate().filter_map(|(n, s)| s.as_mut().is_some_and(Cli::ended).then_some(n)).collect();
         for n in &ended {
             self.slots[*n] = None;
+            self.pending[*n] = None;
         }
         self.slots.iter_mut().flatten().for_each(Cli::read_state);
+        self.write_pending();
         if self.view.is_some_and(|n| !self.running(n)) {
             self.view = None;
         }

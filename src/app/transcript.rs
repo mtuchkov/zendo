@@ -16,6 +16,8 @@ pub struct Transcript {
     pub col: usize,
     want: usize,
     pub anchor: Option<(usize, usize)>,
+    /// The shell blocks of the last frame: their first row, the row after them, their command.
+    pub blocks: Vec<(usize, usize, String)>,
 }
 
 impl Transcript {
@@ -73,6 +75,11 @@ impl Transcript {
         while self.col > 0 && !self.rows[self.row].chars().nth(self.col - 1).is_none_or(char::is_whitespace) {
             self.move_col(-1);
         }
+    }
+
+    /// The command of the shell block under the cursor.
+    pub fn block(&self) -> Option<&str> {
+        self.blocks.iter().find(|(a, b, _)| (*a..*b).contains(&self.row)).map(|(.., c)| c.as_str())
     }
 
     /// The selection, start before end, both ends in it.

@@ -48,7 +48,7 @@ impl App {
         self.agent.is_some()
             && self.agent_name.is_some()
             && self.recap_job.is_none()
-            && self.threads.iter().all(|(k, t)| t.busy.is_none() && (k.starts_with(RECAP_PREFIX) || t.pending().is_none()))
+            && self.threads.iter().all(|(_, t)| t.busy.is_none())
     }
 
     /// The next file for an automatic recap: worked on in the last week, changed since its recap.

@@ -20,16 +20,12 @@ fn last_answer(a: &App) -> String {
     items[from..].iter().filter_map(|i| if let Item::Agent(s) = i { Some(s.as_str()) } else { None }).collect()
 }
 
-/// Ask in the chat and wait until the turn ends; discard the proposal of the mock agent.
+/// Ask in the chat and wait until the turn ends; the edit of the mock agent goes in at once.
 async fn ask(a: &mut App, q: &str) -> String {
     a.focus = Focus::Claude;
     typ(a, q);
     key(a, KeyCode::Enter);
-    until(a, |a| a.threads.get(CHAT_KEY).is_some_and(|t| t.pending().is_some() || (t.busy.is_none() && !t.items.is_empty()))).await;
-    if a.threads[CHAT_KEY].pending().is_some() {
-        key(a, KeyCode::Char('x'));
-    }
-    until(a, |a| a.threads[CHAT_KEY].busy.is_none()).await;
+    until(a, |a| a.threads.get(CHAT_KEY).is_some_and(|t| t.busy.is_none() && !t.items.is_empty())).await;
     last_answer(a)
 }
 
@@ -212,5 +208,24 @@ async fn alt_and_an_f_key_choose_a_session_too() {
     assert_eq!(a.state.session, 4);
     let screen = draw(&mut a, 160, 30);
     assert!(screen.iter().any(|r| r.trim_end().ends_with("F10")), "the button says F10: {screen:#?}");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// CLAUDE-33: the agent edits the file at once: no question to the user, and no diff in the chat.
+#[tokio::test]
+async fn edit_is_applied_without_a_question() {
+    let root = repo("chat-no-question", &files());
+    let mut a = app(&root);
+    a.open_file(root.join(A));
+    a.open_panel();
+    a.focus = Focus::Claude;
+    typ(&mut a, "what is missing");
+    key(&mut a, KeyCode::Enter);
+    until(&mut a, |a| a.threads.get(CHAT_KEY).is_some_and(|t| t.busy.is_none() && !t.items.is_empty())).await;
+    let text = std::fs::read_to_string(root.join(A)).unwrap();
+    assert!(text.contains("- WHEN the mock agent"), "the edit is in the file: {text}");
+    draw(&mut a, 160, 50);
+    let chat = a.transcript.rows.join("\n");
+    assert!(!chat.contains("WHEN the mock agent") && !chat.contains("discard"), "no diff and no question in the chat:\n{chat}");
     let _ = std::fs::remove_dir_all(&root);
 }

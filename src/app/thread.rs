@@ -15,14 +15,6 @@ pub const NEW_KEY: &str = "(new note)";
 /// A file goes with a question when it did not go with one of the last this many questions.
 pub const ATTACH_EVERY: usize = 20;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Answered {
-    Pending,
-    Applied,
-    Discarded,
-    EditFirst,
-}
-
 #[derive(Clone, Debug)]
 pub struct ToolUse {
     pub id: String,
@@ -35,7 +27,6 @@ pub enum Item {
     User(String),
     Agent(String),
     Tools { uses: Vec<ToolUse>, started: Instant, took: Option<Duration> },
-    Proposal { request: u64, title: String, diffs: Vec<DiffView>, choices: Vec<Choice>, state: Answered },
     Blocked(String),
     Info(String),
     Error(String),
@@ -74,13 +65,6 @@ impl Thread {
     /// The file went with one of the last ATTACH_EVERY questions.
     pub fn sent_lately(&self, rel: &str) -> bool {
         self.files.iter().rev().take(ATTACH_EVERY).any(|f| f.as_deref() == Some(rel))
-    }
-
-    pub fn pending(&self) -> Option<(usize, u64)> {
-        self.items.iter().enumerate().rev().find_map(|(i, it)| match it {
-            Item::Proposal { request, state: Answered::Pending, .. } => Some((i, *request)),
-            _ => None,
-        })
     }
 }
 

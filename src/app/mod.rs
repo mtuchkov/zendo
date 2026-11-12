@@ -4,6 +4,7 @@ mod at;
 mod chat;
 mod chat_keys;
 mod cli;
+mod terminal;
 pub mod cursor_map;
 pub mod chips;
 mod events;
@@ -33,7 +34,7 @@ pub use slash::Slash;
 pub use thread::*;
 pub use transcript::{CHAT_MARK, Transcript};
 
-use crate::agent::{self, AgentHandle, Attachment, Choice, Cmd, DiffView, Event};
+use crate::agent::{self, AgentHandle, Attachment, Cmd, Event};
 use crate::text::editor::Editor;
 use crate::docs::notes::{self, Note, Store};
 use crate::docs::search::{self, Group};
@@ -229,6 +230,8 @@ pub struct App {
     pub tree_rows: Vec<(Rect, usize)>,
     /// The buttons of the agent sessions in the last frame, for mouse clicks.
     pub session_buttons: Vec<(Rect, usize)>,
+    /// The play buttons of the shell blocks in the last frame, and their commands (TERM-10).
+    pub play_buttons: Vec<(Rect, String)>,
     /// `delete`, `f2` or `m` on a file: the question in the status bar.
     pub file_prompt: Option<FilePrompt>,
     /// The width of the text column from the config, when the repository sets none.

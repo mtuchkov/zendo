@@ -18,8 +18,9 @@ when the user goes back to zendo: one researches while the user discusses in ano
 
 **Open and leave.** `ctrl-o` in the chat opens the Claude Code session of the active agent session.
 zendo starts it first if necessary. The session view takes the whole screen, with a bottom line of
-zendo. All input goes to Claude Code, except `ctrl-]` (back to zendo) and `F6` to `F10` (another
-session). When Claude Code exits, zendo goes back.
+zendo. All input goes to Claude Code, except `alt-q` (back to zendo; the same key leaves a terminal
+of [Terminal](terminal.md)) and `F5` to `F10` (another session, or the `F5` terminal). When Claude
+Code exits, zendo goes back.
 
 **States.** Each running Claude Code session has one state: *works*, *waits* (for an answer or a
 permission of the user), or *idle* (the turn ended). The session buttons, the chat of the agent
@@ -79,7 +80,7 @@ key, echoes a line, and exits on `q`. The tests are in `tests/sessions.rs`.
 | SESSIONS-7  | Event      | When the user presses `ctrl-o` in the chat, the system shall show the Claude Code session of the active agent session, and start it first if it does not run. | CLAUDE-10 |
 | SESSIONS-8  | Event      | When the user opens a Claude Code session again, the system shall show the screen of Claude Code as it is now.                                     | User, 2026-11-12 |
 | SESSIONS-9  | State      | While the session view is open, the system shall send all keys and paste to Claude Code, except the leave key and the keys of the agent sessions.  | Design           |
-| SESSIONS-10 | Event      | When the user presses `ctrl-]` in the session view, the system shall show the screen from where the user opened the session.                        | Design           |
+| SESSIONS-10 | Event      | When the user presses `alt-q` in the session view, the system shall show the screen from where the user opened the session.                         | User, 2026-11-12 |
 | SESSIONS-11 | Event      | When the user presses the key of an agent session in the session view, the system shall show its Claude Code session if it runs, else the chat on that agent session. | Design |
 | SESSIONS-12 | Event      | When Claude Code exits while its session view is open, the system shall show the screen from where the user opened the session.                    | Design           |
 | SESSIONS-13 | Event      | When a Claude Code session ends, the system shall open its agent session again, so that the chat shows the messages from Claude Code.               | Design           |
@@ -99,6 +100,5 @@ Retired: none. Revision 3 changed SESSIONS-4 and added SESSIONS-20.
 
 | Open question                                                                                                                                         | Affects                 | Answered by |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | ----------- |
-| `ctrl-]` leaves the session view, so that `ctrl-o` keeps its meaning in Claude Code. Is it the right default? The keymap can change it.                | SESSIONS-10             | User        |
 | The session view takes the whole screen. Should it take the place of the chat pane beside the note instead?                                           | SESSIONS-9, PANES-7     | User        |
 | When a session goes to *waits* while the user is elsewhere: only the button, or also the terminal bell?                                                | SESSIONS-5, SESSIONS-14 | User        |

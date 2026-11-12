@@ -52,7 +52,10 @@ impl App {
         self.sel = None;
         let hit = |r: &Rect| r.contains(ratatui::layout::Position::new(x, y));
         if let Some(n) = self.session_buttons.iter().find(|(r, _)| hit(r)).map(|(_, n)| *n) {
-            return self.switch_session(n);
+            return if n < SESSIONS { self.switch_session(n) } else { self.open_terminal(n - SESSIONS) };
+        }
+        if let Some(cmd) = self.play_buttons.iter().find(|(r, _)| hit(r)).map(|(_, c)| c.clone()) {
+            return self.put_into_terminal(&cmd, false);
         }
         let row = self.tree_rows.iter().find(|(r, _)| r.contains(ratatui::layout::Position::new(x, y))).map(|(_, i)| *i);
         if let Some(i) = row {

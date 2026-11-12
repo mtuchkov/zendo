@@ -31,22 +31,11 @@ pub(crate) fn read_lines(app: &App, note: &Note, width: usize, t: &Theme) -> (Ve
     let lines = note_head(app, note, width, t, title_rows(&note.title, width, t));
     let head = lines.len();
 
-    // A pending edit to this note shows inline, marked.
-    let proposal = pending_edit(app, &note.path);
-    if proposal.is_none() && code::is_code(&note.path) {
+    if code::is_code(&note.path) {
         let body: Vec<String> = note.body.lines().map(str::to_string).collect();
         return with_head(lines, head, code::render(&body, &code::lang_of(&note.path), width, t));
     }
-    let mut src = match proposal {
-        Some(d) => markdown::diff_lines(d.old.as_deref().unwrap_or(&note.body), &d.new),
-        None => markdown::plain(&note.body),
-    };
-    // A code file with a proposal shows the diff as a code block.
-    if code::is_code(&note.path) {
-        src.insert(0, (format!("```{} {}", code::lang_of(&note.path), markdown::FILE_FENCE), Mark::None));
-        src.push(("```".into(), Mark::None));
-    }
-    with_head(lines, head, markdown::render(&src, width, t, true))
+    with_head(lines, head, markdown::render(&markdown::plain(&note.body), width, t, true))
 }
 
 /// The head lines, then the text; the rows of the source lines and the words count the head too.
@@ -58,17 +47,9 @@ fn with_head(mut lines: Vec<Line<'static>>, head: usize, r: markdown::Rendered) 
     (lines, rows, words)
 }
 
-/// The edit to this file that waits for the answer of the user.
-fn pending_edit(app: &App, path: &std::path::Path) -> Option<crate::agent::DiffView> {
-    app.threads.get(&app.key())?.items.iter().rev().find_map(|it| match it {
-        Item::Proposal { diffs, state: Answered::Pending, .. } => diffs.iter().find(|d| d.path == path).cloned(),
-        _ => None,
-    })
-}
-
-/// The file shows as code with line numbers: it is not markdown, and no edit to it waits.
-pub(crate) fn shows_code(app: &App, path: &std::path::Path) -> bool {
-    code::is_code(path) && pending_edit(app, path).is_none()
+/// The file shows as code with line numbers: it is not markdown.
+pub(crate) fn shows_code(path: &std::path::Path) -> bool {
+    code::is_code(path)
 }
 
 /// The recap block under the title, when there is one.
@@ -119,7 +100,7 @@ pub fn source_rows(app: &App, width: usize) -> Vec<usize> {
 
 pub(crate) fn draw_read(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let note = app.note().cloned();
-    let code = note.as_ref().is_some_and(|n| shows_code(app, &n.path));
+    let code = note.as_ref().is_some_and(|n| shows_code(&n.path));
     let (gut, col) = match &note {
         Some(n) if code => code_column(area, app.code_width(), n.body.lines().count()),
         _ => (Rect::default(), column(area, app.column_width())),

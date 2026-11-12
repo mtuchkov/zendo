@@ -42,12 +42,31 @@ pub(crate) fn draw_cli(f: &mut Frame, app: &App, t: &Theme, n: usize, area: Rect
     draw_cli_bar(f, app, t, n, bar);
 }
 
-/// The bottom line: the badge, the five sessions with their states, and the keys of zendo.
+/// The name of session `n`: the F key of an agent session or of the `F5` terminal, `[>]` for
+/// another terminal.
+fn name(app: &App, n: usize) -> String {
+    use crate::keys::Pane;
+    match n.checked_sub(crate::app::SESSIONS) {
+        None => app.keys.first(Pane::Global, &format!("session_{}", n + 1)).to_uppercase(),
+        Some(0) => app.keys.first(Pane::Global, "terminal").to_uppercase(),
+        Some(_) => "[>]".into(),
+    }
+}
+
+/// The sessions on the bottom line and the buttons: the agent sessions, the `F5` terminal, and the
+/// `[>]` terminals that run.
+fn shown(app: &App) -> impl Iterator<Item = usize> + '_ {
+    let all = crate::app::SESSIONS + crate::session::TERMINALS;
+    (0..all).filter(|n| *n <= crate::app::SESSIONS || app.cli.running(*n))
+}
+
+/// The bottom line: the badge, the sessions with their states, and the keys of zendo.
 fn draw_cli_bar(f: &mut Frame, app: &App, t: &Theme, n: usize, area: Rect) {
     use crate::keys::Pane;
-    let mut spans = vec![Span::raw(" "), Span::styled(" CLAUDE CODE ", Style::new().bg(t.acc).fg(t.bg).add_modifier(Modifier::BOLD)), Span::raw("  ")];
-    for m in 0..crate::app::SESSIONS {
-        let key = app.keys.first(Pane::Global, &format!("session_{}", m + 1)).to_uppercase();
+    let badge = if n < crate::app::SESSIONS { " CLAUDE CODE " } else { " TERMINAL " };
+    let mut spans = vec![Span::raw(" "), Span::styled(badge, Style::new().bg(t.acc).fg(t.bg).add_modifier(Modifier::BOLD)), Span::raw("  ")];
+    for m in shown(app) {
+        let key = name(app, m);
         let (text, style) = match app.cli.state(m) {
             Some(s) if m == n => (format!(" {key} {} ", s.word()), Style::new().bg(t.acc2).fg(t.bg).add_modifier(Modifier::BOLD)),
             Some(s) => (format!(" {key} {} ", s.word()), Style::new().fg(if s == crate::session::State::Waits { t.acc } else { t.fg })),
@@ -56,15 +75,17 @@ fn draw_cli_bar(f: &mut Frame, app: &App, t: &Theme, n: usize, area: Rect) {
         spans.push(Span::styled(text, style));
     }
     let leave = app.keys.first(Pane::Session, "leave");
-    spans.push(Span::styled(format!("   {leave}", ), Style::new().fg(t.fg)));
+    spans.push(Span::styled(format!("   {leave}"), Style::new().fg(t.fg)));
     spans.push(Span::styled(" back to zendo   wheel: earlier lines", Style::new().fg(t.dim)));
     f.render_widget(Paragraph::new(Line::from(spans)).style(Style::new().bg(t.bg)), area);
 }
 
-/// The text of a session button: the F key, and the mark of the state of its Claude Code session.
+/// The text of a session button: its name, and the mark of the state of its program; a terminal
+/// has the mark while it runs a command (TERM-16).
 pub(crate) fn button_label(app: &App, n: usize) -> String {
-    let key = app.keys.first(crate::keys::Pane::Global, &format!("session_{}", n + 1)).to_uppercase();
+    let key = name(app, n);
     match app.cli.state(n) {
+        Some(crate::session::State::Idle) if n >= crate::app::SESSIONS => key,
         Some(s) => format!("{key}{}", s.mark()),
         None => key,
     }

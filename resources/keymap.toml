@@ -27,6 +27,8 @@ session_3 = ["f8", "alt-f8"]  # agent session 3
 session_4 = ["f9", "alt-f9"]  # agent session 4
 session_5 = ["f10", "alt-f10"]  # agent session 5
 next_session = ["alt-n"]  # the next agent session
+terminal = ["f5"]  # put the shell block under the cursor into a terminal; elsewhere the F5 terminal
+terminal_run = ["alt-f5"]  # put the shell block under the cursor into a terminal and run it
 
 [read]
 down = ["j", "down"]  # cursor down
@@ -105,10 +107,6 @@ new_thread = ["ctrl-n"]  # new thread
 handoff = ["ctrl-o"]  # open the Claude Code session
 scroll_up = ["pageup"]  # scroll up
 scroll_down = ["pagedown"]  # scroll down
-allow = ["a"]  # proposal: allow
-always = ["A"]  # proposal: allow always
-edit_first = ["e"]  # proposal: edit first
-discard = ["x"]  # proposal: discard
 select_left = ["ctrl-shift-h", "ctrl-shift-left", "shift-left"]  # select left
 select_right = ["ctrl-shift-l", "ctrl-shift-right", "shift-right"]  # select right
 select_word_left = ["alt-shift-h", "alt-shift-left"]  # select a word left
@@ -195,6 +193,6 @@ delete = ["delete"]  # delete the file
 close = ["esc", "o", "q"]  # close
 
 [session]
-# All other keys go to Claude Code; F6 to F10 choose a session. Without the kitty keyboard
-# protocol, a terminal sends ctrl-] as ctrl-5.
-leave = ["ctrl-]", "ctrl-5"]  # back to zendo; Claude Code runs on
+# A Claude Code session or a terminal on the whole screen. All other keys go to the program;
+# F5 to F10 choose a session.
+leave = ["alt-q"]  # back to zendo; the program runs on

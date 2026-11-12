@@ -39,7 +39,7 @@ fn counter(a: &App, n: usize) -> u64 {
 }
 
 fn leave(a: &mut App) {
-    a.on_key(KeyEvent::new(KeyCode::Char(']'), KeyModifiers::CONTROL));
+    a.on_key(KeyEvent::new(KeyCode::Char('q'), KeyModifiers::ALT));
 }
 
 /// The chat, focused, on agent session `n`.
@@ -59,7 +59,7 @@ async fn left_sessions_keep_running() {
     wait(&mut a, 10, |a| counter(a, 0) >= 2);
     assert!(a.cli.text(0).contains("--resume s1"), "started with the session ID: {}", a.cli.text(0));
     leave(&mut a);
-    assert_eq!(a.cli.view, None, "ctrl-] goes back to zendo");
+    assert_eq!(a.cli.view, None, "alt-q goes back to zendo");
     chat_on(&mut a, 1);
     ctrl(&mut a, 'o');
     assert_eq!(a.cli.view, Some(1));

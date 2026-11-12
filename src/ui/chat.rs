@@ -37,7 +37,8 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let pad = w.saturating_sub(left.len() + scope.len());
     f.render_widget(Paragraph::new(Line::from(vec![Span::styled(left, dim.add_modifier(Modifier::BOLD)), Span::raw(" ".repeat(pad)), Span::styled(scope, dim)])), head);
 
-    let mut lines = panel_lines(app, t, w);
+    let (mut lines, blocks) = panel_lines(app, t, w);
+    app.transcript.blocks = blocks;
     if let Some(down) = &app.agent_down {
         lines.extend(markdown::wrap(vec![Span::styled(format!("{down}. Run `zendo doctor` in a terminal to see why, then ask again. Log: .zendo/agent.log"), Style::new().fg(t.del))], w, "", ""));
     } else if app.agent_name.is_none() && app.agent.is_some() {
@@ -75,6 +76,9 @@ fn draw_transcript(f: &mut Frame, app: &mut App, t: &Theme, body: Rect, lines: V
         })
         .collect();
     f.render_widget(Paragraph::new(view), body);
+    let shown = |(a, ..): &&(usize, usize, String)| *a >= start && *a < start + h;
+    let play = app.transcript.blocks.iter().filter(shown).map(|(a, _, c)| (Rect { x: body.x + (w as u16).saturating_sub(2), y: body.y + (a - start) as u16, width: 2, height: 1 }, c.clone())).collect::<Vec<_>>();
+    app.play_buttons = play;
     if on && tr.row >= start && tr.row < start + h {
         let x: usize = tr.rows[tr.row].chars().take(tr.col).map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
         f.set_cursor_position((body.x + (x as u16).min(body.width.saturating_sub(1)), body.y + (tr.row - start) as u16));
@@ -84,18 +88,17 @@ fn draw_transcript(f: &mut Frame, app: &mut App, t: &Theme, body: Rect, lines: V
 /// The input box: the text with its chips, or a hint while it is empty.
 fn draw_input(f: &mut Frame, app: &App, t: &Theme, input: Rect, in_h: u16, in_w: usize) {
     let key = app.key();
-    let pending = app.threads.get(&key).and_then(|th| th.pending()).is_some();
     f.render_widget(Block::new().style(Style::new().bg(t.bg)), input);
     let box_in = Rect { x: input.x + 1, y: input.y + 1, width: input.width.saturating_sub(2), height: in_h };
     let focused = app.focus == Focus::Claude && !app.transcript.on;
     let mark = Span::styled("› ", Style::new().fg(if focused { t.acc } else { t.dim }));
     let text_area = Rect { x: box_in.x + 2, width: box_in.width.saturating_sub(2), ..box_in };
-    if pending || app.input.is_empty() {
-        let hint = input_hint(app, &key, pending);
+    if app.input.is_empty() {
+        let hint = input_hint(app, &key);
         let room = text_area.width as usize;
         let hint = if hint.width() <= room { hint } else { hint.chars().take(room.saturating_sub(1)).collect::<String>() + "…" };
         f.render_widget(Paragraph::new(Line::from(vec![mark, Span::styled(hint, Style::new().fg(t.dim))])), Rect { height: 1, ..box_in });
-        if focused && !pending {
+        if focused {
             f.set_cursor_position((text_area.x, text_area.y));
         }
         return;
@@ -122,11 +125,9 @@ fn draw_input(f: &mut Frame, app: &App, t: &Theme, input: Rect, in_h: u16, in_w:
     }
 }
 
-fn input_hint(app: &App, key: &str, pending: bool) -> String {
+fn input_hint(app: &App, key: &str) -> String {
     let busy = app.threads.get(key).is_some_and(|th| th.busy.is_some());
-    if pending {
-        "answer the proposal above: a, e or x".to_string()
-    } else if app.cli.running(app.state.session.min(crate::app::SESSIONS - 1)) {
+    if app.cli.running(app.state.session.min(crate::app::SESSIONS - 1)) {
         "goes to Claude Code, which queues it while it works".to_string()
     } else if busy {
         "enter queues the next question · esc stops".to_string()
@@ -202,18 +203,27 @@ fn draw_slash(f: &mut Frame, t: &Theme, area: Rect, s: &crate::app::Slash) {
 const BUTTON_W: u16 = 4;
 
 /// The buttons of the agent sessions, one under the other: the active one in the accent color,
-/// the others in the second accent, as the badges of the modes.
+/// the others in the second accent, as the badges of the modes. Under them, after a line, the
+/// buttons of the terminals in the color of the text: `F5`, then each `[>]` (TERM-14, TERM-15).
 fn draw_sessions(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
-    app.session_buttons.clear();
-    for n in 0..crate::app::SESSIONS {
-        let y = area.y + 2 + 2 * n as u16;
-        if y >= area.bottom() {
-            break;
-        }
+    use crate::app::SESSIONS;
+    let w = area.width as usize;
+    let agents = (0..SESSIONS).map(|n| (area.y + 2 + 2 * n as u16, n));
+    let rule = area.y + 2 + 2 * SESSIONS as u16;
+    let terms = (0..crate::session::TERMINALS).filter(|i| *i == 0 || app.cli.running(crate::session::shell(*i)));
+    let terms = terms.enumerate().map(|(k, i)| (rule + 2 + 2 * k as u16, crate::session::shell(i)));
+    if rule < area.bottom() {
+        f.render_widget(Paragraph::new("─".repeat(w)).style(Style::new().fg(t.dim)), Rect { y: rule, height: 1, ..area });
+    }
+    for (y, n) in agents.chain(terms).filter(|(y, _)| *y < area.bottom()) {
         let r = Rect { y, height: 1, ..area };
+        let bg = match n {
+            n if n >= SESSIONS => t.fg,
+            n if n == app.state.session => t.acc,
+            _ => t.acc2,
+        };
         let label = button_label(app, n);
-        let bg = if n == app.state.session { t.acc } else { t.acc2 };
-        f.render_widget(Paragraph::new(Line::styled(format!("{label:^w$}", w = area.width as usize), Style::new().bg(bg).fg(t.bg).add_modifier(Modifier::BOLD))), r);
+        f.render_widget(Paragraph::new(Line::styled(format!("{label:^w$}"), Style::new().bg(bg).fg(t.bg).add_modifier(Modifier::BOLD))), r);
         app.session_buttons.push((r, n));
     }
 }

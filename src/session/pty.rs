@@ -42,6 +42,9 @@ pub struct Cli {
     last_output: Arc<Mutex<Instant>>,
     state_file: PathBuf,
     reported: Option<State>,
+    /// A shell of a terminal, not Claude Code: no hooks, busy while a command runs.
+    shell: bool,
+    started: Instant,
 }
 
 fn pty_size((rows, cols): (u16, u16)) -> PtySize {
@@ -55,13 +58,11 @@ fn nz(n: u16) -> NonZeroU16 {
 impl Cli {
     /// Start `cmd` with the hooks, then `id`, in `cwd`, on a screen of `size`.
     pub fn spawn(cmd: &Command, id: &str, cwd: &Path, dir: &Path, n: usize, size: (u16, u16), notify: Arc<tokio::sync::Notify>) -> std::io::Result<Cli> {
-        let err = |e: anyhow::Error| std::io::Error::other(e.to_string());
         std::fs::create_dir_all(dir)?;
         let state_file = dir.join(format!("{}.state", n + 1));
         let _ = std::fs::remove_file(&state_file);
         let settings = dir.join("hooks.json");
         std::fs::write(&settings, hooks::settings())?;
-        let pair = portable_pty::native_pty_system().openpty(pty_size(size)).map_err(err)?;
         let mut b = CommandBuilder::new(&cmd.program);
         b.arg("--settings");
         b.arg(&settings);
@@ -70,14 +71,44 @@ impl Cli {
         b.cwd(cwd);
         b.env("ZENDO_STATE", &state_file);
         b.env("TERM", "xterm-256color");
+        Cli::start(b, size, notify, state_file, false)
+    }
+
+    /// Start the shell `program` of a terminal in `cwd` (TERM-12).
+    pub fn spawn_shell(program: &str, cwd: &Path, size: (u16, u16), notify: Arc<tokio::sync::Notify>) -> std::io::Result<Cli> {
+        let mut b = CommandBuilder::new(program);
+        b.cwd(cwd);
+        b.env("TERM", "xterm-256color");
+        Cli::start(b, size, notify, PathBuf::new(), true)
+    }
+
+    fn start(b: CommandBuilder, size: (u16, u16), notify: Arc<tokio::sync::Notify>, state_file: PathBuf, shell: bool) -> std::io::Result<Cli> {
+        let err = |e: anyhow::Error| std::io::Error::other(e.to_string());
+        let pair = portable_pty::native_pty_system().openpty(pty_size(size)).map_err(err)?;
         let child = pair.slave.spawn_command(b).map_err(err)?;
         drop(pair.slave);
         let reader = pair.master.try_clone_reader().map_err(err)?;
         let writer: Writer = Arc::new(Mutex::new(pair.master.take_writer().map_err(err)?));
         let screen: Screen = Arc::new(Mutex::new(vt100::Parser::new_with_callbacks(nz(size.0), nz(size.1), SCROLLBACK, Replies::default())));
-        let last_output = Arc::new(Mutex::new(Instant::now()));
+        let started = Instant::now();
+        let last_output = Arc::new(Mutex::new(started));
         read_loop(reader, screen.clone(), writer.clone(), last_output.clone(), notify);
-        Ok(Cli { child, master: pair.master, writer, screen, last_output, state_file, reported: None })
+        Ok(Cli { child, master: pair.master, writer, screen, last_output, state_file, reported: None, shell, started })
+    }
+
+    /// A shell runs a command: the foreground process group of the terminal is not the shell.
+    pub fn busy(&self) -> bool {
+        #[cfg(unix)]
+        if let (Some(group), Some(pid)) = (self.master.process_group_leader(), self.pid()) {
+            return i64::from(group) != i64::from(pid);
+        }
+        false
+    }
+
+    /// The program printed and then was quiet for a moment: its prompt is ready for input.
+    pub fn ready(&self) -> bool {
+        let last = self.last_output.lock().map(|t| *t).unwrap_or(self.started);
+        (last > self.started && last.elapsed() > Duration::from_millis(150)) || self.started.elapsed() > Duration::from_secs(3)
     }
 
     pub fn pid(&self) -> Option<u32> {
@@ -110,6 +141,9 @@ impl Cli {
     }
 
     pub fn read_state(&mut self) {
+        if self.shell {
+            return;
+        }
         if let Some(s) = hooks::read(&self.state_file) {
             self.reported = Some(s);
         }
@@ -117,6 +151,9 @@ impl Cli {
 
     /// The state that a hook reported; without one, *works* while the session prints (SESSIONS-17).
     pub fn state(&self) -> State {
+        if self.shell {
+            return if self.busy() { State::Works } else { State::Idle };
+        }
         let quiet = self.last_output.lock().map(|t| t.elapsed()).unwrap_or_default();
         match self.reported {
             Some(State::Works) | None if quiet > QUIET => State::Idle,
@@ -129,7 +166,9 @@ impl Cli {
     pub fn stop(mut self) {
         let _ = self.child.kill();
         let _ = self.child.wait();
-        let _ = std::fs::remove_file(&self.state_file);
+        if !self.shell {
+            let _ = std::fs::remove_file(&self.state_file);
+        }
     }
 }
 

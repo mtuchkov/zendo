@@ -49,7 +49,12 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
         return ("DELTA", t.acc2, with_next(hints(Pane::Delta, &[("base", "other base"), ("ask", "ask claude"), ("recap", "recap"), ("close", "close")])));
     }
     if claude && app.transcript.on {
-        let v = hints(Pane::Transcript, &[("down", "move"), ("select_down", "select"), ("copy", "copy"), ("add_to_chat", "to chat"), ("input", "input")]);
+        let mut v = hints(Pane::Transcript, &[("down", "move"), ("select_down", "select"), ("copy", "copy"), ("add_to_chat", "to chat"), ("input", "input")]);
+        if app.transcript.block().is_some() {
+            // The cursor is in a shell block: F5 puts it into a terminal, alt-F5 runs it (TERM-1, TERM-21).
+            v.insert(0, (app.keys.first(Pane::Global, "terminal_run"), "run".into()));
+            v.insert(0, (app.keys.first(Pane::Global, "terminal"), "to shell".into()));
+        }
         return ("TRANSCRIPT", t.acc2, with_next(v));
     }
     if claude {
@@ -94,9 +99,7 @@ fn status_right(app: &App, claude: bool) -> String {
         return format!("no {} · run zendo doctor", crate::docs::structure::FILE);
     }
     if claude {
-        let key = app.key();
-        let pending = app.threads.get(&key).and_then(|th| th.pending()).is_some();
-        return if pending { "1 proposal open".into() } else if app.agent_name.is_some() { app.agent_short() } else { String::new() };
+        return if app.agent_name.is_some() { app.agent_short() } else { String::new() };
     }
     match app.mode {
         Mode::Write => {

@@ -15,6 +15,7 @@ children:
   - "claude.md"
   - "sessions.md"
   - "chat.md"
+  - "terminal.md"
   - "project-structure.md"
   - "commands.md"
 level: "what zendo is, its parts, and the qualities that hold for all parts"
@@ -37,9 +38,10 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Length](length.md)                          | The word limit, the red area, the split with Claude            |
 | [File tree](files.md)                        | The files of the repository and their views                   |
 | [Work, delta and recaps](work.md)            | Visits that count, the delta pane, recaps                     |
-| [Claude](claude.md)                          | The connection to Claude, threads, proposals                  |
+| [Claude](claude.md)                          | The connection to Claude, threads, edits                      |
 | [Sessions](sessions.md)                      | Claude Code sessions in the background, more than one at a time |
 | [Chat](chat.md)                              | The chat input: chips, attachments, `@` file suggestions        |
+| [Terminal](terminal.md)                      | Shell blocks in the chat, the play button, `F5` and `[>]` terminals |
 | [Project structure](project-structure.md)    | `project-structure.toml`: use and repair                      |
 | [Commands](commands.md)                      | Install, `zendo setup`, `zendo doctor`, `zendo upgrade`          |
 
@@ -57,7 +59,7 @@ The user starts `zendo` in a repository. zendo starts the Claude Code adapter as
 Protocol (ACP) agent and checks that Claude answers before it opens the screen. The screen shows the
 file tree, the open file, the chat with Claude and the delta of the file. The user reads and writes
 markdown files of the repository. When the user asks, Claude gets the file, the selection and the
-rules of the project. Claude proposes edits; the user allows or discards each edit.
+rules of the project. Claude edits the files without a question to the user.
 
 zendo counts the visits where the user really worked on a file. It shows what changed since the last
 such visit, and asks Claude for a short recap of each changed file while the user does not use zendo.
@@ -87,7 +89,6 @@ zendo keeps its state in the repository, in a folder that git ignores.
 | ZENDO-1 | Ubiquitous | The system shall keep the notes of the user as markdown files in the repository of the user, or in the private notes repo of the user. | User, 2026-11-11 |
 | ZENDO-2 | Unwanted   | If Claude does not answer at the start, then the system shall not open the screen, and shall show the failed step and its fix.     | User, 2026-11-11 |
 | ZENDO-3 | Optional   | Where the user starts zendo with `--offline`, the system shall open without Claude.                                                 | Design           |
-| ZENDO-4 | Ubiquitous | The system shall change a file of the user only when the user writes in it, allows an edit of Claude, or leaves write mode in a file without a title or front matter (NOTE-22, NOTE-23). | User, 2026-11-12 |
 | ZENDO-5 | Unwanted   | If every part that zendo needs is installed, then `zendo setup`, `zendo doctor` and the start of zendo shall not use the network.      | User, 2026-11-11 |
 | ZENDO-6 | Optional   | Where a repository has `project-structure.toml`, the system shall use it in that repository.                                       | User, 2026-11-11 |
 | ZENDO-7 | Ubiquitous | The system shall keep its state of a repository in that repository, in a folder that git ignores.                                  | User, 2026-11-11 |
@@ -112,12 +113,6 @@ zendo keeps its state in the repository, in a folder that git ignores.
 - When the user starts `zendo --offline`.
 - Then the screen opens, and a question to Claude shows that Claude is off in this run.
 
-**`edit_is_proposed_and_applied_only_after_allow`** (mock agent; verifies ZENDO-4)
-
-- Given a thread with the mock agent.
-- When the agent requests an edit, and the user discards it, then allows the next one.
-- Then the file changes only after the allow.
-
 **`setup_needs_no_network_when_the_adapter_is_installed`** (unit test, not written yet; verifies ZENDO-5)
 
 - Given the pinned adapter in the data folder of zendo, and no network.
@@ -135,6 +130,8 @@ zendo keeps its state in the repository, in a folder that git ignores.
 - Given a test repository.
 - When the user changes the layout and closes zendo.
 - Then the state is in the `.zendo` folder of the repository, and git does not show that folder.
+
+Retired in revision 1: ZENDO-4 (only the user, an allowed edit, or the title step changes a file), because Claude and the terminal of zendo also change files (User, 2026-11-12). Retired identifiers are never reused.
 
 The specification is complete when the acceptance tests of every architecturally significant
 requirement in this document and its children pass.

@@ -41,6 +41,9 @@ impl App {
             self.cli.view = None;
             return;
         }
+        if self.keys.local(Pane::Global, &k) == Some("terminal") {
+            return self.open_terminal(0);
+        }
         let session = self.keys.local(Pane::Global, &k).and_then(|a| a.strip_prefix("session_")).and_then(|s| s.parse::<usize>().ok());
         if let Some(m) = session.and_then(|m| m.checked_sub(1)) {
             self.cli.view = self.cli.running(m).then_some(m);
@@ -68,7 +71,7 @@ impl App {
     /// The states, and the sessions that ended: zendo goes back, and opens the agent session again,
     /// so the chat shows what happened in Claude Code (SESSIONS-12, SESSIONS-13).
     pub(crate) fn cli_tick(&mut self) {
-        for n in self.cli.tick() {
+        for n in self.cli.tick().into_iter().filter(|n| *n < SESSIONS) {
             let key = session_key(n);
             if let Some(a) = &self.agent {
                 a.send(Cmd::Forget { key: key.clone() });
@@ -146,7 +149,7 @@ impl App {
         self.cli.quit_asked = Some(Instant::now());
         let n = self.cli.count();
         let (s, run, them) = if n == 1 { ("", "runs", "it") } else { ("s", "run", "them") };
-        self.flash(format!("{n} Claude Code session{s} {run}: quit again to stop {them}"));
+        self.flash(format!("{n} Claude Code session{s} or terminal command{s} {run}: quit again to stop {them}"));
         false
     }
 }

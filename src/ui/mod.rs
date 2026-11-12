@@ -31,7 +31,7 @@ pub use thread::*;
 use tree::*;
 use write::*;
 
-use crate::app::{ALL_KEY, Answered, App, Focus, Item, Mode};
+use crate::app::{ALL_KEY, App, Focus, Item, Mode};
 use crate::docs::delta;
 use crate::text::select::Region;
 use crate::text::code;
@@ -71,6 +71,8 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     .areas(area);
 
     app.regions.clear();
+    app.session_buttons.clear();
+    app.play_buttons.clear();
     draw_top(f, app, &t, top);
     f.render_widget(Paragraph::new("─".repeat(rule.width as usize)).style(Style::new().fg(t.line)), rule);
     app.view_height = main.height as usize;

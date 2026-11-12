@@ -2,7 +2,7 @@
 
 A quiet room for architecture thinking, in your terminal.
 
-![zendo: read a note, ask the agent about a selection, keep its proposal, write](docs/media/zendo.gif)
+![zendo: read a note, ask the agent about a selection, write](docs/media/zendo.gif)
 
 <sub>A session with a scripted agent. More screens are in [docs/media](docs/media).</sub>
 
@@ -53,10 +53,15 @@ Tell the agent how to review you in `.zendo/prompt.md`: requirement style, tone,
 ## Build
 
 When the design holds, press `ctrl-o`. Claude Code starts with the whole discussion behind
-it, so you don't paste or explain anything. You're the coder now. `ctrl-]` takes you back to
+it, so you don't paste or explain anything. You're the coder now. `alt-q` takes you back to
 zendo while Claude Code works on; `ctrl-o` shows it again. Each agent session (`F6` to `F10`) can
 have its own Claude Code session, so one researches while you discuss in another. The delta shows
 what the implementation changed in your notes.
+
+When an answer holds a shell command, a green `▶` marks it. Move the cursor into it and press `F5`:
+the command goes into the shell of the `F5` terminal, and you press `enter` to run it. `alt-F5`
+runs it at once. While the `F5` terminal runs a command, the next one goes to a `[>]` terminal, up
+to five terminals. `F5` anywhere else opens the `F5` terminal for your own commands.
 
 ## Project structure
 
