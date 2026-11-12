@@ -58,7 +58,7 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
         Mode::Write => (
             "WRITE",
             t.acc2,
-            hints(Pane::Write, &[("done", "read"), ("ask", "ask"), ("say", "say here"), ("bold", "bold"), ("italic", "italic"), ("underline", "underline"), ("toggle_tree", "files"), ("delta", "delta")]),
+            hints(Pane::Write, &[("done", "read"), ("chat", "chat"), ("add_to_chat", "to chat"), ("say", "say here"), ("bold", "bold"), ("italic", "italic"), ("underline", "underline"), ("toggle_tree", "files"), ("delta", "delta")]),
         ),
         Mode::Notes => ("NOTES", t.acc, hints(Pane::Notes, &[("down", "move"), ("open", "open"), ("new", "new"), ("rename", "rename"), ("tags", "by tag"), ("close", "close")])),
         Mode::Search => ("SEARCH", t.acc, vec![("↑ ↓".into(), "move".into()), ("enter".into(), "open at match".into()), ("esc".into(), "back".into())]),

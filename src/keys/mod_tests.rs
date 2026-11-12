@@ -11,10 +11,8 @@ fn keys_parse_and_match_events() {
     assert_eq!(k.action(Pane::Read, &ev(KeyCode::Char('J'), KeyModifiers::NONE)), Some("select_down"));
     assert_eq!(k.action(Pane::Read, &ev(KeyCode::Down, KeyModifiers::SHIFT)), Some("select_down"));
     assert_eq!(k.action(Pane::Read, &ev(KeyCode::Char('+'), KeyModifiers::SHIFT)), Some("add_to_chat"));
-    assert_eq!(k.action(Pane::Read, &ev(KeyCode::Char('s'), KeyModifiers::CONTROL)), Some("add_to_chat"));
-    // ctrl-b is bold in write; ctrl-shift-b is the tree in both modes; ctrl-b also in read.
+    // ctrl-b is bold in write; ctrl-shift-b is the tree in both modes.
     assert_eq!(k.action(Pane::Write, &ev(KeyCode::Char('b'), KeyModifiers::CONTROL)), Some("bold"));
-    assert_eq!(k.action(Pane::Read, &ev(KeyCode::Char('b'), KeyModifiers::CONTROL)), Some("tree"));
     let ctrl_shift = KeyModifiers::CONTROL | KeyModifiers::SHIFT;
     assert_eq!(k.action(Pane::Write, &ev(KeyCode::Char('B'), ctrl_shift)), Some("toggle_tree"));
     assert_eq!(k.action(Pane::Read, &ev(KeyCode::Char('b'), ctrl_shift)), Some("toggle_tree"));
@@ -65,13 +63,14 @@ fn ctrl_shift_keys_work_in_both_modes() {
         assert_eq!(k.action(pane, &ev(KeyCode::Down, cs)), Some("select_down"), "{pane:?}");
         assert_eq!(k.action(pane, &ev(KeyCode::Char('L'), cs)), Some("select_right"), "{pane:?}");
         assert_eq!(k.action(pane, &ev(KeyCode::Char('S'), cs)), Some("say"), "{pane:?}");
-        assert_eq!(k.action(pane, &ev(KeyCode::Char('A'), cs)), Some("ask"), "{pane:?}");
+        assert_eq!(k.action(pane, &ev(KeyCode::Char('A'), cs)), Some("add_to_chat"), "{pane:?}");
         assert_eq!(k.action(pane, &ev(KeyCode::Char('C'), cs)), Some("chat"), "{pane:?}");
-        assert_eq!(k.action(pane, &ev(KeyCode::Char('='), cs)), Some("add_to_chat"), "{pane:?}");
-        assert_eq!(k.action(pane, &ev(KeyCode::Char('+'), cs)), Some("add_to_chat"), "{pane:?}");
+        assert_eq!(k.action(pane, &ev(KeyCode::Char('+'), cs)), None, "the terminal zooms: {pane:?}");
+        assert_eq!(k.action(pane, &ev(KeyCode::Char('='), cs)), None, "the terminal zooms: {pane:?}");
     }
     assert_eq!(k.action(Pane::Write, &ev(KeyCode::Left, KeyModifiers::ALT | KeyModifiers::SHIFT)), Some("select_word_left"));
-    assert_eq!(k.first(Pane::Read, "add_to_chat"), "^⇧+");
+    assert_eq!(k.first(Pane::Read, "add_to_chat"), "^⇧a");
+    assert_eq!(k.action(Pane::Write, &ev(KeyCode::Char('k'), KeyModifiers::CONTROL)), None, "ctrl-k does not open the chat");
 }
 
 // PANES-17: the default keys come from the keymap file that zendo ships: every action is in it, and
@@ -114,4 +113,29 @@ fn alt_shift_hl_select_words_everywhere() {
         assert_eq!(k.action(pane, &ev(KeyCode::Char('J'), a)), Some("select_down"), "{pane:?}");
         assert_eq!(k.action(pane, &ev(KeyCode::Char('K'), a)), Some("select_up"), "{pane:?}");
     }
+}
+
+// PANES-24: two actions of one pane with one key are a problem; the default keymap has none.
+#[test]
+fn a_key_of_two_actions_is_a_problem() {
+    let cfg: KeyConfig = toml::from_str("[read]\ncopy = \"m\"\nask = \"m\"\n").unwrap();
+    let (_, problems) = Keymap::new(None, &cfg);
+    assert!(problems.iter().any(|p| p.contains("ask") && p.contains("copy") && p.contains("also the key of")), "{problems:?}");
+    let file: KeyConfig = toml::from_str("[write]\nsave = [\"ctrl-s\"]\nbold = [\"ctrl-s\"]\n").unwrap();
+    let (_, problems) = Keymap::new(Some(&file), &KeyConfig::new());
+    assert!(problems.iter().any(|p| p.contains("^s is also the key of")), "{problems:?}");
+    assert!(Keymap::new(None, &KeyConfig::new()).1.is_empty(), "the defaults have no conflict");
+}
+
+// PANES-25, NOTE-17: without the kitty keyboard protocol ctrl-shift-h j k l come as ctrl-h j k l, and select.
+#[test]
+fn without_the_kitty_protocol_ctrl_hjkl_select() {
+    let mut k = Keymap::defaults();
+    k.legacy = true;
+    for pane in [Pane::Read, Pane::Write] {
+        for (c, act) in [('h', "select_left"), ('j', "select_down"), ('k', "select_up"), ('l', "select_right")] {
+            assert_eq!(k.action(pane, &ev(KeyCode::Char(c), KeyModifiers::CONTROL)), Some(act), "{pane:?} ^{c}");
+        }
+    }
+    assert_eq!(k.action(Pane::Write, &ev(KeyCode::Char('b'), KeyModifiers::CONTROL)), Some("bold"), "a key of its own wins");
 }

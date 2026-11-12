@@ -7,7 +7,9 @@
 # A key: `j`, `J`, `+`, `ctrl-b`, `alt-i`, `shift-down`, `ctrl-shift-h`, `alt-shift-left`, `enter`,
 # `esc`, `tab`, `space`, `backspace`, `delete`, `up`, `down`, `left`, `right`, `home`, `end`,
 # `pageup`, `pagedown`, `f1`…`f12`. The keys of a pane come first, then the global keys.
-# `zendo doctor` reports unknown panes, actions and keys.
+# `zendo doctor` reports unknown panes, actions and keys, and a key of two actions in one pane.
+# A terminal without the kitty keyboard protocol sends ctrl-shift-k as ctrl-k: there a ctrl key with
+# no action of its own does the action of ctrl-shift and the key.
 
 
 [global]
@@ -16,7 +18,7 @@ toggle_tree = ["ctrl-shift-b"]  # file tree
 next_pane = ["tab"]  # next pane
 help = ["f1"]  # the keys of this pane
 wider = ["alt-="]  # a wider text column
-narrower = ["alt--", "ctrl-shift--", "ctrl-_"]  # a narrower text column
+narrower = ["alt--"]  # a narrower text column
 edge_left = ["ctrl-left"]  # move the edge of the pane in focus
 edge_right = ["ctrl-right"]  # move the edge of the pane in focus
 
@@ -32,9 +34,9 @@ select_word_left = ["alt-shift-h", "alt-shift-left"]  # select a word left
 select_word_right = ["alt-shift-l", "alt-shift-right"]  # select a word right
 select_right = ["ctrl-shift-l", "ctrl-shift-right", "L", "shift-right"]  # select right
 select = ["v"]  # start / stop a selection
-ask = ["ctrl-shift-a", "a"]  # ask Claude about the selection
-add_to_chat = ["ctrl-+", "ctrl-shift-=", "+", "ctrl-s"]  # add the selection to the chat
-say = ["ctrl-shift-s", "ctrl-h"]  # here is what I want to say: the agent writes it here, or writes the selection again
+ask = ["a"]  # ask Claude about the selection
+add_to_chat = ["ctrl-shift-a", "+"]  # add the selection to the chat
+say = ["ctrl-shift-s"]  # here is what I want to say: the agent writes it here, or writes the selection again
 copy = ["y", "ctrl-c"]  # copy the selection
 split = ["S"]  # over the word limit: Claude splits it, keeps the altitude
 write = ["i", "enter"]  # write here
@@ -43,7 +45,7 @@ notes = ["o"]  # notes
 search = ["/"]  # search
 chat = ["ctrl-shift-c", "c"]  # chat on / off
 delta = ["d"]  # delta
-tree = ["e", "ctrl-b"]  # file tree
+tree = ["e"]  # file tree
 recap = ["r"]  # recap now
 recap_toggle = ["R"]  # show / hide the recap
 layout = ["w"]  # standard / wide screen
@@ -62,10 +64,9 @@ quit = ["q"]  # quit
 [write]
 done = ["esc"]  # save and read
 save = ["ctrl-s"]  # save
-ask = ["ctrl-shift-a", "ctrl-k"]  # ask Claude
 say = ["ctrl-shift-s"]  # here is what I want to say: the agent writes it here, or writes the selection again
-chat = ["ctrl-shift-c"]  # chat on / off
-add_to_chat = ["ctrl-+", "ctrl-shift-="]  # add the selection, or the line, to the chat
+chat = ["ctrl-shift-c"]  # chat on / off: saves first
+add_to_chat = ["ctrl-shift-a"]  # add the selection, or the line, to the chat
 delta = ["ctrl-d"]  # delta
 toggle_tree = ["ctrl-shift-b", "ctrl-e"]  # file tree
 bold = ["ctrl-b"]  # **bold** the selection or the word

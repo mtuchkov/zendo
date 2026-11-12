@@ -142,6 +142,11 @@ pub fn terminal_off() {
     SHAPE.store(0, std::sync::atomic::Ordering::Relaxed);
 }
 
+/// The terminal has the kitty keyboard protocol: ctrl-shift-s is not ctrl-s.
+pub fn kitty() -> bool {
+    KITTY.load(std::sync::atomic::Ordering::Relaxed)
+}
+
 static KITTY: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 static SHAPE: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
 

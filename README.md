@@ -43,8 +43,8 @@ This is the main part of zendo: it keeps you on what is important.
 - **Where you left off.** A short recap of each note: what it is about, what it decides,
   what changed, and the open question. It tells you where you stopped yesterday. The delta
   (`d`) shows word by word what changed since you last worked on the note.
-- **The agent one key away.** `ctrl-shift-c` opens the chat. Select with `ctrl-shift-h j k l` or `ctrl-shift` and the arrows, then `ctrl-shift-a` asks
-  about the selection and `ctrl-shift-+` adds it to the chat.
+- **The agent one key away.** `ctrl-shift-c` opens the chat. Select with `ctrl-shift-h j k l` or `ctrl-shift` and the arrows, then `a` asks
+  about the selection and `ctrl-shift-a` adds it to the chat.
 - **Docs that stay short.** Past the word limit (1,000 by default) the text turns red, and
   `S` asks the agent to split the doc and keep each part at one level of detail.
 

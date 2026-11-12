@@ -221,7 +221,7 @@ pub struct App {
     pub cursor_y: usize,
     /// After a mode change: the screen row the cursor keeps at the next draw.
     pub keep_y: Option<usize>,
-    /// `ctrl-h`: the arrow in the note, until the answer ends or `esc`.
+    /// `ctrl-shift-s`: the arrow in the note, until the answer ends or `esc`.
     pub say: Option<Say>,
     /// `@` in the chat input: the file suggestions under it.
     pub at: Option<AtPick>,

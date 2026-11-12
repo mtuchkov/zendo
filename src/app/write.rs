@@ -20,10 +20,6 @@ impl App {
         match a {
             "done" => self.finish_write(),
             "save" => self.save(),
-            "ask" => {
-                self.save();
-                self.open_panel();
-            }
             "delta" => {
                 self.toggle_delta();
                 self.focus = Focus::Note;
@@ -31,7 +27,10 @@ impl App {
             }
             "toggle_tree" => self.toggle_tree(),
             "say" => self.start_say(),
-            "chat" => self.toggle_chat(),
+            "chat" => {
+                self.save();
+                self.toggle_chat();
+            }
             "add_to_chat" => self.add_line_to_chat(),
             "copy" => {
                 if let Some(t) = self.editor.selected_text() {

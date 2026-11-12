@@ -63,11 +63,11 @@ colors: `sh`, `rust`, `java`, `python`, `go`, `yaml` and `json` are on; other la
 | ID      | Pattern    | Requirement                                                                                                                         | Source           |
 | ------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | NOTE-4  | State      | While the note pane has focus in read mode, the system shall show a cursor line.                                                    | User, 2026-11-11 |
-| NOTE-5  | Event      | When the user presses `ctrl-shift-a` (or `a`) in read mode, the system shall send the selection, or the paragraph under the cursor, to Claude with its line numbers. | User, 2026-11-11 |
+| NOTE-5  | Event      | When the user presses `a` in read mode, the system shall send the selection, or the paragraph under the cursor, to Claude with its line numbers. | User, 2026-11-11 |
 | NOTE-6  | Event      | When the user presses `y` in read mode, the system shall copy the selection to the clipboard.                                       | Design           |
 | NOTE-16 | State      | While the note pane has focus in read mode, the system shall show a blinking block cursor on one char of a bright cursor line.     | User, 2026-11-11 |
 | NOTE-17 | Event      | When the user moves the cursor with Shift (`ctrl-shift-h j k l`, `H J K L`, Shift and the arrows), the system shall select the text char by char.        | User, 2026-11-11 |
-| NOTE-18 | Event      | When the user adds the selection to the chat (`ctrl-shift-+`, or `+` and `ctrl-s` in read mode), the system shall put a chip with the first 15 chars of the selection, and `+N` for N more lines, into the chat input and send the text as context. | User, 2026-11-11 |
+| NOTE-18 | Event      | When the user adds the selection to the chat (`ctrl-shift-a`, or `+` in read mode), the system shall put a chip with the first 15 chars of the selection, and `+N` for N more lines, into the chat input and send the text as context. | User, 2026-11-11 |
 | NOTE-21 | Optional   | Where a `.sublime-syntax` file is in `~/.zendo/syntaxes/`, or a language is in `[highlight] languages`, the system shall highlight that language. | User, 2026-11-11 |
 
 Tests that verify detailed requirements: `bold_italic_underline_and_tables_render` (NOTE-2),

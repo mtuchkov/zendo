@@ -137,14 +137,14 @@ async fn at_adds_a_file_chip_that_moves_and_goes_as_one() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// NOTE-25, NOTE-27: ctrl-h shows the arrow and starts the sentence; the end of the answer removes it.
+// NOTE-25, NOTE-27: ctrl-shift-s shows the arrow and starts the sentence; the end of the answer removes it.
 #[tokio::test]
-async fn ctrl_h_marks_the_place_until_the_answer_ends() {
+async fn say_marks_the_place_until_the_answer_ends() {
     let root = repo("flow-say", &files());
     let mut a = app(&root);
     draw(&mut a, 120, 30);
     a.read_cursor = a.read_text.iter().position(|r| r.starts_with("The first")).unwrap();
-    ctrl(&mut a, 'h');
+    ctrl_shift(&mut a, 's');
     assert!(a.input.text().starts_with("Here is what I want to say here: "));
     a.focus = Focus::Note;
     let screen = draw(&mut a, 120, 30);
@@ -256,7 +256,7 @@ async fn say_and_add_to_chat_work_in_write_mode() {
     a.say = None;
     a.input.take();
     a.chips.clear();
-    a.on_key(KeyEvent::new(KeyCode::Char('+'), KeyModifiers::CONTROL | KeyModifiers::SHIFT));
+    ctrl_shift(&mut a, 'a');
     let chip = a.chips.last().expect("the line as a chip");
     assert!(chip.label.contains("The first parag"), "{}", chip.label);
     assert!(chip.context.as_deref().unwrap_or_default().contains("> The first paragraph of the idea."));
@@ -270,7 +270,7 @@ fn the_status_bar_names_hjkl() {
     let mut a = app(&root);
     let screen = draw(&mut a, 160, 30);
     let bar = screen.iter().rev().find(|r| r.contains("READ")).unwrap();
-    assert!(bar.contains("h/j/k/l cursor") && bar.contains("^⇧h/j/k/l select") && bar.contains("^⇧+ to chat"), "{bar}");
+    assert!(bar.contains("h/j/k/l cursor") && bar.contains("^⇧h/j/k/l select") && bar.contains("^⇧a to chat"), "{bar}");
     let _ = std::fs::remove_dir_all(&root);
 }
 

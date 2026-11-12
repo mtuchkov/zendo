@@ -1,9 +1,9 @@
-//! "Here is what I want to say": `ctrl-h` marks a place in the note with an arrow, and the chat asks
+//! "Here is what I want to say": `ctrl-shift-s` marks a place in the note with an arrow, and the chat asks
 //! the agent to turn the idea of the user into text that connects with the paragraphs around it.
 //! With a selection, the agent writes the selection again.
 use super::*;
 
-/// The mark of `ctrl-h`: where the arrow is, and the thread that answers.
+/// The mark of `ctrl-shift-s`: where the arrow is, and the thread that answers.
 #[derive(Clone, Debug)]
 pub struct Say {
     pub path: PathBuf,

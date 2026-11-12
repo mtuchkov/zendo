@@ -32,7 +32,7 @@ pub struct State {
     /// Tree view: "structure", "docs" or "all". Empty: structure when the repo has one, else docs.
     #[serde(default)]
     pub tree_view: String,
-    /// The width of the text column, set with `ctrl-shift-+` and `ctrl-shift--`.
+    /// The width of the text column, set with `alt-=` and `alt--`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub column: Option<u16>,
     /// Per file, keyed by the repo-relative path.

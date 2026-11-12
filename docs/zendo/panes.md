@@ -78,6 +78,8 @@ terminals change it with `ctrl-+` and `ctrl--`. In read mode: `w` switches the l
 | PANES-21 | Event      | When the user opens the delta and it does not fit beside the file tree, the system shall close the file tree. | User, 2026-11-12 |
 | PANES-22 | Event      | When the user presses `alt-=` or `alt--`, the system shall make the text column 4 chars wider or narrower, and keep the width for the repository. | User, 2026-11-12 |
 | PANES-23 | Event      | When the user runs `zendo keymap`, the system shall print the default keymap file, so that the user can start a keymap of their own from it. | User, 2026-11-12 |
+| PANES-24 | Unwanted   | If one key has two actions in one pane of the keymap, then the system shall tell the user, and the key shall do the first action. | User, 2026-11-12 |
+| PANES-25 | Unwanted   | If the terminal has no kitty keyboard protocol and sends `ctrl-shift` and a letter as `ctrl` and the letter, then the system shall do the action of `ctrl-shift` and the letter when `ctrl` and the letter has no action. | User, 2026-11-12 |
 
 zendo takes the mouse. To use the selection of the terminal, the user holds a modifier key, usually
 Shift, or Option in iTerm2.
@@ -85,4 +87,5 @@ Shift, or Option in iTerm2.
 Tests that verify detailed requirements: `the_delta_closes_the_tree_when_it_does_not_fit` (PANES-21),
 `the_width_keys_change_the_text_column` (PANES-22), `the_default_keymap_file_names_every_action` (PANES-17),
 `a_user_keymap_file_then_the_config_change_keys`, `zendo_keymap_prints_the_default_keymap` (PANES-17,
-PANES-23).
+PANES-23), `a_key_of_two_actions_is_a_problem` (PANES-24), `without_the_kitty_protocol_ctrl_hjkl_select`
+(PANES-25).

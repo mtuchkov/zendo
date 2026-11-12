@@ -11,7 +11,7 @@ note: "Agent draft. Not reviewed by the user."
 
 # Say it here
 
-`ctrl-shift-s` (`ctrl-h` too in read mode) means "here is what I want to say", in read mode and in
+`ctrl-shift-s` means "here is what I want to say", in read mode and in
 write mode: an arrow shows in the empty space left of the line, and the
 chat starts with "Here is what I want to say here: ". The user writes the idea, and the agent gets
 the paragraph above and the paragraph below; it proposes connected text for that place. With a
@@ -33,5 +33,5 @@ one edit that changes nothing else. The edit comes back as a proposal, as every 
 | NOTE-27 | Event      | When the answer ends, or the user presses `esc` in the chat or in the note, the system shall remove the arrow. | User, 2026-11-12 |
 
 Tests that verify detailed requirements: `paragraphs_around_a_line` (NOTE-25),
-`the_context_quotes_the_text_around_the_mark` (NOTE-25, NOTE-26), `ctrl_h_marks_the_place_until_the_answer_ends`
+`the_context_quotes_the_text_around_the_mark` (NOTE-25, NOTE-26), `say_marks_the_place_until_the_answer_ends`
 (NOTE-25, NOTE-27).

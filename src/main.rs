@@ -234,8 +234,9 @@ async fn open_app(cfg: Config) -> Result<App> {
     };
     let mut app = App::new(cfg)?;
     app.syncer = syncer;
+    app.keys.legacy = !zendo::tui::kitty();
     if !app.key_problems.is_empty() {
-        app.flash(format!("[keys] in the config: {} problem(s) · zendo doctor", app.key_problems.len()));
+        app.flash(format!("[keys] {} problem(s) · zendo doctor", app.key_problems.len()));
     }
     if old_notes > 0 {
         app.flash(format!("{old_notes} note(s) in docs/notes are not in your notes repo · zendo notes move"));

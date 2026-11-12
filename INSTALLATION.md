@@ -127,6 +127,8 @@ split = "ctrl-s"
 italic = "alt-i"
 ```
 
+`zendo doctor` and the status bar at start tell you about a key that has two actions in one pane.
+
 Panes: `global`, `read`, `write`, `chat`, `tree`, `delta`, `notes`. A key is `j`, `J`, `+`, `ctrl-b`, `ctrl-shift-b`,
 `alt-i`, `shift-down`, `ctrl-shift-left`, `enter`, `esc`, `tab`, `space`, `pageup`, `f1`… `zendo doctor`
 reports unknown panes, actions and keys. In terminals with the kitty keyboard protocol (kitty, Ghostty,

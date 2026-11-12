@@ -4,7 +4,7 @@
 //!
 //! ```toml
 //! [keys.read]
-//! add_to_chat = ["+", "ctrl-s"]
+//! add_to_chat = ["+", "m"]
 //! select_down = "J"
 //! ```
 //!
@@ -13,6 +13,7 @@
 //! `pageup`, `pagedown`, `f1`…`f12`. The keys of a pane come first, then the global keys.
 
 mod actions;
+mod legacy;
 mod key;
 
 pub use actions::*;
@@ -95,6 +96,8 @@ pub type KeyConfig = BTreeMap<String, BTreeMap<String, KeySpec>>;
 pub struct Keymap {
     by_key: HashMap<(Pane, Key), &'static str>,
     keys: HashMap<(Pane, &'static str), Vec<Key>>,
+    /// The terminal has no kitty keyboard protocol: ctrl-shift-k comes as ctrl-k.
+    pub legacy: bool,
 }
 
 impl Keymap {
@@ -128,12 +131,14 @@ impl Keymap {
     /// The action of this key in this pane; else the global action.
     pub fn action(&self, pane: Pane, k: &KeyEvent) -> Option<&'static str> {
         let key = Key::from_event(k);
-        self.by_key.get(&(pane, key)).or_else(|| self.by_key.get(&(Pane::Global, key))).copied()
+        let exact = self.by_key.get(&(pane, key)).or_else(|| self.by_key.get(&(Pane::Global, key))).copied();
+        exact.or_else(|| self.shifted(pane, key)).or_else(|| self.shifted(Pane::Global, key))
     }
 
     /// The action of this key in this pane only.
     pub fn local(&self, pane: Pane, k: &KeyEvent) -> Option<&'static str> {
-        self.by_key.get(&(pane, Key::from_event(k))).copied()
+        let key = Key::from_event(k);
+        self.by_key.get(&(pane, key)).copied().or_else(|| self.shifted(pane, key))
     }
 
     /// The keys of an action, for the help: `j ↓`.
@@ -167,7 +172,7 @@ fn parse_keys(cfg: &KeyConfig, act: &Action, layer: &str, problems: &mut Vec<Str
 }
 
 /// Which action a key does in each pane. A key goes to the first action that has it; a key that the
-/// user set goes to the user's action, and two actions of the user with one key are a problem.
+/// user set goes to the user's action. Two actions of one layer with one key are a problem.
 fn owners(map: &Keymap, custom: &std::collections::HashSet<(Pane, &'static str)>, problems: &mut Vec<String>) -> HashMap<(Pane, Key), &'static str> {
     let mut owner: HashMap<(Pane, Key), (&'static str, bool)> = HashMap::new();
     for act in ACTIONS {
@@ -175,7 +180,7 @@ fn owners(map: &Keymap, custom: &std::collections::HashSet<(Pane, &'static str)>
         for k in &map.keys[&(act.pane, act.name)] {
             match owner.get(&(act.pane, *k)) {
                 Some((other, other_mine)) if *other_mine || !mine => {
-                    if mine {
+                    if mine == *other_mine {
                         problems.push(format!("[{}] {}: {} is also the key of {other}", act.pane.name(), act.name, k.label()));
                     }
                 }
