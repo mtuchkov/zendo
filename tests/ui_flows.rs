@@ -147,7 +147,9 @@ async fn ctrl_h_marks_the_place_until_the_answer_ends() {
     ctrl(&mut a, 'h');
     assert!(a.input.text().starts_with("Here is what I want to say here: "));
     a.focus = Focus::Note;
-    assert!(draw(&mut a, 120, 30).iter().any(|r| r.contains("↑ say it here")));
+    let screen = draw(&mut a, 120, 30);
+    let row = screen.iter().find(|r| r.contains("The first paragraph")).unwrap();
+    assert!(row.find('→').unwrap() < row.find("The first").unwrap(), "the arrow is left of the line: {row}");
     let key_of = a.say.as_ref().unwrap().key.clone();
     a.on_agent(Event::TurnEnd { key: key_of, stop: "end_turn".into() });
     assert!(a.say.is_none());
@@ -229,5 +231,45 @@ fn write_mode_wraps_as_read_mode_and_keeps_the_head() {
     // The lines after the cursor line wrap as in read mode: no row ends with a lone word.
     let after = |screen: &Vec<String>| screen.iter().skip_while(|l| !l.contains("Deep thinking")).take(3).cloned().collect::<Vec<_>>();
     assert!(after(&write).iter().all(|l| l.split_whitespace().count() > 2), "{:#?}", after(&write));
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+fn ctrl_shift(app: &mut zendo::app::App, c: char) {
+    app.on_key(KeyEvent::new(KeyCode::Char(c.to_ascii_uppercase()), KeyModifiers::CONTROL | KeyModifiers::SHIFT));
+}
+
+// NOTE-25, NOTE-18: say here, ask and add to chat work in write mode too.
+#[tokio::test]
+async fn say_and_add_to_chat_work_in_write_mode() {
+    let root = repo("flow-write-keys", &files());
+    let mut a = app(&root);
+    draw(&mut a, 120, 30);
+    a.read_cursor = a.read_text.iter().position(|r| r.starts_with("The first")).unwrap();
+    key(&mut a, KeyCode::Char('i'));
+    draw(&mut a, 120, 30);
+    ctrl_shift(&mut a, 's');
+    assert!(a.input.text().starts_with("Here is what I want to say here: "), "{}", a.input.text());
+    a.focus = Focus::Note;
+    let screen = draw(&mut a, 120, 30);
+    let row = screen.iter().find(|r| r.contains("The first paragraph")).unwrap();
+    assert!(row.find('→').unwrap() < row.find("The first").unwrap(), "the arrow in write mode: {row}");
+    a.say = None;
+    a.input.take();
+    a.chips.clear();
+    a.on_key(KeyEvent::new(KeyCode::Char('+'), KeyModifiers::CONTROL | KeyModifiers::SHIFT));
+    let chip = a.chips.last().expect("the line as a chip");
+    assert!(chip.label.contains("The first parag"), "{}", chip.label);
+    assert!(chip.context.as_deref().unwrap_or_default().contains("> The first paragraph of the idea."));
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// The status bar names the four cursor keys and the four select keys at once.
+#[test]
+fn the_status_bar_names_hjkl() {
+    let root = repo("flow-hints", &files());
+    let mut a = app(&root);
+    let screen = draw(&mut a, 160, 30);
+    let bar = screen.iter().rev().find(|r| r.contains("READ")).unwrap();
+    assert!(bar.contains("h/j/k/l cursor") && bar.contains("^⇧h/j/k/l select") && bar.contains("^⇧+ to chat"), "{bar}");
     let _ = std::fs::remove_dir_all(&root);
 }

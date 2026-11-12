@@ -21,7 +21,7 @@ the note. The top bar shows the file and the branch; there are no buttons, every
 
 Keys in every pane: `tab` moves the focus to the next pane, `ctrl-shift-b` opens or closes the file
 tree (`ctrl-b` too in read mode),
-`ctrl-←` and `ctrl-→` move the edge of the pane in focus, `ctrl-shift-+` and `ctrl-shift--` make the
+`ctrl-←` and `ctrl-→` move the edge of the pane in focus, `alt-=` and `alt--` make the
 text column wider or narrower (kept for the repository). The font size is the terminal's own: most
 terminals change it with `ctrl-+` and `ctrl--`. In read mode: `w` switches the layout,
 `t` switches the theme, `?` shows all keys.
@@ -76,7 +76,7 @@ terminals change it with `ctrl-+` and `ctrl--`. In read mode: `w` switches the l
 | PANES-18 | Ubiquitous | The system shall have a key for every action, and no buttons.                                                                         | User, 2026-11-11 |
 | PANES-19 | Unwanted   | If `[keys]` in the config names an unknown pane, action or key, then the system shall keep the default keys and tell the user.       | Design           |
 | PANES-21 | Event      | When the user opens the delta and it does not fit beside the file tree, the system shall close the file tree. | User, 2026-11-12 |
-| PANES-22 | Event      | When the user presses `ctrl-shift-+` or `ctrl-shift--`, the system shall make the text column 4 chars wider or narrower, and keep the width for the repository. | User, 2026-11-12 |
+| PANES-22 | Event      | When the user presses `alt-=` or `alt--`, the system shall make the text column 4 chars wider or narrower, and keep the width for the repository. | User, 2026-11-12 |
 
 zendo takes the mouse. To use the selection of the terminal, the user holds a modifier key, usually
 Shift, or Option in iTerm2.

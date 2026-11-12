@@ -45,6 +45,10 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
         Mode::Read if app.read_anchor.is_some() => ("SELECT", t.acc2, hints(Pane::Read, &[("select_down", "extend"), ("ask", "ask claude"), ("add_to_chat", "add to chat"), ("copy", "copy"), ("back", "cancel")])),
         Mode::Read | Mode::Help => {
             let mut v = hints(Pane::Read, &[("down", "cursor"), ("select_down", "select"), ("ask", "ask"), ("say", "say here"), ("add_to_chat", "to chat"), ("chat", "chat"), ("write", "write"), ("search", "search"), ("help", "keys")]);
+            // The four cursor keys and the four select keys, each with one label.
+            let four = |names: [&str; 4]| group_label(&names.map(|n| app.keys.first(Pane::Read, n)).iter().map(String::as_str).collect::<Vec<_>>());
+            v[0].0 = four(["left", "down", "up", "right"]);
+            v[1].0 = four(["select_left", "select_down", "select_up", "select_right"]);
             v.insert(5, (app.keys.first(Pane::Global, "toggle_tree"), "files".into()));
             if app.over_limit.is_some() {
                 v.insert(0, (app.keys.first(Pane::Read, "split"), format!("split: {} words", app.word_count)));
@@ -54,7 +58,7 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
         Mode::Write => (
             "WRITE",
             t.acc2,
-            hints(Pane::Write, &[("done", "read"), ("ask", "ask claude"), ("bold", "bold"), ("italic", "italic"), ("underline", "underline"), ("toggle_tree", "files"), ("delta", "delta")]),
+            hints(Pane::Write, &[("done", "read"), ("ask", "ask"), ("say", "say here"), ("bold", "bold"), ("italic", "italic"), ("underline", "underline"), ("toggle_tree", "files"), ("delta", "delta")]),
         ),
         Mode::Notes => ("NOTES", t.acc, hints(Pane::Notes, &[("down", "move"), ("open", "open"), ("new", "new"), ("rename", "rename"), ("tags", "by tag"), ("close", "close")])),
         Mode::Search => ("SEARCH", t.acc, vec![("↑ ↓".into(), "move".into()), ("enter".into(), "open at match".into()), ("esc".into(), "back".into())]),
@@ -120,4 +124,16 @@ pub(crate) fn draw_file_prompt(f: &mut Frame, app: &App, t: &Theme, area: Rect) 
     spans.push(Span::styled(format!("{tab}   enter ok   esc cancel"), Style::new().fg(t.dim)));
     f.set_cursor_position((area.x + (used + text.width()) as u16, area.y));
     f.render_widget(Paragraph::new(Line::from(spans)), area);
+}
+
+/// One label for a group of keys: `h j k l` → `h/j/k/l`, `^⇧h ^⇧j` → `^⇧h/j`.
+pub fn group_label(labels: &[&str]) -> String {
+    let first: Vec<char> = labels.first().map(|l| l.chars().collect()).unwrap_or_default();
+    let prefix = first.len().saturating_sub(1);
+    let same = labels.iter().all(|l| l.chars().count() == first.len() && l.chars().take(prefix).eq(first[..prefix].iter().copied()));
+    if !same {
+        return labels.join("/");
+    }
+    let tails: Vec<String> = labels.iter().map(|l| l.chars().skip(prefix).collect()).collect();
+    format!("{}{}", first[..prefix].iter().collect::<String>(), tails.join("/"))
 }

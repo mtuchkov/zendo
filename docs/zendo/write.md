@@ -19,14 +19,16 @@ head of the note (the title, the date and the tags, the recap) stays where read 
 the text does not move when the mode changes.
 
 zendo breaks a line at a word when it gets longer than the text column (76 chars by default; `width`
-in the config, and `ctrl-shift-+` and `ctrl-shift--` for a repository). A list item goes on under
+in the config, and `alt-=` and `alt--` for a repository). A list item goes on under
 its marker and a quote with `>`, so read mode joins the lines again. Headings, table rows, code and
 front matter keep their length.
 
 The cursor stays on the same char when the mode changes, at the same height on the screen: zendo
 matches the chars of the formatted text with the chars of the source and skips the markup.
 
-`ctrl-shift-h j k l` and Shift and the arrows select; `ctrl-c`, `ctrl-x` and `ctrl-v` copy, cut and
+`ctrl-shift-h j k l`, `ctrl-shift` and the arrows, and Shift and the arrows select (`alt-shift` and
+an arrow: a word); `ctrl-shift-a` asks, `ctrl-shift-s` says it here, `ctrl-shift-+` adds the
+selection or the line to the chat, `ctrl-shift-c` opens the chat; `ctrl-c`, `ctrl-x` and `ctrl-v` copy, cut and
 paste with the system clipboard; `ctrl-b`, `ctrl-i` and `ctrl-u` make the selection or the word
 bold, italic or underlined. When the user leaves write mode, and the file has no `# ` title, or it
 is a doc outside the notes folder without front matter, the agent writes the missing part in a

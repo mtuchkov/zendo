@@ -9,7 +9,12 @@ pub const CLOSE: char = '⟧';
 pub fn selection_label(text: &str) -> String {
     let flat = text.split_whitespace().collect::<Vec<_>>().join(" ");
     let head: String = flat.chars().take(15).collect();
-    if flat.chars().count() > 15 { format!("{head}…") } else { head }
+    let head = if flat.chars().count() > 15 { format!("{head}…") } else { head };
+    // A selection of more lines says how many more.
+    match text.trim().lines().count() {
+        n if n > 1 => format!("{head} +{}", n - 1),
+        _ => head,
+    }
 }
 
 /// A file chip says the last 4 chars of its folder and the first 10 chars of its name: `ates/specificat`.

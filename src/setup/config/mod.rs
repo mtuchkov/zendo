@@ -30,7 +30,7 @@ pub struct UserConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub highlight: Option<crate::text::highlight::Config>,
     /// The width of the text column, in chars: read mode wraps at it, and write mode breaks a
-    /// line that is longer. Default 76; `ctrl-shift-+` and `ctrl-shift--` change it for a repository.
+    /// line that is longer. Default 76; `alt-=` and `alt--` change it for a repository.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub width: Option<u16>,
     /// The private notes repo, when the user turned it on.

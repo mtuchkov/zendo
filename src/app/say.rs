@@ -7,8 +7,8 @@ use super::*;
 #[derive(Clone, Debug)]
 pub struct Say {
     pub path: PathBuf,
-    /// The rendered row and char under which the arrow shows.
-    pub row: usize,
+    /// The source line and char of the mark: the arrow shows left of its row.
+    pub line: usize,
     pub col: usize,
     pub key: String,
     pub rewrite: bool,
@@ -80,31 +80,51 @@ pub fn say_context(rel: &str, lines: &[&str], (lo, hi): (usize, usize), selectio
     }
 }
 
+/// The mark (line, char), the first and last selected line, the selected text, and the source lines.
+type Place = ((usize, usize), (usize, usize), Option<String>, Vec<String>);
+
 impl App {
-    /// `ctrl-h` in read mode: the arrow, the context, and the chat with the start of the sentence.
+    /// `ctrl-shift-s` in read mode or write mode: the arrow, the context, and the chat with the
+    /// start of the sentence.
     pub(crate) fn start_say(&mut self) {
         let Some(path) = self.current.clone() else { return self.flash("open a note first") };
-        let selection = self.read_selection();
-        let (r1, r2) = self.selection_rows();
-        let (row, col) = match selection {
-            Some((_, (r, c))) => (r, c),
-            None => (self.read_cursor, self.read_col),
-        };
-        let src_of = |r: usize| self.read_rows.iter().rposition(|x| *x <= r).unwrap_or(0);
-        let (lo, hi) = if selection.is_some() { (src_of(r1), src_of(r2)) } else { (src_of(row), src_of(row)) };
-        let text = self.note_text().unwrap_or_default();
-        let lines: Vec<&str> = text.lines().collect();
-        let picked = selection.map(|_| self.selection_text());
-        let ctx = say_context(&self.rel(&path), &lines, (lo, hi), picked.as_deref());
+        let (mark, range, picked, lines) = if self.mode == Mode::Write { self.say_in_editor() } else { self.say_in_read() };
+        let refs: Vec<&str> = lines.iter().map(String::as_str).collect();
+        let ctx = say_context(&self.rel(&path), &refs, range, picked.as_deref());
         let rewrite = picked.is_some();
         self.read_anchor = None;
         self.open_panel();
-        self.say = Some(Say { path, row, col, key: self.key(), rewrite });
+        self.say = Some(Say { path, line: mark.0, col: mark.1, key: self.key(), rewrite });
         self.ask_context = Some(ctx);
         self.ask_about = if rewrite { "the selection" } else { "the mark" };
         self.input.take();
         self.input.type_str(if rewrite { SAY_DIFFERENTLY } else { SAY_HERE });
         self.focus = Focus::Claude;
+    }
+
+    /// The mark, the source lines around it, the selected text, and the source: from the read cursor.
+    fn say_in_read(&self) -> Place {
+        let lines: Vec<String> = self.note_text().unwrap_or_default().lines().map(str::to_string).collect();
+        let refs: Vec<&str> = lines.iter().map(String::as_str).collect();
+        let to_src = |p| cursor_map::shown_to_source(&self.read_text, &self.read_rows, &refs, p);
+        let (start, end) = match self.read_selection() {
+            Some((a, b)) => (to_src(a), to_src(b)),
+            None => {
+                let p = to_src((self.read_cursor, self.read_col));
+                (p, p)
+            }
+        };
+        let picked = self.read_selection().map(|_| self.selection_text());
+        (start, (start.0, end.0), picked, lines)
+    }
+
+    /// The same from the editor in write mode.
+    fn say_in_editor(&self) -> Place {
+        let e = &self.editor;
+        match e.selection() {
+            Some((a, b)) => (a, (a.0, b.0), e.selected_text(), e.lines.clone()),
+            None => ((e.row, e.col), (e.row, e.row), None, e.lines.clone()),
+        }
     }
 }
 

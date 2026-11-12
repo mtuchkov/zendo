@@ -3,8 +3,10 @@ use super::*;
 // CLAUDE-20: a selection chip says the first 15 chars of the selection.
 #[test]
 fn a_selection_chip_says_its_first_chars() {
-    assert_eq!(selection_label("IF a legal\n hold covers an event"), "IF a legal hold…");
+    assert_eq!(selection_label("IF a legal hold covers an event"), "IF a legal hold…");
     assert_eq!(selection_label("short"), "short");
+    // A selection of more lines says how many more: `+2`.
+    assert_eq!(selection_label("IF a legal\nhold covers\nan event"), "IF a legal hold… +2");
 }
 
 // CLAUDE-21: a file chip says the last 4 chars of its folder and the first 10 chars of its name.

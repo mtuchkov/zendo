@@ -23,7 +23,8 @@ fn keys_parse_and_match_events() {
     assert_eq!(k.action(Pane::Write, &ev(KeyCode::Char('h'), ctrl_shift)), Some("select_left"));
     assert_eq!(k.action(Pane::Write, &ev(KeyCode::Char('c'), KeyModifiers::CONTROL)), Some("copy"));
     assert_eq!(k.action(Pane::Tree, &ev(KeyCode::Char('c'), KeyModifiers::CONTROL)), Some("quit"));
-    assert_eq!(k.action(Pane::Write, &ev(KeyCode::Left, KeyModifiers::CONTROL | KeyModifiers::SHIFT)), Some("select_word_left"));
+    // ctrl-shift and an arrow selects a char, as ctrl-shift-h j k l; alt-shift and an arrow, a word.
+    assert_eq!(k.action(Pane::Write, &ev(KeyCode::Left, KeyModifiers::CONTROL | KeyModifiers::SHIFT)), Some("select_left"));
     assert_eq!(k.action(Pane::Chat, &ev(KeyCode::Enter, KeyModifiers::ALT)), Some("newline"));
     assert_eq!(k.action(Pane::Write, &ev(KeyCode::Char('x'), KeyModifiers::NONE)), None, "a letter in write mode is text");
     for s in ["ctrl-b", "alt-i", "shift-down", "ctrl-shift-left", "f5", "space", "J", "+", "pageup"] {
@@ -52,4 +53,23 @@ fn the_config_changes_keys_and_reports_problems() {
     assert_eq!(k.action(Pane::Read, &ev(KeyCode::Char('j'), KeyModifiers::CONTROL)), Some("select_down"));
     assert_eq!(problems.len(), 3, "{problems:?}");
     assert_eq!(k.label(Pane::Read, "down"), "j ↓");
+}
+
+// NOTE-17, NOTE-18, NOTE-25, PANES: the ctrl-shift keys work in read mode and in write mode.
+#[test]
+fn ctrl_shift_keys_work_in_both_modes() {
+    let k = Keymap::defaults();
+    let cs = KeyModifiers::CONTROL | KeyModifiers::SHIFT;
+    for pane in [Pane::Read, Pane::Write] {
+        assert_eq!(k.action(pane, &ev(KeyCode::Left, cs)), Some("select_left"), "{pane:?}");
+        assert_eq!(k.action(pane, &ev(KeyCode::Down, cs)), Some("select_down"), "{pane:?}");
+        assert_eq!(k.action(pane, &ev(KeyCode::Char('L'), cs)), Some("select_right"), "{pane:?}");
+        assert_eq!(k.action(pane, &ev(KeyCode::Char('S'), cs)), Some("say"), "{pane:?}");
+        assert_eq!(k.action(pane, &ev(KeyCode::Char('A'), cs)), Some("ask"), "{pane:?}");
+        assert_eq!(k.action(pane, &ev(KeyCode::Char('C'), cs)), Some("chat"), "{pane:?}");
+        assert_eq!(k.action(pane, &ev(KeyCode::Char('='), cs)), Some("add_to_chat"), "{pane:?}");
+        assert_eq!(k.action(pane, &ev(KeyCode::Char('+'), cs)), Some("add_to_chat"), "{pane:?}");
+    }
+    assert_eq!(k.action(Pane::Write, &ev(KeyCode::Left, KeyModifiers::ALT | KeyModifiers::SHIFT)), Some("select_word_left"));
+    assert_eq!(k.first(Pane::Read, "add_to_chat"), "^⇧+");
 }

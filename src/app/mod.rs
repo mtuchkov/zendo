@@ -3,7 +3,7 @@
 mod at;
 mod chat;
 mod chat_keys;
-mod cursor_map;
+pub mod cursor_map;
 pub mod chips;
 mod events;
 mod files;

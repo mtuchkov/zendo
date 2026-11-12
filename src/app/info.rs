@@ -117,7 +117,7 @@ impl App {
         self.state.column.unwrap_or(self.width_default)
     }
 
-    /// `ctrl-shift-+` and `ctrl-shift--`: a wider or a narrower text column, kept for the repository.
+    /// `alt-=` and `alt--`: a wider or a narrower text column, kept for the repository.
     pub fn change_width(&mut self, by: i16) {
         let w = (self.column_width() as i16 + by).clamp(30, 300) as u16;
         self.state.column = Some(w);

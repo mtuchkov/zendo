@@ -46,6 +46,10 @@ pub(crate) fn draw_write(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
         })
         .collect();
     f.render_widget(Paragraph::new(view), col);
+    if let Some(say) = app.say.as_ref().filter(|s| app.editor_path.as_ref() == Some(&s.path)) {
+        let row = if say.line == app.editor.row { vrow } else if title == Some(say.line) { 0 } else { head + r.rows.get(say.line).copied().unwrap_or(0) };
+        say_arrow(f, app, t, area, col, row);
+    }
     app.cursor_y = vrow.saturating_sub(app.scroll);
     if !(app.panel && app.focus == Focus::Claude) {
         f.set_cursor_position((col.x + vx.min(w) as u16, col.y + (vrow - app.scroll) as u16));

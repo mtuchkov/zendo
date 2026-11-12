@@ -132,9 +132,8 @@ width in `~/.zendo/config.toml`:
 width = 90
 ```
 
-`ctrl-shift-+` and `ctrl-shift--` (or `alt-=` and `alt--`) change the width for one repository. The
-font size belongs to the terminal: most terminals change it with `ctrl-+` and `ctrl--` (kitty:
-`ctrl-shift-=` and `ctrl-shift--`, so use `alt-=` and `alt--` for the width there).
+`alt-=` and `alt--` change the width for one repository. The font size belongs to the terminal:
+most terminals change it with `ctrl-+` and `ctrl--`.
 
 ## Code highlighting
 

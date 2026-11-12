@@ -43,3 +43,11 @@ fn user_and_agent_messages_look_different() {
     let code = agent.iter().flat_map(|l| l.spans.iter()).find(|s| s.content.contains("README")).expect("the code span");
     assert_ne!(code.style.bg, Some(t.panel), "inline code on the panel color would not show");
 }
+
+// The status bar names a group of keys at once: `h/j/k/l cursor`, `^⇧h/j/k/l select`.
+#[test]
+fn a_group_of_keys_has_one_label() {
+    assert_eq!(group_label(&["h", "j", "k", "l"]), "h/j/k/l");
+    assert_eq!(group_label(&["^⇧h", "^⇧j", "^⇧k", "^⇧l"]), "^⇧h/j/k/l");
+    assert_eq!(group_label(&["a", "^b"]), "a/^b");
+}

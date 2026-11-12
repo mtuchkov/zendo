@@ -115,6 +115,10 @@ impl Key {
             KeyCode::Char(c) => c.to_string(),
             _ => "?".to_string(),
         };
+        // ctrl and `+` needs Shift on most keyboards: say so.
+        if self.ctrl && !self.alt && self.code == KeyCode::Char('+') {
+            return "^⇧+".to_string();
+        }
         let mut s = String::new();
         if self.ctrl {
             s.push('^');

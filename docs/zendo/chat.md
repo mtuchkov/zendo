@@ -18,7 +18,7 @@ The chat input is where the user writes to the agent. The connection, threads an
 `shift-enter` (or `alt-enter`, `ctrl-j`) adds a line. A `\` at the end of the line and `enter`
 also add a line, in every terminal. The input grows up to a quarter of the panel, then scrolls.
 
-**Chips.** A selection added to the chat is a chip with its first 15 chars; it brings the selected
+**Chips.** A selection added to the chat is a chip with its first 15 chars, and `+N` when it has N more lines; it brings the selected
 text as context. A file chip shows the last 4 chars of its folder and the first 10 chars of its
 name, as `ates/specificat`. The arrows step over a chip as one unit, and the chip at the cursor
 shows in the accent color; `backspace` and `delete` remove it. `@` and the start of a name show the
@@ -40,7 +40,7 @@ data when the agent takes images, and every other file as a link to it.
 | CLAUDE-17 | Event      | When the user pastes an image from the clipboard into the chat input, the system shall save it and show it as an `[image …]` chip. | User, 2026-11-12 |
 | CLAUDE-18 | Optional   | Where the agent takes images, the system shall send an attached image as image data; otherwise as a link to the file.         | User, 2026-11-12 |
 | CLAUDE-19 | Event      | When the user presses `enter` after a `\` at the end of the chat input, the system shall replace the `\` with a new line.    | User, 2026-11-12 |
-| CLAUDE-20 | Ubiquitous | The system shall label a selection chip with the first 15 chars of the selection.                                 | User, 2026-11-12 |
+| CLAUDE-20 | Ubiquitous | The system shall label a selection chip with the first 15 chars of the selection, and `+N` when it has N more lines.                                 | User, 2026-11-12 |
 | CLAUDE-21 | Ubiquitous | The system shall label a file chip with the last 4 chars of its folder and the first 10 chars of its name.         | User, 2026-11-12 |
 | CLAUDE-22 | Event      | When the user types `@` and a part of a file name in the chat input, the system shall show the 4 best matching files under the input, also for a name with a typo, and add the chosen file as a chip. | User, 2026-11-12 |
 | CLAUDE-23 | Event      | When the user presses an arrow, `backspace` or `delete` next to a chip, the system shall move over or remove the whole chip. | User, 2026-11-12 |

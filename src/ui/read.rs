@@ -146,9 +146,11 @@ pub(crate) fn draw_read(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let active = app.mode == Mode::Read && app.focus == Focus::Note;
     let len = app.read_text.get(app.read_cursor).map_or(0, |r| r.trim_end().chars().count());
     app.read_col = app.read_col.min(len.saturating_sub(1));
-    let mut view: Vec<Line> = lines.into_iter().enumerate().skip(app.scroll).take(h).map(|(i, l)| if active { mark_row(app, t, i, l, col.width as usize) } else { l }).collect();
-    say_arrow(app, t, &note.path, &mut view, h);
+    let view: Vec<Line> = lines.into_iter().enumerate().skip(app.scroll).take(h).map(|(i, l)| if active { mark_row(app, t, i, l, col.width as usize) } else { l }).collect();
     f.render_widget(Paragraph::new(view), col);
+    if let Some(row) = say_row_read(app, &note) {
+        say_arrow(f, app, t, area, col, row);
+    }
     // The block cursor on the current char; the terminal makes it blink.
     if active && app.read_cursor >= app.scroll && app.read_cursor < app.scroll + h {
         let row = app.read_text.get(app.read_cursor).cloned().unwrap_or_default();
@@ -171,16 +173,20 @@ fn mark_row(app: &App, t: &Theme, i: usize, l: Line<'static>, width: usize) -> L
     }
 }
 
-/// The arrow of `ctrl-h`: a line under the marked row, with `↑` under the marked char.
-fn say_arrow(app: &App, t: &Theme, path: &std::path::Path, view: &mut Vec<Line<'static>>, h: usize) {
-    let Some(say) = app.say.as_ref().filter(|s| s.path == path) else { return };
-    if say.row < app.scroll || say.row >= app.scroll + h {
+/// The row of the read view where the mark of "say it here" is, in this note.
+fn say_row_read(app: &App, note: &Note) -> Option<usize> {
+    let say = app.say.as_ref().filter(|s| s.path == note.path)?;
+    let src: Vec<&str> = note.body.lines().collect();
+    Some(crate::app::cursor_map::source_to_shown(&app.read_text, &app.read_rows, &src, (say.line, say.col)).0)
+}
+
+/// The arrow of "say it here": in the empty space left of the marked row.
+pub(crate) fn say_arrow(f: &mut Frame, app: &App, t: &Theme, area: Rect, col: Rect, row: usize) {
+    let h = col.height as usize;
+    if row < app.scroll || row >= app.scroll + h || col.x < area.x + 2 {
         return;
     }
-    let row = app.read_text.get(say.row).cloned().unwrap_or_default();
-    let x: usize = row.chars().take(say.col).map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
-    let what = if say.rewrite { "say this differently" } else { "say it here" };
-    let line = Line::from(vec![Span::raw(" ".repeat(x)), Span::styled(format!("↑ {what}"), Style::new().fg(t.acc).add_modifier(Modifier::BOLD))]);
-    view.insert(say.row - app.scroll + 1, line);
-    view.truncate(h);
+    let y = col.y + (row - app.scroll) as u16;
+    let arrow = Span::styled("→", Style::new().fg(t.acc).add_modifier(Modifier::BOLD));
+    f.render_widget(Paragraph::new(Line::from(arrow)), Rect { x: col.x - 2, y, width: 1, height: 1 });
 }

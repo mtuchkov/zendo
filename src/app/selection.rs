@@ -98,4 +98,24 @@ impl App {
             self.read_anchor = None;
         }
     }
+
+    /// Write mode: the selection, or the line of the cursor, goes to the chat as a chip.
+    pub(crate) fn add_line_to_chat(&mut self) {
+        let e = &self.editor;
+        let ((lo, _), (hi, _)) = e.selection().unwrap_or(((e.row, 0), (e.row, 0)));
+        let text = e.selected_text().unwrap_or_else(|| e.lines[e.row].clone());
+        if text.trim().is_empty() {
+            return self.flash("nothing to add here");
+        }
+        let rel = self.editor_path.as_ref().map(|p| self.rel(p)).unwrap_or_default();
+        let quoted: String = text.lines().map(|l| format!("> {l}\n")).collect();
+        let ctx = format!("Selected text from {rel} (about lines {}–{}):\n{quoted}", lo + 1, hi + 1);
+        let label = self.add_chip(chips::selection_label(&text), Some(ctx), None, true);
+        let back = self.focus;
+        self.open_panel();
+        if self.panel {
+            self.focus = back;
+            self.flash(format!("{} is in the chat", label.trim_matches([chips::OPEN, chips::CLOSE])));
+        }
+    }
 }

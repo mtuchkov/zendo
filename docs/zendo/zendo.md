@@ -30,7 +30,7 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Panes and layouts](panes.md)                | The panes, the two layouts, resizing, hiding, mouse selection |
 | [Notes](notes.md)                            | The note pane: read mode and write mode                       |
 | [Write mode](write.md)                       | The live view, hard wrap, the cursor between modes            |
-| [Say it here](say.md)                        | `ctrl-h`: the agent writes an idea at a place in the note       |
+| [Say it here](say.md)                        | `ctrl-shift-s`: the agent writes an idea at a place in the note |
 | [Notes list and search](notes-list.md)       | Titles, tags, links, the notes list, search                   |
 | [Notes repo](notes-repo.md)                  | Notes in a private git repo, in sync between machines         |
 | [Length](length.md)                          | The word limit, the red area, the split with Claude            |
