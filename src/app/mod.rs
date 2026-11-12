@@ -3,6 +3,7 @@
 mod at;
 mod chat;
 mod chat_keys;
+mod cli;
 pub mod cursor_map;
 pub mod chips;
 mod events;
@@ -251,8 +252,8 @@ pub struct App {
 
     pub flash: Option<(String, Instant)>,
     pub quit: bool,
-    /// Set when the user asks to continue the thread in Claude Code.
-    pub handoff: Option<String>,
+    /// The Claude Code sessions of the agent sessions, in terminals that zendo owns.
+    pub cli: crate::session::Sessions,
 
     /// Panels on screen in the last frame, for the mouse.
     pub regions: Vec<(Region, Rect)>,

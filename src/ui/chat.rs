@@ -209,7 +209,7 @@ fn draw_sessions(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
             break;
         }
         let r = Rect { y, height: 1, ..area };
-        let label = app.keys.first(crate::keys::Pane::Global, &format!("session_{}", n + 1)).to_uppercase();
+        let label = button_label(app, n);
         let bg = if n == app.state.session { t.acc } else { t.acc2 };
         f.render_widget(Paragraph::new(Line::styled(format!("{label:^w$}", w = area.width as usize), Style::new().bg(bg).fg(t.bg).add_modifier(Modifier::BOLD))), r);
         app.session_buttons.push((r, n));

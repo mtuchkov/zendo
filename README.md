@@ -53,8 +53,10 @@ Tell the agent how to review you in `.zendo/prompt.md`: requirement style, tone,
 ## Build
 
 When the design holds, press `ctrl-o`. Claude Code starts with the whole discussion behind
-it, so you don't paste or explain anything. You're the coder now. Exit Claude Code and zendo
-comes back, and the delta shows what the implementation changed in your notes.
+it, so you don't paste or explain anything. You're the coder now. `ctrl-]` takes you back to
+zendo while Claude Code works on; `ctrl-o` shows it again. Each agent session (`F6` to `F10`) can
+have its own Claude Code session, so one researches while you discuss in another. The delta shows
+what the implementation changed in your notes.
 
 ## Project structure
 

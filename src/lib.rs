@@ -2,6 +2,7 @@ pub mod agent;
 pub mod app;
 pub mod docs;
 pub mod keys;
+pub mod session;
 pub mod setup;
 pub mod text;
 pub mod tui;

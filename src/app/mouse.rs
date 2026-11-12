@@ -8,6 +8,9 @@ impl App {
 
     /// Mouse: drag selects inside one panel, release copies, the wheel scrolls the panel under it.
     pub fn on_mouse(&mut self, m: MouseEvent) {
+        if let Some(n) = self.cli.view {
+            return self.mouse_cli(n, m);
+        }
         let (x, y) = (m.column, m.row);
         if !matches!(m.kind, MouseEventKind::Moved) {
             self.last_input = Instant::now();

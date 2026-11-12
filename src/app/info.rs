@@ -37,9 +37,13 @@ impl App {
         self.profile().map_or("this agent", |p| p.name)
     }
 
-    /// The command and its arguments for `ctrl-o`, when the agent has a hand-off.
-    pub fn handoff_cli(&self) -> Option<(&'static str, &'static [&'static str])> {
-        self.profile().and_then(|p| p.handoff.map(|a| (p.cli, a)))
+    /// The command line for `ctrl-o`, when the agent has one with a resume: the one that the app
+    /// sets, else the one of the agent profile.
+    pub fn handoff_cli(&self) -> Option<crate::session::Command> {
+        self.cli.command.clone().or_else(|| {
+            let p = self.profile()?;
+            Some(crate::session::Command { program: p.cli.into(), args: p.handoff?.iter().map(|s| s.to_string()).collect() })
+        })
     }
 
     /// A feature that the agent cannot do: its keys stay, and say so.

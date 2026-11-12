@@ -34,10 +34,12 @@ pub enum Pane {
     Tree,
     Delta,
     Notes,
+    /// The session view: a Claude Code session on the whole screen.
+    Session,
 }
 
 impl Pane {
-    pub const ALL: [Pane; 8] = [Pane::Global, Pane::Read, Pane::Write, Pane::Chat, Pane::Transcript, Pane::Tree, Pane::Delta, Pane::Notes];
+    pub const ALL: [Pane; 9] = [Pane::Global, Pane::Read, Pane::Write, Pane::Chat, Pane::Transcript, Pane::Tree, Pane::Delta, Pane::Notes, Pane::Session];
 
     pub fn name(self) -> &'static str {
         match self {
@@ -49,6 +51,7 @@ impl Pane {
             Pane::Tree => "tree",
             Pane::Delta => "delta",
             Pane::Notes => "notes",
+            Pane::Session => "session",
         }
     }
 

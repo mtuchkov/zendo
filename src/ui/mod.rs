@@ -2,6 +2,7 @@
 
 pub mod theme;
 mod chat;
+mod cli;
 mod code_pane;
 mod delta_pane;
 mod layout;
@@ -16,6 +17,7 @@ mod tree;
 mod write;
 
 use chat::*;
+use cli::*;
 use code_pane::*;
 use delta_pane::*;
 pub use layout::*;
@@ -52,6 +54,10 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     app.drop_old_review();
     let t = *app.theme();
     let area = f.area();
+    app.cli.resize(area.height.saturating_sub(1), area.width);
+    if let Some(n) = app.cli.view {
+        return draw_cli(f, app, &t, n, area);
+    }
     f.render_widget(Block::new().style(Style::new().bg(t.bg).fg(t.fg)), area);
     let ask = u16::from(app.file_prompt.is_some());
     let [top, _, main, rule, status, prompt] = Layout::vertical([

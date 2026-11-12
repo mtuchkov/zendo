@@ -44,7 +44,7 @@ impl App {
 
     /// Open the session of the chat before the first question: the last session shows its
     /// messages, and the agent sends its slash commands.
-    fn open_session(&mut self) {
+    pub(crate) fn open_session(&mut self) {
         let key = self.key();
         let known = self.state.session(&self.cfg.agent, &key);
         let t = self.thread(&key);
@@ -65,7 +65,7 @@ impl App {
     /// note, or all notes.
     pub fn ask(&mut self, question: String, scope: String) {
         let question = question.trim().to_string();
-        if question.is_empty() {
+        if question.is_empty() || self.cli_blocks() {
             return;
         }
         if self.cfg.offline {
@@ -205,7 +205,9 @@ impl App {
     }
 
     pub fn on_paste(&mut self, s: String) {
-        if self.panel && self.focus == Focus::Claude {
+        if let Some(n) = self.cli.view {
+            self.paste_cli(n, &s);
+        } else if self.panel && self.focus == Focus::Claude {
             self.paste_into_chat(&s);
         } else if self.mode == Mode::Write {
             self.editor.type_str(&s);

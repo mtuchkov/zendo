@@ -1,5 +1,5 @@
-//! The terminal loop: input on its own thread, one draw for all waiting input, the hand-off to the
-//! agent's command line, and the terminal modes.
+//! The terminal loop: input on its own thread, one draw for all waiting input, the output of the
+//! Claude Code sessions, and the terminal modes.
 
 use crate::app::App;
 use crate::ui;
@@ -9,14 +9,10 @@ use ratatui::crossterm::execute;
 use std::time::Duration;
 use tokio::sync::mpsc;
 
-/// Terminal input runs on its own thread; it pauses while Claude Code has the terminal.
+/// Terminal input runs on its own thread.
 pub fn spawn_input(tx: mpsc::UnboundedSender<Event>) {
     std::thread::spawn(move || {
         loop {
-            if PAUSED.load(std::sync::atomic::Ordering::Relaxed) {
-                std::thread::sleep(Duration::from_millis(50));
-                continue;
-            }
             match event::poll(Duration::from_millis(100)) {
                 Ok(true) => match event::read() {
                     Ok(e) => {
@@ -33,8 +29,6 @@ pub fn spawn_input(tx: mpsc::UnboundedSender<Event>) {
     });
 }
 
-static PAUSED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-
 pub async fn run(
     term: &mut ratatui::DefaultTerminal,
     app: &mut App,
@@ -42,6 +36,7 @@ pub async fn run(
     _keys_tx: mpsc::UnboundedSender<Event>,
 ) -> Result<()> {
     let mut tick = tokio::time::interval(Duration::from_millis(250));
+    let printed = app.cli.notify.clone();
     loop {
         term.draw(|f| ui::draw(f, app))?;
         cursor_shape(app);
@@ -52,19 +47,15 @@ pub async fn run(
             app.flash(format!("copied {n} character{}", if n == 1 { "" } else { "s" }));
             continue;
         }
-        if app.quit {
+        if app.quit && app.settle_quit() {
             return Ok(());
-        }
-        if let Some(id) = app.handoff.take() {
-            handoff(term, app, &id)?;
-            continue;
         }
         tokio::select! {
             Some(e) = keys.recv() => {
                 on_input(app, e);
                 // A trackpad sends a burst of scroll events: take all that are here, then draw once.
                 let until = std::time::Instant::now() + Duration::from_millis(12);
-                while !app.quit && app.handoff.is_none() && app.clip.is_none() && std::time::Instant::now() < until {
+                while !app.quit && app.clip.is_none() && std::time::Instant::now() < until {
                     match keys.try_recv() {
                         Ok(e) => on_input(app, e),
                         Err(_) => break,
@@ -86,6 +77,8 @@ pub async fn run(
                     }
                 }
             },
+            // A Claude Code session printed: draw its screen.
+            _ = printed.notified() => {},
             _ = tick.tick() => app.tick(),
         }
     }
@@ -98,27 +91,6 @@ fn on_input(app: &mut App, e: Event) {
         Event::Mouse(m) => app.on_mouse(m),
         _ => {}
     }
-}
-
-/// Give the terminal to `claude --resume <id>`, then take it back.
-fn handoff(term: &mut ratatui::DefaultTerminal, app: &mut App, id: &str) -> Result<()> {
-    PAUSED.store(true, std::sync::atomic::Ordering::Relaxed);
-    std::thread::sleep(Duration::from_millis(150));
-    terminal_off();
-    ratatui::restore();
-    let Some((cli, args)) = app.handoff_cli() else { return Ok(()) };
-    let status = std::process::Command::new(cli).args(args).arg(id).current_dir(&app.cfg.root).status();
-    *term = ratatui::init();
-    terminal_on();
-    term.clear()?;
-    PAUSED.store(false, std::sync::atomic::Ordering::Relaxed);
-    match status {
-        Ok(s) if s.success() => app.flash(format!("back from {cli}")),
-        Ok(s) => app.flash(format!("{cli} exited with {s}")),
-        Err(e) => app.flash(format!("could not start {cli}: {e}")),
-    }
-    app.reload();
-    Ok(())
 }
 
 /// Paste, mouse, and the kitty keyboard protocol where the terminal has it: then ctrl-i is not tab,

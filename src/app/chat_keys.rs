@@ -27,11 +27,7 @@ impl App {
                 self.focus = Focus::Note;
             }
             Some("new_thread") => self.new_thread(key),
-            Some("handoff") if self.handoff_cli().is_none() => self.flash(format!("{} has no hand-off to a command line", self.agent_label())),
-            Some("handoff") => match self.threads.get(&key).and_then(|t| t.session.clone()) {
-                Some(id) => self.handoff = Some(id),
-                None => self.flash("no thread yet: ask something first"),
-            },
+            Some("handoff") => self.open_cli(),
             Some("scroll_up") => self.panel_scroll += self.view_height / 2,
             Some("scroll_down") => self.panel_scroll = self.panel_scroll.saturating_sub(self.view_height / 2),
             Some(a @ ("allow" | "always" | "edit_first" | "discard")) if pending => self.answer(match a {
@@ -47,6 +43,7 @@ impl App {
                 self.input.backspace();
                 self.input.type_str("\n");
             }
+            Some("send") if self.cli_blocks() => {}
             Some("send") if !busy => self.send_input(),
             Some("send") => {}
             // A proposal key is text when there is no proposal.

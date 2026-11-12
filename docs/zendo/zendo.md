@@ -13,6 +13,7 @@ children:
   - "files.md"
   - "work.md"
   - "claude.md"
+  - "sessions.md"
   - "chat.md"
   - "project-structure.md"
   - "commands.md"
@@ -37,6 +38,7 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [File tree](files.md)                        | The files of the repository and their views                   |
 | [Work, delta and recaps](work.md)            | Visits that count, the delta pane, recaps                     |
 | [Claude](claude.md)                          | The connection to Claude, threads, proposals                  |
+| [Sessions](sessions.md)                      | Claude Code sessions in the background, more than one at a time |
 | [Chat](chat.md)                              | The chat input: chips, attachments, `@` file suggestions        |
 | [Project structure](project-structure.md)    | `project-structure.toml`: use and repair                      |
 | [Commands](commands.md)                      | Install, `zendo setup`, `zendo doctor`, `zendo upgrade`          |

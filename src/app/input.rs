@@ -25,6 +25,9 @@ impl App {
     pub fn on_key(&mut self, k: KeyEvent) {
         use crate::keys::Pane;
         self.last_input = Instant::now();
+        if let Some(n) = self.cli.view {
+            return self.key_cli(n, k);
+        }
         // Any key ends a mouse selection; the text is already copied.
         self.sel = None;
         if self.mode == Mode::Help {

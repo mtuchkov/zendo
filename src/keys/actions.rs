@@ -95,7 +95,7 @@ pub const ACTIONS: &[Action] = &[
     a(Chat, "newline", "new line"),
     a(Chat, "back", "stop the answer / back to the note"),
     a(Chat, "new_thread", "new thread"),
-    a(Chat, "handoff", "continue in Claude Code"),
+    a(Chat, "handoff", "open the Claude Code session"),
     a(Chat, "scroll_up", "scroll up"),
     a(Chat, "scroll_down", "scroll down"),
     a(Chat, "allow", "proposal: allow"),
@@ -182,4 +182,6 @@ pub const ACTIONS: &[Action] = &[
     a(Notes, "rename_file", "rename the file"),
     a(Notes, "delete", "delete the file"),
     a(Notes, "close", "close"),
+    // the session view
+    a(Session, "leave", "back to zendo; Claude Code runs on"),
 ];

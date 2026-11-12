@@ -4,7 +4,7 @@ revision: "1"
 date: "2026-11-11"
 parent: "zendo.md"
 prev: "work.md"
-next: "chat.md"
+next: "sessions.md"
 level: "the connection to Claude: what zendo sends, what Claude may do, threads, failures"
 note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user."
 ---
@@ -42,7 +42,8 @@ chat shows why the agent stopped, and zendo starts it again with the next questi
 through its pinned ACP adapter, and with any other ACP agent command. What an agent cannot do turns off
 only its keys: with Codex there is no hand-off to the command line (`ctrl-o`); the rest works the same.
 
-The chat input, its chips and attachments are in [Chat](chat.md).
+Claude Code sessions that run in the background while the user works in zendo are in
+[Sessions](sessions.md). The chat input, its chips and attachments are in [Chat](chat.md).
 
 ## Architecturally significant requirements
 
