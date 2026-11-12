@@ -1,0 +1,11 @@
+#!/bin/sh
+# Every commit message follows .skills/git-commit/SKILL.md: a Conventional Commit header, and for a
+# large change a body with Motivation:, Modifications: and Result:.
+# Turn it on in a clone: git config core.hooksPath .githooks
+msg="$1"
+first=$(sed '/^[[:space:]]*#/d;/^[[:space:]]*$/d;q' "$msg")
+case "$first" in
+# Messages that git writes itself.
+"Merge "* | "fixup! "* | "squash! "* | "amend! "*) exit 0 ;;
+esac
+exec "$(git rev-parse --show-toplevel)/.skills/git-commit/scripts/commit-msg-lint.sh" "$msg"

@@ -1,0 +1,78 @@
+---
+status: "draft"
+revision: "1"
+date: "2026-11-11"
+parent: "zendo.md"
+prev: "work.md"
+next: "chat.md"
+level: "the connection to Claude: what zendo sends, what Claude may do, threads, failures"
+note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user."
+---
+
+# Claude
+
+zendo is an Agent Client Protocol (ACP) client. It starts the Claude Code adapter in the root of the
+repository. The adapter uses the Claude Code login of the user. zendo checks the connection before
+it opens the screen. See [ADR 0001](../architecture/decisions/0001-claude-through-acp.md).
+
+**What zendo sends.** With the first question of a thread, zendo sends the instructions of the user
+from `.zendo/prompt.md`, when that file exists, and the rules of `project-structure.toml` that cover
+the open file. With each question, zendo sends the file name and, when the user selected text, the
+text with its line numbers.
+
+**What Claude may do.** Claude reads files itself. Each edit comes back to the user as a proposal:
+the user allows it, allows that kind of edit always, opens it in the editor first, or discards it.
+zendo rejects each shell command.
+
+**Threads.** zendo keeps one thread for each file. The thread is a Claude Code session, so the user
+can continue it in Claude Code. zendo keeps the session ID in its state in the repository.
+
+**When Claude is not available.** At the start, zendo does not open (ZENDO-2). While zendo runs, the
+chat shows why the agent stopped, and zendo starts it again with the next question.
+
+**Agents.** zendo works with Claude (the default) and with Codex (`zendo setup --agent codex`), each
+through its pinned ACP adapter, and with any other ACP agent command. What an agent cannot do turns off
+only its keys: with Codex there is no hand-off to the command line (`ctrl-o`); the rest works the same.
+
+The chat input, its chips and attachments are in [Chat](chat.md).
+
+## Architecturally significant requirements
+
+| ID       | Pattern  | Requirement                                                                                                                                 | Source                 |
+| -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| CLAUDE-1 | Event    | When zendo starts without `--offline`, the system shall start the agent and finish the ACP handshake and the login check before it opens the screen. | ZENDO-2           |
+| CLAUDE-2 | Event    | When Claude requests an edit, the system shall show the diff and wait for the decision of the user.                                          | ZENDO-4                 |
+| CLAUDE-3 | Unwanted | If Claude requests a shell command, then the system shall reject it without a question to the user.                                          | User, 2026-11-11       |
+
+### Acceptance tests
+
+**`start_check_fails_without_claude`** (mock agent, not written yet; verifies CLAUDE-1). See
+[zendo](zendo.md).
+
+**`edit_is_proposed_and_applied_only_after_allow`** (mock agent; verifies CLAUDE-2)
+
+- Given a thread with the mock agent.
+- When the agent requests an edit.
+- Then the chat shows the diff, and the file does not change until the user allows the edit.
+
+**`shell_is_blocked_and_resume_replays`** (mock agent; verifies CLAUDE-3, CLAUDE-6)
+
+- Given a thread with the mock agent.
+- When the agent requests a shell command, and later the user opens the thread again.
+- Then the command is rejected without a question, and the chat shows the earlier messages.
+
+## Detailed requirements
+
+| ID        | Pattern    | Requirement                                                                                                                  | Source           |
+| --------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| CLAUDE-4  | Unwanted   | If the agent stops while zendo runs, then the system shall show the reason in the chat and start the agent with the next question. | Design      |
+| CLAUDE-5  | Ubiquitous | The system shall keep one thread for each file, and keep its session ID in the repository.                                   | Design           |
+| CLAUDE-6  | Event      | When the user asks in a thread that has a session ID, the system shall continue that session and show its earlier messages. | Design           |
+| CLAUDE-7  | Event      | When Claude requests an edit, the system shall also show the change inline in the note.                                      | Design           |
+| CLAUDE-8  | Event      | When the user presses `e` on a proposal, the system shall reject the edit and open the proposed text in the editor, not saved. | Design         |
+| CLAUDE-9  | Event      | When the first question of a thread goes to Claude, the system shall send `.zendo/prompt.md`, if it exists, and the project rules for the file. | Design |
+| CLAUDE-10 | Optional   | Where the agent has a command line with a resume, the system shall continue the thread there when the user presses `ctrl-o`. | Design           |
+| CLAUDE-13 | Ubiquitous | The system shall work with Claude and with Codex through their pinned ACP adapters, and with any ACP agent command.         | User, 2026-11-11 |
+| CLAUDE-14 | Unwanted   | If the agent cannot do a feature, then the system shall turn off only the keys and hints of that feature.                   | User, 2026-11-11 |
+| CLAUDE-11 | Event      | When the user presses `esc` during an answer, the system shall stop the answer.                                              | Design           |
+| CLAUDE-12 | Ubiquitous | The system shall not tell the agent that zendo can read files or run commands for it.                                         | Design           |

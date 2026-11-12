@@ -1,0 +1,28 @@
+name: Commit messages
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    types: [ opened, edited, synchronize, reopened ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Lint the commit messages
+      env:
+        BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: sh .githooks/lint-range.sh "$BASE" "$HEAD"
+    - name: Lint the pull request title (a squash merge uses it as the header)
+      if: github.event_name == 'pull_request'
+      env:
+        TITLE: ${{ github.event.pull_request.title }}
+      run: |
+        printf '%s\n' "$TITLE" > /tmp/title
+        bash .skills/git-commit/scripts/commit-msg-lint.sh /tmp/title

@@ -1,0 +1,6 @@
+/target
+.zendo/
+
+# Working files of agents: only the folder is in git.
+.agents/*
+!.agents/.gitkeep

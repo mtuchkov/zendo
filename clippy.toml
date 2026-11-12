@@ -1,0 +1,3 @@
+# AGENTS.md, Code: a function has at most 70 lines; keep its branches few.
+too-many-lines-threshold = 70
+cognitive-complexity-threshold = 25

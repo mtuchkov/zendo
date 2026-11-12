@@ -1,0 +1,131 @@
+# Project structure of zendo: what lives where. Folders, and files only when they matter to the
+# whole project (README, AGENTS, INSTALLATION).
+# People read `about`; zendo shows the `main` entries as the default file tree, in reading order;
+# Claude follows the `claude` rules. The format is in resources/project-structure.md.
+
+[meta]
+status = "draft"
+date = "2026-11-11"
+note = "Folders, and files only with a meaning for the whole project. docs/ in detail; build output and local state at a high level."
+
+[project]
+name = "zendo"
+about = "A quiet terminal app for architecture notes in a repository, with Claude beside them. Rust, ratatui, ACP."
+claude = """
+- Follow AGENTS.md.
+- Write documentation in English, in Simplified Technical English. Write behavior as EARS statements.
+- Do not change this file or the top-level folders unless the user asks for it. A change of code does not change this file.
+- Every change keeps `cargo test` green and adds a test for new behavior when one is possible.
+- Bump the version in Cargo.toml for every change that users get, and keep Cargo.lock in step.
+- install.sh is POSIX sh only, and it must never wait for input: it runs piped."""
+
+# ----- Project-wide files and folders at the root --------------------------------------------
+
+[[entry]]
+path = "README.md"
+label = "README"
+about = "What zendo is: jot, think, build. The one-line install."
+main = true
+
+[[entry]]
+path = "AGENTS.md"
+label = "Rules for agents"
+about = "The rules for coding agents: project structure, documentation and requirements, tests."
+main = true
+
+[[entry]]
+path = ".github/workflows"
+about = "CI: cargo build and cargo test for each push and pull request to main."
+
+[[entry]]
+path = ".skills"
+about = "Skills for coding agents and people: git-commit, the format of commit messages, with its linter."
+claude = "Follow .skills/git-commit/SKILL.md for every commit message."
+
+[[entry]]
+path = ".agents"
+about = "Working files of spec-driven workflows: low-level specs, plans, task lists and other one-time notes of a feature. Not documentation."
+claude = """
+- Put plans, low-level specs and task lists of the current feature here, not in docs/.
+- Do not read this folder as the truth about the project: docs/ is.
+- When the feature is done, delete what it left here."""
+
+[[entry]]
+path = ".githooks"
+about = "Git hooks of the repository: commit-msg checks each message; lint-range.sh checks a range in CI. Turn on with `git config core.hooksPath .githooks`."
+
+# ----- Documentation -------------------------------------------------------------------------
+
+[[entry]]
+path = "docs"
+about = "The documentation of zendo: specification, decisions, milestones, guides."
+
+[[entry]]
+path = "docs/zendo"
+label = "Specification"
+about = "What zendo does: zendo.md is the root, with one child document for each part. Requirements that stay valid in every milestone."
+claude = "Follow docs/guides/templates/specification.md. Change requirement IDs only with the approval of the user."
+main = true
+template = "docs/guides/templates/specification.md"
+
+[[entry]]
+path = "docs/architecture/decisions"
+label = "Decisions"
+about = "Architecture decision records, one file for each decision."
+claude = "Record architecture decisions here, not in specifications. Use docs/guides/templates/adr-template.md."
+main = true
+template = "docs/guides/templates/adr-template.md"
+
+[[entry]]
+path = "docs/milestones"
+label = "Milestones"
+about = "One document for each milestone: scope, temporary behavior, acceptance."
+claude = "Put temporary behavior here, not in specifications. Use docs/guides/templates/milestone.md."
+main = true
+template = "docs/guides/templates/milestone.md"
+
+[[entry]]
+path = "docs/guides/templates"
+label = "Templates"
+about = "Templates for specifications, decision records and milestones."
+claude = "Templates stay non-authoritative. Change them only when the user asks."
+main = true
+
+[[entry]]
+path = "docs/media"
+about = "Screens and the demo GIF of zendo for the README, recorded with the mock agent."
+claude = "Record new screens from a real zendo session in a terminal; do not draw them by hand."
+
+[[entry]]
+path = "docs/notes"
+about = "Notes written with zendo in this repository, when the notes repo is off."
+
+# ----- Code ----------------------------------------------------------------------------------
+
+[[entry]]
+path = "src"
+about = "The zendo crate, one module for each capability: the terminal app, the agent connection (ACP), setup and doctor, the notes repo sync, the keymap, markdown and code highlighting. src/bin holds the mock agent for tests."
+claude = """
+- Keep the ACP protocol details in the agent module; the rest of zendo sees only commands and events.
+- Every failed check of setup or doctor prints what failed and how to fix it. Setup and the start must not need the network when everything is installed.
+- Git for the notes repo runs with no prompts and a time limit; the sync never delays the start or the screen."""
+
+[[entry]]
+path = "resources"
+label = "Resources"
+about = "Texts built into the binary: the project-structure.toml format and the instructions for Claude to repair it, to move notes and to consolidate them."
+claude = "These texts go to Claude as they are: write them as instructions, in English, in Simplified Technical English. Keep the {{PLACEHOLDERS}} that doctor.rs fills in."
+
+[[entry]]
+path = "tests"
+about = "Integration tests against the mock agent: the ACP client, doctor --fix, the notes repo, visits and recaps."
+
+# ----- Build output and local state ----------------------------------------------------------
+
+[[entry]]
+path = "target"
+about = "Build output of cargo. Ignored by git."
+
+[[entry]]
+path = ".zendo"
+about = "Local state of zendo for this repository. Ignored by git."
