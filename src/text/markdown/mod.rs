@@ -5,6 +5,7 @@
 mod blocks;
 mod code;
 mod inline;
+mod starts;
 mod table;
 mod wrap;
 
@@ -35,6 +36,8 @@ pub struct Rendered {
     pub rows: Vec<usize>,
     /// For each rendered row, its words of prose: front matter, code and borders have none.
     pub words: Vec<usize>,
+    /// Write mode: for each rendered row, the source line and char where it starts.
+    pub starts: Vec<Option<(usize, usize)>>,
 }
 
 /// The words of a row: pieces with a letter or a digit.
@@ -46,13 +49,14 @@ const EARS: [&str; 6] = ["WHEN", "WHILE", "IF", "THEN", "WHERE", "SHALL"];
 
 /// Render with a cache: each frame draws the same text again, and a fast scroll draws many frames.
 pub fn render(src: &[(String, Mark)], width: usize, t: &Theme, skip_title: bool) -> Rendered {
-    cached((src, width, t.name, t.panel, skip_title), || render_text(src, width, t, skip_title, None))
+    cached((src, width, t.name, t.panel, skip_title), || render_text(src, width, t, skip_title, None, false))
 }
 
-/// Write mode: the same look as read mode, and the line `raw` (the cursor line) as its source text,
-/// wrapped as the editor wraps it. The title is not in it: the head of the note shows it.
+/// Write mode: the same look and wrap as read mode, with the start of each row in the source. The
+/// line `raw` (the cursor line) shows as source where read mode shows nothing of it, and in a
+/// table. The title is not in it: the head of the note shows it.
 pub fn render_live(src: &[(String, Mark)], width: usize, t: &Theme, raw: Option<usize>) -> Rendered {
-    cached((src, width, t.name, t.panel, raw, "live"), || render_text(src, width, t, true, raw))
+    cached((src, width, t.name, t.panel, raw, "live"), || render_text(src, width, t, true, raw, true))
 }
 
 /// The render of a text from the cache, or a new one.
@@ -78,8 +82,10 @@ fn cached(key: impl std::hash::Hash, make: impl FnOnce() -> Rendered) -> Rendere
     r
 }
 
-fn render_text(src: &[(String, Mark)], width: usize, t: &Theme, skip_title: bool, raw_line: Option<usize>) -> Rendered {
-    let logicals = join(src, raw_line);
+fn render_text(src: &[(String, Mark)], width: usize, t: &Theme, skip_title: bool, raw_line: Option<usize>, live: bool) -> Rendered {
+    let logicals = join(src);
+    let firsts: Vec<usize> = logicals.iter().scan(0, |n, l| Some(std::mem::replace(n, *n + l.n))).collect();
+    let mut starts = Vec::new();
     // The cursor line in write mode, as an index of the logical lines.
     let raw_line = raw_line.and_then(|r| {
         let mut seen = 0;
@@ -105,6 +111,8 @@ fn render_text(src: &[(String, Mark)], width: usize, t: &Theme, skip_title: bool
         open = Some(!logical.verbatim && !r.fence && !raw.trim_start().starts_with("```") && !is_rule(raw.trim()));
         if let Some((end, table)) = table_at(&logicals, i, r.width, t, raw_line) {
             for (k, start) in table.rows.into_iter().enumerate() {
+                starts.resize(r.out.len() + start, None);
+                starts.push(Some((firsts[i + k], 0)));
                 for _ in 0..logicals[i + k].n {
                     rows.push(r.out.len() + start);
                 }
@@ -116,14 +124,11 @@ fn render_text(src: &[(String, Mark)], width: usize, t: &Theme, skip_title: bool
         for _ in 0..logical.n {
             rows.push(r.out.len());
         }
-        if raw_line == Some(i) {
-            if logical.text.trim_start().starts_with("```") {
-                r.fence = !r.fence;
-            }
-            r.out.extend(raw_rows(&logical.text, r.width, t));
-            continue;
-        }
+        let from = r.out.len();
         r.line(i, logical);
+        if live {
+            starts::add(&mut r, &mut starts, from, src, (firsts[i], logical.n), raw_line == Some(i));
+        }
     }
     if let Some(p) = open.take() {
         prose.resize(r.out.len(), p);
@@ -131,7 +136,8 @@ fn render_text(src: &[(String, Mark)], width: usize, t: &Theme, skip_title: bool
     let out = r.out;
     prose.resize(out.len(), false);
     let words = out.iter().zip(&prose).map(|(l, p)| if *p { count_words(&l.spans.iter().map(|s| s.content.as_ref()).collect::<String>()) } else { 0 }).collect();
-    Rendered { lines: out, rows, words }
+    starts.resize(out.len(), None);
+    Rendered { lines: out, rows, words, starts }
 }
 
 /// A source line as it is, wrapped as the editor wraps it, so the cursor stands on its char.

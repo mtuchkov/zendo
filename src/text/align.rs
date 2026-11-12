@@ -37,6 +37,27 @@ pub fn to_shown(map: &[Option<usize>], j: usize) -> usize {
     map.iter().position(|m| m.is_some_and(|k| k >= j)).unwrap_or(map.len())
 }
 
+/// The chars of some lines joined with a space, and where each line starts.
+pub fn joined<S: AsRef<str>>(lines: &[S]) -> (Vec<char>, Vec<usize>) {
+    let mut chars = Vec::new();
+    let mut starts = Vec::new();
+    for l in lines {
+        if !starts.is_empty() {
+            chars.push(' ');
+        }
+        starts.push(chars.len());
+        // A wrapped row can end in its break space; the join puts one space back.
+        chars.extend(l.as_ref().trim_end().chars());
+    }
+    (chars, starts)
+}
+
+/// The line and the char of an index into joined lines.
+pub fn split(starts: &[usize], i: usize) -> (usize, usize) {
+    let k = starts.iter().rposition(|s| *s <= i).unwrap_or(0);
+    (k, i - starts[k])
+}
+
 #[cfg(test)]
 #[path = "align_tests.rs"]
 mod tests;

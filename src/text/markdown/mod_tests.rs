@@ -92,3 +92,17 @@ fn diff_marks_added_lines() {
     let d = diff_lines("a\nb\n", "a\nx\nb\n");
     assert_eq!(d, vec![("a".into(), Mark::None), ("x".into(), Mark::Added), ("b".into(), Mark::None)]);
 }
+
+// NOTE-32: each row of a joined paragraph knows where it starts in the source: line and char.
+#[test]
+fn rows_know_their_start_in_the_source() {
+    let src = plain("aaa bbb\nccc **ddd**\neee\n\n- one two three four");
+    let r = render_live(&src, 12, &THEMES[0], Some(1));
+    let lines: Vec<String> = r.lines.iter().map(text).collect();
+    assert_eq!(lines[0].trim_end(), "aaa bbb ccc", "the cursor line does not break the paragraph: {lines:?}");
+    assert_eq!(r.starts[0], Some((0, 0)));
+    assert_eq!(r.starts[1], Some((1, 4)), "the markup goes with its word: {lines:?}");
+    let item = lines.iter().position(|l| l.starts_with("• one")).unwrap();
+    assert_eq!(r.starts[item], Some((4, 0)));
+    assert_eq!(r.starts[item + 1].map(|s| s.0), Some(4));
+}

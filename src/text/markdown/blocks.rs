@@ -23,8 +23,7 @@ pub(super) fn starts_block(t: &str) -> bool {
 
 /// Join hard-wrapped lines: markdown reads them as one paragraph, so the reader rewraps them
 /// to the width of the pane. Code, tables, headings, front matter and hard breaks stay.
-/// Source lines joined into logical lines. The line `raw` (write mode: the cursor line) stays alone.
-pub(super) fn join(src: &[(String, Mark)], alone_at: Option<usize>) -> Vec<Logical> {
+pub(super) fn join(src: &[(String, Mark)]) -> Vec<Logical> {
     let mut out: Vec<Logical> = Vec::new();
     let mut fence = false;
     let mut front = src.first().is_some_and(|l| l.0.trim() == "---");
@@ -48,8 +47,7 @@ pub(super) fn join(src: &[(String, Mark)], alone_at: Option<usize>) -> Vec<Logic
             continue;
         }
         let quote_more = t.starts_with('>');
-        let alone = alone_at.is_some_and(|r| r == i || r + 1 == i);
-        let joins = !alone && out.last().is_some_and(|l| {
+        let joins = out.last().is_some_and(|l| {
             let lt = l.text.trim_start();
             let open = !lt.is_empty() && !l.verbatim && l.mark == *mark && heading(lt).is_none() && !lt.starts_with("```") && !lt.starts_with('|') && !lt.starts_with('<') && !is_rule(lt);
             let hard_break = l.text.ends_with("  ") || l.text.ends_with('\\');

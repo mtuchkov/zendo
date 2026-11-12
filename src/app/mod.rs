@@ -20,6 +20,7 @@ mod selection;
 mod thread;
 mod tree;
 mod write;
+pub mod write_rows;
 
 pub use at::{AT_ROWS, AtPick};
 pub use say::Say;
@@ -250,6 +251,8 @@ pub struct App {
     /// Layout facts from the last frame, for keys that move by screen.
     pub view_height: usize,
     pub text_width: usize,
+    /// Write mode: the rows on the screen as spans of the source, from the last draw.
+    pub write_rows: Vec<write_rows::RowSpan>,
 }
 
 pub const ALL_KEY: &str = "(all notes)";

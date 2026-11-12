@@ -66,3 +66,32 @@ async fn alt_a_s_b_work_in_read_and_write_mode() {
     }
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// NOTE-32: in write mode the rows wrap as in read mode, the cursor row too: it shows the source of
+// its own words, and the rows around it stay.
+#[tokio::test]
+async fn the_cursor_row_keeps_its_words() {
+    let rel = "docs/notes/2026-11-12-wrap.md";
+    let long = "# Wrap\n\nA zendo is the hall where Zen practitioners sit for zazen, seated meditation.\nDeep thinking about the **architecture** of a project feels much the same: you sit\nwith a problem until it settles. zendo is a minimal, distraction-free place for\nthat work.\n";
+    let root = repo("flow-cursor-row", &[(rel, long)]);
+    let mut a = app(&root);
+    let read = draw(&mut a, 100, 30);
+    a.read_cursor = a.read_text.iter().position(|r| r.contains("architecture")).unwrap();
+    key(&mut a, KeyCode::Char('i'));
+    let write = draw(&mut a, 100, 30);
+    let body = |s: &Vec<String>| s[..s.len() - 2].iter().map(|l| l.trim_end().to_string()).collect::<Vec<_>>();
+    let (read, write) = (body(&read), body(&write));
+    let diff: Vec<usize> = (0..read.len()).filter(|i| read[*i] != write[*i]).collect();
+    assert_eq!(diff.len(), 1, "only the cursor row differs:\n{read:#?}\n{write:#?}");
+    let row = diff[0];
+    assert!(write[row].contains("**architecture**"), "{}", write[row]);
+    assert_eq!(write[row].replace("**", "").trim(), read[row].trim(), "the same words on the row");
+    let y = a.cursor_y;
+    key(&mut a, KeyCode::Down);
+    draw(&mut a, 100, 30);
+    assert_eq!(a.cursor_y, y + 1, "down goes to the next row of the paragraph");
+    key(&mut a, KeyCode::Up);
+    draw(&mut a, 100, 30);
+    assert_eq!(a.cursor_y, y);
+    let _ = std::fs::remove_dir_all(&root);
+}

@@ -14,7 +14,7 @@ pub struct Editor {
     pub row: usize,
     pub col: usize,
     /// Remembered visual column for up/down moves.
-    want_x: Option<usize>,
+    pub want_x: Option<usize>,
     pub dirty: bool,
     /// The other end of the selection: (line, char). The cursor is the first end.
     pub anchor: Option<(usize, usize)>,

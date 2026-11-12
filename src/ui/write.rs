@@ -1,13 +1,20 @@
 //! Write mode: the note looks as in read mode; the line with the cursor shows its source.
 use super::*;
+use crate::app::write_rows::{self, RowSpan};
 
 pub(crate) fn draw_write(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let col = column(area, app.column_width());
     let w = col.width as usize;
     app.text_width = w;
     app.regions.push((crate::text::select::Region::Note, col));
-    let (r, head, title) = write_lines(app, t, w);
-    let (vrow, vx) = write_cursor(app, &r.rows, head, title, w);
+    let (mut r, head, title) = write_lines(app, t, w);
+    let spans = row_spans(app, &r, head, title, w);
+    let cur = write_rows::cursor_span(&spans, (app.editor.row, app.editor.col)).unwrap_or(0);
+    let (vrow, vx) = spans.get(cur).map_or((0, 0), |s| (s.row, s.x_of((app.editor.row, app.editor.col))));
+    // The cursor row shows the source of its own words: the rows around it keep their wrap.
+    if let Some(s) = spans.get(cur).filter(|s| s.row < r.lines.len()) {
+        r.lines[s.row] = Line::styled(s.text(), Style::new().fg(t.fg));
+    }
     if let Some(p) = app.editor_path.clone() {
         app.word_limit = app.word_limit_for(&p);
     }
@@ -31,7 +38,8 @@ pub(crate) fn draw_write(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
         let y0 = col.y as i64 + row as i64 - app.scroll as i64;
         draw_over_limit(f, app, t, area, col, y0.max(col.y as i64) as u16, app.word_count);
     }
-    let lit = selected_rows(app, &r.rows, head, r.lines.len());
+    let lit = selected_rows(app, &spans, cur);
+    app.write_rows = spans;
     let sel_bg = delta::mix(t.bg, t.acc2, 0.42);
     let view: Vec<Line> = r
         .lines
@@ -45,14 +53,16 @@ pub(crate) fn draw_write(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
             None => l,
         })
         .collect();
-    f.render_widget(Paragraph::new(view), col);
+    // The markup of the cursor row can make it longer than the column: it shows on the margin.
+    let wide = Rect { width: (area.x + area.width).saturating_sub(col.x).min(col.width + 12), ..col };
+    f.render_widget(Paragraph::new(view), wide);
     if let Some(say) = app.say.as_ref().filter(|s| app.editor_path.as_ref() == Some(&s.path)) {
         let row = if say.line == app.editor.row { vrow } else if title == Some(say.line) { 0 } else { head + r.rows.get(say.line).copied().unwrap_or(0) };
         say_arrow(f, app, t, area, col, row);
     }
     app.cursor_y = vrow.saturating_sub(app.scroll);
     if !(app.panel && app.focus == Focus::Claude) {
-        f.set_cursor_position((col.x + vx.min(w) as u16, col.y + (vrow - app.scroll) as u16));
+        f.set_cursor_position((col.x + vx.min(wide.width as usize) as u16, col.y + (vrow - app.scroll) as u16));
     }
 }
 
@@ -89,38 +99,39 @@ fn title_line(lines: &[String]) -> Option<usize> {
     lines[i].starts_with("# ").then_some(i)
 }
 
-/// The rendered row and the column of the editor cursor: on the source rows of its line.
-fn write_cursor(app: &App, rows: &[usize], head: usize, title: Option<usize>, w: usize) -> (usize, usize) {
-    let e = &app.editor;
-    let line = &e.lines[e.row];
-    let segs = crate::text::editor::wrap_line(line, w);
-    let k = segs.iter().rposition(|(a, _)| *a <= e.col).unwrap_or(0);
-    let x: usize = line.chars().skip(segs[k].0).take(e.col - segs[k].0).map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
-    let first = if title == Some(e.row) { 0 } else { head + rows.get(e.row).copied().unwrap_or(0) };
-    (first + k, x)
+/// The rows on the screen as spans of the source: the title rows in the head, then the rows of the
+/// text where they start.
+fn row_spans(app: &App, r: &markdown::Rendered, head: usize, title: Option<usize>, w: usize) -> Vec<RowSpan> {
+    let lines = &app.editor.lines;
+    let shown = |row: usize| -> String { r.lines.get(row).map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect()).unwrap_or_default() };
+    let mut starts: Vec<(usize, (usize, usize), usize)> = match title {
+        Some(i) if i == app.editor.row => crate::text::editor::wrap_line(&lines[i], w).into_iter().enumerate().map(|(k, (a, _))| (k, (i, a), 0)).collect(),
+        Some(i) => vec![(0, (i, 0), 0)],
+        None => Vec::new(),
+    };
+    for (k, start) in r.starts.iter().enumerate() {
+        let Some((l, c)) = *start else { continue };
+        let indent = if c > 0 { shown(head + k).chars().take_while(|ch| *ch == ' ').count() } else { 0 };
+        starts.push((head + k, (l, c), indent));
+    }
+    let line_rows: Vec<usize> = (0..lines.len()).map(|l| if title == Some(l) { 0 } else { head + r.rows.get(l).copied().unwrap_or(0) }).collect();
+    write_rows::spans(lines, &starts, &line_rows)
 }
 
-/// The selected rows: `(row, from, to)` in chars. The cursor line is exact; other lines are whole.
-fn selected_rows(app: &App, rows: &[usize], head: usize, total: usize) -> Vec<(usize, usize, usize)> {
-    let rows: Vec<usize> = rows.iter().map(|r| r + head).collect();
-    let total = total + head;
-    let Some(((r1, c1), (r2, c2))) = app.editor.selection() else { return Vec::new() };
-    let e = &app.editor;
-    (r1..=r2)
-        .flat_map(|line| {
-            let first = rows.get(line).copied().unwrap_or(total);
-            let end = rows.get(line + 1).copied().unwrap_or(total).max(first + 1);
-            if line != e.row {
-                return (first..end).map(|row| (row, 0, usize::MAX)).collect::<Vec<_>>();
+/// The selected rows: `(row, from, to)` in columns. The cursor row is exact; the others are whole.
+fn selected_rows(app: &App, spans: &[RowSpan], cur: usize) -> Vec<(usize, usize, usize)> {
+    let Some((a, b)) = app.editor.selection() else { return Vec::new() };
+    spans
+        .iter()
+        .enumerate()
+        .filter_map(|(k, s)| {
+            let start = s.chars.first().map_or(s.end, |c| c.0);
+            if k == cur {
+                let (from, to) = (s.x_of(a.max(start)), s.x_of(b.min(s.end)));
+                (from < to).then_some((s.row, from, to))
+            } else {
+                (start < b && s.end > a).then_some((s.row, 0, usize::MAX))
             }
-            let text = &e.lines[line];
-            let (from, to) = (if line == r1 { c1 } else { 0 }, if line == r2 { c2 } else { text.chars().count() + 1 });
-            crate::text::editor::wrap_line(text, app.text_width)
-                .into_iter()
-                .enumerate()
-                .filter(|(_, (a, b))| from.max(*a) < to.min(b + 1))
-                .map(|(k, (a, b))| (first + k, from.max(a) - a, to.min(b + 1) - a))
-                .collect()
         })
         .collect()
 }

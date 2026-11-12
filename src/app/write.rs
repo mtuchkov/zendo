@@ -74,14 +74,17 @@ impl App {
     }
 
     fn write_move(&mut self, a: &str) {
-        let w = self.text_width;
+        if let Some(delta) = [("select_up", -1), ("select_down", 1)].iter().find(|(n, _)| *n == a).map(|(_, d)| *d) {
+            let anchor = self.editor.anchor.unwrap_or((self.editor.row, self.editor.col));
+            self.write_vertical(delta);
+            self.editor.anchor = Some(anchor);
+            return;
+        }
         let e = &mut self.editor;
         if a.starts_with("select_") {
             match a {
                 "select_left" => e.select_with(|e| e.left()),
                 "select_right" => e.select_with(|e| e.right()),
-                "select_up" => e.select_with(|e| e.vertical(-1, w)),
-                "select_down" => e.select_with(|e| e.vertical(1, w)),
                 "select_word_left" => e.select_with(|e| e.word_left()),
                 "select_word_right" => e.select_with(|e| e.word_right()),
                 "select_home" => e.select_with(|e| e.home()),
@@ -105,6 +108,12 @@ impl App {
         let w = self.text_width;
         let page = self.view_height as isize - 2;
         let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
+        let rows = [(KeyCode::Up, -1), (KeyCode::Down, 1), (KeyCode::PageUp, -page), (KeyCode::PageDown, page)];
+        if let Some((_, delta)) = rows.iter().find(|(c, _)| *c == k.code) {
+            self.editor.clear_selection();
+            self.write_vertical(*delta);
+            return false;
+        }
         let e = &mut self.editor;
         match k.code {
             KeyCode::Char(c) if !ctrl => {
@@ -131,10 +140,6 @@ impl App {
                 match k.code {
                     KeyCode::Left => e.left(),
                     KeyCode::Right => e.right(),
-                    KeyCode::Up => e.vertical(-1, w),
-                    KeyCode::Down => e.vertical(1, w),
-                    KeyCode::PageUp => e.vertical(-page, w),
-                    KeyCode::PageDown => e.vertical(page, w),
                     _ => {}
                 }
                 return false;

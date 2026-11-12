@@ -1,7 +1,7 @@
 //! The cursor stays on the same char when the mode changes: the read cursor is a row and a char of
 //! the formatted text, the write cursor a line and a char of the source.
 use super::*;
-use crate::text::align::{align, to_shown, to_source};
+use crate::text::align::{align, joined, split, to_shown, to_source};
 
 /// The rendered rows of the source line `line`, and the source lines that share them (a joined
 /// paragraph): `(first row, end row, first line, last line)`.
@@ -22,27 +22,6 @@ fn unseen(src: &[&str], k: usize) -> bool {
 /// The source lines of a group without the ones read mode does not show at its start.
 fn seen(src: &[&str], first: usize, last: usize) -> usize {
     (first..=last).find(|k| !unseen(src, *k)).unwrap_or(first)
-}
-
-/// The chars of some lines joined with a space, and where each line starts.
-fn joined<S: AsRef<str>>(lines: &[S]) -> (Vec<char>, Vec<usize>) {
-    let mut chars = Vec::new();
-    let mut starts = Vec::new();
-    for l in lines {
-        if !starts.is_empty() {
-            chars.push(' ');
-        }
-        starts.push(chars.len());
-        // A wrapped row can end in its break space; the join puts one space back.
-        chars.extend(l.as_ref().trim_end().chars());
-    }
-    (chars, starts)
-}
-
-/// The line and the char of an index into joined lines.
-fn split(starts: &[usize], i: usize) -> (usize, usize) {
-    let k = starts.iter().rposition(|s| *s <= i).unwrap_or(0);
-    (k, i - starts[k])
 }
 
 /// The source line and char under a cursor of the formatted text.
