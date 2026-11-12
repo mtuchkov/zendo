@@ -149,6 +149,19 @@ width = 90
 `alt-=` and `alt--` change the width for one repository. The font size belongs to the terminal:
 most terminals change it with `ctrl-+` and `ctrl--`.
 
+## Sound
+
+When an answer of the agent, a turn of Claude Code, or a command in a terminal ends while you are
+elsewhere, zendo rings the terminal bell and the button of the session blinks. Click `[sound]` left
+of the branch name to turn the bell off or on; zendo saves it in `~/.zendo/config.toml`:
+
+```toml
+sound = false
+```
+
+The terminal decides what you hear: turn on its audible bell if it is silent. In tmux, set
+`focus-events on` so that zendo knows when you look at it.
+
 ## Code highlighting
 
 Code blocks and the front matter show in colors. `sh`, `rust`, `java`, `python`, `go`, `yaml` and `json`

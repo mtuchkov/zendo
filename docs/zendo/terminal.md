@@ -4,7 +4,7 @@ revision: "1"
 date: "2026-11-12"
 parent: "zendo.md"
 prev: "chat.md"
-next: "project-structure.md"
+next: "attention.md"
 level: "terminals of zendo: shell blocks in the chat, the play button, F5 and [>] terminals"
 note: "Agent draft from the request of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Depends on Sessions (sessions.md, draft) and ADR 0005."
 ---

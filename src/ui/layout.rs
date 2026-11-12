@@ -106,20 +106,46 @@ pub(crate) fn draw_top(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
             _ => app.note().map(|n| app.rel(&n.path)).unwrap_or_else(|| app.rel(&app.cfg.notes_dir)),
         },
     };
-    let right = app.branch.clone().unwrap_or_default();
-    let pad = (area.width as usize).saturating_sub(left.width() + right.width() + 4);
-    let line = Line::from(vec![Span::raw("  "), Span::raw(left.clone()), Span::raw(" ".repeat(pad)), Span::raw(right.clone()), Span::raw("  ")]);
-    f.render_widget(Paragraph::new(line).style(Style::new().fg(t.dim)), area);
+    f.render_widget(Paragraph::new(Line::from(vec![Span::raw("  "), Span::raw(left.clone())])).style(Style::new().fg(t.dim)), area);
+    let right = draw_top_right(f, app, t, area);
 
-    // No buttons: every action has a key. A newer zendo shows as a quiet hint with its key.
+    // A newer zendo shows as a quiet hint with its key.
     if let Some(v) = app.update.as_ref().filter(|_| matches!(app.mode, Mode::Read | Mode::Write)) {
         let hint = format!("zendo {v} is out · {} to upgrade", app.keys.first(crate::keys::Pane::Read, "upgrade"));
         let w = hint.width() as u16;
-        let x = area.right().saturating_sub(right.width() as u16 + 5 + w);
+        let x = area.right().saturating_sub(right + 5 + w);
         if x > area.x + left.width() as u16 + 4 {
             f.render_widget(Paragraph::new(Line::styled(hint, Style::new().fg(t.acc))), Rect { x, width: w, ..area });
         }
     }
+}
+
+/// The sound button in the top line (ATTN-7).
+pub const SOUND: &str = "[sound]";
+
+/// The right of the top line: the sessions that blink while their buttons are not on the screen
+/// (ATTN-10), the sound button, struck through while the sound is off (ATTN-7), and the branch.
+/// Returns its width.
+fn draw_top_right(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) -> u16 {
+    let chips: Vec<usize> = if app.session_buttons.is_empty() { app.attention.blinks().collect() } else { Vec::new() };
+    let chip = |n: usize| Style::new().fg(t.bg).bg(pulse_bg(app, t, n, if n >= crate::app::SESSIONS { t.fg } else { t.acc2 }));
+    let mut pieces: Vec<(String, Style)> = chips.iter().map(|n| (format!(" {} ", name(app, *n)), chip(*n))).collect();
+    let silent = if app.attention.sound { Modifier::empty() } else { Modifier::CROSSED_OUT };
+    pieces.push((SOUND.into(), Style::new().fg(t.dim).add_modifier(silent)));
+    pieces.extend(app.branch.clone().filter(|b| !b.is_empty()).map(|b| (b, Style::new().fg(t.dim))));
+    let width = (pieces.iter().map(|(s, _)| s.width() + 2).sum::<usize>() - 2) as u16;
+    let mut x = area.right().saturating_sub(width + 2);
+    for (i, (text, style)) in pieces.into_iter().enumerate() {
+        let r = Rect { x, width: (text.width() as u16).min(area.right().saturating_sub(x)), ..area };
+        x += r.width + 2;
+        f.render_widget(Paragraph::new(Span::styled(text, style)), r);
+        match chips.get(i) {
+            Some(n) => app.session_buttons.push((r, *n)),
+            None if i == chips.len() => app.attention.button = Some(r),
+            None => {}
+        }
+    }
+    width
 }
 
 pub(crate) fn date_label(n: &Note) -> String {

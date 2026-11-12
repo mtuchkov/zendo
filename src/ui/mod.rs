@@ -55,6 +55,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     let t = *app.theme();
     let area = f.area();
     app.cli.resize(area.height.saturating_sub(1), area.width);
+    app.attention.button = None;
     if let Some(n) = app.cli.view {
         return draw_cli(f, app, &t, n, area);
     }
@@ -73,7 +74,6 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     app.regions.clear();
     app.session_buttons.clear();
     app.play_buttons.clear();
-    draw_top(f, app, &t, top);
     f.render_widget(Paragraph::new("─".repeat(rule.width as usize)).style(Style::new().fg(t.line)), rule);
     app.view_height = main.height as usize;
 
@@ -93,6 +93,8 @@ pub fn draw(f: &mut Frame, app: &mut App) {
             }
         }
     }
+    // After the panes: the top line shows the blinking sessions whose buttons are not on the screen.
+    draw_top(f, app, &t, top);
     draw_status(f, app, &t, status);
     draw_file_prompt(f, app, &t, prompt);
 

@@ -4,7 +4,7 @@
 use crate::app::App;
 use crate::ui;
 use anyhow::Result;
-use ratatui::crossterm::event::{self, DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture, Event, KeyEventKind};
+use ratatui::crossterm::event::{self, DisableBracketedPaste, DisableFocusChange, DisableMouseCapture, EnableBracketedPaste, EnableFocusChange, EnableMouseCapture, Event, KeyEventKind};
 use ratatui::crossterm::execute;
 use std::time::Duration;
 use tokio::sync::mpsc;
@@ -36,10 +36,16 @@ pub async fn run(
     _keys_tx: mpsc::UnboundedSender<Event>,
 ) -> Result<()> {
     let mut tick = tokio::time::interval(Duration::from_millis(250));
+    // While a button blinks: a frame each 100 ms, 20 shades in each period (ATTN-3).
+    let mut pulse = tokio::time::interval(Duration::from_millis(100));
+    pulse.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let printed = app.cli.notify.clone();
     loop {
         term.draw(|f| ui::draw(f, app))?;
         cursor_shape(app);
+        if std::mem::take(&mut app.attention.bells) > 0 {
+            bell();
+        }
         if let Some(text) = app.clip.take() {
             crate::text::select::copy(&text);
             app.last_copy = Some(text.clone());
@@ -80,6 +86,7 @@ pub async fn run(
             // A Claude Code session printed: draw its screen.
             _ = printed.notified() => {},
             _ = tick.tick() => app.tick(),
+            _ = pulse.tick(), if app.attention.blinking() => {},
         }
     }
 }
@@ -89,6 +96,8 @@ fn on_input(app: &mut App, e: Event) {
         Event::Key(k) if k.kind != KeyEventKind::Release => app.on_key(k),
         Event::Paste(s) => app.on_paste(s),
         Event::Mouse(m) => app.on_mouse(m),
+        Event::FocusGained => app.on_focus(true),
+        Event::FocusLost => app.on_focus(false),
         _ => {}
     }
 }
@@ -97,7 +106,7 @@ fn on_input(app: &mut App, e: Event) {
 /// and shift-enter is not enter.
 pub fn terminal_on() {
     use ratatui::crossterm::event::{KeyboardEnhancementFlags, PushKeyboardEnhancementFlags};
-    let _ = execute!(std::io::stdout(), EnableBracketedPaste, EnableMouseCapture);
+    let _ = execute!(std::io::stdout(), EnableBracketedPaste, EnableMouseCapture, EnableFocusChange);
     if ratatui::crossterm::terminal::supports_keyboard_enhancement().unwrap_or(false) {
         let _ = execute!(std::io::stdout(), PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES));
         KITTY.store(true, std::sync::atomic::Ordering::Relaxed);
@@ -110,8 +119,15 @@ pub fn terminal_off() {
     if KITTY.swap(false, std::sync::atomic::Ordering::Relaxed) {
         let _ = execute!(std::io::stdout(), PopKeyboardEnhancementFlags);
     }
-    let _ = execute!(std::io::stdout(), DisableBracketedPaste, DisableMouseCapture, SetCursorStyle::DefaultUserShape);
+    let _ = execute!(std::io::stdout(), DisableBracketedPaste, DisableMouseCapture, DisableFocusChange, SetCursorStyle::DefaultUserShape);
     SHAPE.store(0, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// The terminal bell: the terminal plays its sound (ATTN-1).
+fn bell() {
+    use std::io::Write;
+    let mut out = std::io::stdout();
+    let _ = out.write_all(b"\x07").and_then(|_| out.flush());
 }
 
 /// The terminal has the kitty keyboard protocol: ctrl-shift-s is not ctrl-s.

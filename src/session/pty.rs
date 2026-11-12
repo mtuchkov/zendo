@@ -45,6 +45,8 @@ pub struct Cli {
     /// A shell of a terminal, not Claude Code: no hooks, busy while a command runs.
     shell: bool,
     started: Instant,
+    /// A hook reported *works*, or the shell ran a command, since the last end (ATTN-1, ATTN-6).
+    worked: bool,
 }
 
 fn pty_size((rows, cols): (u16, u16)) -> PtySize {
@@ -93,7 +95,7 @@ impl Cli {
         let started = Instant::now();
         let last_output = Arc::new(Mutex::new(started));
         read_loop(reader, screen.clone(), writer.clone(), last_output.clone(), notify);
-        Ok(Cli { child, master: pair.master, writer, screen, last_output, state_file, reported: None, shell, started })
+        Ok(Cli { child, master: pair.master, writer, screen, last_output, state_file, reported: None, shell, started, worked: false })
     }
 
     /// A shell runs a command: the foreground process group of the terminal is not the shell.
@@ -161,6 +163,22 @@ impl Cli {
             None => State::Works,
             Some(s) => s,
         }
+    }
+
+    /// The turn or the command ended since the last call: a hook reported *works* and then *idle* or
+    /// *waits*, or the shell ran a command and is at its prompt again. A state that no hook
+    /// reported does not count (ATTN-1, ATTN-6).
+    pub fn finished(&mut self) -> bool {
+        let (works, stopped) = if self.shell {
+            let busy = self.busy();
+            (busy, !busy)
+        } else {
+            (self.reported == Some(State::Works), matches!(self.reported, Some(State::Idle | State::Waits)))
+        };
+        self.worked |= works;
+        let end = self.worked && stopped;
+        self.worked &= !end;
+        end
     }
 
     pub fn stop(mut self) {

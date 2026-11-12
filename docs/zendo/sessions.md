@@ -24,7 +24,8 @@ Code exits, zendo goes back.
 
 **States.** Each running Claude Code session has one state: *works*, *waits* (for an answer or a
 permission of the user), or *idle* (the turn ended). The session buttons, the chat of the agent
-session and the bottom line of the session view show it. Claude Code itself tells zendo the state.
+session and the bottom line of the session view show it. Claude Code itself tells zendo the state. When a turn ends while the user is elsewhere, the bell rings and the
+button blinks (see [Attention](attention.md)).
 
 **One writer for a thread.** While a Claude Code session runs, a question in its chat goes to Claude
 Code, not through ACP; Claude Code queues it while it works. When the Claude Code session ends, zendo
@@ -101,4 +102,3 @@ Retired: none. Revision 3 changed SESSIONS-4 and added SESSIONS-20.
 | Open question                                                                                                                                         | Affects                 | Answered by |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | ----------- |
 | The session view takes the whole screen. Should it take the place of the chat pane beside the note instead?                                           | SESSIONS-9, PANES-7     | User        |
-| When a session goes to *waits* while the user is elsewhere: only the button, or also the terminal bell?                                                | SESSIONS-5, SESSIONS-14 | User        |

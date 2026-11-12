@@ -123,3 +123,31 @@ pub fn index_of(name: &str) -> usize {
         .position(|t| t.name.eq_ignore_ascii_case(name))
         .unwrap_or(0)
 }
+
+/// The period of a blinking button: from its color to the accent and back (ATTN-3).
+pub const PULSE: std::time::Duration = std::time::Duration::from_secs(2);
+
+/// The pulse of a blinking button `t` after it started: 0, then 1 after half the period, then 0
+/// again; smooth at both ends (ATTN-3).
+pub fn pulse(t: std::time::Duration) -> f32 {
+    let x = t.as_secs_f32() / PULSE.as_secs_f32() * std::f32::consts::TAU;
+    (1.0 - x.cos()) / 2.0
+}
+
+/// `a` mixed with `b`: `k` 0 gives `a`, 1 gives `b`. A color that is not RGB has no mix: the
+/// nearer end.
+pub fn mix(a: Color, b: Color, k: f32) -> Color {
+    let k = k.clamp(0.0, 1.0);
+    match (a, b) {
+        (Color::Rgb(r1, g1, b1), Color::Rgb(r2, g2, b2)) => {
+            let m = |x: u8, y: u8| (f32::from(x) + (f32::from(y) - f32::from(x)) * k).round() as u8;
+            Color::Rgb(m(r1, r2), m(g1, g2), m(b1, b2))
+        }
+        _ if k < 0.5 => a,
+        _ => b,
+    }
+}
+
+#[cfg(test)]
+#[path = "theme_tests.rs"]
+mod tests;

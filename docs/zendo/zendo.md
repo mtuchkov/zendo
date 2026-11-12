@@ -16,6 +16,7 @@ children:
   - "sessions.md"
   - "chat.md"
   - "terminal.md"
+  - "attention.md"
   - "project-structure.md"
   - "commands.md"
 level: "what zendo is, its parts, and the qualities that hold for all parts"
@@ -42,6 +43,7 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Sessions](sessions.md)                      | Claude Code sessions in the background, more than one at a time |
 | [Chat](chat.md)                              | The chat input: chips, attachments, `@` file suggestions        |
 | [Terminal](terminal.md)                      | Shell blocks in the chat, the play button, `F5` and `[>]` terminals |
+| [Attention](attention.md)                    | The bell and the blinking button when a turn ends; `[sound]`   |
 | [Project structure](project-structure.md)    | `project-structure.toml`: use and repair                      |
 | [Commands](commands.md)                      | Install, `zendo setup`, `zendo doctor`, `zendo upgrade`          |
 

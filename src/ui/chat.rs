@@ -222,6 +222,7 @@ fn draw_sessions(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
             n if n == app.state.session => t.acc,
             _ => t.acc2,
         };
+        let bg = pulse_bg(app, t, n, bg);
         let label = button_label(app, n);
         f.render_widget(Paragraph::new(Line::styled(format!("{label:^w$}"), Style::new().bg(bg).fg(t.bg).add_modifier(Modifier::BOLD))), r);
         app.session_buttons.push((r, n));

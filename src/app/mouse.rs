@@ -51,6 +51,9 @@ impl App {
     fn click(&mut self, x: u16, y: u16) {
         self.sel = None;
         let hit = |r: &Rect| r.contains(ratatui::layout::Position::new(x, y));
+        if self.attention.button.is_some_and(|r| hit(&r)) {
+            return self.toggle_sound();
+        }
         if let Some(n) = self.session_buttons.iter().find(|(r, _)| hit(r)).map(|(_, n)| *n) {
             return if n < SESSIONS { self.switch_session(n) } else { self.open_terminal(n - SESSIONS) };
         }

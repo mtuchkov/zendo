@@ -44,7 +44,7 @@ pub(crate) fn draw_cli(f: &mut Frame, app: &App, t: &Theme, n: usize, area: Rect
 
 /// The name of session `n`: the F key of an agent session or of the `F5` terminal, `[>]` for
 /// another terminal.
-fn name(app: &App, n: usize) -> String {
+pub(crate) fn name(app: &App, n: usize) -> String {
     use crate::keys::Pane;
     match n.checked_sub(crate::app::SESSIONS) {
         None => app.keys.first(Pane::Global, &format!("session_{}", n + 1)).to_uppercase(),
@@ -72,6 +72,12 @@ fn draw_cli_bar(f: &mut Frame, app: &App, t: &Theme, n: usize, area: Rect) {
             Some(s) => (format!(" {key} {} ", s.word()), Style::new().fg(if s == crate::session::State::Waits { t.acc } else { t.fg })),
             None => (format!(" {key} "), Style::new().fg(t.dim)),
         };
+        // A blinking session fades to the accent and back; its text to the background (ATTN-3).
+        let style = match app.blink(m) {
+            Some(_) if m == n => style.bg(pulse_bg(app, t, m, t.acc2)),
+            Some(k) => style.fg(theme::mix(t.fg, t.bg, k)).bg(pulse_bg(app, t, m, t.bg)),
+            None => style,
+        };
         spans.push(Span::styled(text, style));
     }
     let leave = app.keys.first(Pane::Session, "leave");
@@ -89,4 +95,11 @@ pub(crate) fn button_label(app: &App, n: usize) -> String {
         Some(s) => format!("{key}{}", s.mark()),
         None => key,
     }
+}
+
+/// The background of the button of session `n`: `bg`, and while it blinks a mix of `bg` and the
+/// accent (the second accent for a button in the accent color) by its pulse (ATTN-3).
+pub(crate) fn pulse_bg(app: &App, t: &Theme, n: usize, bg: Color) -> Color {
+    let to = if bg == t.acc { t.acc2 } else { t.acc };
+    app.blink(n).map_or(bg, |k| theme::mix(bg, to, k))
 }

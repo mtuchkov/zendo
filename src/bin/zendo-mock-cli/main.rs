@@ -1,7 +1,7 @@
 //! A mock of the `claude` command line for the tests of the sessions (docs/zendo/sessions.md).
 //!
-//! It prints its arguments, then `tick N` each 100 ms. In raw mode it reads keys: `w` reports the
-//! state "waits", `i` reports "idle", `q` exits, and `enter` prints `got: <the line>`. A state goes to the file in `$ZENDO_STATE`, as the
+//! It prints its arguments, then `tick N` each 100 ms. In raw mode it reads keys: `r` reports the
+//! state "works", `w` reports "waits", `i` reports "idle", `q` exits, and `enter` prints `got: <the line>`. A state goes to the file in `$ZENDO_STATE`, as the
 //! hooks of Claude Code do.
 
 use ratatui::crossterm::terminal;
@@ -33,6 +33,7 @@ fn main() {
     let mut line = Vec::new();
     while stdin.read(&mut b).is_ok_and(|n| n == 1) {
         match b[0] {
+            b'r' => report("works"),
             b'w' => report("waits"),
             b'i' => report("idle"),
             b'q' => break,

@@ -36,6 +36,10 @@ pub struct UserConfig {
     /// line that is longer. Default 76; `alt-=` and `alt--` change it for a repository.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub width: Option<u16>,
+    /// The terminal bell when the turn of an agent session or the command of a terminal ends;
+    /// default on. The sound button of zendo changes it (docs/zendo/attention.md).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sound: Option<bool>,
     /// The private notes repo, when the user turned it on.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notes: Option<NotesRepo>,
@@ -101,21 +105,36 @@ impl UserConfig {
         (map, problems)
     }
     pub fn load() -> Self {
-        Self::read().ok().flatten().unwrap_or_default()
+        Self::load_from(&config_path())
+    }
+
+    /// The config in `path`; the defaults when there is no file or it does not parse.
+    pub fn load_from(path: &Path) -> Self {
+        Self::read_from(path).ok().flatten().unwrap_or_default()
     }
 
     /// The config, `None` when there is no file, or what is wrong with the file.
     pub fn read() -> Result<Option<Self>, String> {
-        match std::fs::read_to_string(config_path()) {
+        Self::read_from(&config_path())
+    }
+
+    fn read_from(path: &Path) -> Result<Option<Self>, String> {
+        match std::fs::read_to_string(path) {
             Err(_) => Ok(None),
             Ok(s) => toml::from_str(&s).map(Some).map_err(|e| e.to_string()),
         }
     }
 
     pub fn save(&self) -> std::io::Result<()> {
-        std::fs::create_dir_all(config_dir())?;
+        self.save_to(&config_path())
+    }
+
+    pub fn save_to(&self, path: &Path) -> std::io::Result<()> {
+        if let Some(dir) = path.parent() {
+            std::fs::create_dir_all(dir)?;
+        }
         let text = toml::to_string_pretty(self).map_err(std::io::Error::other)?;
-        std::fs::write(config_path(), format!("{CONFIG_HEAD}{text}"))
+        std::fs::write(path, format!("{CONFIG_HEAD}{text}"))
     }
 }
 

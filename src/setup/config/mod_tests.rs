@@ -28,3 +28,17 @@ fn old_folders_move_to_the_new_name_once() {
     assert!(move_old_folders(&repo).is_empty(), "a folder moves only once");
     let _ = std::fs::remove_dir_all(&base);
 }
+
+// ATTN-8, ATTN-9: `sound` in the config, and a config file in another place.
+#[test]
+fn sound_goes_into_the_config_and_back() {
+    let c: UserConfig = toml::from_str("sound = false").unwrap();
+    assert_eq!(c.sound, Some(false));
+    assert_eq!(UserConfig::default().sound, None, "no setting: the default");
+    let path = std::env::temp_dir().join(format!("zendo-sound-{}/config.toml", std::process::id()));
+    let c = UserConfig { sound: Some(true), ..Default::default() };
+    c.save_to(&path).unwrap();
+    assert!(std::fs::read_to_string(&path).unwrap().contains("sound = true"));
+    assert_eq!(UserConfig::load_from(&path).sound, Some(true));
+    let _ = std::fs::remove_dir_all(path.parent().unwrap());
+}

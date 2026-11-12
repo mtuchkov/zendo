@@ -178,6 +178,11 @@ impl Sessions {
         ended
     }
 
+    /// The sessions whose turn or command ended since the last call (ATTN-1).
+    pub fn finished(&mut self) -> Vec<usize> {
+        self.slots.iter_mut().enumerate().filter_map(|(n, s)| s.as_mut().is_some_and(Cli::finished).then_some(n)).collect()
+    }
+
     /// Stop each session.
     pub fn stop_all(&mut self) {
         self.slots.iter_mut().filter_map(Option::take).for_each(Cli::stop);

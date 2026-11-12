@@ -31,6 +31,7 @@ impl App {
             view_height: 20,
             text_width: 70,
             width_default: user.width.unwrap_or(crate::ui::COLUMN).clamp(30, 300),
+            attention: Attention::from_config(&user),
             ..Default::default()
         };
         app.load_structure();

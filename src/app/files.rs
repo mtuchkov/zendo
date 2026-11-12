@@ -135,6 +135,7 @@ impl App {
         self.sync_visit();
         self.recap_tick();
         self.cli_tick();
+        self.attention_tick();
         if self.mode == Mode::Write && self.editor.dirty && self.last_edit.elapsed() > Duration::from_millis(1500) {
             self.save();
         }

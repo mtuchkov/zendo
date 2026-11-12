@@ -144,6 +144,7 @@ impl App {
             t.items.push(Item::Info("stopped".into()));
         }
         let next = (!t.queue.is_empty()).then(|| t.queue.remove(0));
+        self.chat_turn_ended(&key, &stop, next.is_some());
         self.reload_after_agent();
         if let Some(out) = next {
             self.dispatch(key, out);
