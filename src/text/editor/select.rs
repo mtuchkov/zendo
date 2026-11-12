@@ -27,6 +27,13 @@ impl Editor {
         Some(out)
     }
 
+    /// A delete key: delete the selected text, or, when there is none, do `delete`.
+    pub fn delete_selection_or(&mut self, delete: impl FnOnce(&mut Self)) {
+        if !self.delete_selection() {
+            delete(self);
+        }
+    }
+
     /// Delete the selected text; true when there was one.
     pub fn delete_selection(&mut self) -> bool {
         let Some(((r1, c1), (r2, c2))) = self.selection() else {

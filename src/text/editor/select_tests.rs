@@ -25,6 +25,16 @@ fn select_copy_cut_and_type_over() {
 }
 
 #[test]
+fn a_delete_key_deletes_the_selection_or_else_does_its_own_delete() {
+    let mut e = at("one two", 0, 4);
+    e.select_with(|e| e.word_right());
+    e.delete_selection_or(Editor::backspace);
+    assert_eq!(e.text(), "one ");
+    e.delete_selection_or(Editor::backspace);
+    assert_eq!(e.text(), "one");
+}
+
+#[test]
 fn bold_italic_underline_toggle() {
     let mut e = at("make this bold", 0, 6);
     e.wrap_marks("**", "**");

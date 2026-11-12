@@ -70,11 +70,7 @@ impl App {
     fn input_action(&mut self, a: &str) {
         match a {
             "newline" => self.input.type_str("\n"),
-            "delete_word" => {
-                if !self.input.delete_selection() {
-                    self.input.delete_word_back();
-                }
-            }
+            "delete_word" => self.input.delete_selection_or(Editor::delete_word_back),
             "clear" => {
                 self.input.take();
                 self.chips.clear();
@@ -110,11 +106,7 @@ impl App {
         let e = &mut self.input;
         match k.code {
             KeyCode::Char(c) if !ctrl => e.type_char(c),
-            KeyCode::Backspace => {
-                if !e.delete_selection() {
-                    e.backspace()
-                }
-            }
+            KeyCode::Backspace => e.delete_selection_or(Editor::backspace),
             KeyCode::Delete => e.delete(),
             KeyCode::Left => e.left(),
             KeyCode::Right => e.right(),

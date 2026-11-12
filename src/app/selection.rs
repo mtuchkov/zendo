@@ -52,7 +52,7 @@ impl App {
         // Lines that share a row (a paragraph, or a skipped title and blank line): take the first
         // line with text that is not the title.
         let src: Vec<String> = self.note_text().unwrap_or_default().lines().map(str::to_string).collect();
-        let text_at = |i: usize| src.get(i).is_some_and(|l| !l.trim().is_empty() && !(i == 0 && l.starts_with("# ")));
+        let text_at = |i: usize| src.get(i).is_some_and(|l| !(l.trim().is_empty() || (i == 0 && l.starts_with("# "))));
         let lo = self.read_rows.iter().rposition(|r| *r <= a).unwrap_or(0);
         let row = self.read_rows.get(lo).copied().unwrap_or(0);
         let lo = (0..self.read_rows.len()).find(|i| self.read_rows[*i] == row && text_at(*i)).unwrap_or(lo);

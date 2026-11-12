@@ -59,11 +59,7 @@ impl App {
                     return None;
                 }
             },
-            "delete_word" => {
-                if !self.editor.delete_selection() {
-                    self.editor.delete_word_back();
-                }
-            }
+            "delete_word" => self.editor.delete_selection_or(Editor::delete_word_back),
             "indent" => self.editor.type_str("  "),
             _ => {
                 self.write_move(a);
@@ -125,16 +121,8 @@ impl App {
                 e.delete_selection();
                 e.split_line(true)
             }
-            KeyCode::Backspace => {
-                if !e.delete_selection() {
-                    e.backspace()
-                }
-            }
-            KeyCode::Delete => {
-                if !e.delete_selection() {
-                    e.delete()
-                }
-            }
+            KeyCode::Backspace => e.delete_selection_or(Editor::backspace),
+            KeyCode::Delete => e.delete_selection_or(Editor::delete),
             _ => {
                 e.clear_selection();
                 match k.code {
