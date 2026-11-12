@@ -73,27 +73,8 @@ that it must pass.
 
 Retired in revision \[N\]: [IDs, with the reason]. Retired identifiers are never reused.
 
-## Variants
+## Open points
 
-**Root document.** After the status, add: the sources; a table of the child documents with their
-topics; Scope (in scope, out of scope); how zendo works, in one or two paragraphs; the main design
-choices; the shared inputs of the acceptance tests, such as a sample repository; the success
-criterion, which is that the acceptance tests of every architecturally significant requirement pass;
-and the milestones that deliver the specification.
-
-**Pane document.** State what the pane shows; the keys and the mouse actions that work in it; how it
-gets and loses focus; when it hides and opens, in each layout; and what zendo keeps about it between
-starts.
-
-**Command document.** For `zendo setup`, `zendo doctor`, `zendo upgrade`, or the installer, state: the
-checks in their order; what the command changes on disk; when it needs the network; what it shows
-for each failed check and the fix that it suggests; and when it asks the user, and when it must not
-wait for input.
-
-**Claude document.** State what zendo sends to Claude, including the context of the note and the
-rules from `project-structure.toml`; the tool calls of Claude that zendo allows, rejects, or shows to
-the user as a proposal; where each thread lives and how long it lasts; and what the user sees when
-Claude is not available.
-
-**Open points.** Only one table: open question, what it affects, and who answers it. Risks,
-dependencies, and resolved questions do not belong here.
+| Open question   | Affects           | Answered by       |
+| --------------- | ----------------- | ----------------- |
+| [One question.] | [IDs or sections] | [User, or a role] |
