@@ -52,6 +52,9 @@ impl App {
         if self.at.is_some() && self.key_pane() == Pane::Chat && self.key_at(k) {
             return;
         }
+        if self.slash.open && self.key_pane() == Pane::Chat && self.key_slash(k) {
+            return;
+        }
         if self.tree.find.is_some() && self.key_pane() == Pane::Tree {
             return self.key_tree_find(k);
         }

@@ -26,13 +26,31 @@ impl App {
         self.panel = true;
         self.focus = Focus::Claude;
         self.panel_scroll = 0;
+        self.open_session();
+    }
+
+    /// Open the session of the chat before the first question: the last session shows its
+    /// messages, and the agent sends its slash commands.
+    fn open_session(&mut self) {
+        let key = self.key();
+        let known = self.state.session(&self.cfg.agent, &key);
+        let t = self.thread(&key);
+        if t.opened || t.session.is_some() {
+            return;
+        }
+        t.opened = true;
+        if let Some(a) = &self.agent {
+            a.send(Cmd::Open { key, known });
+        }
     }
 
     pub fn thread(&mut self, key: &str) -> &mut Thread {
         self.threads.entry(key.to_string()).or_default()
     }
 
-    pub fn ask(&mut self, question: String, key: String) {
+    /// Ask in the one chat thread. `scope` is what the question is about: a file key, the new
+    /// note, or all notes.
+    pub fn ask(&mut self, question: String, scope: String) {
         let question = question.trim().to_string();
         if question.is_empty() {
             return;
@@ -45,24 +63,44 @@ impl App {
             self.save();
         }
         self.ensure_agent();
+        let key = self.key();
+        // A slash command goes to the agent as the user typed it.
+        let command = question.starts_with('/');
+        let (text, file) = if command { (question.clone(), None) } else { self.prompt_text(&question, &scope, &key) };
+        let mut attach = std::mem::take(&mut self.pending_attach);
+        if let Some(p) = &file {
+            attach.push(Attachment::File(p.clone()));
+        }
+        let sent = file.as_ref().map(|p| self.rel(p));
+        let known = self.state.session(&self.cfg.agent, &key);
+        let t = self.thread(&key);
+        t.items.push(Item::User(question));
+        t.busy = Some(Instant::now());
+        t.primed |= !command;
+        t.files.push(sent);
+        self.panel_scroll = 0;
+        if let Some(a) = &self.agent {
+            a.send(Cmd::Prompt { key, known, text, attach });
+        }
+    }
+
+    /// The text of a question with its context, and the file to attach: the file on screen when
+    /// it did not go with one of the last ATTACH_EVERY questions.
+    fn prompt_text(&mut self, question: &str, scope: &str, key: &str) -> (String, Option<PathBuf>) {
         let mut text = String::new();
-        let primed = self.threads.get(&key).is_some_and(|t| t.primed);
-        if !primed {
+        if !self.threads.get(key).is_some_and(|t| t.primed) {
             text.push_str(&state::prompt(&self.cfg.root));
             text.push_str("\n\n");
-            // The rules of project-structure.toml for this file: project rules first, then each folder.
-            if let (Some(st), Some(p)) = (self.tree.structure.as_ref(), self.current.as_ref()) {
-                let rel = self.store.rel(p).to_path_buf();
-                let rules = st.rules_for(&rel);
-                if !rules.is_empty() && key != ALL_KEY {
-                    text.push_str(&rules);
-                    text.push('\n');
-                }
-            }
         }
-        if key == ALL_KEY {
+        let mut file = None;
+        if scope == ALL_KEY {
             text.push_str(&format!("Notes folder: {}\nSearch across all notes in that folder.\n", self.cfg.notes_dir.display()));
-        } else if let Some(p) = self.current.clone().filter(|_| key != "(new note)") {
+        } else if let Some(p) = self.current.clone().filter(|_| scope != NEW_KEY) {
+            let rel = self.rel(&p);
+            if !self.threads.get(key).is_some_and(|t| t.sent_lately(&rel)) {
+                text.push_str(&self.rules_for(&p));
+                file = Some(p.clone());
+            }
             text.push_str(&format!("Note file: {}\n", p.display()));
             if self.mode == Mode::Write
                 && let Some(line) = self.editor.lines.get(self.editor.row).filter(|l| !l.trim().is_empty()) {
@@ -77,17 +115,14 @@ impl App {
             text.push('\n');
         }
         text.push_str(&format!("Question: {question}"));
+        (text, file)
+    }
 
-        let known = self.state.session(&self.cfg.agent, &key);
-        let t = self.thread(&key);
-        t.items.push(Item::User(question));
-        t.busy = Some(Instant::now());
-        t.primed = true;
-        self.panel_scroll = 0;
-        let attach = std::mem::take(&mut self.pending_attach);
-        if let Some(a) = &self.agent {
-            a.send(Cmd::Prompt { key, known, text, attach });
-        }
+    /// The rules of project-structure.toml for a file: project rules first, then each folder.
+    fn rules_for(&self, p: &Path) -> String {
+        let Some(st) = self.tree.structure.as_ref() else { return String::new() };
+        let rules = st.rules_for(self.store.rel(p));
+        if rules.is_empty() { rules } else { rules + "\n" }
     }
 
     pub fn answer(&mut self, how: char) {
@@ -182,7 +217,7 @@ impl App {
     }
 
     /// Send the chat input: the chips in it bring their text as context.
-    pub(crate) fn send_input(&mut self, key: String) {
+    pub(crate) fn send_input(&mut self) {
         let mut q = self.input.take();
         let chips: Vec<Chip> = std::mem::take(&mut self.chips).into_iter().filter(|c| q.contains(c.label.as_str())).collect();
         let ctx: Vec<String> = chips.iter().filter_map(|c| c.context.clone()).collect();
@@ -198,6 +233,7 @@ impl App {
         if q.trim().is_empty() && self.ask_context.is_some() {
             q = self.ask_default.take().unwrap_or_else(|| DELTA_QUESTION.into());
         }
-        self.ask(q, key);
+        let scope = self.scope();
+        self.ask(q, scope);
     }
 }

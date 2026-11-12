@@ -1,6 +1,13 @@
 //! A chat thread and its items.
 use super::*;
 
+/// The key of the one chat thread.
+pub const CHAT_KEY: &str = "(chat)";
+/// The scope of a question about the note that is not saved yet.
+pub const NEW_KEY: &str = "(new note)";
+/// A file goes with a question when it did not go with one of the last this many questions.
+pub const ATTACH_EVERY: usize = 20;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Answered {
     Pending,
@@ -35,9 +42,18 @@ pub struct Thread {
     pub thinking: bool,
     /// Context was sent once in this run.
     pub primed: bool,
+    /// For each question of this run, the file that went with it.
+    pub files: Vec<Option<String>>,
+    /// zendo asked the agent to open the session of this thread.
+    pub opened: bool,
 }
 
 impl Thread {
+    /// The file went with one of the last ATTACH_EVERY questions.
+    pub fn sent_lately(&self, rel: &str) -> bool {
+        self.files.iter().rev().take(ATTACH_EVERY).any(|f| f.as_deref() == Some(rel))
+    }
+
     pub fn pending(&self) -> Option<(usize, u64)> {
         self.items.iter().enumerate().rev().find_map(|(i, it)| match it {
             Item::Proposal { request, state: Answered::Pending, .. } => Some((i, *request)),

@@ -91,7 +91,7 @@ indent = ["tab"]  # indent
 
 [chat]
 send = ["enter"]  # send
-newline = ["shift-enter", "alt-enter", "ctrl-j"]  # new line
+newline = ["alt-enter", "shift-enter", "ctrl-j"]  # new line
 back = ["esc"]  # stop the answer / back to the note
 new_thread = ["ctrl-n"]  # new thread
 handoff = ["ctrl-o"]  # continue in Claude Code
@@ -124,7 +124,7 @@ preview = ["l", "right", "space"]  # open, stay in the tree
 unfold = ["+", "="]  # unfold [+]
 fold = ["-"]  # fold [-]
 close_folder = ["h", "left"]  # close the folder / go to the parent
-view = ["v"]  # structure, docs, all .md
+view = ["v"]  # structure, docs, all .md, text files, folders
 add_to_chat = ["a"]  # add the file to the chat
 search = ["/"]  # filter by file name
 rename = ["f2"]  # rename the file

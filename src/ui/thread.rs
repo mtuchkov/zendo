@@ -19,12 +19,12 @@ pub(crate) fn panel_lines(app: &App, t: &Theme, w: usize) -> Vec<Line<'static>> 
     let key = app.key();
     let dim = Style::new().fg(t.dim);
     let Some(th) = app.threads.get(&key).filter(|th| !th.items.is_empty() || th.busy.is_some()) else {
-        return empty_thread(app, &key, dim, w);
+        return empty_thread(app, &app.scope(), dim, w);
     };
     let mut out: Vec<Line<'static>> = Vec::new();
     for it in &th.items {
         match it {
-            Item::User(s) => out.extend(user_lines(s, t, w)),
+            Item::User(s) => out.extend(user_lines(question_of(s), t, w)),
             Item::Agent(s) => out.extend(agent_lines(s, t, w)),
             Item::Tools { uses, started, took } => out.extend(tool_lines(app, uses, took.unwrap_or_else(|| started.elapsed()), dim, w)),
             Item::Proposal { title, diffs, choices, state, .. } => out.extend(proposal_lines(title, diffs, choices, state, t, w)),
@@ -40,6 +40,11 @@ pub(crate) fn panel_lines(app: &App, t: &Theme, w: usize) -> Vec<Line<'static>> 
         out.push(Line::styled(format!("{word} {} {} s", SPIN[(e.as_millis() / 300) as usize % 4], e.as_secs()), dim));
     }
     out
+}
+
+/// The question in a message that zendo sent: a replayed message has the context before it.
+pub fn question_of(s: &str) -> &str {
+    s.rsplit_once("\nQuestion: ").map(|(_, q)| q).or_else(|| s.strip_prefix("Question: ")).unwrap_or(s)
 }
 
 /// A message of the user: a block of the selection color, with `›` in the accent color.

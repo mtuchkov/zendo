@@ -54,6 +54,7 @@ async fn edit_is_proposed_and_applied_only_after_allow() {
                 assert_eq!(stop, "endturn");
                 break;
             }
+            Event::Commands { list } => assert!(list.iter().any(|c| c.name == "review"), "the slash commands of the agent: {list:?}"),
             e => panic!("unexpected {e:?}"),
         }
     }

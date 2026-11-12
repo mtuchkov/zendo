@@ -67,8 +67,8 @@ impl App {
             return;
         }
         self.ask_context = Some(ctx);
-        let key = self.key();
-        self.ask(format!("Split {rel}: {} words, the limit is {}. Keep the altitude.", self.word_count, self.word_limit), key);
+        let scope = self.scope();
+        self.ask(format!("Split {rel}: {} words, the limit is {}. Keep the altitude.", self.word_count, self.word_limit), scope);
     }
 
     /// What the notes sync wants the user to know, if anything.
@@ -94,13 +94,18 @@ impl App {
         self.store.rel(p).display().to_string()
     }
 
-    /// The thread key for the note on screen.
+    /// The key of the chat thread: one thread, one agent session, for every file.
     pub fn key(&self) -> String {
+        CHAT_KEY.into()
+    }
+
+    /// What a question is about: the file on screen, a new note, or all notes.
+    pub fn scope(&self) -> String {
         if let Some(p) = &self.pinned {
             return p.clone();
         }
         if self.mode == Mode::Write && self.editor_path.is_none() {
-            return "(new note)".into();
+            return NEW_KEY.into();
         }
         match &self.current {
             Some(p) => self.rel(p),

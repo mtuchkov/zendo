@@ -47,13 +47,14 @@ impl App {
                 self.input.backspace();
                 self.input.type_str("\n");
             }
-            Some("send") if !busy => self.send_input(key),
+            Some("send") if !busy => self.send_input(),
             Some("send") => {}
             // A proposal key is text when there is no proposal.
             Some("allow" | "always" | "edit_first" | "discard") | None => self.input_key(k),
             Some(a) => self.input_action(a),
         }
         self.update_at();
+        self.update_slash();
     }
 
     fn new_thread(&mut self, key: String) {

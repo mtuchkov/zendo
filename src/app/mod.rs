@@ -17,6 +17,7 @@ mod new;
 mod read;
 mod say;
 mod selection;
+mod slash;
 mod thread;
 mod tree;
 mod write;
@@ -24,6 +25,7 @@ pub mod write_rows;
 
 pub use at::{AT_ROWS, AtPick};
 pub use say::Say;
+pub use slash::Slash;
 pub use thread::*;
 
 use crate::agent::{self, AgentHandle, Attachment, Choice, Cmd, DiffView, Event};
@@ -148,6 +150,7 @@ pub struct App {
     pub pending_attach: Vec<Attachment>,
     /// The agent takes images in a prompt (from its ACP capabilities).
     pub agent_images: bool,
+    pub slash: Slash,
     /// The time of the last scroll event: a fast run of them is a trackpad.
     last_scroll: Option<std::time::Instant>,
     /// Width of the chat input, for up and down moves in it.

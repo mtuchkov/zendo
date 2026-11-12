@@ -6,13 +6,13 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     // A thin rule on the left edge separates the panel from the note.
     let inner = Rect { x: area.x + 3, y: area.y, width: area.width.saturating_sub(5), height: area.height };
     let w = inner.width as usize;
-    let key = app.key();
     // The input grows with its text, up to a quarter of the panel; then it scrolls.
     let in_w = (inner.width as usize).saturating_sub(4).max(10);
     app.input_width = in_w;
     let in_rows = app.input.segments(in_w).len().max(1);
     let in_h = in_rows.min((inner.height as usize / 4).max(1)) as u16;
-    let at_h = app.at.as_ref().map_or(0, |p| p.hits.len().clamp(1, crate::app::AT_ROWS)) as u16;
+    let slash_h = if app.slash.open { app.slash.hits.len().clamp(1, crate::app::AT_ROWS) } else { 0 };
+    let at_h = app.at.as_ref().map_or(slash_h, |p| p.hits.len().clamp(1, crate::app::AT_ROWS)) as u16;
     let [head, _, body, _, input, picks] = Layout::vertical([
         Constraint::Length(1),
         Constraint::Length(1),
@@ -24,10 +24,12 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     .areas(inner);
     if let Some(p) = &app.at {
         draw_at(f, t, picks, p);
+    } else if app.slash.open {
+        draw_slash(f, t, picks, &app.slash);
     }
 
     let dim = Style::new().fg(t.dim);
-    let scope = if key == ALL_KEY { "ALL NOTES".to_string() } else { format!("THIS {}", app.file_word().to_uppercase()) };
+    let scope = if app.scope() == ALL_KEY { "ALL NOTES".to_string() } else { format!("THIS {}", app.file_word().to_uppercase()) };
     let agent = app.profile().map_or("AGENT".to_string(), |p| p.name.to_uppercase());
     let left = agent.as_str();
     let pad = w.saturating_sub(left.len() + scope.len());
@@ -98,7 +100,7 @@ fn input_hint(app: &App, key: &str, pending: bool) -> String {
         "esc to stop".to_string()
     } else if app.ask_context.is_some() {
         format!("ask about {}, or press enter", if app.ask_about.is_empty() { "it" } else { app.ask_about })
-    } else if key == ALL_KEY {
+    } else if app.scope() == ALL_KEY {
         "ask about all notes".to_string()
     } else {
         format!("ask about this {}", app.file_word())
@@ -133,6 +135,32 @@ fn draw_at(f: &mut Frame, t: &Theme, area: Rect, p: &crate::app::AtPick) {
             let page = if i == start && p.hits.len() > rows { format!(" {}/{}", start / rows + 1, p.hits.len().div_ceil(rows)) } else { String::new() };
             let line = Line::from(vec![Span::styled(if i == p.sel { "› " } else { "  " }, Style::new().fg(t.acc)), Span::styled(text, Style::new().fg(t.fg)), Span::styled(page, dim)]);
             if i == p.sel { line.style(Style::new().bg(t.sel)) } else { line }
+        })
+        .collect();
+    f.render_widget(Paragraph::new(lines), area);
+}
+
+/// The slash commands of the agent that match: 4 at a time, a page that follows the selection.
+fn draw_slash(f: &mut Frame, t: &Theme, area: Rect, s: &crate::app::Slash) {
+    let dim = Style::new().fg(t.dim);
+    if s.hits.is_empty() {
+        f.render_widget(Paragraph::new(Line::styled("  no command of the agent matches", dim)), area);
+        return;
+    }
+    let rows = crate::app::AT_ROWS;
+    let start = s.sel / rows * rows;
+    let w = area.width as usize;
+    let lines: Vec<Line> = s
+        .hits
+        .iter()
+        .enumerate()
+        .skip(start)
+        .take(rows)
+        .map(|(i, c)| {
+            let name = format!("/{}", c.name);
+            let about: String = c.description.chars().take(w.saturating_sub(name.width() + 6)).collect();
+            let line = Line::from(vec![Span::styled(if i == s.sel { "› " } else { "  " }, Style::new().fg(t.acc)), Span::styled(name, Style::new().fg(t.fg)), Span::styled(format!("  {about}"), dim)]);
+            if i == s.sel { line.style(Style::new().bg(t.sel)) } else { line }
         })
         .collect();
     f.render_widget(Paragraph::new(lines), area);

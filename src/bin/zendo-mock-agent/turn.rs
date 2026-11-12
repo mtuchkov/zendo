@@ -10,6 +10,10 @@ pub(super) async fn turn(cx: Cx, p: PromptRequest) -> Result<StopReason> {
         .find_map(|l| l.trim().strip_prefix("Note file: "))
         .map(|s| PathBuf::from(s.trim()));
     let question = text.rsplit("Question:").next().unwrap_or("").trim().to_string();
+    if text.starts_with('/') {
+        stream(&cx, &sid, &format!("ran the command: {text}")).await?;
+        return Ok(StopReason::EndTurn);
+    }
     if let Some(stop) = scripted(&cx, &sid, &text).await? {
         return Ok(stop);
     }

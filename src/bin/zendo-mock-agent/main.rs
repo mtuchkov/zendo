@@ -10,7 +10,7 @@ mod turn;
 use tasks::*;
 use turn::*;
 use agent_client_protocol::v1::schema::{
-    AgentCapabilities, PromptCapabilities, ContentBlock, ContentChunk, Diff, Implementation, InitializeRequest,
+    AgentCapabilities, AvailableCommand, AvailableCommandInput, AvailableCommandsUpdate, UnstructuredCommandInput, PromptCapabilities, ContentBlock, ContentChunk, Diff, Implementation, InitializeRequest,
     InitializeResponse, LoadSessionRequest, LoadSessionResponse, NewSessionRequest,
     NewSessionResponse, PermissionOption, PermissionOptionKind, PromptRequest, PromptResponse,
     RequestPermissionOutcome, RequestPermissionRequest, SessionNotification, SessionUpdate,
@@ -39,6 +39,15 @@ async fn stream(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, tex
         tokio::time::sleep(Duration::from_millis(25)).await;
     }
     Ok(())
+}
+
+/// The slash commands of the mock agent.
+fn commands(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId) -> Result<()> {
+    let list = vec![
+        AvailableCommand::new("review", "review the note").input(AvailableCommandInput::Unstructured(UnstructuredCommandInput::new("what to look at"))),
+        AvailableCommand::new("compact", "make the thread short"),
+    ];
+    cx.send_notification(SessionNotification::new(sid.clone(), SessionUpdate::AvailableCommandsUpdate(AvailableCommandsUpdate::new(list))))
 }
 
 fn prompt_text(p: &PromptRequest) -> String {
@@ -84,9 +93,10 @@ async fn main() -> Result<()> {
             agent_client_protocol::on_receive_request!(),
         )
         .on_receive_request(
-            async move |_req: NewSessionRequest, responder, _cx| {
+            async move |_req: NewSessionRequest, responder, cx: Cx| {
                 let id = format!("mock-{}", std::process::id() as u64 * 1000 + NEXT.fetch_add(1, Ordering::Relaxed));
-                responder.respond(NewSessionResponse::new(id))
+                responder.respond(NewSessionResponse::new(id.clone()))?;
+                commands(&cx, &id.into())
             },
             agent_client_protocol::on_receive_request!(),
         )
@@ -98,6 +108,7 @@ async fn main() -> Result<()> {
                     SessionUpdate::UserMessageChunk(ContentChunk::new(ContentBlock::Text(TextContent::new("(earlier question)")))),
                 ))?;
                 say(&cx, &sid, "(earlier answer, replayed by the mock agent)")?;
+                commands(&cx, &sid)?;
                 responder.respond(LoadSessionResponse::new())
             },
             agent_client_protocol::on_receive_request!(),

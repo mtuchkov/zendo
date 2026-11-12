@@ -23,7 +23,8 @@ impl Tree {
             {
                 dirs.push(rel.to_path_buf());
             }
-            if !entry.file_type().is_some_and(|t| t.is_file()) || p.extension().is_none_or(|e| e != "md") {
+            let md = p.extension().is_some_and(|e| e == "md");
+            if !entry.file_type().is_some_and(|t| t.is_file()) || !(md || self.view == View::Text && is_text(p)) {
                 continue;
             }
             let Ok(rel) = p.strip_prefix(root) else { continue };
@@ -57,4 +58,17 @@ impl Tree {
         hits.sort();
         hits.into_iter().map(|(_, f)| Row { rel: f.clone(), name: f.display().to_string(), depth: 0, kind: Kind::File, section: false }).collect()
     }
+}
+
+/// The text view lists a file up to this size.
+const TEXT_MAX: u64 = 2 << 20;
+
+/// A text file: not too large, and its head is UTF-8 without a NUL byte.
+pub fn is_text(p: &Path) -> bool {
+    use std::io::Read;
+    let small = std::fs::metadata(p).is_ok_and(|m| m.len() <= TEXT_MAX);
+    let mut head = Vec::with_capacity(4096);
+    let read = small && std::fs::File::open(p).and_then(|f| f.take(4096).read_to_end(&mut head)).is_ok();
+    // A char may be cut at the end of the head: that is no error.
+    read && !head.contains(&0) && std::str::from_utf8(&head).map_or_else(|e| e.error_len().is_none(), |_| true)
 }

@@ -11,6 +11,7 @@ mod wrap;
 
 use blocks::*;
 use code::*;
+pub use code::FILE_FENCE;
 pub use inline::*;
 use table::*;
 pub use wrap::*;

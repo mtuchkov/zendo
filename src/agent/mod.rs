@@ -13,7 +13,7 @@ use agent_client_protocol::v1::schema::{
     CancelNotification, ContentBlock, InitializeRequest, LoadSessionRequest, NewSessionRequest,
     PermissionOptionKind, PromptRequest, RequestPermissionOutcome, RequestPermissionRequest,
     RequestPermissionResponse, SelectedPermissionOutcome, SessionId, SessionNotification,
-    SessionUpdate, TextContent, ToolCallContent, ToolKind, ImageContent, ResourceLink,
+    SessionUpdate, TextContent, AvailableCommandsUpdate, AvailableCommandInput, ToolCallContent, ToolKind, ImageContent, ResourceLink,
 };
 use agent_client_protocol::{AcpAgent, Agent, Client};
 use std::collections::{BTreeMap, HashMap};
@@ -81,6 +81,9 @@ pub enum Cmd {
     /// `known` is a session id saved from an earlier run.
     /// `attach`: files and images that go with the prompt.
     Prompt { key: String, known: Option<String>, text: String, attach: Vec<Attachment> },
+    /// Open the session of `key` before the first prompt: an earlier session replays its
+    /// messages, and the agent sends its commands.
+    Open { key: String, known: Option<String> },
     /// Answer a permission request. `None` cancels it.
     Answer { request: u64, option: Option<String> },
     Cancel { key: String },
@@ -119,6 +122,17 @@ pub enum Event {
     TurnEnd { key: String, stop: String },
     Error { key: Option<String>, text: String },
     Exited { text: String },
+    /// The slash commands of the agent: name, description, and the hint of its input.
+    Commands { list: Vec<Command> },
+}
+
+/// A slash command of the agent.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Command {
+    pub name: String,
+    pub description: String,
+    /// What to type after the name, when the command takes input.
+    pub hint: Option<String>,
 }
 
 pub struct AgentHandle {

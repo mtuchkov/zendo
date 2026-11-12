@@ -3,7 +3,8 @@
 //! Every language is a plugin: a Sublime syntax definition. zendo ships the definitions of syntect
 //! and turns on `sh`, `rust`, `java`, `python`, `go`, `yaml` and `json`. `[highlight] languages` in
 //! `~/.zendo/config.toml` turns on others of them by name, and a `.sublime-syntax` file in
-//! `~/.zendo/syntaxes/` adds a language that is on at once. The colors come from the zendo theme.
+//! `~/.zendo/syntaxes/` adds a language that is on at once. A whole file in the note pane uses every
+//! language that zendo knows. The colors come from the zendo theme.
 
 use crate::ui::theme::Theme;
 use ratatui::style::{Modifier, Style};
@@ -31,6 +32,8 @@ struct Engine {
     problems: Vec<String>,
 }
 
+const TOML_SYNTAX: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/toml.sublime-syntax"));
+
 static ENGINE: OnceLock<Engine> = OnceLock::new();
 type Cache = HashMap<(String, u64), Vec<Vec<(Kind, String)>>>;
 static CACHE: OnceLock<Mutex<Cache>> = OnceLock::new();
@@ -42,6 +45,10 @@ pub fn plugin_dir() -> PathBuf {
 fn build(cfg: Option<&Config>, plugins: &Path) -> Engine {
     let mut problems = Vec::new();
     let mut builder = SyntaxSet::load_defaults_newlines().into_builder();
+    // syntect ships no TOML.
+    if let Ok(def) = syntect::parsing::SyntaxDefinition::load_from_str(TOML_SYNTAX, true, None) {
+        builder.add(def);
+    }
     let mut plugin_names = Vec::new();
     if let Ok(dir) = std::fs::read_dir(plugins) {
         for e in dir.flatten() {
@@ -79,6 +86,10 @@ fn find<'a>(set: &'a SyntaxSet, lang: &str) -> Option<&'a SyntaxReference> {
         "py" => "python",
         "rs" => "rust",
         "golang" => "go",
+        // Near enough: a whole file of these reads better with the colors of the other.
+        "ts" | "tsx" | "jsx" | "mjs" | "cjs" | "typescript" => "js",
+        "ini" | "cfg" | "conf" => "properties",
+        "dockerfile" | "containerfile" | "env" => "sh",
         other => other,
     };
     set.find_syntax_by_token(l).or_else(|| set.syntaxes().iter().find(|s| s.name.to_lowercase() == l))
@@ -153,8 +164,18 @@ fn classify(scope: &str) -> Kind {
 
 /// The lines of a code block, cut into pieces of a kind. None when the language is off or unknown.
 pub fn pieces(lang: &str, lines: &[String]) -> Option<Vec<Vec<(Kind, String)>>> {
+    pieces_in(lang, lines, false)
+}
+
+/// The lines of a whole file in the note pane: every language that zendo knows is on. `lang` is the
+/// extension of the file, or its name when it has none (`Makefile`).
+pub fn file_pieces(lang: &str, lines: &[String]) -> Option<Vec<Vec<(Kind, String)>>> {
+    pieces_in(lang, lines, true)
+}
+
+fn pieces_in(lang: &str, lines: &[String], every: bool) -> Option<Vec<Vec<(Kind, String)>>> {
     let e = engine();
-    let syntax = find(&e.set, lang).filter(|s| e.on.contains(&s.name))?;
+    let syntax = find(&e.set, lang).filter(|s| every || e.on.contains(&s.name))?;
     let mut h = std::collections::hash_map::DefaultHasher::new();
     std::hash::Hash::hash(lines, &mut h);
     let key = (syntax.name.clone(), std::hash::Hasher::finish(&h));

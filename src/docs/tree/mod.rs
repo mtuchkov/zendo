@@ -1,6 +1,6 @@
 //! The file tree: markdown files of the repo, `.gitignore` respected.
 //! Views: the project structure (the main materials of `project-structure.toml`),
-//! files under a `docs` folder (`**/docs/**`), or every `.md` file.
+//! files under a `docs` folder (`**/docs/**`), every `.md` file, every text file, or every folder.
 
 use crate::docs::structure::Structure;
 use globset::{Glob, GlobMatcher};
@@ -24,6 +24,8 @@ pub enum View {
     Docs,
     /// Every `.md` file.
     All,
+    /// Every text file: markdown, code, config.
+    Text,
     /// Every folder, also an empty one or one without `.md`, and every `.md` file.
     Folders,
 }
@@ -34,6 +36,7 @@ impl View {
             View::Structure => "structure",
             View::Docs => "docs",
             View::All => "all",
+            View::Text => "text",
             View::Folders => "folders",
         }
     }
@@ -42,6 +45,7 @@ impl View {
             "structure" => Some(View::Structure),
             "docs" => Some(View::Docs),
             "all" => Some(View::All),
+            "text" => Some(View::Text),
             "folders" => Some(View::Folders),
             _ => None,
         }
@@ -115,6 +119,7 @@ impl Tree {
             View::Structure => "structure",
             View::Docs => DOCS_GLOB,
             View::All => "*.md",
+            View::Text => "text files",
             View::Folders => "folders",
         }
     }
@@ -124,13 +129,14 @@ impl Tree {
         self.structure.as_ref().filter(|s| self.view == View::Structure && s.main().next().is_some())
     }
 
-    /// `v`: structure (if there is one) → docs → all → folders → …
+    /// `v`: structure (if there is one) → docs → all → text → folders → …
     pub fn next_view(&mut self) {
         let has = self.structure.as_ref().is_some_and(|s| s.main().next().is_some());
         self.view = match self.view {
             View::Structure => View::Docs,
             View::Docs => View::All,
-            View::All => View::Folders,
+            View::All => View::Text,
+            View::Text => View::Folders,
             View::Folders if has => View::Structure,
             View::Folders => View::Docs,
         };

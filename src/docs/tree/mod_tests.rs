@@ -75,6 +75,9 @@ fn structure_view_lists_main_materials_in_file_order() {
     t.next_view();
     assert_eq!(t.view, View::Docs);
     t.next_view();
+    assert_eq!(t.view, View::All);
+    t.next_view();
+    assert_eq!(t.view, View::Text);
     t.next_view();
     assert_eq!(t.view, View::Folders);
     t.next_view();
@@ -108,5 +111,24 @@ fn the_folders_view_shows_empty_folders() {
     t.view = View::Docs;
     t.scan(&root);
     assert!(!t.rows().iter().any(|r| r.rel.ends_with("empty")));
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FILES-20: the text view shows every text file: code and config too, and no binary file.
+#[test]
+fn the_text_view_shows_every_text_file() {
+    let root = repo("text");
+    std::fs::write(root.join("svc/orders/Cargo.toml"), "[package]\nname = \"orders\"\n").unwrap();
+    std::fs::write(root.join("svc/orders/logo.png"), [0x89u8, b'P', b'N', b'G', 0, 0, 1]).unwrap();
+    std::fs::write(root.join("Makefile"), "all:\n\techo hi\n").unwrap();
+    let mut t = Tree { view: View::Text, ..Default::default() };
+    t.scan(&root);
+    let files: Vec<String> = t.files.iter().map(|p| p.display().to_string()).collect();
+    for f in ["README.md", "Makefile", "svc/orders/Cargo.toml", "svc/orders/src/main.rs"] {
+        assert!(files.iter().any(|x| x == f), "{f}: {files:?}");
+    }
+    assert!(!files.iter().any(|x| x.ends_with("logo.png")), "no binary file: {files:?}");
+    assert!(!files.iter().any(|x| x.starts_with("build")), "git ignores it: {files:?}");
+    assert_eq!(t.filter_label(), "text files");
     let _ = std::fs::remove_dir_all(&root);
 }

@@ -40,3 +40,25 @@ fn a_language_is_on_by_config_or_by_plugin_file() {
     assert_eq!(e.problems.len(), 2, "{:?}", e.problems);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+// FILES-21: a whole file in the note pane: every language that zendo knows, TOML too, and the file name when
+// the file has no extension.
+#[test]
+fn a_whole_file_uses_every_language_that_zendo_knows() {
+    let flat = |lang: &str, code: &str| -> Vec<(Kind, String)> {
+        let lines: Vec<String> = code.lines().map(str::to_string).collect();
+        file_pieces(lang, &lines).unwrap_or_default().into_iter().flatten().collect()
+    };
+    for (lang, code, want) in [
+        ("rb", "def f; end", Kind::Keyword),
+        ("toml", "[package]\nname = \"zendo\" # c", Kind::String),
+        ("toml", "[package]", Kind::Name),
+        ("ts", "const x = 1;", Kind::Keyword),
+        ("Makefile", "all:\n\techo hi # c", Kind::Comment),
+    ] {
+        let k = flat(lang, code);
+        assert!(k.iter().any(|(kind, _)| *kind == want), "{lang}: {k:?}");
+        assert_eq!(k.iter().map(|(_, s)| s.as_str()).collect::<String>(), code.replace('\n', ""), "{lang}: no text lost");
+    }
+    assert!(pieces("rb", &["def f; end".into()]).is_none(), "a fence in a note still uses only the languages that are on");
+}

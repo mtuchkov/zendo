@@ -31,7 +31,7 @@ pub(crate) fn read_lines(app: &App, note: &Note, width: usize, t: &Theme) -> (Ve
     let head = lines.len();
 
     // A pending edit to this note shows inline, marked.
-    let key = app.rel(&note.path);
+    let key = app.key();
     let proposal = app.threads.get(&key).and_then(|th| {
         th.items.iter().rev().find_map(|it| match it {
             Item::Proposal { diffs, state: Answered::Pending, .. } => diffs.iter().find(|d| d.path == note.path).cloned(),
@@ -42,10 +42,11 @@ pub(crate) fn read_lines(app: &App, note: &Note, width: usize, t: &Theme) -> (Ve
         Some(d) => markdown::diff_lines(d.old.as_deref().unwrap_or(&note.body), &d.new),
         None => markdown::plain(&note.body),
     };
-    // A file that is not markdown (e.g. a .toml from the project structure) shows as code.
+    // A file that is not markdown (code, a .toml) shows as code, in the colors of its language.
     let ext = note.path.extension().map(|e| e.to_string_lossy().into_owned()).unwrap_or_default();
     if ext != "md" {
-        src.insert(0, (format!("```{ext}"), Mark::None));
+        let lang = if ext.is_empty() { note.path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default() } else { ext };
+        src.insert(0, (format!("```{lang} {}", markdown::FILE_FENCE), Mark::None));
         src.push(("```".into(), Mark::None));
     }
     let r = markdown::render(&src, width, t, true);

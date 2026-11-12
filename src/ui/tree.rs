@@ -26,6 +26,7 @@ pub(crate) fn draw_tree(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     if rows.is_empty() {
         let msg = match app.tree.view {
             View::All | View::Folders => "No .md files.",
+            View::Text => "No text files.",
             View::Docs => "No .md files under a docs folder. Press v to show all.",
             View::Structure => "No main materials. Mark entries with main = true in project-structure.toml.",
         };

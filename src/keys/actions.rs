@@ -116,7 +116,7 @@ pub const ACTIONS: &[Action] = &[
     a(Tree, "unfold", "unfold [+]"),
     a(Tree, "fold", "fold [-]"),
     a(Tree, "close_folder", "close the folder / go to the parent"),
-    a(Tree, "view", "structure, docs, all .md"),
+    a(Tree, "view", "structure, docs, all .md, text files, folders"),
     a(Tree, "add_to_chat", "add the file to the chat"),
     a(Tree, "search", "filter by file name"),
     a(Tree, "rename", "rename the file"),

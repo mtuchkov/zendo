@@ -88,6 +88,9 @@ pub(super) async fn run(
 fn on_notification(s: &Shared, n: SessionNotification) {
     let key = s.key_of(&n.session_id);
     let replaying = s.loading.lock().unwrap().is_some();
+    if let SessionUpdate::AvailableCommandsUpdate(u) = n.update {
+        return s.emit(Event::Commands { list: commands_of(u) });
+    }
     if replaying {
         let (user, block) = match n.update {
             SessionUpdate::UserMessageChunk(c) => (true, c.content),
@@ -127,6 +130,20 @@ fn on_notification(s: &Shared, n: SessionNotification) {
         }),
         _ => {}
     }
+}
+
+fn commands_of(u: AvailableCommandsUpdate) -> Vec<Command> {
+    u.available_commands
+        .into_iter()
+        .map(|c| Command {
+            hint: c.input.map(|i| match i {
+                AvailableCommandInput::Unstructured(x) => x.hint,
+                _ => String::new(),
+            }),
+            name: c.name,
+            description: c.description,
+        })
+        .collect()
 }
 
 fn outcome(option: Option<agent_client_protocol::v1::schema::PermissionOptionId>) -> RequestPermissionOutcome {
@@ -201,6 +218,12 @@ async fn serve(cx: agent_client_protocol::v1::ConnectionTo<Agent>, shared: Arc<S
                     }
                     Ok(())
                 })?;
+            }
+            Cmd::Open { key, known } => {
+                if let std::collections::hash_map::Entry::Vacant(e) = sessions.entry(key) {
+                    let id = open_session(&cx, &shared, e.key(), known, can_load, &cwd).await?;
+                    e.insert(id);
+                }
             }
             Cmd::Answer { request, option } => {
                 if let Some(answer) = shared.answers.lock().unwrap().remove(&request) {

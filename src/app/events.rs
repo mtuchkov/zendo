@@ -47,6 +47,10 @@ impl App {
                 self.thread(&key).items.push(Item::Error(text));
             }
             Event::Exited { text } => self.on_exited(text),
+            Event::Commands { list } => {
+                self.slash.commands = list;
+                self.update_slash();
+            }
         }
     }
 
@@ -84,8 +88,9 @@ impl App {
 
     fn on_replay(&mut self, key: String, user: bool, text: String) {
         let t = self.thread(&key);
-        // Earlier messages go before the question that is waiting now.
-        let at = t.items.iter().rposition(|i| matches!(i, Item::User(_))).unwrap_or(t.items.len());
+        // Earlier messages go before the question that is waiting now, if there is one.
+        let waiting = t.busy.and_then(|_| t.items.iter().rposition(|i| matches!(i, Item::User(_))));
+        let at = waiting.unwrap_or(t.items.len());
         let prev = at.checked_sub(1).and_then(|i| t.items.get_mut(i));
         match (prev, user) {
             (Some(Item::Agent(s)), false) => s.push_str(&text),
@@ -146,6 +151,7 @@ impl App {
         for t in self.threads.values_mut() {
             t.busy = None;
             t.primed = false;
+            t.opened = false;
         }
         self.agent_down = Some(text);
     }

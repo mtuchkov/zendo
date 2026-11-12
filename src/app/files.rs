@@ -50,12 +50,7 @@ impl App {
             None if empty => return,
             None => {
                 let title = notes::title_of(&body).unwrap_or_else(|| text.lines().next().unwrap_or("note").to_string());
-                let p = self.store.path_for(&title, Local::now().date_naive());
-                // The thread of the unsaved note moves to the new file.
-                if let Some(t) = self.threads.remove("(new note)") {
-                    self.threads.insert(self.rel(&p), t);
-                }
-                p
+                self.store.path_for(&title, Local::now().date_naive())
             }
         };
         match notes::save(&path, &body) {
