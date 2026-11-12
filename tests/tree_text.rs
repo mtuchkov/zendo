@@ -83,7 +83,7 @@ fn the_extensions_have_the_colors_of_the_theme() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FILES-22: alt-= and alt-- change the code column on a code file, and keep the text column.
+// FILES-22, PANES-22: alt-= and alt-- change the code column on a code file, and keep the text column.
 #[test]
 fn the_width_keys_change_the_code_column_on_a_code_file() {
     use ratatui::crossterm::event::{KeyEvent, KeyModifiers};

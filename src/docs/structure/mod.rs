@@ -29,8 +29,10 @@ pub struct Project {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Entry {
-    /// A folder or a file, relative to the repo root. `*` and `**` are allowed.
-    pub path: String,
+    /// A folder or a file, relative to the repo root, or a list of them: the locations of one
+    /// material. `*` and `**` are allowed.
+    #[serde(rename = "path", deserialize_with = "one_or_many")]
+    pub paths: Vec<String>,
     /// A short name for the file tree. Default: the last part of the path.
     pub label: Option<String>,
     /// What this is, for people.
@@ -51,28 +53,67 @@ pub struct Entry {
 mod check;
 pub use check::*;
 
+/// `path = "docs"` or `path = ["docs/adr", "svc/*/docs/adr"]`.
+fn one_or_many<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Vec<String>, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Paths {
+        One(String),
+        Many(Vec<String>),
+    }
+    Ok(match Paths::deserialize(d)? {
+        Paths::One(p) => vec![p],
+        Paths::Many(v) => v,
+    })
+}
+
+fn is_glob(p: &str) -> bool {
+    p.contains('*') || p.contains('?') || p.contains('[')
+}
+
+/// `p` covers `rel`: the same path, a path inside it, or a glob match.
+pub fn path_covers(p: &str, rel: &Path) -> bool {
+    let p = p.trim_end_matches('/');
+    if is_glob(p) {
+        let Ok(g) = Glob::new(p) else { return false };
+        let m = g.compile_matcher();
+        return rel.ancestors().any(|a| m.is_match(a));
+    }
+    rel == Path::new(p) || rel.starts_with(p)
+}
+
 impl Entry {
+    /// The first location.
+    pub fn path(&self) -> &str {
+        self.paths.first().map_or("", String::as_str)
+    }
+
+    /// The locations, for people: `docs/adr, svc/*/docs/adr`.
+    pub fn paths_label(&self) -> String {
+        self.paths.join(", ")
+    }
+
+    /// An entry with more than one location: the file tree shows its files as one flat list.
+    pub fn is_group(&self) -> bool {
+        self.paths.len() > 1
+    }
+
     pub fn label(&self) -> String {
-        self.label.clone().unwrap_or_else(|| self.path.trim_end_matches('/').rsplit('/').next().unwrap_or(&self.path).to_string())
+        let p = self.path().trim_end_matches('/');
+        self.label.clone().unwrap_or_else(|| p.rsplit('/').next().unwrap_or(p).to_string())
     }
 
     pub fn is_glob(&self) -> bool {
-        self.path.contains('*') || self.path.contains('?') || self.path.contains('[')
+        self.paths.iter().any(|p| is_glob(p))
     }
 
-    /// The entry covers `rel`: the same path, a path inside it, or a glob match.
+    /// One of the locations covers `rel`.
     pub fn covers(&self, rel: &Path) -> bool {
-        let p = self.path.trim_end_matches('/');
-        if self.is_glob() {
-            let Ok(g) = Glob::new(p) else { return false };
-            let m = g.compile_matcher();
-            return rel.ancestors().any(|a| m.is_match(a));
-        }
-        rel == Path::new(p) || rel.starts_with(p)
+        self.paths.iter().any(|p| path_covers(p, rel))
     }
 
     fn depth(&self) -> usize {
-        self.path.trim_end_matches('/').split('/').count()
+        self.path().trim_end_matches('/').split('/').count()
     }
 }
 
@@ -83,8 +124,9 @@ impl Structure {
         Some(toml::from_str(&text).map_err(|e| e.to_string()))
     }
 
+    /// The main materials: an entry with one location without `*`, or a group of locations.
     pub fn main(&self) -> impl Iterator<Item = &Entry> {
-        self.entries.iter().filter(|e| e.main && !e.is_glob())
+        self.entries.iter().filter(|e| e.main && (e.is_group() || !e.is_glob()))
     }
 
     /// Entries that cover `rel`, from the most general to the most specific.
@@ -106,7 +148,7 @@ impl Structure {
 
     /// Every template, with the folder of the entry that names it.
     pub fn templates(&self) -> impl Iterator<Item = (&str, &str)> {
-        self.entries.iter().filter_map(|e| e.template.as_deref().map(|t| (t, e.path.as_str())))
+        self.entries.iter().filter_map(|e| e.template.as_deref().map(|t| (t, e.path())))
     }
 
     /// The description of the most specific entry for `rel`.
@@ -126,7 +168,7 @@ impl Structure {
         if !here.is_empty() {
             out.push_str(&format!("Rules for {} (from {FILE}):\n", rel.display()));
             for e in here {
-                out.push_str(&format!("- {}: {}\n", e.path, e.claude.as_deref().unwrap_or("").trim().replace('\n', " ")));
+                out.push_str(&format!("- {}: {}\n", e.paths_label(), e.claude.as_deref().unwrap_or("").trim().replace('\n', " ")));
             }
         }
         out

@@ -6,6 +6,7 @@ mod checks;
 mod fix;
 mod notes;
 mod preflight;
+mod project;
 mod setup;
 mod upgrade;
 
@@ -14,6 +15,7 @@ pub use checks::*;
 pub use fix::*;
 pub use notes::*;
 pub use preflight::*;
+pub use project::*;
 pub use setup::*;
 pub use upgrade::*;
 

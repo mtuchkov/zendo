@@ -91,7 +91,7 @@ status bar.
 | FILES-21 | Event      | When the user opens a file that is not markdown, the system shall show it as code in the colors of its language, for every language that zendo knows. | User, 2026-11-12 |
 | FILES-22 | Ubiquitous | The system shall show a code file 120 chars wide by default, wrapped, with the number of each line on its first row only, and let `alt-=` and `alt--` change the width. | User, 2026-11-12 |
 | FILES-24 | Ubiquitous | The system shall show each file extension in the text view in the color that the theme gives its kind of file. | User, 2026-11-12 |
-| FILES-23 | Ubiquitous | The system shall show a code file in write mode as in read mode, and shall not break its long lines. | User, 2026-11-12 |
+| FILES-23 | Ubiquitous | The system shall show a code file in write mode as in read mode, shall not break its long lines, and shall keep the indent of the line on `enter`. | User, 2026-11-12 |
 
 Tests that verify detailed requirements: `rows_join_single_folders_and_collapse` (FILES-5, FILES-6),
 `find_filters_files_by_name` (FILES-11),

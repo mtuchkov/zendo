@@ -21,7 +21,7 @@ No other top-level tables or keys.
 
 | Key | Type | Required | Content |
 |---|---|---|---|
-| `path` | string | yes | A folder or a file, relative to the repository root. No leading `/` or `./`, no `..`. `*` and `**` are allowed. |
+| `path` | string or list of strings | yes | A folder or a file, relative to the repository root. No leading `/` or `./`, no `..`. `*` and `**` are allowed. A list names the locations of one material, as `["docs/adr", "svc/*/docs/adr"]`: the file tree shows their files as one flat list. |
 | `label` | string | no | A short name for the file tree. Default: the last part of `path`. A rule names an entry by its label in double quotes, as "Code reviews". |
 | `about` | string | no | What this is, for people. |
 | `claude` | string | no | What Claude must do or not do here. Imperative sentences. |
@@ -33,9 +33,10 @@ No other keys in an entry.
 
 ## Rules
 
-- Each `path` appears once.
+- Each path appears once, in a list too.
 - Each `label` appears once. Case does not matter.
-- A `main` entry names a folder or file that exists. A `main` entry has no `*`.
+- A `main` entry names a folder or file that exists. A `main` entry with one path has no `*`; a list
+  of paths can have `*`.
 - The order of the `main` entries is the reading order of the project: put the first things to read first.
 - An entry names a folder. It names a file only when the file has a meaning for the whole project, such
   as `README.md`, `AGENTS.md` or `docs/architecture/ARCHITECTURE.md`, or to set `words` for one file.
@@ -66,6 +67,12 @@ path = "docs/design"
 label = "Design"
 about = "Design notes: one file for each decision."
 claude = "Write each decision with its reason."
+main = true
+
+[[entry]]
+path = ["docs/adr", "services/*/docs/adr"]
+label = "Decisions"
+about = "Architecture decision records of the project and of each service."
 main = true
 
 [[entry]]

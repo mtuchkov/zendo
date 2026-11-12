@@ -112,6 +112,8 @@ struct Node {
 }
 
 mod scan;
+mod sections;
+pub use sections::section_id;
 
 impl Tree {
     pub fn filter_label(&self) -> &'static str {
@@ -152,26 +154,6 @@ impl Tree {
             return self.section_rows(st);
         }
         self.tree_rows(&self.files, &self.dirs, Path::new(""), 0)
-    }
-
-    fn section_rows(&self, st: &Structure) -> Vec<Row> {
-        let mut out = Vec::new();
-        for e in st.main() {
-            let rel = PathBuf::from(e.path.trim_end_matches('/'));
-            let inside: Vec<PathBuf> = self.files.iter().filter(|f| f.starts_with(&rel) && **f != rel).cloned().collect();
-            // A main material that is a file, of any kind (e.g. a .toml).
-            if self.files.contains(&rel) || self.root.join(&rel).is_file() || rel.extension().is_some_and(|x| x == "md") {
-                out.push(Row { rel, name: e.label(), depth: 0, kind: Kind::File, section: true });
-                continue;
-            }
-            let open = self.opened.contains(&rel);
-            out.push(Row { rel: rel.clone(), name: e.label(), depth: 0, kind: Kind::Dir { open }, section: true });
-            if open {
-                let stripped: Vec<PathBuf> = inside.iter().filter_map(|f| f.strip_prefix(&rel).ok().map(Path::to_path_buf)).collect();
-                out.extend(self.tree_rows(&stripped, &[], &rel, 1));
-            }
-        }
-        out
     }
 
     fn tree_rows(&self, files: &[PathBuf], dirs: &[PathBuf], at: &Path, depth: usize) -> Vec<Row> {
@@ -219,9 +201,7 @@ impl Tree {
     /// Open every folder on the way to `rel` and select it.
     pub fn reveal(&mut self, rel: &Path) {
         // In the structure view, open the most specific main material that holds the file.
-        let section = self.structured().and_then(|st| {
-            st.main().map(|e| PathBuf::from(e.path.trim_end_matches('/'))).filter(|p| rel.starts_with(p) && p != rel).max_by_key(|p| p.components().count())
-        });
+        let section = self.section_of(rel);
         if let Some(p) = section {
             self.opened.insert(p);
         }
@@ -236,7 +216,7 @@ impl Tree {
     }
 
     pub fn toggle(&mut self, rel: &Path) {
-        let section = self.structured().is_some_and(|st| st.main().any(|e| Path::new(e.path.trim_end_matches('/')) == rel));
+        let section = self.structured().is_some_and(|st| st.main().any(|e| section_id(e) == rel));
         if section {
             if !self.opened.remove(rel) {
                 self.opened.insert(rel.to_path_buf());

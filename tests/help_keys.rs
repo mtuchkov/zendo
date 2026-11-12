@@ -40,3 +40,17 @@ async fn f1_shows_the_keys_of_the_pane_from_everywhere() {
     assert_eq!(a.mode, Mode::Help, "alt-? works where f1 does not reach zendo");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// STRUCT-19, PANES-27: without project-structure.toml, the status bar asks the user to run zendo doctor.
+#[test]
+fn the_status_bar_asks_for_zendo_doctor_without_a_structure_file() {
+    let root = repo("no-structure", &[("docs/notes/2026-11-12-a.md", "# A\n")]);
+    let mut a = app(&root);
+    let bar = draw(&mut a, 160, 30).into_iter().rev().find(|r| r.contains("READ")).unwrap();
+    assert!(bar.contains("no project-structure.toml · run zendo doctor"), "{bar}");
+    std::fs::write(root.join("project-structure.toml"), "[project]\nname = \"x\"\n").unwrap();
+    a.load_structure();
+    let bar = draw(&mut a, 160, 30).into_iter().rev().find(|r| r.contains("READ")).unwrap();
+    assert!(!bar.contains("zendo doctor"), "{bar}");
+    let _ = std::fs::remove_dir_all(&root);
+}

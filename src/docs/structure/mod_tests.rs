@@ -71,7 +71,7 @@ fn quick_fix_renames_keys_and_paths_and_keeps_comments() {
     assert!(fixed.contains("# my file") && fixed.contains("# the specs") && fixed.contains("# why"), "{fixed}");
     let st: Structure = toml::from_str(&fixed).unwrap();
     let e = &st.entries[0];
-    assert_eq!(e.path, "docs/specs/");
+    assert_eq!(e.path(), "docs/specs/");
     assert_eq!(e.about.as_deref(), Some("Specs."));
     assert_eq!(e.claude.as_deref(), Some("Keep it."));
     assert!(e.main);
@@ -83,13 +83,14 @@ fn quick_fix_renames_keys_and_paths_and_keeps_comments() {
 fn the_embedded_format_example_is_valid() {
     let toml_block = FORMAT.split("```toml").nth(1).unwrap().split("```").next().unwrap();
     let st: Structure = toml::from_str(toml_block).unwrap();
-    assert_eq!(st.main().count(), 2);
+    assert_eq!(st.main().count(), 3);
+    assert!(st.entries.iter().any(|e| e.is_group()), "the example has a list of paths");
     assert!(FIX_PROMPT.contains("{{FILE}}") && FIX_PROMPT.contains("{{FORMAT}}"));
 }
 
 #[test]
 fn label_defaults_to_the_last_part() {
-    let e = Entry { path: "docs/architecture/decisions/".into(), label: None, about: None, claude: None, main: true, words: None, template: None };
+    let e = Entry { paths: vec!["docs/architecture/decisions/".into()], label: None, about: None, claude: None, main: true, words: None, template: None };
     assert_eq!(e.label(), "decisions");
 }
 
@@ -121,5 +122,21 @@ fn a_missing_template_is_an_issue() {
     std::fs::create_dir_all(root.join("docs/specs")).unwrap();
     let r = check("[project]\nname = \"x\"\n[[entry]]\npath = \"docs/specs\"\ntemplate = \"docs/templates/none.md\"\n", &root);
     assert!(r.issues.iter().any(|i| i.what.contains("template")), "{:?}", r.issues.iter().map(|i| &i.what).collect::<Vec<_>>());
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// STRUCT-15: an entry can have a list of paths; a main list can have `*`; each path is checked.
+#[test]
+fn an_entry_can_have_a_list_of_paths() {
+    let root = std::env::temp_dir().join(format!("zendo-structure-group-{}", std::process::id()));
+    std::fs::create_dir_all(root.join("docs/adr")).unwrap();
+    let text = "[[entry]]\npath = [\"docs/adr\", \"svc/*/docs/adr\"]\nlabel = \"Decisions\"\nmain = true\n[[entry]]\npath = [\"docs/none\", \"./x\"]\nmain = true\n";
+    let r = check(text, &root);
+    let s = r.parsed.as_ref().unwrap();
+    assert!(s.entries[0].is_group() && s.entries[0].covers(Path::new("svc/orders/docs/adr/1.md")));
+    assert_eq!(s.main().count(), 2, "a list with `*` is a main material");
+    let all: Vec<String> = r.issues.iter().map(|i| i.what.clone()).collect();
+    assert_eq!(all.len(), 3, "{all:?}");
+    assert!(all.iter().any(|w| w.contains("does not exist")) && all.iter().any(|w| w.contains("relative")), "{all:?}");
     let _ = std::fs::remove_dir_all(&root);
 }

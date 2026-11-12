@@ -267,6 +267,8 @@ async fn say_and_add_to_chat_work_in_write_mode() {
 #[test]
 fn the_status_bar_names_hjkl() {
     let root = repo("flow-hints", &files());
+    // With a structure file: no warning takes the room of the hints.
+    std::fs::write(root.join("project-structure.toml"), "[project]\nname = \"x\"\n").unwrap();
     let mut a = app(&root);
     let screen = draw(&mut a, 160, 30);
     let bar = screen.iter().rev().find(|r| r.contains("READ")).unwrap();

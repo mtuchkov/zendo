@@ -17,7 +17,7 @@ puts it on the `PATH` and runs `zendo setup`. The steps for each case are in
 | Command                         | What it does                                                                  |
 | ------------------------------- | ----------------------------------------------------------------------------- |
 | `zendo setup`                    | Installs the pinned Claude Code adapter once, then checks every step.         |
-| `zendo doctor [--live] [--fix]`  | Checks every step. `--live` sends one short prompt. `--fix` repairs `project-structure.toml`. |
+| `zendo doctor [--live] [--fix]`  | Checks every step. Makes `project-structure.toml` when there is none, the zendo section for agents, and the zendo lines of `.gitignore`. `--live` sends one short prompt. `--fix` repairs `project-structure.toml`. |
 | `zendo upgrade [--force]`        | Builds the newest zendo, then runs `zendo setup` with it.                       |
 | `zendo --version`                | Shows the version and the commit.                                             |
 

@@ -47,6 +47,7 @@ data when the agent takes images, and every other file as a link to it.
 | ID        | Pattern    | Requirement | Source |
 | --------- | ---------- | ----------- | ------ |
 | CLAUDE-15 | Ubiquitous | The system shall let the user move and edit anywhere in the chat input, and show it on up to a quarter of the panel height. | User, 2026-11-11 |
+| CLAUDE-30 | Event      | When the user presses `alt-enter`, `shift-enter` or `ctrl-j` in the chat input, the system shall add a line, and the status bar shall name `alt-enter`. | User, 2026-11-12 |
 | CLAUDE-16 | Event      | When the user drops or pastes the paths of existing files into the chat input, the system shall show one chip for each file and send the files with the question. | User, 2026-11-12 |
 | CLAUDE-17 | Event      | When the user pastes an image from the clipboard into the chat input, the system shall save it and show it as an `[image …]` chip. | User, 2026-11-12 |
 | CLAUDE-29 | Event      | When the user presses `tab` in the chat input, the system shall move the keys to the transcript, where the cursor and the selection keys of read mode work, `y` copies, and `a` adds the text to the input as a chip of its own color. | User, 2026-11-12 |
@@ -66,6 +67,6 @@ Tests that verify detailed requirements: `dropped_files_are_paths_and_nothing_el
 (CLAUDE-21), `files_match_by_start_part_and_typo` (CLAUDE-22), `user_and_agent_messages_look_different` (CLAUDE-24), `templates_are_named_ones_and_those_of_templates_folders`,
 `ctrl_t_suggests_only_templates` (CLAUDE-25), `a_name_that_starts_with_the_query_comes_first` and
 `slash_commands_come_from_the_agent_and_go_to_it_as_typed` (CLAUDE-28),
-`alt_enter_is_a_new_line_and_the_status_bar_says_so` (CLAUDE-15),
+`alt_enter_is_a_new_line_and_the_status_bar_says_so` (CLAUDE-15, CLAUDE-30),
 `the_cursor_moves_and_selects_in_the_transcript` and `tab_goes_to_the_transcript_to_select_copy_and_add` (CLAUDE-29), `at_adds_a_file_chip_that_moves_and_goes_as_one`
 (CLAUDE-22, CLAUDE-23).

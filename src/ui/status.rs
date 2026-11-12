@@ -8,11 +8,18 @@ pub(crate) fn draw_status(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     keys.retain(|(_, v)| v != "keys");
     keys.insert(0, (app.keys.first(crate::keys::Pane::Global, "help"), "keys".into()));
     let mut spans = vec![Span::raw("  "), Span::styled(format!(" {badge} "), Style::new().bg(color).fg(t.bg).add_modifier(Modifier::BOLD)), Span::raw("  ")];
-    for (k, v) in keys {
+    let right = status_right(app, claude);
+    // The right side shows whole: the hints at the end give way, the help key stays.
+    let room = (area.width as usize).saturating_sub(right.width() + 2 + spans.iter().map(|s| s.content.width()).sum::<usize>());
+    let fit = keys.iter().scan(0, |w, (k, v)| {
+        *w += k.width() + v.width() + 4;
+        Some(*w)
+    });
+    let n = fit.take_while(|w| *w <= room).count().max(1);
+    for (k, v) in keys.into_iter().take(n) {
         spans.push(Span::styled(k, Style::new().fg(t.fg)));
         spans.push(Span::styled(format!(" {v}   "), Style::new().fg(t.dim)));
     }
-    let right = status_right(app, claude);
     let used: usize = spans.iter().map(|s| s.content.width()).sum();
     let pad = (area.width as usize).saturating_sub(used + right.width() + 2);
     spans.push(Span::raw(" ".repeat(pad)));
@@ -80,6 +87,9 @@ fn status_right(app: &App, claude: bool) -> String {
     }
     if let Some(s) = app.sync_label() {
         return s;
+    }
+    if app.structure_missing() && !claude {
+        return format!("no {} · run zendo doctor", crate::docs::structure::FILE);
     }
     if claude {
         let key = app.key();

@@ -1,0 +1,128 @@
+# Project structure of {{NAME}}: what lives where. Folders, and files only when they matter to the
+# whole project. People read `about`; zendo shows the `main` entries as the default file tree, in
+# reading order; agents follow the `claude` rules. `zendo doctor` made this file from the zendo
+# template and kept only the entries whose paths are in the repository: change it as you need.
+
+[meta]
+status = "draft"
+date = "{{DATE}}"
+note = "Made by zendo doctor from its template."
+
+[project]
+name = "{{NAME}}"
+about = "What {{NAME}} is, in one or two sentences."
+claude = """
+- Put each new file where this file says. Do not change this file unless the user asks.
+- Every change keeps the tests green and adds a test for new behavior when one is possible."""
+
+# ----- Project-wide files ------------------------------------------------------------------
+
+[[entry]]
+path = "README.md"
+label = "README"
+about = "What the project is and how to start."
+main = true
+
+[[entry]]
+path = "AGENTS.md"
+label = "Rules for agents"
+about = "The rules for coding agents."
+main = true
+
+[[entry]]
+path = "CLAUDE.md"
+about = "The instructions for Claude Code."
+
+[[entry]]
+path = ".github/workflows"
+about = "CI workflows."
+
+[[entry]]
+path = ".agents"
+about = "Working files of agents: plans, low-level specs and task lists of the current feature. Not documentation."
+claude = """
+- Put plans, low-level specs and task lists of the current feature here, not in docs/.
+- When the feature is done, delete what it left here."""
+
+# ----- Documentation -----------------------------------------------------------------------
+
+[[entry]]
+path = "docs"
+about = "The documentation of the project."
+
+[[entry]]
+path = ["docs/specs", "docs/spec", "docs/requirements"]
+label = "Specification"
+about = "What the system does: requirements that stay valid in every milestone."
+claude = "Write requirements as EARS statements, each with a unique and stable identifier."
+main = true
+
+[[entry]]
+path = ["docs/architecture", "docs/design"]
+label = "Architecture"
+about = "The architecture and the design of the system."
+main = true
+
+[[entry]]
+path = ["docs/architecture/decisions", "docs/adr", "docs/decisions"]
+label = "Decisions"
+about = "Architecture decision records, one file for each decision."
+claude = "Record architecture decisions here, not in specifications."
+main = true
+
+[[entry]]
+path = "docs/milestones"
+label = "Milestones"
+about = "One document for each milestone: scope, temporary behavior, acceptance."
+claude = "Put temporary behavior here, not in specifications."
+main = true
+
+[[entry]]
+path = ["docs/guides/templates", "docs/templates"]
+label = "Templates"
+about = "Templates for new documents."
+claude = "Templates stay non-authoritative. Change them only when the user asks."
+
+[[entry]]
+path = "docs/guides"
+about = "Guides for people who work on the project."
+
+[[entry]]
+path = "docs/notes"
+about = "Notes written with zendo in this repository."
+
+# ----- Code --------------------------------------------------------------------------------
+
+[[entry]]
+path = "src"
+about = "The source code."
+
+[[entry]]
+path = "lib"
+about = "The source code of the libraries."
+
+[[entry]]
+path = "tests"
+about = "The tests."
+
+[[entry]]
+path = "scripts"
+about = "Scripts for the build and for people who work on the project."
+
+# ----- Build output and local state --------------------------------------------------------
+
+[[entry]]
+path = "target"
+about = "Build output. Ignored by git."
+
+[[entry]]
+path = "build"
+about = "Build output. Ignored by git."
+
+[[entry]]
+path = "dist"
+about = "Build output. Ignored by git."
+
+[[entry]]
+path = ".zendo"
+about = "Local state of zendo for this repository. Ignored by git."

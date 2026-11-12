@@ -132,3 +132,26 @@ fn the_text_view_shows_every_text_file() {
     assert_eq!(t.filter_label(), "text files");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// STRUCT-15: one entry with more locations is one main material; the tree shows the files of all
+// of them as one flat list.
+#[test]
+fn an_entry_with_more_paths_shows_its_files_as_one_flat_list() {
+    let root = repo("group");
+    std::fs::write(
+        root.join(crate::docs::structure::FILE),
+        "[[entry]]\npath = [\"docs/adr\", \"svc/*/docs\", \"README.md\"]\nlabel = \"Decisions\"\nmain = true\n",
+    )
+    .unwrap();
+    let mut t = Tree { structure: Some(Structure::load(&root).unwrap().unwrap()), view: View::Structure, ..Tree::default() };
+    t.scan(&root);
+    let names: Vec<String> = t.rows().iter().map(|r| r.name.clone()).collect();
+    assert_eq!(names, vec!["Decisions"], "one row: {names:?}");
+    t.reveal(Path::new("svc/orders/docs/design.md"));
+    let names: Vec<String> = t.rows().iter().map(|r| format!("{}{}", "  ".repeat(r.depth), r.name)).collect();
+    assert_eq!(names, vec!["Decisions", "  README.md", "  docs/adr/0001-x.md", "  svc/orders/docs/design.md"]);
+    assert_eq!(t.rows()[t.sel].rel, Path::new("svc/orders/docs/design.md"));
+    t.toggle(Path::new("docs/adr"));
+    assert_eq!(t.rows().len(), 1, "the row closes the list");
+    let _ = std::fs::remove_dir_all(&root);
+}

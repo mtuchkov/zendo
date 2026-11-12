@@ -76,34 +76,43 @@ pub fn check(text: &str, root: &Path) -> Report {
     let raw_entries = raw.get("entry").and_then(|v| v.as_array()).cloned().unwrap_or_default();
     let mut seen = std::collections::BTreeSet::new();
     for (i, e) in st.entries.iter().enumerate() {
-        let at = format!("entry {} ({})", i + 1, if e.path.is_empty() { "no path" } else { &e.path });
+        let at = format!("entry {} ({})", i + 1, if e.path().is_empty() { "no path".to_string() } else { e.paths_label() });
         if let Some(t) = raw_entries.get(i).and_then(|v| v.as_table()) {
             for k in t.keys().filter(|k| !ENTRY_KEYS.contains(&k.as_str())) {
                 let hint = ALIASES.iter().find(|(a, _)| a == k).map(|(_, to)| format!("; did you mean `{to}`?")).unwrap_or_default();
                 issues.push(Issue { at: at.clone(), what: format!("unknown key `{k}`{hint}") });
             }
         }
-        if e.path.trim().is_empty() {
+        if e.paths.iter().all(|p| p.trim().is_empty()) {
             issues.push(Issue { at, what: "empty `path`".into() });
             continue;
-        }
-        if clean_path(&e.path) != e.path.trim() || e.path.split('/').any(|s| s == "..") {
-            issues.push(Issue { at: at.clone(), what: "path must be relative to the repo root, without `/`, `./` or `..`".into() });
-        }
-        if !seen.insert(e.path.trim_end_matches('/').to_string()) {
-            issues.push(Issue { at: at.clone(), what: "the same path is in another entry".into() });
         }
         if let Some(t) = e.template.as_deref().filter(|t| !root.join(t).is_file()) {
             issues.push(Issue { at: at.clone(), what: format!("the template {t} is not there") });
         }
-        if e.main && e.is_glob() {
-            issues.push(Issue { at: at.clone(), what: "a main entry cannot have `*`: zendo does not show it".into() });
-        } else if e.main && !root.join(clean_path(&e.path)).exists() {
-            issues.push(Issue { at, what: "a main entry names a path that does not exist".into() });
+        if e.main && e.is_glob() && !e.is_group() {
+            issues.push(Issue { at: at.clone(), what: "a main entry with one path cannot have `*`: zendo does not show it; a list of paths can".into() });
         }
+        issues.extend(e.paths.iter().flat_map(|p| path_issues(p, e.main, root, &at, &mut seen)));
     }
     issues.extend(label_issues(st));
     Report { parsed, issues }
+}
+
+/// The problems of one location of an entry.
+fn path_issues(p: &str, main: bool, root: &Path, at: &str, seen: &mut std::collections::BTreeSet<String>) -> Vec<Issue> {
+    let mut out = Vec::new();
+    let mut put = |what: &str| out.push(Issue { at: at.to_string(), what: what.to_string() });
+    if clean_path(p) != p.trim() || p.split('/').any(|s| s == "..") {
+        put("path must be relative to the repo root, without `/`, `./` or `..`");
+    }
+    if !seen.insert(p.trim_end_matches('/').to_string()) {
+        put("the same path is in another entry");
+    }
+    if main && !is_glob(p) && !root.join(clean_path(p)).exists() {
+        put("a main entry names a path that does not exist");
+    }
+    out
 }
 
 /// Labels written in the file that another entry has too. Case does not matter (STRUCT-14).
@@ -112,7 +121,7 @@ fn label_issues(st: &Structure) -> impl Iterator<Item = Issue> + '_ {
     st.entries.iter().enumerate().filter_map(move |(i, e)| {
         let label = e.label.as_deref()?.trim();
         (!seen.insert(label.to_lowercase())).then(|| Issue {
-            at: format!("entry {} ({})", i + 1, e.path),
+            at: format!("entry {} ({})", i + 1, e.paths_label()),
             what: format!("the label \"{label}\" is in another entry"),
         })
     })
