@@ -65,9 +65,10 @@ Claude, with the instructions in
 | STRUCT-11 | Optional   | Where the repository has no `project-structure.toml` but has `project-structure.md`, `zendo doctor --fix` shall make the TOML file from it with Claude. | User, 2026-11-11 |
 | STRUCT-12 | Ubiquitous | The system shall keep the instructions for Claude for the repair in the zendo program, not in the repository of the user.          | User, 2026-11-11 |
 | STRUCT-13 | Optional   | Where an entry names a `template`, the system shall use it for new documents in that folder, and `zendo doctor` shall report a template that is not there. | User, 2026-11-12 |
+| STRUCT-14 | Unwanted   | If two entries have the same `label`, not counting case, then `zendo doctor` shall report the second entry.                       | User, 2026-11-12 |
 
 Tests that verify detailed requirements: `checks_find_what_zendo_does_not_understand` (STRUCT-5),
 `without_fix_and_without_a_terminal_nothing_changes` (STRUCT-8),
 `quick_fix_renames_keys_and_paths_and_keeps_comments` (STRUCT-9),
 `a_missing_file_is_created_from_project_structure_md` (STRUCT-11), `a_folder_names_its_template`,
-`a_missing_template_is_an_issue` (STRUCT-13).
+`a_missing_template_is_an_issue` (STRUCT-13), `a_label_in_two_entries_is_an_issue` (STRUCT-14).

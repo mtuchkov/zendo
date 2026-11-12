@@ -51,8 +51,15 @@ claude = """
 - When the feature is done, delete what it left here."""
 
 [[entry]]
+path = ".agents/code-reviews"
+label = "Code reviews"
+about = "Code review reports, one file for each review: the findings, the suggested fixes, and the critic review of each fix. Not in git."
+claude = "For each code review, write a report here. Name it <YYYY-MM-DD>-<scope>.md."
+template = "docs/guides/templates/code-review.md"
+
+[[entry]]
 path = ".githooks"
-about = "Git hooks of the repository: commit-msg checks each message; lint-range.sh checks a range in CI. Turn on with `git config core.hooksPath .githooks`."
+about = "Git hooks of the repository: commit-msg checks each message; pre-commit checks project-structure.toml; lint-range.sh checks a range in CI. Turn on with `git config core.hooksPath .githooks`."
 
 # ----- Documentation -------------------------------------------------------------------------
 
@@ -87,7 +94,7 @@ template = "docs/guides/templates/milestone.md"
 [[entry]]
 path = "docs/guides/templates"
 label = "Templates"
-about = "Templates for specifications, decision records and milestones."
+about = "Templates for specifications, decision records, milestones and code review reports."
 claude = "Templates stay non-authoritative. Change them only when the user asks."
 main = true
 

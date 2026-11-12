@@ -102,7 +102,20 @@ pub fn check(text: &str, root: &Path) -> Report {
             issues.push(Issue { at, what: "a main entry names a path that does not exist".into() });
         }
     }
+    issues.extend(label_issues(st));
     Report { parsed, issues }
+}
+
+/// Labels written in the file that another entry has too. Case does not matter (STRUCT-14).
+fn label_issues(st: &Structure) -> impl Iterator<Item = Issue> + '_ {
+    let mut seen = std::collections::BTreeSet::new();
+    st.entries.iter().enumerate().filter_map(move |(i, e)| {
+        let label = e.label.as_deref()?.trim();
+        (!seen.insert(label.to_lowercase())).then(|| Issue {
+            at: format!("entry {} ({})", i + 1, e.path),
+            what: format!("the label \"{label}\" is in another entry"),
+        })
+    })
 }
 
 /// Fixes that need no judgement: other key names, `./` and `/` at the start of paths.

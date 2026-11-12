@@ -1,0 +1,15 @@
+#!/bin/sh
+# project-structure.toml passes the checks of zendo doctor (tests/project_structure.rs).
+# The check runs when the commit changes the file, or deletes or renames a file that it can name.
+# Turn it on in a clone: git config core.hooksPath .githooks
+top=$(git rev-parse --show-toplevel) || exit 1
+changed=$(git diff --cached --name-only -- project-structure.toml)
+gone=$(git diff --cached --name-only --diff-filter=DR)
+[ -z "$changed$gone" ] && exit 0
+cd "$top" || exit 1
+if ! cargo test --quiet --test project_structure >/dev/null 2>&1; then
+    cargo test --quiet --test project_structure 2>&1 | grep -E '^(entry|\[project\]|top level|project-structure)' >&2
+    echo "pre-commit: project-structure.toml does not pass the checks of zendo doctor." >&2
+    echo "Run: cargo test --test project_structure" >&2
+    exit 1
+fi

@@ -11,6 +11,9 @@ The project structure is the set of top-level folders, the folders of `docs/`, a
   the approval of the user before it makes the change.
 - IF a task needs a change to the project structure that the user did not ask for, THEN the agent
   shall stop and ask the user. The agent shall not make the change as part of the task.
+- `tests/project_structure.rs` checks `project-structure.toml` with the checks of `zendo doctor`
+  in `cargo test`: unknown keys, paths, templates, and unique labels. The `.githooks/pre-commit`
+  hook runs this test when a commit changes `project-structure.toml` or deletes or renames a file.
 
 ## Documentation and requirement authority
 
@@ -70,6 +73,19 @@ The project structure is the set of top-level folders, the folders of `docs/`, a
   check again what each affected test means and whether it still makes sense, and change, add or
   remove tests until the tests and the requirements agree.
 - Tests shall name the requirements that they verify.
+
+## Code review
+
+- WHEN the agent reviews code, the agent shall write a report in "Code reviews" of
+  `project-structure.toml`, from the [code review template](docs/guides/templates/code-review.md).
+- IF the review finds no problem, THEN the agent shall still write the report, with an empty
+  findings table.
+- Each finding shall state the location, the severity, the requirement that it breaks (if there is
+  one), a suggested fix, and the outcome: `fixed`, `skipped`, or `no change needed`.
+- Before the agent sets the outcome `fixed`, at least one critic shall review the fix. A critic is
+  a person or an agent with a new context that did not write the fix.
+- IF a critic rejects a fix, THEN the agent shall change the fix and get a new critic review.
+- WHEN every finding has an outcome, the agent shall set the status of the report to `completed`.
 
 ## Commits
 

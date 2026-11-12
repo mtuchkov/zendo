@@ -61,7 +61,7 @@ fn checks_find_what_zendo_does_not_understand() {
     assert!(has("the same path"));
     assert!(has("entry 4 (nope): a main entry names a path that does not exist"));
     assert!(has("cannot have `*`"));
-    assert!(!check("not toml = = 1", &root).parsed.is_ok());
+    assert!(check("not toml = = 1", &root).parsed.is_err());
 }
 
 #[test]
@@ -103,6 +103,15 @@ fn a_folder_names_its_template() {
     assert_eq!(s.template_for(Path::new("docs/other.md")), None);
     let all: Vec<(String, String)> = s.templates().map(|(t, at)| (t.to_string(), at.to_string())).collect();
     assert_eq!(all, vec![("docs/templates/spec.md".into(), "docs/specs".into()), ("docs/templates/adr.md".into(), "docs/adr".into())]);
+}
+
+// STRUCT-14: rules name an entry by its label, so two entries cannot have the same label.
+#[test]
+fn a_label_in_two_entries_is_an_issue() {
+    let root = std::env::temp_dir();
+    let text = "[[entry]]\npath = \"a\"\nlabel = \"Code reviews\"\n[[entry]]\npath = \"b\"\nlabel = \"code reviews\"\n[[entry]]\npath = \"c/*\"\n[[entry]]\npath = \"d/*\"\n";
+    let all: Vec<String> = check(text, &root).issues.iter().map(|i| format!("{}: {}", i.at, i.what)).collect();
+    assert_eq!(all, vec!["entry 2 (b): the label \"code reviews\" is in another entry".to_string()]);
 }
 
 // STRUCT-13: a template that is not there is a problem that `zendo doctor` shows.
