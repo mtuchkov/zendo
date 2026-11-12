@@ -1,8 +1,15 @@
 //! A chat thread and its items.
 use super::*;
 
-/// The key of the one chat thread.
+/// The key of the first chat thread.
 pub const CHAT_KEY: &str = "(chat)";
+/// The agent sessions of the chat: F6 to F10.
+pub const SESSIONS: usize = 5;
+
+/// The key of the chat thread of session `n`, from 0.
+pub fn session_key(n: usize) -> String {
+    if n == 0 { CHAT_KEY.into() } else { format!("(chat {})", n + 1) }
+}
 /// The scope of a question about the note that is not saved yet.
 pub const NEW_KEY: &str = "(new note)";
 /// A file goes with a question when it did not go with one of the last this many questions.

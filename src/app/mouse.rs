@@ -47,6 +47,10 @@ impl App {
     /// A click: a row of the tree opens, a click in a text starts a selection and moves the focus.
     fn click(&mut self, x: u16, y: u16) {
         self.sel = None;
+        let hit = |r: &Rect| r.contains(ratatui::layout::Position::new(x, y));
+        if let Some(n) = self.session_buttons.iter().find(|(r, _)| hit(r)).map(|(_, n)| *n) {
+            return self.switch_session(n);
+        }
         let row = self.tree_rows.iter().find(|(r, _)| r.contains(ratatui::layout::Position::new(x, y))).map(|(_, i)| *i);
         if let Some(i) = row {
             self.focus = Focus::Tree;

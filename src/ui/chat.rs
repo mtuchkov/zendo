@@ -3,8 +3,10 @@ use super::*;
 
 pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     f.render_widget(Block::new().style(Style::new().bg(t.panel)), area);
-    // A thin rule on the left edge separates the panel from the note.
-    let inner = Rect { x: area.x + 3, y: area.y, width: area.width.saturating_sub(5), height: area.height };
+    // A thin rule on the left edge separates the panel from the note; the session buttons are on
+    // the right edge.
+    let inner = Rect { x: area.x + 3, y: area.y, width: area.width.saturating_sub(5 + BUTTON_W + 1), height: area.height };
+    draw_sessions(f, app, t, Rect { x: area.right().saturating_sub(BUTTON_W + 1), width: BUTTON_W, ..area });
     let w = inner.width as usize;
     // The input grows with its text, up to a quarter of the panel; then it scrolls.
     let in_w = (inner.width as usize).saturating_sub(4).max(10);
@@ -192,4 +194,24 @@ fn draw_slash(f: &mut Frame, t: &Theme, area: Rect, s: &crate::app::Slash) {
         })
         .collect();
     f.render_widget(Paragraph::new(lines), area);
+}
+
+/// The width of a session button: ` F6 `.
+const BUTTON_W: u16 = 4;
+
+/// The buttons of the agent sessions, one under the other: the active one in the accent color,
+/// the others in the second accent, as the badges of the modes.
+fn draw_sessions(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
+    app.session_buttons.clear();
+    for n in 0..crate::app::SESSIONS {
+        let y = area.y + 2 + 2 * n as u16;
+        if y >= area.bottom() {
+            break;
+        }
+        let r = Rect { y, height: 1, ..area };
+        let label = app.keys.first(crate::keys::Pane::Global, &format!("session_{}", n + 1)).to_uppercase();
+        let bg = if n == app.state.session { t.acc } else { t.acc2 };
+        f.render_widget(Paragraph::new(Line::styled(format!("{label:^w$}", w = area.width as usize), Style::new().bg(bg).fg(t.bg).add_modifier(Modifier::BOLD))), r);
+        app.session_buttons.push((r, n));
+    }
 }

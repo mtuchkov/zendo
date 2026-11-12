@@ -17,6 +17,12 @@ pub const ACTIONS: &[Action] = &[
     a(Global, "narrower", "a narrower text column"),
     a(Global, "edge_left", "move the edge of the pane in focus"),
     a(Global, "edge_right", "move the edge of the pane in focus"),
+    a(Global, "session_1", "agent session 1"),
+    a(Global, "session_2", "agent session 2"),
+    a(Global, "session_3", "agent session 3"),
+    a(Global, "session_4", "agent session 4"),
+    a(Global, "session_5", "agent session 5"),
+    a(Global, "next_session", "the next agent session"),
     // read
     a(Read, "down", "cursor down"),
     a(Read, "up", "cursor up"),

@@ -32,6 +32,9 @@ pub struct State {
     /// Tree view: "structure", "docs" or "all". Empty: structure when the repo has one, else docs.
     #[serde(default)]
     pub tree_view: String,
+    /// The agent session of the chat: 0 to SESSIONS - 1 (F6 to F10).
+    #[serde(default)]
+    pub session: usize,
     /// The width of the text column, set with `alt-=` and `alt--`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub column: Option<u16>,

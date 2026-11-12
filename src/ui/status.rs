@@ -53,7 +53,9 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
         return ("TRANSCRIPT", t.acc2, with_next(v));
     }
     if claude {
-        return ("CLAUDE", t.acc, with_next(hints(Pane::Chat, &[("send", "send"), ("newline", "new line"), ("new_thread", "new thread"), ("handoff", "Claude Code"), ("back", "back")])));
+        let mut v = hints(Pane::Chat, &[("send", "send"), ("newline", "new line"), ("new_thread", "new thread"), ("handoff", "Claude Code"), ("back", "back")]);
+        v.push((app.keys.first(Pane::Global, "next_session"), "next session".into()));
+        return ("CLAUDE", t.acc, with_next(v));
     }
     match app.mode {
         Mode::Read if app.read_anchor.is_some() => ("SELECT", t.acc2, hints(Pane::Read, &[("select_down", "extend"), ("ask", "ask claude"), ("add_to_chat", "add to chat"), ("copy", "copy"), ("back", "cancel")])),

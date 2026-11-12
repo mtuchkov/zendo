@@ -174,3 +174,43 @@ async fn say_here_is_a_chip_with_the_line_and_sends_a_default_question() {
     assert_eq!(asked, format!("⟦write here :3⟧ {}", zendo::app::SAY_HERE));
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// CLAUDE-31, CLAUDE-32: five agent sessions; F6 to F10 choose one, alt-n the next, after the last
+// the first; each has its own thread; the buttons show the active one in the accent color.
+#[tokio::test]
+async fn five_agent_sessions_with_f6_to_f10_and_alt_n() {
+    let root = repo("chat-sessions", &files());
+    let mut a = app(&root);
+    a.open_file(root.join(A));
+    a.open_panel();
+    ask(&mut a, "first session").await;
+    key(&mut a, KeyCode::F(8));
+    assert_eq!((a.state.session, a.key()), (2, "(chat 3)".to_string()));
+    assert!(a.panel && a.threads.get("(chat 3)").is_none_or(|t| !t.items.iter().any(|i| matches!(i, Item::User(_)))), "its own thread");
+    let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(160, 30)).unwrap();
+    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
+    let buf = term.backend().buffer().clone();
+    let find = |s: &str| (0..30u16).flat_map(|y| (0..159u16).map(move |x| (x, y))).find(|p| buf[*p].symbol() == &s[..1] && buf[(p.0 + 1, p.1)].symbol() == &s[1..]).unwrap_or_else(|| panic!("{s}"));
+    let (f6, f8) = (find("F6"), find("F8"));
+    assert_eq!(f6.0, f8.0, "one under the other");
+    assert_eq!((buf[f8].bg, buf[f6].bg), (a.theme().acc, a.theme().acc2), "the active one in the accent color");
+    for want in [3, 4, 0] {
+        a.on_key(KeyEvent::new(KeyCode::Char('n'), KeyModifiers::ALT));
+        assert_eq!(a.state.session, want);
+    }
+    assert!(a.threads[CHAT_KEY].items.iter().any(|i| matches!(i, Item::User(s) if s == "first session")), "the first thread is still there");
+    assert_eq!(app(&root).state.session, 0, "kept for the repository");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// CLAUDE-31: alt and an F key work too, where the terminal takes the F key; the button shows the F key.
+#[tokio::test]
+async fn alt_and_an_f_key_choose_a_session_too() {
+    let root = repo("chat-alt-f", &files());
+    let mut a = app(&root);
+    a.on_key(KeyEvent::new(KeyCode::F(10), KeyModifiers::ALT));
+    assert_eq!(a.state.session, 4);
+    let screen = draw(&mut a, 160, 30);
+    assert!(screen.iter().any(|r| r.trim_end().ends_with("F10")), "the button says F10: {screen:#?}");
+    let _ = std::fs::remove_dir_all(&root);
+}

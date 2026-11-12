@@ -226,6 +226,8 @@ pub struct App {
     pub extra: Vec<PathBuf>,
     /// Tree rows on screen in the last frame, for mouse clicks.
     pub tree_rows: Vec<(Rect, usize)>,
+    /// The buttons of the agent sessions in the last frame, for mouse clicks.
+    pub session_buttons: Vec<(Rect, usize)>,
     /// `delete`, `f2` or `m` on a file: the question in the status bar.
     pub file_prompt: Option<FilePrompt>,
     /// The width of the text column from the config, when the repository sets none.

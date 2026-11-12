@@ -94,9 +94,9 @@ impl App {
         self.store.rel(p).display().to_string()
     }
 
-    /// The key of the chat thread: one thread, one agent session, for every file.
+    /// The key of the chat thread: the thread of the active agent session, for every file.
     pub fn key(&self) -> String {
-        CHAT_KEY.into()
+        session_key(self.state.session.min(SESSIONS - 1))
     }
 
     /// What a question is about: the file on screen, a new note, or all notes.

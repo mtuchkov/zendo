@@ -30,6 +30,18 @@ impl App {
         self.open_session();
     }
 
+    /// F6 to F10, alt-n: the chat goes to agent session `n`, after the last one the first. The
+    /// chat opens on it.
+    pub fn switch_session(&mut self, n: usize) {
+        self.state.session = n % SESSIONS;
+        self.state.save(&self.cfg.root);
+        self.at = None;
+        self.slash.open = false;
+        self.open_panel();
+        let f = self.keys.first(crate::keys::Pane::Global, &format!("session_{}", self.state.session + 1));
+        self.flash(format!("agent session {} · {f}", self.state.session + 1));
+    }
+
     /// Open the session of the chat before the first question: the last session shows its
     /// messages, and the agent sends its slash commands.
     fn open_session(&mut self) {
