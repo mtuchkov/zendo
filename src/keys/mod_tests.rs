@@ -69,7 +69,7 @@ fn ctrl_shift_keys_work_in_both_modes() {
         assert_eq!(k.action(pane, &ev(KeyCode::Char('='), cs)), None, "the terminal zooms: {pane:?}");
     }
     assert_eq!(k.action(Pane::Write, &ev(KeyCode::Left, KeyModifiers::ALT | KeyModifiers::SHIFT)), Some("select_word_left"));
-    assert_eq!(k.first(Pane::Read, "add_to_chat"), "^⇧a");
+    assert_eq!(k.first(Pane::Read, "add_to_chat"), "alt-a", "the key of every terminal comes first");
     assert_eq!(k.action(Pane::Write, &ev(KeyCode::Char('k'), KeyModifiers::CONTROL)), None, "ctrl-k does not open the chat");
 }
 

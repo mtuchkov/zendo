@@ -270,7 +270,17 @@ fn the_status_bar_names_hjkl() {
     let mut a = app(&root);
     let screen = draw(&mut a, 160, 30);
     let bar = screen.iter().rev().find(|r| r.contains("READ")).unwrap();
-    assert!(bar.contains("h/j/k/l cursor") && bar.contains("^⇧h/j/k/l select") && bar.contains("^⇧a to chat"), "{bar}");
+    assert!(bar.contains("h/j/k/l cursor") && bar.contains("^⇧h/j/k/l select"), "{bar}");
+    // The keys that work in every terminal come first.
+    for hint in ["alt-s say here", "alt-a to chat", "alt-b files", "c chat"] {
+        assert!(bar.contains(hint), "{hint}: {bar}");
+    }
+    key(&mut a, KeyCode::Char('i'));
+    let screen = draw(&mut a, 160, 30);
+    let bar = screen.iter().rev().find(|r| r.contains("WRITE")).unwrap();
+    for hint in ["^g chat", "alt-a to chat", "alt-s say here", "alt-b files"] {
+        assert!(bar.contains(hint), "{hint}: {bar}");
+    }
     let _ = std::fs::remove_dir_all(&root);
 }
 
