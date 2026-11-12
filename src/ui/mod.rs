@@ -49,6 +49,7 @@ pub const COLUMN: u16 = 76;
 const SPIN: [&str; 4] = ["·  ", "·· ", "···", " ··"];
 
 pub fn draw(f: &mut Frame, app: &mut App) {
+    app.drop_old_review();
     let t = *app.theme();
     let area = f.area();
     f.render_widget(Block::new().style(Style::new().bg(t.bg).fg(t.fg)), area);

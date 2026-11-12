@@ -41,6 +41,10 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
     if delta {
         return ("DELTA", t.acc2, with_next(hints(Pane::Delta, &[("base", "other base"), ("ask", "ask claude"), ("recap", "recap"), ("close", "close")])));
     }
+    if claude && app.transcript.on {
+        let v = hints(Pane::Transcript, &[("down", "move"), ("select_down", "select"), ("copy", "copy"), ("add_to_chat", "to chat"), ("input", "input")]);
+        return ("TRANSCRIPT", t.acc2, with_next(v));
+    }
     if claude {
         return ("CLAUDE", t.acc, with_next(hints(Pane::Chat, &[("send", "send"), ("newline", "new line"), ("new_thread", "new thread"), ("handoff", "Claude Code"), ("back", "back")])));
     }

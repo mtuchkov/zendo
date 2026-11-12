@@ -30,13 +30,14 @@ pub enum Pane {
     Read,
     Write,
     Chat,
+    Transcript,
     Tree,
     Delta,
     Notes,
 }
 
 impl Pane {
-    pub const ALL: [Pane; 7] = [Pane::Global, Pane::Read, Pane::Write, Pane::Chat, Pane::Tree, Pane::Delta, Pane::Notes];
+    pub const ALL: [Pane; 8] = [Pane::Global, Pane::Read, Pane::Write, Pane::Chat, Pane::Transcript, Pane::Tree, Pane::Delta, Pane::Notes];
 
     pub fn name(self) -> &'static str {
         match self {
@@ -44,6 +45,7 @@ impl Pane {
             Pane::Read => "read",
             Pane::Write => "write",
             Pane::Chat => "chat",
+            Pane::Transcript => "transcript",
             Pane::Tree => "tree",
             Pane::Delta => "delta",
             Pane::Notes => "notes",

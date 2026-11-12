@@ -28,7 +28,7 @@ one edit that changes nothing else. The edit comes back as a proposal, as every 
 
 | ID      | Pattern    | Requirement | Source |
 | ------- | ---------- | ----------- | ------ |
-| NOTE-25 | Event      | When the user presses `ctrl-shift-s` or `alt-s` in read mode or write mode, the system shall show an arrow left of the line of the cursor, start the chat input with "Here is what I want to say here: ", and send the paragraph above and the paragraph below with the question. | User, 2026-11-12 |
+| NOTE-25 | Event      | When the user presses `ctrl-shift-s` or `alt-s` in read mode or write mode, the system shall show an arrow left of the line of the cursor, start the chat input with "Here is what I want to say here: ", and send the line and the column of the cursor, the paragraph above and the paragraph below with the question. | User, 2026-11-12 |
 | NOTE-26 | Event      | When the user presses `ctrl-shift-s` or `alt-s` with a selection, the system shall start the chat input with "I want to say differently here: ", and send the selection and the paragraphs around it. | User, 2026-11-12 |
 | NOTE-27 | Event      | When the answer ends, or the user presses `esc` in the chat or in the note, the system shall remove the arrow. | User, 2026-11-12 |
 

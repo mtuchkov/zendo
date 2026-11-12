@@ -121,7 +121,7 @@ pub(crate) fn draw_read(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let note = app.note().cloned();
     let code = note.as_ref().is_some_and(|n| shows_code(app, &n.path));
     let (gut, col) = match &note {
-        Some(n) if code => code_column(area, n.body.lines().count()),
+        Some(n) if code => code_column(area, app.code_width(), n.body.lines().count()),
         _ => (Rect::default(), column(area, app.column_width())),
     };
     app.text_width = col.width as usize;
@@ -156,7 +156,7 @@ pub(crate) fn draw_read(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let active = app.mode == Mode::Read && app.focus == Focus::Note;
     let len = app.read_text.get(app.read_cursor).map_or(0, |r| r.trim_end().chars().count());
     app.read_col = app.read_col.min(len.saturating_sub(1));
-    let marks = confusing_rows(app, &app.rel(&note.path), &note.body, &app.read_rows, lines.len());
+    let marks = confusing_rows(app, &app.rel(&note.path), &app.read_rows, lines.len());
     let w = col.width as usize;
     let view: Vec<Line> = lines
         .into_iter()
@@ -188,7 +188,7 @@ fn draw_no_notes(f: &mut Frame, app: &App, t: &Theme, col: Rect) {
         Line::styled("No notes yet.", Style::new().fg(t.fg).add_modifier(Modifier::BOLD)),
         Line::raw(""),
         Line::styled(format!("Press n to write the first one. It goes to {}.", app.rel(&app.cfg.notes_dir)), Style::new().fg(t.dim)),
-        Line::styled("Press c to talk to Claude, f1 for keys.", Style::new().fg(t.dim)),
+        Line::styled("Press c to talk to Claude, alt-? for keys.", Style::new().fg(t.dim)),
     ];
     let y = col.y + col.height / 3;
     f.render_widget(Paragraph::new(msg), Rect { y, height: col.height.saturating_sub(y - col.y), ..col });

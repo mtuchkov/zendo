@@ -72,6 +72,7 @@ impl App {
         }
         match pane {
             Pane::Chat => self.key_panel(k, local),
+            Pane::Transcript => self.key_transcript(local),
             Pane::Delta => self.key_delta(local),
             Pane::Tree => self.key_tree(local),
             Pane::Write => self.key_write(k, local),
@@ -93,9 +94,15 @@ impl App {
             "wider" => self.change_width(4),
             "narrower" => self.change_width(-4),
             "help" => self.open_help(pane),
+            // tab: the chat input, then its transcript, then the next pane.
+            "next_pane" if pane == crate::keys::Pane::Chat => {
+                self.transcript.on = true;
+                self.transcript.to_end();
+            }
             "next_pane" => {
+                self.transcript.on = false;
                 self.next_pane();
-                if pane == crate::keys::Pane::Chat && self.focus == Focus::Claude {
+                if pane == crate::keys::Pane::Transcript && self.focus == Focus::Claude {
                     self.focus = Focus::Note;
                 }
             }
@@ -128,7 +135,9 @@ impl App {
     /// The pane that gets the keys.
     pub fn key_pane(&self) -> crate::keys::Pane {
         use crate::keys::Pane;
-        if self.panel && self.focus == Focus::Claude {
+        if self.panel && self.focus == Focus::Claude && self.transcript.on {
+            Pane::Transcript
+        } else if self.panel && self.focus == Focus::Claude {
             Pane::Chat
         } else if self.delta_open && self.focus == Focus::Delta {
             Pane::Delta

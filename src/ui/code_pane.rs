@@ -1,11 +1,11 @@
 //! The note pane for a code file: the column of the code, and the line numbers on its left. A
 //! wrapped line has its number on its first row only.
 use super::*;
-use crate::text::code::{CODE_WIDTH, gutter};
+use crate::text::code::gutter;
 
-/// The line numbers and the text column of a code file of `n` lines.
-pub(crate) fn code_column(area: Rect, n: usize) -> (Rect, Rect) {
-    let all = column(area, CODE_WIDTH + gutter(n));
+/// The line numbers and the text column, `width` chars wide, of a code file of `n` lines.
+pub(crate) fn code_column(area: Rect, width: u16, n: usize) -> (Rect, Rect) {
+    let all = column(area, width + gutter(n));
     let g = gutter(n).min(all.width / 4);
     (Rect { width: g, ..all }, Rect { x: all.x + g, width: all.width - g, ..all })
 }

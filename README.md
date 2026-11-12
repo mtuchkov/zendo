@@ -39,7 +39,7 @@ Outside any repo, `zendo` opens a scratchpad.
 This is the main part of zendo: it keeps you on what is important.
 
 - **Nothing in the way.** A minimal terminal app: no other tool to open, no clutter.
-  Nearly every feature is one key away; `f1` lists the keys of the pane you are in.
+  Nearly every feature is one key away; `alt-?` lists the keys of the pane you are in.
 - **Where you left off.** A short recap of each note: what it is about, what it decides,
   what changed, and the open question. It tells you where you stopped yesterday. The delta
   (`d`) shows word by word what changed since you last worked on the note.

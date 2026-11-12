@@ -112,9 +112,12 @@ fn tree_line(app: &App, t: &Theme, row: &Row, is_current: bool, w: usize) -> Lin
         Kind::File if is_current => (" ●  ", Style::new().fg(t.fg).add_modifier(Modifier::BOLD)),
         Kind::File => ("    ", Style::new().fg(t.fg)),
     };
+    // Markdown is the default: its extension shows only in the text view, where files of every kind are.
+    let all = app.tree.view == View::Text;
     let name = match row.kind {
         _ if row.section => row.name.clone(),
         Kind::Dir { .. } => format!("{}/", row.name),
+        Kind::File if all => row.name.clone(),
         Kind::File => row.name.trim_end_matches(".md").to_string(),
     };
     let changed = row.kind == Kind::File && app.tree.changed.contains(&row.rel);
@@ -122,11 +125,18 @@ fn tree_line(app: &App, t: &Theme, row: &Row, is_current: bool, w: usize) -> Lin
     let room = w.saturating_sub(indent.width() + 5 + mark.width());
     let name = if name.width() > room { name.chars().take(room.saturating_sub(1)).collect::<String>() + "…" } else { name };
     let pad = w.saturating_sub(1 + indent.width() + 4 + name.width() + mark.width());
+    // The extension in the color of its kind of file.
+    let cut = if row.kind == Kind::File && !row.section { name.rfind('.').filter(|i| *i > 0) } else { None };
+    let (stem, ext) = match cut {
+        Some(i) => (name[..i].to_string(), name[i..].to_string()),
+        None => (name, String::new()),
+    };
     Line::from(vec![
         Span::raw(" "),
         Span::raw(indent),
         Span::styled(icon, Style::new().fg(if is_current { t.acc } else { t.dim })),
-        Span::styled(name, name_style),
+        Span::styled(stem, name_style),
+        Span::styled(ext, name_style.fg(theme::ext_color(&t.ext, &row.name))),
         Span::raw(" ".repeat(pad)),
         Span::styled(mark, Style::new().fg(t.acc2)),
     ])

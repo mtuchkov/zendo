@@ -22,3 +22,9 @@ fn the_context_quotes_the_text_around_the_mark() {
     let c = say_context("a.md", &lines, (5, 5), Some("Two."));
     assert!(c.contains("> Two.") && c.contains("> One b.") && c.contains("> Three a.") && c.contains("replaces the selected text"), "{c}");
 }
+
+// NOTE-25: say here tells the agent the line and the column of the cursor.
+#[test]
+fn say_here_names_the_line_and_the_column_of_the_cursor() {
+    assert_eq!(cursor_place("a.md", (2, 4)), "The cursor is at line 3, column 5 of a.md.");
+}

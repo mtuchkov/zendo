@@ -1,9 +1,17 @@
 //! The review on request: `ctrl-r` twice. Claude finds the lines of the open file that a reader
 //! finds confusing, and writes a short summary. The summary shows at the top of the file, and the
-//! lines show marked, until the file changes.
+//! lines show marked, until the user opens another file. zendo does not keep it.
 use super::*;
-use crate::setup::state::Review;
 use std::collections::VecDeque;
+
+/// The review of a file: a summary, and the confusing lines (from 0) with why.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Review {
+    pub rel: String,
+    pub summary: String,
+    pub lines: Vec<(usize, String)>,
+    pub at: chrono::DateTime<Local>,
+}
 
 /// The second `ctrl-r` must come within this time of the first.
 pub const REVIEW_CHORD: Duration = Duration::from_millis(1500);
@@ -15,6 +23,8 @@ pub const REVIEW_LINES: usize = 12;
 pub struct Reviews {
     pub queue: VecDeque<String>,
     pub armed: Option<Instant>,
+    /// The review of the open file.
+    pub shown: Option<Review>,
 }
 
 /// The review of a file, as the agent writes it: `SUMMARY: …`, then `LINE <n>: <why>`.
@@ -86,14 +96,21 @@ impl App {
             return self.flash(format!("review failed: {why}"));
         }
         let n = lines.len();
-        self.state.file(&job.rel).review = Some(Review { summary, lines, of_hash: job.hash, at: Local::now() });
-        self.state.save(&self.cfg.root);
+        self.reviews.shown = Some(Review { rel: job.rel, summary, lines, at: Local::now() });
         self.flash(format!("review ready: {n} confusing line{}", if n == 1 { "" } else { "s" }));
     }
 
-    /// The review of a file, when it is of the text that the file has now.
-    pub fn fresh_review(&self, rel: &str, body: &str) -> Option<&Review> {
-        self.state.files.get(rel)?.review.as_ref().filter(|r| r.of_hash == state::hash(body))
+    /// The review of a file, while it is the open file.
+    pub fn review_of(&self, rel: &str) -> Option<&Review> {
+        self.reviews.shown.as_ref().filter(|r| r.rel == rel)
+    }
+
+    /// The user opened another file: the review goes.
+    pub fn drop_old_review(&mut self) {
+        let here = self.current.as_deref().map(|p| self.rel(p));
+        if self.reviews.shown.as_ref().is_some_and(|r| Some(&r.rel) != here.as_ref()) {
+            self.reviews.shown = None;
+        }
     }
 }
 

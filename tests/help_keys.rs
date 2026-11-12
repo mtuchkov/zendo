@@ -27,7 +27,7 @@ async fn f1_shows_the_keys_of_the_pane_from_everywhere() {
             _ => {}
         }
         let b = bar(&mut a);
-        assert!(b.contains("f1 keys"), "{pane:?}: {b}");
+        assert!(b.contains("alt-? keys"), "{pane:?}: {b}");
         key(&mut a, KeyCode::F(1));
         assert_eq!((a.mode, a.help_pane), (Mode::Help, pane), "{pane:?}");
         key(&mut a, KeyCode::Esc);

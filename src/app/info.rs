@@ -122,11 +122,18 @@ impl App {
         self.state.column.unwrap_or(self.width_default)
     }
 
-    /// `alt-=` and `alt--`: a wider or a narrower text column, kept for the repository.
+    /// The width of the code column: the one of this repository, else 120.
+    pub fn code_width(&self) -> u16 {
+        self.state.code_column.unwrap_or(crate::text::code::CODE_WIDTH)
+    }
+
+    /// `alt-=` and `alt--`: a wider or a narrower column, kept for the repository: the code column
+    /// on a code file, else the text column.
     pub fn change_width(&mut self, by: i16) {
-        let w = (self.column_width() as i16 + by).clamp(30, 300) as u16;
-        self.state.column = Some(w);
+        let code = self.current.as_deref().is_some_and(crate::text::code::is_code);
+        let w = ((if code { self.code_width() } else { self.column_width() }) as i16 + by).clamp(30, 300) as u16;
+        *(if code { &mut self.state.code_column } else { &mut self.state.column }) = Some(w);
         self.state.save(&self.cfg.root);
-        self.flash(format!("text width {w}"));
+        self.flash(format!("{} width {w}", if code { "code" } else { "text" }));
     }
 }

@@ -16,7 +16,7 @@
 quit = ["ctrl-q", "ctrl-c"]  # quit
 toggle_tree = ["alt-b", "ctrl-shift-b"]  # file tree
 next_pane = ["tab"]  # next pane
-help = ["f1", "alt-?"]  # the keys of this pane
+help = ["alt-?", "f1"]  # the keys of this pane
 wider = ["alt-="]  # a wider text column
 narrower = ["alt--"]  # a narrower text column
 edge_left = ["ctrl-left"]  # move the edge of the pane in focus
@@ -115,6 +115,27 @@ delete_word = ["ctrl-w", "alt-backspace", "ctrl-backspace"]  # delete the word b
 clear = ["ctrl-u"]  # clear the input
 paste = ["ctrl-v"]  # paste
 templates = ["ctrl-t"]  # add a template: the agent writes a new document from it
+
+[transcript]
+down = ["j", "down"]  # cursor down
+up = ["k", "up"]  # cursor up
+left = ["h", "left"]  # cursor left
+right = ["l", "right"]  # cursor right
+select_down = ["ctrl-shift-j", "ctrl-shift-down", "alt-shift-j", "J", "shift-down"]  # select down
+select_up = ["ctrl-shift-k", "ctrl-shift-up", "alt-shift-k", "K", "shift-up"]  # select up
+select_left = ["ctrl-shift-h", "ctrl-shift-left", "H", "shift-left"]  # select left
+select_right = ["ctrl-shift-l", "ctrl-shift-right", "L", "shift-right"]  # select right
+select_word_left = ["alt-shift-h", "alt-shift-left"]  # select a word left
+select_word_right = ["alt-shift-l", "alt-shift-right"]  # select a word right
+select = ["v"]  # start / stop a selection
+copy = ["y", "ctrl-c"]  # copy the selection, or the message
+add_to_chat = ["a", "alt-a", "ctrl-shift-a", "+"]  # add the selection, or the message, to the chat
+page_down = ["space", "pagedown"]  # page down
+page_up = ["b", "pageup"]  # page up
+top = ["g", "home"]  # top
+bottom = ["G", "end"]  # bottom
+input = ["i", "enter"]  # back to the input
+back = ["esc"]  # clear the selection / back to the input
 
 [tree]
 down = ["j", "down"]  # down

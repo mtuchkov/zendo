@@ -42,13 +42,41 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
         lines.push(Line::styled(format!("starting {} {}", short_agent(&app.cfg.agent), SPIN[(app.last_edit.elapsed().as_millis() / 300) as usize % 4]), dim));
     }
     app.regions.push((crate::text::select::Region::Panel, body));
-    let h = body.height as usize;
-    let max = lines.len().saturating_sub(h);
-    app.panel_scroll = app.panel_scroll.min(max);
-    let start = max - app.panel_scroll;
-    let view: Vec<Line> = lines.into_iter().skip(start).take(h).collect();
-    f.render_widget(Paragraph::new(view), body);
+    draw_transcript(f, app, t, body, lines, w);
     draw_input(f, app, t, input, in_h, in_w);
+}
+
+/// The thread, from the bottom up. While the transcript has the keys, the view follows its cursor,
+/// and the cursor row and the selection show.
+fn draw_transcript(f: &mut Frame, app: &mut App, t: &Theme, body: Rect, lines: Vec<Line<'static>>, w: usize) {
+    let h = body.height as usize;
+    app.transcript.rows = lines.iter().map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect()).collect();
+    let on = app.transcript.on && app.focus == Focus::Claude;
+    let max = lines.len().saturating_sub(h);
+    let tr = &app.transcript;
+    let bottom = max - app.panel_scroll.min(max);
+    let start = if on { bottom.min(tr.row).max((tr.row + 1).saturating_sub(h)).min(max) } else { bottom };
+    app.panel_scroll = max - start;
+    let sel = delta::mix(t.bg, t.acc2, 0.42);
+    let view: Vec<Line> = lines
+        .into_iter()
+        .enumerate()
+        .skip(start)
+        .take(h)
+        .map(|(i, l)| match tr.selection() {
+            Some(((r1, c1), (r2, c2))) if on && i >= r1 && i <= r2 => {
+                let n = tr.rows[i].trim_end().chars().count();
+                paint(l, if i == r1 { c1 } else { 0 }, if i == r2 { c2 + 1 } else { n.max(1) }, sel)
+            }
+            _ if on && i == tr.row => tint(l, cursor_line(t), w),
+            _ => l,
+        })
+        .collect();
+    f.render_widget(Paragraph::new(view), body);
+    if on && tr.row >= start && tr.row < start + h {
+        let x: usize = tr.rows[tr.row].chars().take(tr.col).map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
+        f.set_cursor_position((body.x + (x as u16).min(body.width.saturating_sub(1)), body.y + (tr.row - start) as u16));
+    }
 }
 
 /// The input box: the text with its chips, or a hint while it is empty.
@@ -57,7 +85,7 @@ fn draw_input(f: &mut Frame, app: &App, t: &Theme, input: Rect, in_h: u16, in_w:
     let pending = app.threads.get(&key).and_then(|th| th.pending()).is_some();
     f.render_widget(Block::new().style(Style::new().bg(t.bg)), input);
     let box_in = Rect { x: input.x + 1, y: input.y + 1, width: input.width.saturating_sub(2), height: in_h };
-    let focused = app.focus == Focus::Claude;
+    let focused = app.focus == Focus::Claude && !app.transcript.on;
     let mark = Span::styled("› ", Style::new().fg(if focused { t.acc } else { t.dim }));
     let text_area = Rect { x: box_in.x + 2, width: box_in.width.saturating_sub(2), ..box_in };
     if pending || app.input.is_empty() {
@@ -73,7 +101,7 @@ fn draw_input(f: &mut Frame, app: &App, t: &Theme, input: Rect, in_h: u16, in_w:
     let segs = app.input.segments(in_w);
     let (vrow, vx) = app.input.cursor_visual(&segs, in_w);
     let top = vrow.saturating_sub(in_h as usize - 1);
-    let chip = Style::new().fg(t.bg).bg(t.acc2);
+    let chip = chip_styles(t);
     let hot = app.chip_in_focus();
     let lines: Vec<Line> = segs
         .iter()

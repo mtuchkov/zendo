@@ -56,3 +56,43 @@ fn a_code_file_has_line_numbers_wraps_and_writes_as_it_reads() {
     assert_eq!(body_of(&written), body_of(&screen), "write mode looks as read mode");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// FILES-24: the text view shows each extension in the color of its kind of file, from the theme.
+#[test]
+fn the_extensions_have_the_colors_of_the_theme() {
+    let root = repo("tree-ext", &[("docs/notes/2026-11-12-a.md", "# A\n"), ("src/main.rs", "fn main() {}\n"), ("Cargo.toml", "[package]\n")]);
+    let mut a = app(&root);
+    a.toggle_tree();
+    a.focus = Focus::Tree;
+    while a.tree.view != View::Text {
+        key(&mut a, KeyCode::Char('v'));
+    }
+    a.tree.reveal(std::path::Path::new("src/main.rs"));
+    let mut term = Terminal::new(TestBackend::new(140, 30)).unwrap();
+    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
+    let buf = term.backend().buffer().clone();
+    let color_of = |text: &str| {
+        let cells: Vec<_> = (2..30u16).flat_map(|y| (0..60u16).map(move |x| (x, y))).collect();
+        let at = cells.windows(text.len()).find(|w| w.iter().zip(text.chars()).all(|(c, ch)| buf[*c].symbol() == ch.to_string())).map(|w| w[0]).unwrap_or_else(|| panic!("{text} in the tree"));
+        buf[at].fg
+    };
+    let ext = a.theme().ext;
+    assert_eq!(color_of(".rs"), ext.code);
+    assert_eq!(color_of(".toml"), ext.config);
+    assert_eq!(color_of(".md"), ext.doc);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FILES-22: alt-= and alt-- change the code column on a code file, and keep the text column.
+#[test]
+fn the_width_keys_change_the_code_column_on_a_code_file() {
+    use ratatui::crossterm::event::{KeyEvent, KeyModifiers};
+    let root = repo("code-width", &[("docs/notes/2026-11-12-a.md", "# A\n"), ("src/main.rs", "fn main() {}\n")]);
+    let mut a = app(&root);
+    a.open_file(root.join("src/main.rs"));
+    let text = a.column_width();
+    a.on_key(KeyEvent::new(KeyCode::Char('-'), KeyModifiers::ALT));
+    assert_eq!((a.code_width(), a.column_width()), (116, text));
+    assert_eq!(app(&root).code_width(), 116, "kept for the repository");
+    let _ = std::fs::remove_dir_all(&root);
+}

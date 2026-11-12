@@ -20,6 +20,7 @@ mod say;
 mod selection;
 mod slash;
 mod thread;
+mod transcript;
 mod tree;
 mod write;
 pub mod write_rows;
@@ -29,6 +30,7 @@ pub use file_prompt::FilePrompt;
 pub use say::Say;
 pub use slash::Slash;
 pub use thread::*;
+pub use transcript::{CHAT_MARK, Transcript};
 
 use crate::agent::{self, AgentHandle, Attachment, Choice, Cmd, DiffView, Event};
 use crate::text::editor::Editor;
@@ -155,6 +157,8 @@ pub struct App {
     /// The agent takes images in a prompt (from its ACP capabilities).
     pub agent_images: bool,
     pub slash: Slash,
+    /// The cursor in the chat transcript.
+    pub transcript: Transcript,
     /// The time of the last scroll event: a fast run of them is a trackpad.
     last_scroll: Option<std::time::Instant>,
     /// Width of the chat input, for up and down moves in it.

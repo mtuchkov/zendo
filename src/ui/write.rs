@@ -4,7 +4,7 @@ use crate::app::write_rows::{self, RowSpan};
 
 pub(crate) fn draw_write(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let code = app.editor_path.as_deref().is_some_and(code::is_code);
-    let (gut, col) = if code { code_column(area, app.editor.lines.len()) } else { (Rect::default(), column(area, app.column_width())) };
+    let (gut, col) = if code { code_column(area, app.code_width(), app.editor.lines.len()) } else { (Rect::default(), column(area, app.column_width())) };
     let w = col.width as usize;
     app.text_width = w;
     app.regions.push((crate::text::select::Region::Note, col));
@@ -34,7 +34,7 @@ pub(crate) fn draw_write(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     app.write_rows = spans;
     let rows: Vec<usize> = r.rows.iter().map(|x| x + head).collect();
     let rel = app.editor_path.as_deref().map(|p| app.rel(p)).unwrap_or_default();
-    let marks = confusing_rows(app, &rel, &app.note_text().unwrap_or_default(), &rows, r.lines.len());
+    let marks = confusing_rows(app, &rel, &rows, r.lines.len());
     let sel_bg = delta::mix(t.bg, t.acc2, 0.42);
     let view: Vec<Line> = r
         .lines

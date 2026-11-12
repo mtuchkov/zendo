@@ -49,7 +49,7 @@ pub fn question_of(s: &str) -> &str {
 
 /// A message of the user: a block of the selection color, with `›` in the accent color.
 pub fn user_lines(s: &str, t: &Theme, w: usize) -> Vec<Line<'static>> {
-    let spans = chip_spans(s, Style::new().fg(t.fg), Style::new().fg(t.bg).bg(t.acc2));
+    let spans = chip_spans(s, Style::new().fg(t.fg), chip_styles(t));
     let mut lines = markdown::wrap(spans, w.saturating_sub(1), " › ", "   ");
     if let Some(first) = lines.first_mut().and_then(|l| l.spans.first_mut()) {
         first.style = Style::new().fg(t.acc).add_modifier(Modifier::BOLD);
@@ -175,12 +175,17 @@ pub(crate) fn diff_box(old: &str, new: &str, w: usize, t: &Theme) -> Vec<Line<'s
 }
 
 /// Text with its chips shown as chips: `⟦label⟧` shows as ` label ` on the chip color.
-pub fn chip_spans(text: &str, base: Style, chip: Style) -> Vec<Span<'static>> {
+pub fn chip_spans(text: &str, base: Style, chip: [Style; 2]) -> Vec<Span<'static>> {
     chip_spans_at(text, 0, base, chip, None)
 }
 
+/// The styles of a chip: a selection or a file, and text from the chat.
+pub fn chip_styles(t: &Theme) -> [Style; 2] {
+    [Style::new().fg(t.bg).bg(t.acc2), Style::new().fg(t.bg).bg(t.add)]
+}
+
 /// The same for a piece of a line that starts at char `offset`; the chip at `hot` gets the accent.
-pub fn chip_spans_at(text: &str, offset: usize, base: Style, chip: Style, hot: Option<(usize, usize, Style)>) -> Vec<Span<'static>> {
+pub fn chip_spans_at(text: &str, offset: usize, base: Style, chip: [Style; 2], hot: Option<(usize, usize, Style)>) -> Vec<Span<'static>> {
     let chars: Vec<char> = text.chars().collect();
     let mut out = Vec::new();
     let mut at = 0;
@@ -191,7 +196,8 @@ pub fn chip_spans_at(text: &str, offset: usize, base: Style, chip: Style, hot: O
         let label: String = chars[a + 1..b - 1].iter().collect();
         let style = match hot {
             Some((ha, hb, s)) if ha == a + offset && hb == b + offset => s,
-            _ => chip,
+            _ if label.starts_with(crate::app::CHAT_MARK) => chip[1],
+            _ => chip[0],
         };
         out.push(Span::styled(format!(" {label} "), style));
         at = b;

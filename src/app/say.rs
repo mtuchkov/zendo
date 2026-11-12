@@ -48,6 +48,11 @@ fn quote(lines: &[&str], p: Option<(usize, usize)>) -> String {
     }
 }
 
+/// Where the cursor is, for the agent: the line and the column, from 1.
+pub fn cursor_place(rel: &str, (line, col): (usize, usize)) -> String {
+    format!("The cursor is at line {}, column {} of {rel}.", line + 1, col + 1)
+}
+
 /// What the agent gets with the idea: the place, the paragraphs around it, and the task.
 pub fn say_context(rel: &str, lines: &[&str], (lo, hi): (usize, usize), selection: Option<&str>) -> String {
     match selection {
@@ -90,7 +95,8 @@ impl App {
         let Some(path) = self.current.clone() else { return self.flash("open a note first") };
         let (mark, range, picked, lines) = if self.mode == Mode::Write { self.say_in_editor() } else { self.say_in_read() };
         let refs: Vec<&str> = lines.iter().map(String::as_str).collect();
-        let ctx = say_context(&self.rel(&path), &refs, range, picked.as_deref());
+        let rel = self.rel(&path);
+        let ctx = format!("{}\n{}", cursor_place(&rel, mark), say_context(&rel, &refs, range, picked.as_deref()));
         let rewrite = picked.is_some();
         self.read_anchor = None;
         self.open_panel();

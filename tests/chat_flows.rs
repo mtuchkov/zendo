@@ -117,3 +117,42 @@ async fn the_chat_shows_the_last_session_when_it_opens() {
     assert!(row("(earlier question)") < row("(earlier answer"), "the question comes before its answer: {screen:#?}");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// CLAUDE-29: tab from the chat input goes to the transcript; the selection keys of read mode work
+// there; `y` copies and `a` adds the text to the input as a chip of its own color.
+#[tokio::test]
+async fn tab_goes_to_the_transcript_to_select_copy_and_add() {
+    let root = repo("chat-transcript", &files());
+    let mut a = app(&root);
+    a.open_file(root.join(A));
+    a.open_panel();
+    ask(&mut a, "what is in it").await;
+    draw(&mut a, 160, 30);
+    key(&mut a, KeyCode::Tab);
+    assert!(a.transcript.on && a.focus == Focus::Claude, "tab: the transcript");
+    let bar = draw(&mut a, 160, 30).into_iter().rev().find(|r| r.contains("TRANSCRIPT")).unwrap_or_default();
+    assert!(bar.contains("y copy") && bar.contains("a to chat"), "{bar}");
+    while !a.transcript.rows[a.transcript.row].trim_start().starts_with("› what is in it") {
+        key(&mut a, KeyCode::Char('k'));
+    }
+    key(&mut a, KeyCode::Char('y'));
+    assert_eq!(a.clip.as_deref(), Some("what is in it"), "no selection: the message");
+    a.clip = None;
+    let alt_shift = KeyModifiers::ALT | KeyModifiers::SHIFT;
+    let row = a.transcript.rows[a.transcript.row].clone();
+    a.transcript.col = row[..row.find("what").unwrap()].chars().count();
+    a.on_key(KeyEvent::new(KeyCode::Char('L'), alt_shift));
+    key(&mut a, KeyCode::Char('h'));
+    key(&mut a, KeyCode::Char('h'));
+    key(&mut a, KeyCode::Char('a'));
+    assert!(a.input.text().contains("⟦↩ what⟧"), "a chip of the chat: {}", a.input.text());
+    assert!(a.chips.iter().any(|c| c.context.as_deref().is_some_and(|x| x.contains("> what"))));
+    let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(160, 30)).unwrap();
+    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
+    let buf = term.backend().buffer().clone();
+    let at = (0..30u16).flat_map(|y| (0..160u16).map(move |x| (x, y))).find(|p| buf[*p].symbol() == "↩").expect("the chip on the screen");
+    assert_eq!(buf[at].bg, a.theme().add, "a chip of the chat has its own color");
+    key(&mut a, KeyCode::Esc);
+    assert!(!a.transcript.on, "esc: back to the input");
+    let _ = std::fs::remove_dir_all(&root);
+}

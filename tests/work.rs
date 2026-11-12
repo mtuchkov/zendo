@@ -136,7 +136,7 @@ async fn no_auto_recap_while_the_user_is_active() {
 }
 
 // WORK-13: ctrl-r twice asks for a review; the summary shows at the top and the confusing line is
-// marked until the file changes.
+// marked until another file opens; zendo does not keep it.
 #[tokio::test]
 async fn ctrl_r_twice_marks_the_confusing_lines() {
     use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -151,8 +151,8 @@ async fn ctrl_r_twice_marks_the_confusing_lines() {
     a.on_key(ctrl_r);
     assert!(a.reviews.queue.is_empty(), "one ctrl-r waits for the second");
     a.on_key(ctrl_r);
-    until(&mut a, |a| a.state.files.get(REL).and_then(|f| f.review.as_ref()).is_some()).await;
-    let r = a.state.files[REL].review.clone().unwrap();
+    until(&mut a, |a| a.reviews.shown.is_some()).await;
+    let r = a.reviews.shown.clone().unwrap();
     assert_eq!(r.lines, vec![(3, "\"soon\" says no time.".to_string())]);
     let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 30)).unwrap();
     term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
@@ -163,9 +163,13 @@ async fn ctrl_r_twice_marks_the_confusing_lines() {
     let y = rows.iter().position(|r| r.contains("The log goes away soon")).unwrap() as u16;
     let x = rows[y as usize].find("The log").unwrap() as u16;
     assert_ne!(buf[(x, y)].bg, buf[(x, y - 1)].bg, "the confusing line is marked");
-    std::fs::write(root.join(REL), "# Event log\n\n- a\n").unwrap();
-    a.reload();
+    let other = root.join("docs/notes/2026-11-12-other.md");
+    std::fs::write(&other, "# Other\n").unwrap();
+    a.open_file(other);
+    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
+    assert!(a.reviews.shown.is_none(), "the review goes when another file opens");
+    a.open_file(root.join(REL));
     term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
     let rows: Vec<String> = (0..30).map(|y| (0..120).map(|x| term.backend().buffer()[(x, y)].symbol().to_string()).collect()).collect();
-    assert!(rows.iter().any(|r| r.contains("the file changed since")), "{rows:#?}");
+    assert!(!rows.iter().any(|r| r.contains("REVIEW")), "zendo does not keep it: {rows:#?}");
 }

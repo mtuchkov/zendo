@@ -25,6 +25,7 @@ impl App {
         }
         self.panel = true;
         self.focus = Focus::Claude;
+        self.transcript.on = false;
         self.panel_scroll = 0;
         self.open_session();
     }

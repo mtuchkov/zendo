@@ -27,7 +27,8 @@ commit of the file did. It has no open questions.
 
 A review is on request: `ctrl-r` twice. Claude reads the file and finds the lines that a reader
 finds confusing. The summary and each line with why show at the top of the file, under the recap,
-and the lines show marked in read mode and write mode until the file changes.
+and the lines show marked in read mode and write mode until the user opens another file. zendo
+does not keep a review.
 
 Keys: `d` in read mode or `ctrl-d` in write mode opens the delta; in the delta, `b` switches the
 base and `a` asks Claude about the changes. `r` asks for a recap now; `R` shows or hides the recap; `ctrl-r` twice asks for a review.
@@ -73,7 +74,7 @@ base and `a` asks Claude about the changes. `r` asks for a recap now; `R` shows 
 | WORK-10 | Ubiquitous | The system shall write the recaps of the most recently worked files first, and only a set number of recaps in each hour.          | Design           |
 | WORK-11 | Event      | When the user presses `R`, the system shall show or hide the recap above the note.                                                | Design           |
 | WORK-12 | Ubiquitous | The system shall have each recap say what the file is about, and what its changes against git `HEAD` do, or else what the last commit of the file did, without open questions. | User, 2026-11-12 |
-| WORK-13 | Event      | When the user presses `ctrl-r` twice in read mode or write mode, the system shall ask Claude for the confusing lines of the file, show the summary at the top, and mark the lines until the file changes. | User, 2026-11-12 |
+| WORK-13 | Event      | When the user presses `ctrl-r` twice in read mode or write mode, the system shall ask Claude for the confusing lines of the file, show the summary at the top, and mark the lines until the user opens another file, without keeping the review. | User, 2026-11-12 |
 
 Tests that verify detailed requirements: `recaps_on_request_and_when_idle` (WORK-12),
 `ctrl_r_twice_marks_the_confusing_lines` and `a_review_has_a_summary_and_lines` (WORK-13),
