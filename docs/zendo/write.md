@@ -14,7 +14,9 @@ note: "Agent draft, split from notes.md. Not reviewed by the user."
 Write mode looks as read mode does: the same colors, headings, lists, quotes, code and tables. Only
 the source line with the cursor shows as it is in the file, so the user edits the real text; in a
 table, only the row with the cursor shows its source, and the rest of the table keeps its borders.
-Write mode does not join the lines of a paragraph: each source line is a row group of its own.
+Write mode joins and wraps a paragraph as read mode does; only the cursor line stands alone. The
+head of the note (the title, the date and the tags, the recap) stays where read mode shows it, so
+the text does not move when the mode changes.
 
 zendo breaks a line at a word when it gets longer than the text column (76 chars by default; `width`
 in the config, and `ctrl-shift-+` and `ctrl-shift--` for a repository). A list item goes on under
@@ -42,6 +44,7 @@ and read mode are in [Notes](notes.md).
 | NOTE-28 | Event      | When the user switches between read mode and write mode, the system shall keep the cursor on the same char of the text, at the same height on the screen. | User, 2026-11-12 |
 | NOTE-29 | Event      | When the user types a line that gets longer than the text column, the system shall break it at a word, under the list marker or with the `>` of a quote; headings, table rows, code and front matter keep their length. | User, 2026-11-12 |
 | NOTE-30 | State      | While write mode is on, the system shall show the note as read mode does, and show only the source line with the cursor as source; in a table, only that row. | User, 2026-11-12 |
+| NOTE-31 | State      | While write mode is on, the system shall wrap the text and show the head of the note (title, date, recap) as read mode does; only the cursor line differs. | User, 2026-11-12 |
 
 NOTE-9 (focus dimming) is retired: write mode now has the colors of read mode.
 
@@ -52,4 +55,5 @@ NOTE-23), `the_same_char_in_both_views`, `hidden_lines_do_not_shift_the_cursor`,
 `markup_and_decoration_are_skipped` (NOTE-28), `a_long_line_breaks_at_a_word`,
 `list_items_and_quotes_go_on_under_their_marker`, `headings_tables_and_code_keep_their_length`,
 `a_line_does_not_start_with_a_block_marker`, `typing_past_the_column_breaks_the_line` (NOTE-29),
-`write_mode_keeps_the_char_and_shows_only_the_cursor_line_as_source` (NOTE-28, NOTE-30).
+`write_mode_keeps_the_char_and_shows_only_the_cursor_line_as_source` (NOTE-28, NOTE-30),
+`write_mode_wraps_as_read_mode_and_keeps_the_head` (NOTE-31).

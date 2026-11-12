@@ -2,10 +2,14 @@
 use super::*;
 
 /// The lines of the read view for a note, and the row of each source line.
-pub(crate) fn read_lines(app: &App, note: &Note, width: usize, t: &Theme) -> (Vec<Line<'static>>, Vec<usize>, Vec<usize>) {
-    let mut lines: Vec<Line<'static>> = Vec::new();
-    let title = Span::styled(note.title.clone(), Style::new().fg(t.fg).add_modifier(Modifier::BOLD));
-    lines.extend(markdown::wrap(vec![title], width, "", ""));
+/// The title of a note, bold, wrapped to the width.
+pub(crate) fn title_rows(title: &str, width: usize, t: &Theme) -> Vec<Line<'static>> {
+    markdown::wrap(vec![Span::styled(title.to_string(), Style::new().fg(t.fg).add_modifier(Modifier::BOLD))], width, "", "")
+}
+
+/// The head of a note in both modes: the title rows, the date and the tags, and the recap.
+pub(crate) fn note_head(app: &App, note: &Note, width: usize, t: &Theme, title: Vec<Line<'static>>) -> Vec<Line<'static>> {
+    let mut lines = title;
     let mut meta = vec![Span::styled(date_label(note), Style::new().fg(t.dim))];
     for tag in note.tags() {
         meta.push(Span::styled(" ", Style::new()));
@@ -19,6 +23,11 @@ pub(crate) fn read_lines(app: &App, note: &Note, width: usize, t: &Theme) -> (Ve
     lines.extend(markdown::wrap(meta, width, "", ""));
     lines.push(Line::raw(""));
     lines.extend(recap_lines(app, note, width, t));
+    lines
+}
+
+pub(crate) fn read_lines(app: &App, note: &Note, width: usize, t: &Theme) -> (Vec<Line<'static>>, Vec<usize>, Vec<usize>) {
+    let mut lines = note_head(app, note, width, t, title_rows(&note.title, width, t));
     let head = lines.len();
 
     // A pending edit to this note shows inline, marked.

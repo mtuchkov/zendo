@@ -204,3 +204,30 @@ fn typing_past_the_column_breaks_the_line() {
     assert!(text.contains("The first paragraph of the idea. And it goes on"));
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// NOTE-31: write mode wraps a paragraph as read mode does, and keeps the head of the note (title,
+// date, recap) where read mode has it. Only the line of the cursor shows as source.
+#[test]
+fn write_mode_wraps_as_read_mode_and_keeps_the_head() {
+    let long = "# Wrap\n\nA zendo is the hall where Zen practitioners sit for zazen, seated meditation.\nDeep thinking about the architecture of a project feels much the same: you sit\nwith a problem until it settles. zendo is a minimal, distraction-free place for\nthat work.\n";
+    let root = repo("flow-wrap-same", &[("docs/notes/2026-11-12-wrap.md", long)]);
+    let mut a = app(&root);
+    let rel = "docs/notes/2026-11-12-wrap.md";
+    let recap = zendo::setup::state::Recap { text: "- Decides: the hall.".into(), of_hash: String::new(), of_text: String::new(), at: chrono::Local::now(), auto: true };
+    a.state.file(rel).recap = Some(recap);
+    let read = draw(&mut a, 100, 30);
+    let row = a.read_text.iter().position(|r| r.starts_with("A zendo is")).unwrap();
+    a.read_cursor = row;
+    key(&mut a, KeyCode::Char('i'));
+    let write = draw(&mut a, 100, 30);
+    let trim = |s: &Vec<String>| s.iter().map(|l| l.trim_end().to_string()).collect::<Vec<_>>();
+    let (read, write) = (trim(&read), trim(&write));
+    let at = |screen: &Vec<String>, s: &str| screen.iter().position(|l| l.contains(s));
+    assert_eq!(at(&read, "Wrap"), at(&write, "Wrap"), "the title stays in place");
+    assert!(at(&write, "RECAP").is_some(), "write mode keeps the recap");
+    assert_eq!(at(&read, "RECAP"), at(&write, "RECAP"));
+    // The lines after the cursor line wrap as in read mode: no row ends with a lone word.
+    let after = |screen: &Vec<String>| screen.iter().skip_while(|l| !l.contains("Deep thinking")).take(3).cloned().collect::<Vec<_>>();
+    assert!(after(&write).iter().all(|l| l.split_whitespace().count() > 2), "{:#?}", after(&write));
+    let _ = std::fs::remove_dir_all(&root);
+}

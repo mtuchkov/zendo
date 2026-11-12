@@ -49,10 +49,10 @@ pub fn render(src: &[(String, Mark)], width: usize, t: &Theme, skip_title: bool)
     cached((src, width, t.name, t.panel, skip_title), || render_text(src, width, t, skip_title, None))
 }
 
-/// Write mode: the same look as read mode, one row group for each source line (no joins), and the
-/// line `raw` as its source text, wrapped as the editor wraps it.
-pub fn render_live(src: &[(String, Mark)], width: usize, t: &Theme, raw: usize) -> Rendered {
-    cached((src, width, t.name, t.panel, raw, "live"), || render_text(src, width, t, false, Some(raw)))
+/// Write mode: the same look as read mode, and the line `raw` (the cursor line) as its source text,
+/// wrapped as the editor wraps it. The title is not in it: the head of the note shows it.
+pub fn render_live(src: &[(String, Mark)], width: usize, t: &Theme, raw: Option<usize>) -> Rendered {
+    cached((src, width, t.name, t.panel, raw, "live"), || render_text(src, width, t, true, raw))
 }
 
 /// The render of a text from the cache, or a new one.
@@ -79,7 +79,15 @@ fn cached(key: impl std::hash::Hash, make: impl FnOnce() -> Rendered) -> Rendere
 }
 
 fn render_text(src: &[(String, Mark)], width: usize, t: &Theme, skip_title: bool, raw_line: Option<usize>) -> Rendered {
-    let logicals = join(src, raw_line.is_none());
+    let logicals = join(src, raw_line);
+    // The cursor line in write mode, as an index of the logical lines.
+    let raw_line = raw_line.and_then(|r| {
+        let mut seen = 0;
+        logicals.iter().position(|l| {
+            seen += l.n;
+            seen > r
+        })
+    });
     let mut r = Renderer { width: width.max(10), t, skip_title, out: Vec::new(), fence: false, title_skipped: !skip_title, skip_blank: false, code: code_pieces(&logicals) };
     let mut rows = Vec::with_capacity(src.len());
     let mut skip_until = 0;
@@ -127,7 +135,7 @@ fn render_text(src: &[(String, Mark)], width: usize, t: &Theme, skip_title: bool
 }
 
 /// A source line as it is, wrapped as the editor wraps it, so the cursor stands on its char.
-pub(super) fn raw_rows(text: &str, width: usize, t: &Theme) -> Vec<Line<'static>> {
+pub fn raw_rows(text: &str, width: usize, t: &Theme) -> Vec<Line<'static>> {
     crate::text::editor::wrap_line(text, width)
         .into_iter()
         .map(|(a, b)| Line::styled(text.chars().skip(a).take(b - a).collect::<String>(), Style::new().fg(t.fg)))
