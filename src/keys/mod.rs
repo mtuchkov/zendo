@@ -1,6 +1,6 @@
-//! The keymap: for each pane, a table of actions with their default keys.
-//!
-//! `[keys.<pane>]` in `~/.zendo/config.toml` gives an action other keys:
+//! The keymap: for each pane, the actions and their keys. The default keys are in
+//! resources/keymap.toml; a keymap file of the user (`keymap = "~/.zendo/keymap.toml"` in the config)
+//! changes them, and `[keys.<pane>]` in `~/.zendo/config.toml` changes single keys after the file:
 //!
 //! ```toml
 //! [keys.read]
@@ -54,12 +54,20 @@ impl Pane {
     }
 }
 
-/// An action of a pane, its default keys, and what the help says about it.
+/// An action of a pane, and what the help says about it.
 pub struct Action {
     pub pane: Pane,
     pub name: &'static str,
-    pub keys: &'static [&'static str],
     pub help: &'static str,
+}
+
+/// The default keys, as zendo ships them: `zendo keymap` prints the file.
+pub const DEFAULT_KEYMAP: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/keymap.toml"));
+
+/// The default keys, read once.
+fn default_keys() -> &'static KeyConfig {
+    static KEYS: std::sync::OnceLock<KeyConfig> = std::sync::OnceLock::new();
+    KEYS.get_or_init(|| toml::from_str(DEFAULT_KEYMAP).expect("resources/keymap.toml parses"))
 }
 
 
@@ -90,60 +98,31 @@ pub struct Keymap {
 }
 
 impl Keymap {
-    /// The default keys, with the keys of the config in place of them. Also the problems of the
-    /// config: unknown panes, actions and keys. The defaults stay for those.
-    pub fn new(cfg: &KeyConfig) -> (Keymap, Vec<String>) {
-        let mut problems = Vec::new();
-        for (pane, actions) in cfg {
-            let Some(p) = Pane::from_name(pane) else {
-                problems.push(format!("[keys.{pane}]: no such pane (panes: {})", Pane::ALL.map(Pane::name).join(", ")));
-                continue;
-            };
-            for name in actions.keys() {
-                if !ACTIONS.iter().any(|a| a.pane == p && a.name == name) {
-                    problems.push(format!("[keys.{pane}] {name}: no such action"));
-                }
-            }
-        }
+    /// The keys in three layers: the default keymap, the keymap file of the user, and `[keys]` of the
+    /// config; a later layer gives an action other keys. Also the problems of the user's layers:
+    /// unknown panes, actions and keys. The keys of the layer before stay for those.
+    pub fn new(file: Option<&KeyConfig>, cfg: &KeyConfig) -> (Keymap, Vec<String>) {
+        let layers: Vec<(&str, &KeyConfig)> = file.map(|f| ("keymap", f)).into_iter().chain([("keys", cfg)]).collect();
+        let mut problems: Vec<String> = layers.iter().flat_map(|(name, l)| unknown(name, l)).collect();
         let mut map = Keymap::default();
+        let mut custom = std::collections::HashSet::new();
         for act in ACTIONS {
-            let custom = cfg.get(act.pane.name()).and_then(|m| m.get(act.name));
-            let mut keys = Vec::new();
-            let source: Vec<&str> = custom.map(KeySpec::list).unwrap_or_else(|| act.keys.to_vec());
-            for s in source {
-                match Key::parse(s) {
-                    Ok(k) => keys.push(k),
-                    Err(e) => problems.push(format!("[keys.{}] {}: {e}", act.pane.name(), act.name)),
+            let mut keys = parse_keys(default_keys(), act, "default", &mut Vec::new());
+            for (name, l) in &layers {
+                let mine = parse_keys(l, act, name, &mut problems);
+                if !mine.is_empty() {
+                    keys = mine;
+                    custom.insert((act.pane, act.name));
                 }
-            }
-            if keys.is_empty() && custom.is_some() {
-                keys = act.keys.iter().filter_map(|s| Key::parse(s).ok()).collect();
             }
             map.keys.insert((act.pane, act.name), keys);
         }
-        // Later entries do not take a key from an earlier one; a custom key takes it from a default.
-        let mut owner: HashMap<(Pane, Key), (&'static str, bool)> = HashMap::new();
-        for act in ACTIONS {
-            let custom = cfg.get(act.pane.name()).is_some_and(|m| m.contains_key(act.name));
-            for k in &map.keys[&(act.pane, act.name)] {
-                match owner.get(&(act.pane, *k)) {
-                    Some((other, other_custom)) if *other_custom || !custom => {
-                        if custom {
-                            problems.push(format!("[keys.{}] {}: {} is also the key of {other}", act.pane.name(), act.name, k.label()));
-                        }
-                    }
-                    _ => {
-                        owner.insert((act.pane, *k), (act.name, custom));
-                    }
-                }
-            }
-        }
-        map.by_key = owner.into_iter().map(|(k, (n, _))| (k, n)).collect();
+        map.by_key = owners(&map, &custom, &mut problems);
         (map, problems)
     }
 
     pub fn defaults() -> Keymap {
-        Keymap::new(&KeyConfig::new()).0
+        Keymap::new(None, &KeyConfig::new()).0
     }
 
     /// The action of this key in this pane; else the global action.
@@ -166,6 +145,47 @@ impl Keymap {
     pub fn first(&self, pane: Pane, name: &str) -> String {
         self.keys.iter().find(|((p, n), _)| *p == pane && *n == name).and_then(|(_, ks)| ks.first()).map(Key::label).unwrap_or_default()
     }
+}
+
+/// The panes and actions of a layer that zendo does not know.
+fn unknown(layer: &str, cfg: &KeyConfig) -> Vec<String> {
+    cfg.iter()
+        .flat_map(|(pane, actions)| match Pane::from_name(pane) {
+            None => vec![format!("[{layer}.{pane}]: no such pane (panes: {})", Pane::ALL.map(Pane::name).join(", "))],
+            Some(p) => actions.keys().filter(|n| !ACTIONS.iter().any(|a| a.pane == p && a.name == *n)).map(|n| format!("[{layer}.{pane}] {n}: no such action")).collect(),
+        })
+        .collect()
+}
+
+/// The keys that a layer gives an action; empty when it gives none, or none that parse.
+fn parse_keys(cfg: &KeyConfig, act: &Action, layer: &str, problems: &mut Vec<String>) -> Vec<Key> {
+    let Some(spec) = cfg.get(act.pane.name()).and_then(|m| m.get(act.name)) else { return Vec::new() };
+    spec.list()
+        .into_iter()
+        .filter_map(|s| Key::parse(s).map_err(|e| problems.push(format!("[{layer}.{}] {}: {e}", act.pane.name(), act.name))).ok())
+        .collect()
+}
+
+/// Which action a key does in each pane. A key goes to the first action that has it; a key that the
+/// user set goes to the user's action, and two actions of the user with one key are a problem.
+fn owners(map: &Keymap, custom: &std::collections::HashSet<(Pane, &'static str)>, problems: &mut Vec<String>) -> HashMap<(Pane, Key), &'static str> {
+    let mut owner: HashMap<(Pane, Key), (&'static str, bool)> = HashMap::new();
+    for act in ACTIONS {
+        let mine = custom.contains(&(act.pane, act.name));
+        for k in &map.keys[&(act.pane, act.name)] {
+            match owner.get(&(act.pane, *k)) {
+                Some((other, other_mine)) if *other_mine || !mine => {
+                    if mine {
+                        problems.push(format!("[{}] {}: {} is also the key of {other}", act.pane.name(), act.name, k.label()));
+                    }
+                }
+                _ => {
+                    owner.insert((act.pane, *k), (act.name, mine));
+                }
+            }
+        }
+    }
+    owner.into_iter().map(|(k, (n, _))| (k, n)).collect()
 }
 
 #[cfg(test)]

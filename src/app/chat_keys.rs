@@ -88,6 +88,10 @@ impl App {
                 }
             }
             "templates" => self.pick_template(),
+            "select_left" => self.input.select_with(|e| e.left()),
+            "select_right" => self.input.select_with(|e| e.right()),
+            "select_word_left" => self.input.select_with(|e| e.word_left()),
+            "select_word_right" => self.input.select_with(|e| e.word_right()),
             "word_left" => self.input.word_left(),
             "word_right" => self.input.word_right(),
             "home" => self.input.home(),

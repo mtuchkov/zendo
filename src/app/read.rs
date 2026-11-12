@@ -69,6 +69,8 @@ impl App {
             "up" | "select_up" => self.move_cursor(-1),
             "left" | "select_left" => self.move_col(-1),
             "right" | "select_right" => self.move_col(1),
+            "select_word_left" => self.move_word(false),
+            "select_word_right" => self.move_word(true),
             "page_down" => self.move_cursor(page),
             "page_up" => self.move_cursor(-page),
             "top" => self.move_cursor(-(isize::MAX / 4)),
@@ -99,5 +101,27 @@ impl App {
         self.read_col = 0;
         self.read_anchor = None;
         self.pinned = None;
+    }
+
+    /// The cursor to the start of the next word, or of this or the previous word.
+    pub(crate) fn move_word(&mut self, right: bool) {
+        let space = |a: &Self| a.read_text.get(a.read_cursor).and_then(|r| r.chars().nth(a.read_col)).is_none_or(char::is_whitespace);
+        let at = |a: &Self| (a.read_cursor, a.read_col);
+        let step = |a: &mut Self| {
+            let before = at(a);
+            a.move_col(if right { 1 } else { -1 });
+            at(a) != before
+        };
+        if right {
+            // Over the rest of this word, then over the spaces.
+            while !space(self) && step(self) {}
+            while space(self) && step(self) {}
+            return;
+        }
+        // Over the spaces before, then to the first char of the word.
+        while step(self) && space(self) {}
+        while self.read_col > 0 && !self.read_text[self.read_cursor].chars().nth(self.read_col - 1).is_none_or(char::is_whitespace) {
+            self.move_col(-1);
+        }
     }
 }

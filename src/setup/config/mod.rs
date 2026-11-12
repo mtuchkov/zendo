@@ -23,6 +23,9 @@ pub struct UserConfig {
     /// Extra environment for the agent and for npm, e.g. NODE_OPTIONS.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub env: BTreeMap<String, String>,
+    /// A keymap file of the user, as `~/.zendo/keymap.toml`: its keys go in place of the defaults.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub keymap: Option<String>,
     /// Other keys for the actions of a pane: `[keys.read] add_to_chat = ["+", "m"]`.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub keys: crate::keys::KeyConfig,
@@ -76,6 +79,27 @@ const OLD_NAME: &str = "dawn";
 const CONFIG_HEAD: &str = "# zendo config. `zendo setup` writes it, and you can edit it.\n\n";
 
 impl UserConfig {
+    /// The keymap file of the user, when the config names one; `~/` is the home folder.
+    pub fn keymap_file(&self) -> Result<Option<crate::keys::KeyConfig>, String> {
+        let Some(path) = self.keymap.as_deref() else { return Ok(None) };
+        let path = match path.strip_prefix("~/") {
+            Some(rest) => home().join(rest),
+            None => PathBuf::from(path),
+        };
+        let text = std::fs::read_to_string(&path).map_err(|e| format!("keymap {}: {e}", path.display()))?;
+        toml::from_str(&text).map(Some).map_err(|e| format!("keymap {}: {}", path.display(), e.to_string().lines().next().unwrap_or("")))
+    }
+
+    /// The keymap of the user: the keymap file, then `[keys]`. Also what is wrong in them.
+    pub fn keymap(&self) -> (crate::keys::Keymap, Vec<String>) {
+        let (file, read_problem) = match self.keymap_file() {
+            Ok(f) => (f, None),
+            Err(e) => (None, Some(e)),
+        };
+        let (map, mut problems) = crate::keys::Keymap::new(file.as_ref(), &self.keys);
+        problems.extend(read_problem);
+        (map, problems)
+    }
     pub fn load() -> Self {
         Self::read().ok().flatten().unwrap_or_default()
     }

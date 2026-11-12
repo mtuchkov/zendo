@@ -76,7 +76,10 @@ fn check_settings(cfg: &UserConfig, o: &mut Out) {
     for p in hl_problems {
         o.warn("highlight", p);
     }
-    let (_, problems) = crate::keys::Keymap::new(&cfg.keys);
+    let (_, problems) = cfg.keymap();
+    if let (Some(path), true) = (&cfg.keymap, problems.is_empty()) {
+        o.ok("keys", format!("keymap {path}"));
+    }
     if !cfg.keys.is_empty() && problems.is_empty() {
         o.ok("keys", format!("{} pane(s) with own keys", cfg.keys.len()));
     }

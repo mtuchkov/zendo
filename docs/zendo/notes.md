@@ -19,7 +19,9 @@ A note is a markdown file in the notes folder, `docs/notes` by default. The note
 are in [Notes list and search](notes-list.md).
 
 In read mode, a blinking block cursor stands on one char of a bright cursor line. `h j k l` move it,
-`ctrl-shift-h j k l` or `ctrl-shift` and the arrows (or `H J K L`, or Shift and the arrows) select. Every key comes from the keymap
+`ctrl-shift-h j k l` or `ctrl-shift` and the arrows (or `H J K L`, or Shift and the arrows) select;
+`alt-shift-h` and `alt-shift-l` (or `alt-shift` and an arrow) select a word, also in write mode and
+the chat. Every key comes from the keymap
 (see [Panes](panes.md)); `?` or `f1` shows the keys of the pane. Write mode is in
 [Write mode](write.md).
 

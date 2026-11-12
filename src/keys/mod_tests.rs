@@ -47,7 +47,7 @@ fn the_config_changes_keys_and_reports_problems() {
             "#,
     )
     .unwrap();
-    let (k, problems) = Keymap::new(&cfg);
+    let (k, problems) = Keymap::new(None, &cfg);
     assert_eq!(k.action(Pane::Read, &ev(KeyCode::Char('m'), KeyModifiers::NONE)), Some("add_to_chat"));
     assert_eq!(k.action(Pane::Read, &ev(KeyCode::Char('+'), KeyModifiers::NONE)), None, "the custom keys replace the defaults");
     assert_eq!(k.action(Pane::Read, &ev(KeyCode::Char('j'), KeyModifiers::CONTROL)), Some("select_down"));
@@ -72,4 +72,46 @@ fn ctrl_shift_keys_work_in_both_modes() {
     }
     assert_eq!(k.action(Pane::Write, &ev(KeyCode::Left, KeyModifiers::ALT | KeyModifiers::SHIFT)), Some("select_word_left"));
     assert_eq!(k.first(Pane::Read, "add_to_chat"), "^⇧+");
+}
+
+// PANES-17: the default keys come from the keymap file that zendo ships: every action is in it, and
+// nothing else.
+#[test]
+fn the_default_keymap_file_names_every_action() {
+    let file: KeyConfig = toml::from_str(DEFAULT_KEYMAP).expect("the default keymap parses");
+    for a in ACTIONS {
+        let keys = file.get(a.pane.name()).and_then(|m| m.get(a.name)).unwrap_or_else(|| panic!("{}.{} is not in the keymap file", a.pane.name(), a.name));
+        assert!(!keys.list().is_empty());
+    }
+    let (_, problems) = Keymap::new(Some(&file), &KeyConfig::new());
+    assert!(problems.is_empty(), "{problems:?}");
+}
+
+// PANES-23: a keymap file of the user changes the defaults, and `[keys]` of the config changes the file.
+#[test]
+fn a_user_keymap_file_then_the_config_change_keys() {
+    let file: KeyConfig = toml::from_str("[read]\ndown = [\"n\"]\nup = [\"p\"]\n").unwrap();
+    let cfg: KeyConfig = toml::from_str("[read]\nup = \"u\"\n").unwrap();
+    let (k, problems) = Keymap::new(Some(&file), &cfg);
+    assert!(problems.is_empty(), "{problems:?}");
+    assert_eq!(k.action(Pane::Read, &ev(KeyCode::Char('n'), KeyModifiers::NONE)), Some("down"));
+    assert_eq!(k.action(Pane::Read, &ev(KeyCode::Char('u'), KeyModifiers::NONE)), Some("up"));
+    assert_eq!(k.action(Pane::Read, &ev(KeyCode::Char('p'), KeyModifiers::NONE)), None, "the config wins over the file");
+    assert_eq!(k.action(Pane::Read, &ev(KeyCode::Char('l'), KeyModifiers::NONE)), Some("right"), "the rest keeps the defaults");
+}
+
+// NOTE-17: alt-shift and h or l (or an arrow) selects a word, in read mode, write mode and the chat.
+#[test]
+fn alt_shift_hl_select_words_everywhere() {
+    let k = Keymap::defaults();
+    let a = KeyModifiers::ALT | KeyModifiers::SHIFT;
+    for pane in [Pane::Read, Pane::Write, Pane::Chat] {
+        assert_eq!(k.action(pane, &ev(KeyCode::Char('H'), a)), Some("select_word_left"), "{pane:?}");
+        assert_eq!(k.action(pane, &ev(KeyCode::Char('L'), a)), Some("select_word_right"), "{pane:?}");
+        assert_eq!(k.action(pane, &ev(KeyCode::Right, a)), Some("select_word_right"), "{pane:?}");
+    }
+    for pane in [Pane::Read, Pane::Write] {
+        assert_eq!(k.action(pane, &ev(KeyCode::Char('J'), a)), Some("select_down"), "{pane:?}");
+        assert_eq!(k.action(pane, &ev(KeyCode::Char('K'), a)), Some("select_up"), "{pane:?}");
+    }
 }

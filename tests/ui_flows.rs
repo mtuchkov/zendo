@@ -273,3 +273,25 @@ fn the_status_bar_names_hjkl() {
     assert!(bar.contains("h/j/k/l cursor") && bar.contains("^⇧h/j/k/l select") && bar.contains("^⇧+ to chat"), "{bar}");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// NOTE-17: alt-shift and h or l selects a word in read mode, and in the chat input.
+#[tokio::test]
+async fn alt_shift_selects_words_in_read_mode_and_the_chat() {
+    let root = repo("flow-words", &files());
+    let mut a = app(&root);
+    draw(&mut a, 120, 30);
+    a.read_cursor = a.read_text.iter().position(|r| r.starts_with("The first")).unwrap();
+    a.read_col = 0;
+    let alt_shift = KeyModifiers::ALT | KeyModifiers::SHIFT;
+    a.on_key(KeyEvent::new(KeyCode::Char('L'), alt_shift));
+    a.on_key(KeyEvent::new(KeyCode::Char('L'), alt_shift));
+    assert_eq!(a.read_col, "The first ".len(), "two words to the right");
+    a.on_key(KeyEvent::new(KeyCode::Char('y'), KeyModifiers::NONE));
+    assert_eq!(a.clip.as_deref(), Some("The first p"), "the selection ends on the cursor char");
+    a.open_panel();
+    a.focus = Focus::Claude;
+    typ(&mut a, "one two");
+    a.on_key(KeyEvent::new(KeyCode::Char('H'), alt_shift));
+    assert_eq!(a.input.selected_text().as_deref(), Some("two"));
+    let _ = std::fs::remove_dir_all(&root);
+}

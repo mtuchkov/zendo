@@ -103,8 +103,20 @@ Everything works the same, except the hand-off to the command line (`ctrl-o`): i
 
 ## Keys
 
-Every key of every pane is in the keymap; `?` (or `f1`) shows the keys of the pane you are in. To change
-a key, name the action in `~/.zendo/config.toml`; the keys you give take the place of the defaults:
+Every key of every pane is in the keymap; `?` (or `f1`) shows the keys of the pane you are in. zendo
+ships its default keys as a file. To make your own keymap, start from it and name it in the config:
+
+```sh
+zendo keymap > ~/.zendo/keymap.toml
+```
+
+```toml
+# ~/.zendo/config.toml
+keymap = "~/.zendo/keymap.toml"
+```
+
+An action that your file leaves out keeps its default keys. To change one key without a file, name
+the action in `~/.zendo/config.toml`; these keys go after the file:
 
 ```toml
 [keys.read]

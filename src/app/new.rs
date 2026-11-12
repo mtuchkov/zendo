@@ -10,7 +10,7 @@ impl App {
         let branch = notes::git_branch(&cfg.root);
         let current = notes.first().map(|n| n.path.clone());
         let user = crate::setup::config::UserConfig::load();
-        let (keys, key_problems) = crate::keys::Keymap::new(&user.keys);
+        let (keys, key_problems) = user.keymap();
         crate::text::highlight::init(user.highlight.as_ref());
         let mut app = Self {
             cfg,

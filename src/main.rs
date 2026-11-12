@@ -22,6 +22,7 @@ USAGE
                                               check each step and say what to fix;
                                               --fix repairs project-structure.toml (zendo, then Claude)
   zendo upgrade [--force]                      build the newest main from GitHub, then run setup
+  zendo keymap                                 print the default keys: start ~/.zendo/keymap.toml from it
 
 OPTIONS
   --notes DIR   notes folder, relative to the repo root (default: docs/notes, or $ZENDO_NOTES)
@@ -80,6 +81,7 @@ fn read_args() -> Result<Args> {
             "setup" => "setup",
             "doctor" => "doctor",
             "upgrade" => "upgrade",
+            "keymap" => "keymap",
             "notes" => "notes",
             _ => "",
         };
@@ -148,6 +150,10 @@ fn parse() -> Result<Run> {
         "notes" => Run::Notes(paths, a.agent, a.action),
         "doctor" => Run::Doctor(paths, a.agent, a.live, a.fix),
         "upgrade" => Run::Upgrade(a.live),
+        "keymap" => {
+            print!("{}", zendo::keys::DEFAULT_KEYMAP);
+            std::process::exit(0);
+        }
         _ => {
             let (agent, _) = config::resolve_agent(a.agent, &user);
             Run::Tui(Config { root, notes_dir, agent, agent_env: config::agent_env(&user), offline: a.offline, notes_repo: notes_cfg })

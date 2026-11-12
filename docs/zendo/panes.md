@@ -72,14 +72,17 @@ terminals change it with `ctrl-+` and `ctrl--`. In read mode: `w` switches the l
 | PANES-20 | Event      | When scroll events come faster than one each 40 ms, as from a trackpad, the system shall scroll one line for each event and draw once for all the events that are waiting. | User, 2026-11-12 |
 | PANES-15 | Event      | When the user presses `t`, the system shall show the next of the four themes, and keep the choice.                                   | User, 2026-11-11 |
 | PANES-16 | Event      | When the user presses `?` or `f1`, the system shall show the keys of the pane in focus and the global keys.                         | Design           |
-| PANES-17 | Ubiquitous | The system shall take the keys of every action of every pane from a keymap, with the keys of `[keys.<pane>]` in the config in place of the defaults. | User, 2026-11-11 |
+| PANES-17 | Ubiquitous | The system shall take the keys of every action of every pane from the default keymap file that it ships, then from the keymap file that the config names, then from `[keys.<pane>]` in the config. | User, 2026-11-11 |
 | PANES-18 | Ubiquitous | The system shall have a key for every action, and no buttons.                                                                         | User, 2026-11-11 |
 | PANES-19 | Unwanted   | If `[keys]` in the config names an unknown pane, action or key, then the system shall keep the default keys and tell the user.       | Design           |
 | PANES-21 | Event      | When the user opens the delta and it does not fit beside the file tree, the system shall close the file tree. | User, 2026-11-12 |
 | PANES-22 | Event      | When the user presses `alt-=` or `alt--`, the system shall make the text column 4 chars wider or narrower, and keep the width for the repository. | User, 2026-11-12 |
+| PANES-23 | Event      | When the user runs `zendo keymap`, the system shall print the default keymap file, so that the user can start a keymap of their own from it. | User, 2026-11-12 |
 
 zendo takes the mouse. To use the selection of the terminal, the user holds a modifier key, usually
 Shift, or Option in iTerm2.
 
 Tests that verify detailed requirements: `the_delta_closes_the_tree_when_it_does_not_fit` (PANES-21),
-`the_width_keys_change_the_text_column` (PANES-22).
+`the_width_keys_change_the_text_column` (PANES-22), `the_default_keymap_file_names_every_action` (PANES-17),
+`a_user_keymap_file_then_the_config_change_keys`, `zendo_keymap_prints_the_default_keymap` (PANES-17,
+PANES-23).
