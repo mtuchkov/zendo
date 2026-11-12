@@ -13,7 +13,7 @@ note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user."
 
 The note pane shows one markdown file: a note of the notes folder or any file of the file tree. It
 has two modes. In read mode, zendo shows the file formatted for the width of the pane, with a cursor
-line. In write mode, the user edits the text, and zendo saves it.
+line. In write mode, the user edits the text, and zendo saves it after a pause of 1.5 s; there is no save key.
 
 A note is a markdown file in the notes folder, `docs/notes` by default. The notes list and search
 are in [Notes list and search](notes-list.md).
@@ -25,7 +25,7 @@ the chat. Every key comes from the keymap
 (see [Panes](panes.md)); `?` or `f1` shows the keys of the pane. Write mode is in
 [Write mode](write.md).
 
-`ctrl-shift-s` asks the agent to write an idea into the note: see [Say it here](say.md).
+`ctrl-shift-s` or `alt-s` asks the agent to write an idea into the note: see [Say it here](say.md).
 
 Tables show with solid borders and fit the pane. Code blocks and front matter show with syntax
 colors: `sh`, `rust`, `java`, `python`, `go`, `yaml` and `json` are on; other languages are plugins.
@@ -52,7 +52,7 @@ colors: `sh`, `rust`, `java`, `python`, `go`, `yaml` and `json` are on; other la
 - When zendo shows it.
 - Then the front matter and the code show line by line, as in the file.
 
-**`writing_saves_after_a_pause`** (terminal check, not written yet; verifies NOTE-3)
+**`writing_saves_after_a_pause`** (tests/write_keys.rs; verifies NOTE-3)
 
 - Given a note in write mode.
 - When the user types a line and stops typing.
@@ -67,7 +67,7 @@ colors: `sh`, `rust`, `java`, `python`, `go`, `yaml` and `json` are on; other la
 | NOTE-6  | Event      | When the user presses `y` in read mode, the system shall copy the selection to the clipboard.                                       | Design           |
 | NOTE-16 | State      | While the note pane has focus in read mode, the system shall show a blinking block cursor on one char of a bright cursor line.     | User, 2026-11-11 |
 | NOTE-17 | Event      | When the user moves the cursor with Shift (`ctrl-shift-h j k l`, `H J K L`, Shift and the arrows), the system shall select the text char by char.        | User, 2026-11-11 |
-| NOTE-18 | Event      | When the user adds the selection to the chat (`ctrl-shift-a`, or `+` in read mode), the system shall put a chip with the first 15 chars of the selection, and `+N` for N more lines, into the chat input and send the text as context. | User, 2026-11-11 |
+| NOTE-18 | Event      | When the user adds the selection to the chat (`ctrl-shift-a` or `alt-a`, or `+` in read mode), the system shall put a chip with the first 15 chars of the selection, and `+N` for N more lines, into the chat input and send the text as context. | User, 2026-11-11 |
 | NOTE-21 | Optional   | Where a `.sublime-syntax` file is in `~/.zendo/syntaxes/`, or a language is in `[highlight] languages`, the system shall highlight that language. | User, 2026-11-11 |
 
 Tests that verify detailed requirements: `bold_italic_underline_and_tables_render` (NOTE-2),

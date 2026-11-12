@@ -12,7 +12,7 @@ note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user."
 # File tree
 
 The file tree lists the markdown files of the repository. It sits on the left of the screen and
-opens and closes with `ctrl-shift-b` in every pane, or `e` and `ctrl-b` in read mode. It has three views:
+opens and closes with `ctrl-shift-b` or `alt-b` in every pane, or `e` in read mode. It has three views:
 
 - **structure**: the main materials of [project-structure.toml](project-structure.md), in the order
   of that file;

@@ -19,8 +19,8 @@ The user has two layout presets and no other layout settings. In wide screen, th
 side by side. In standard, the note and the chat share the screen, and the delta takes the place of
 the note. The top bar shows the file and the branch; there are no buttons, every action has a key.
 
-Keys in every pane: `tab` moves the focus to the next pane, `ctrl-shift-b` opens or closes the file
-tree (`ctrl-b` too in read mode),
+Keys in every pane: `tab` moves the focus to the next pane, `ctrl-shift-b` or `alt-b` opens or closes the file
+tree,
 `ctrl-←` and `ctrl-→` move the edge of the pane in focus, `alt-=` and `alt--` make the
 text column wider or narrower (kept for the repository). The font size is the terminal's own: most
 terminals change it with `ctrl-+` and `ctrl--`. In read mode: `w` switches the layout,

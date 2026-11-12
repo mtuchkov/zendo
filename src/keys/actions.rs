@@ -57,7 +57,6 @@ pub const ACTIONS: &[Action] = &[
     a(Read, "quit", "quit"),
     // write
     a(Write, "done", "save and read"),
-    a(Write, "save", "save"),
     a(Write, "say", "here is what I want to say: the agent writes it here, or writes the selection again"),
     a(Write, "chat", "chat on / off"),
     a(Write, "add_to_chat", "add the selection, or the line, to the chat"),

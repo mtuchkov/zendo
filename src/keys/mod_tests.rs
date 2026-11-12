@@ -121,7 +121,7 @@ fn a_key_of_two_actions_is_a_problem() {
     let cfg: KeyConfig = toml::from_str("[read]\ncopy = \"m\"\nask = \"m\"\n").unwrap();
     let (_, problems) = Keymap::new(None, &cfg);
     assert!(problems.iter().any(|p| p.contains("ask") && p.contains("copy") && p.contains("also the key of")), "{problems:?}");
-    let file: KeyConfig = toml::from_str("[write]\nsave = [\"ctrl-s\"]\nbold = [\"ctrl-s\"]\n").unwrap();
+    let file: KeyConfig = toml::from_str("[write]\ncut = [\"ctrl-s\"]\nbold = [\"ctrl-s\"]\n").unwrap();
     let (_, problems) = Keymap::new(Some(&file), &KeyConfig::new());
     assert!(problems.iter().any(|p| p.contains("^s is also the key of")), "{problems:?}");
     assert!(Keymap::new(None, &KeyConfig::new()).1.is_empty(), "the defaults have no conflict");
@@ -138,4 +138,5 @@ fn without_the_kitty_protocol_ctrl_hjkl_select() {
         }
     }
     assert_eq!(k.action(Pane::Write, &ev(KeyCode::Char('b'), KeyModifiers::CONTROL)), Some("bold"), "a key of its own wins");
+    assert_eq!(k.action(Pane::Write, &ev(KeyCode::Char('s'), KeyModifiers::CONTROL)), Some("say"), "ctrl-shift-s, as no save key is in the way");
 }

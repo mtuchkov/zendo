@@ -19,7 +19,6 @@ impl App {
     fn write_action(&mut self, a: &str) -> Option<bool> {
         match a {
             "done" => self.finish_write(),
-            "save" => self.save(),
             "delta" => {
                 self.toggle_delta();
                 self.focus = Focus::Note;

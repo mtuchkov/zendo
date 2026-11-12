@@ -14,7 +14,7 @@
 
 [global]
 quit = ["ctrl-q", "ctrl-c"]  # quit
-toggle_tree = ["ctrl-shift-b"]  # file tree
+toggle_tree = ["ctrl-shift-b", "alt-b"]  # file tree
 next_pane = ["tab"]  # next pane
 help = ["f1"]  # the keys of this pane
 wider = ["alt-="]  # a wider text column
@@ -35,8 +35,8 @@ select_word_right = ["alt-shift-l", "alt-shift-right"]  # select a word right
 select_right = ["ctrl-shift-l", "ctrl-shift-right", "L", "shift-right"]  # select right
 select = ["v"]  # start / stop a selection
 ask = ["a"]  # ask Claude about the selection
-add_to_chat = ["ctrl-shift-a", "+"]  # add the selection to the chat
-say = ["ctrl-shift-s"]  # here is what I want to say: the agent writes it here, or writes the selection again
+add_to_chat = ["ctrl-shift-a", "alt-a", "+"]  # add the selection to the chat
+say = ["ctrl-shift-s", "alt-s"]  # here is what I want to say: the agent writes it here, or writes the selection again
 copy = ["y", "ctrl-c"]  # copy the selection
 split = ["S"]  # over the word limit: Claude splits it, keeps the altitude
 write = ["i", "enter"]  # write here
@@ -62,13 +62,12 @@ back = ["esc"]  # clear the selection, close a pane
 quit = ["q"]  # quit
 
 [write]
-done = ["esc"]  # save and read
-save = ["ctrl-s"]  # save
-say = ["ctrl-shift-s"]  # here is what I want to say: the agent writes it here, or writes the selection again
+done = ["esc"]  # save and read; write mode saves by itself after a pause
+say = ["ctrl-shift-s", "alt-s"]  # here is what I want to say: the agent writes it here, or writes the selection again
 chat = ["ctrl-shift-c", "ctrl-g"]  # chat on / off: saves first
-add_to_chat = ["ctrl-shift-a"]  # add the selection, or the line, to the chat
+add_to_chat = ["ctrl-shift-a", "alt-a"]  # add the selection, or the line, to the chat
 delta = ["ctrl-d"]  # delta
-toggle_tree = ["ctrl-shift-b", "ctrl-e"]  # file tree
+toggle_tree = ["ctrl-shift-b", "alt-b", "ctrl-e"]  # file tree
 bold = ["ctrl-b"]  # **bold** the selection or the word
 italic = ["ctrl-i", "alt-i"]  # *italic* the selection or the word
 underline = ["ctrl-u"]  # <u>underline</u> the selection or the word
