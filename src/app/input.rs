@@ -34,17 +34,27 @@ impl App {
         self.sel = None;
     }
 
+    /// The views that take a key before the panes: the float, the waiting view, a session on the
+    /// full screen, a terminal in the chat pane. True when one of them took it.
+    fn key_to_view(&mut self, k: KeyEvent) -> bool {
+        // The float opens over every pane and view, also a session on the full screen (FLOAT-14).
+        let float = self.mode != Mode::Help && self.keys.local(crate::keys::Pane::Global, &k) == Some("new_note");
+        match (self.cli.view, self.pane_terminal()) {
+            _ if self.float.is_some() => self.key_float(k),
+            _ if float => self.open_float(),
+            _ if self.hold.is_some() => self.key_hold(k),
+            (Some(n), _) => self.key_cli(n, k),
+            (None, Some(n)) => self.key_pane_terminal(n, k),
+            (None, None) => return false,
+        }
+        true
+    }
+
     pub fn on_key(&mut self, k: KeyEvent) {
         use crate::keys::Pane;
         self.key_comes(&k);
-        if self.hold.is_some() {
-            return self.key_hold(k);
-        }
-        if let Some(n) = self.cli.view {
-            return self.key_cli(n, k);
-        }
-        if let Some(n) = self.pane_terminal() {
-            return self.key_pane_terminal(n, k);
+        if self.key_to_view(k) {
+            return;
         }
         if self.mode == Mode::Help {
             self.mode = self.back;
@@ -104,7 +114,7 @@ impl App {
 
     /// A key of no pane: quit, the tree, the text width, help, the next pane, the pane edges. True
     /// when it did something.
-    fn global_key(&mut self, act: &str, pane: crate::keys::Pane) -> bool {
+    pub(super) fn global_key(&mut self, act: &str, pane: crate::keys::Pane) -> bool {
         match act {
             "quit" => {
                 if self.mode == Mode::Write {
@@ -113,6 +123,7 @@ impl App {
                 self.quit = true;
             }
             "toggle_tree" => self.toggle_tree(),
+            "new_note" => self.open_float(),
             "next_session" => self.step_in_chat(true),
             "prev_session" => self.step_in_chat(false),
             "terminal" => self.terminal_key(false),

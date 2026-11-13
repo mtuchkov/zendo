@@ -12,6 +12,7 @@ use Pane::*;
 pub const ACTIONS: &[Action] = &[
     // global
     a(Global, Navigation, "next_pane", "next pane"),
+    a(Global, Editing, "new_note", "a new note in a float"),
     a(Global, Sessions, "session_1", "agent session 1"),
     a(Global, Sessions, "session_2", "agent session 2"),
     a(Global, Sessions, "session_3", "agent session 3"),

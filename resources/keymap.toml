@@ -20,6 +20,9 @@
 # navigation
 next_pane = ["tab"]  # next pane
 
+# editing
+new_note = ["alt-n"]  # a new note in a float
+
 # sessions and terminals
 session_1 = ["f6", "alt-f6"]  # agent session 1
 session_2 = ["f7", "alt-f7"]  # agent session 2

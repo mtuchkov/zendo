@@ -5,6 +5,7 @@ mod chat;
 pub(crate) mod cli;
 mod code_pane;
 mod delta_pane;
+mod float;
 mod layout;
 mod lists;
 mod overlays;
@@ -20,6 +21,7 @@ use chat::*;
 use cli::*;
 use code_pane::*;
 use delta_pane::*;
+use float::*;
 pub use layout::*;
 use lists::*;
 use overlays::*;
@@ -51,6 +53,9 @@ pub const COLUMN: u16 = 76;
 const SPIN: [&str; 4] = ["·  ", "·· ", "···", " ··"];
 
 pub fn draw(f: &mut Frame, app: &mut App) {
+    if app.float.is_some() {
+        return draw_float(f, app);
+    }
     app.drop_old_review();
     let t = *app.theme();
     let area = f.area();
