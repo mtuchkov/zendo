@@ -128,6 +128,26 @@ You need Node.js 22 LTS (18+ works), and Claude Code or Codex logged in.
 top bar says so: press `U`. For proxies and certificates, see
 [INSTALLATION.md](INSTALLATION.md).
 
+### macOS
+
+The same line installs zendo on macOS. The installer builds zendo on your Mac, and a zendo built on
+macOS uses the macOS keys: Option is the zendo key, Ctrl stays for the text.
+
+- **Option is Meta.** Terminal.app: Settings > Profiles > Keyboard > "Use Option as Meta key".
+  iTerm2: Settings > Profiles > Keys > Left Option key: "Esc+". Ghostty: `macos-option-as-alt = true`.
+  The installer names the setting for your terminal.
+- **No F-keys.** `alt-1` to `alt-5` choose an agent session, `alt-0` opens the terminal, `alt-r` runs
+  the shell block. The F-keys work too, with `fn`.
+- **Text keys of a Mac.** Option-← and Option-→ move by a word, `ctrl-a` and `ctrl-e` go to the start
+  and the end of a line. The file tree is `alt-e`.
+- **Finder keys in the file tree.** `r` renames, `n` makes a file, `N` makes a folder, `backspace`
+  deletes after a question.
+- For `ctrl-shift` keys, use a terminal with the kitty keyboard protocol: Ghostty, kitty, WezTerm,
+  or iTerm2 with "Report keys using CSI u".
+
+All the macOS keys: [INSTALLATION.md](INSTALLATION.md#macos-keys) and
+[resources/keymap-macos.toml](resources/keymap-macos.toml). `zendo keymap` prints every key.
+
 ## More
 
 - [docs/zendo/zendo.md](docs/zendo/zendo.md): the specification (draft).

@@ -24,7 +24,9 @@ tree,
 `ctrl-←` and `ctrl-→` move the edge of the pane in focus, `alt-=` and `alt--` make the
 text column wider or narrower (kept for the repository). The font size is the terminal's own: most
 terminals change it with `ctrl-+` and `ctrl--`. In read mode: `w` switches the layout,
-`t` switches the theme, `alt-?` (or `f1`, `?`) shows all keys.
+`t` switches the theme, `alt-?` (or `f1`, `?`) shows all keys. On macOS, Option is the key of
+zendo and Ctrl stays for the text: `alt-e` opens the file tree, `alt-1` to `alt-5` choose a session,
+and Option-← and Option-→ move by a word ([INSTALLATION.md](../../INSTALLATION.md#macos-keys)).
 
 ## Architecturally significant requirements
 
@@ -76,6 +78,8 @@ terminals change it with `ctrl-+` and `ctrl--`. In read mode: `w` switches the l
 | PANES-27 | Ubiquitous | The system shall show the right side of the status bar whole: the last key hints give way to it, and the key of the help stays.     | User, 2026-11-12 |
 | PANES-17 | Ubiquitous | The system shall take the keys of every action of every pane from the default keymap file that it ships, then from the keymap file that the config names, then from `[keys.<pane>]` in the config. | User, 2026-11-11 |
 | PANES-18 | Ubiquitous | The system shall have a key for every action, and no buttons.                                                                         | User, 2026-11-11 |
+| PANES-28 | Optional   | Where zendo is built for macOS, the system shall take the keys of the macOS keymap file that it ships over the default keymap file, before the keymap file of the user. | User, 2026-11-12 |
+| PANES-29 | Optional   | Where zendo is built for macOS, `zendo keymap` shall print the default keymap with the macOS keys, and mark each line that the macOS keymap changes. | User, 2026-11-12 |
 | PANES-19 | Unwanted   | If `[keys]` in the config names an unknown pane, action or key, then the system shall keep the default keys and tell the user.       | Design           |
 | PANES-21 | Event      | When the user opens the delta and it does not fit beside the file tree, the system shall close the file tree. | User, 2026-11-12 |
 | PANES-22 | Event      | When the user presses `alt-=` or `alt--`, the system shall make the column of the open file 4 chars wider or narrower, the code column for a code file and the text column for markdown, and keep the width for the repository. | User, 2026-11-12 |
@@ -91,4 +95,6 @@ Tests that verify detailed requirements: `the_delta_closes_the_tree_when_it_does
 `the_status_bar_asks_for_zendo_doctor_without_a_structure_file` (PANES-27), `the_default_keymap_file_names_every_action` (PANES-17),
 `a_user_keymap_file_then_the_config_change_keys`, `zendo_keymap_prints_the_default_keymap` (PANES-17,
 PANES-23), `a_key_of_two_actions_is_a_problem` (PANES-24), `without_the_kitty_protocol_ctrl_hjkl_select`
-(PANES-25).
+(PANES-25), `macos_keys_come_over_the_default_keys` and `the_macos_keymap_has_one_action_for_each_key`
+(PANES-28), `the_platform_keymap_marks_the_macos_keys` and `zendo_keymap_prints_the_default_keymap`
+(PANES-29).

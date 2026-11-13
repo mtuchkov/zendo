@@ -140,3 +140,46 @@ fn without_the_kitty_protocol_ctrl_hjkl_select() {
     assert_eq!(k.action(Pane::Write, &ev(KeyCode::Char('b'), KeyModifiers::CONTROL)), Some("bold"), "a key of its own wins");
     assert_eq!(k.action(Pane::Write, &ev(KeyCode::Char('s'), KeyModifiers::CONTROL)), Some("say"), "ctrl-shift-s, as no save key is in the way");
 }
+
+fn alt(c: char) -> KeyEvent {
+    ev(KeyCode::Char(c), KeyModifiers::ALT)
+}
+
+// PANES-28: on macOS the keys of keymap-macos.toml come over the default keys.
+#[test]
+fn macos_keys_come_over_the_default_keys() {
+    let (mac, problems) = Keymap::for_platform(true, None, &KeyConfig::new());
+    assert!(problems.is_empty(), "{problems:?}");
+    assert_eq!(mac.action(Pane::Write, &alt('b')), Some("word_left"), "Option-Left comes as alt-b");
+    assert_eq!(mac.action(Pane::Chat, &alt('f')), Some("word_right"), "Option-Right comes as alt-f");
+    assert_eq!(mac.action(Pane::Read, &alt('b')), None, "Option-Left does not open the tree");
+    assert_eq!(mac.action(Pane::Read, &alt('e')), Some("toggle_tree"));
+    assert_eq!(mac.action(Pane::Write, &ev(KeyCode::Char('e'), KeyModifiers::CONTROL)), Some("end"));
+    assert_eq!(mac.action(Pane::Read, &alt('1')), Some("session_1"));
+    assert_eq!(mac.action(Pane::Read, &ev(KeyCode::F(6), KeyModifiers::NONE)), Some("session_1"), "the F-keys stay");
+    assert_eq!(mac.action(Pane::Tree, &ev(KeyCode::Backspace, KeyModifiers::NONE)), Some("delete"));
+    assert_eq!(mac.action(Pane::Read, &ev(KeyCode::Char('j'), KeyModifiers::NONE)), Some("down"), "the rest keeps the defaults");
+    let (other, _) = Keymap::for_platform(false, None, &KeyConfig::new());
+    assert_eq!(other.action(Pane::Read, &alt('b')), Some("toggle_tree"));
+    assert_eq!(other.action(Pane::Write, &ev(KeyCode::Char('e'), KeyModifiers::CONTROL)), Some("toggle_tree"));
+}
+
+// PANES-28: the macOS keymap names only known actions and keys, and gives no key two actions.
+#[test]
+fn the_macos_keymap_has_one_action_for_each_key() {
+    let overlay: KeyConfig = toml::from_str(MACOS_KEYMAP).expect("the macOS keymap parses");
+    assert!(Keymap::new(Some(&overlay), &KeyConfig::new()).1.is_empty());
+    let merged: KeyConfig = toml::from_str(&platform_keymap(true)).expect("the merged keymap parses");
+    let (_, problems) = Keymap::for_platform(false, Some(&merged), &KeyConfig::new());
+    assert!(problems.is_empty(), "{problems:?}");
+}
+
+// PANES-29: on macOS `zendo keymap` prints one file with the macOS keys, each changed line marked.
+#[test]
+fn the_platform_keymap_marks_the_macos_keys() {
+    assert_eq!(platform_keymap(false), DEFAULT_KEYMAP);
+    let mac = platform_keymap(true);
+    assert!(mac.contains("toggle_tree = [\"alt-e\", \"ctrl-shift-b\"]  # file tree (macOS)"), "{mac}");
+    assert!(mac.contains("down = [\"j\", \"down\"]  # cursor down\n"), "an unchanged line stays");
+    assert_eq!(mac.matches("(macOS)").count(), toml::from_str::<KeyConfig>(MACOS_KEYMAP).unwrap().values().map(|a| a.len()).sum::<usize>());
+}

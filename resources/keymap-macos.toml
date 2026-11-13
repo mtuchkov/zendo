@@ -1,0 +1,64 @@
+# The keys of zendo on macOS. A zendo built on macOS takes these keys over the default keys of
+# resources/keymap.toml; the installer builds zendo on the machine where it runs. This file holds only
+# the keys that differ. `zendo keymap` prints the default keymap with these keys, marked macOS.
+#
+# The terminal setup (README, macOS):
+#   - Option is Meta. Terminal.app: Settings > Profiles > Keyboard > "Use Option as Meta key".
+#     iTerm2: Settings > Profiles > Keys > Left Option key: "Esc+". Ghostty: macos-option-as-alt = true.
+#     Claude Code needs the same setting for Option-Enter.
+#   - F-keys need fn, or "Use F1, F2, etc. keys as standard function keys". Each F-key action here
+#     also has an Option key.
+#   - macOS takes Ctrl-Left and Ctrl-Right for the Spaces. No action here needs them.
+#   - ctrl-shift keys and ctrl-i need the kitty keyboard protocol: Ghostty, kitty, WezTerm, or iTerm2
+#     with "Report keys using CSI u". Terminal.app does not have it.
+#
+# The rules of this file:
+#   1. Option and a key is a zendo key. Ctrl and a key stays for the text: ctrl-a, ctrl-e, as in each
+#      text field of macOS.
+#   2. Option-Left and Option-Right move by a word. Terminal.app and iTerm2 send them as alt-b and
+#      alt-f, so alt-b and alt-f move by a word, and the file tree is alt-e.
+#   3. Option-1 to Option-5 choose an agent session, as Cmd-1 to Cmd-5 choose a tab. Option-0 is the
+#      terminal.
+#   4. zendo takes the session keys before Claude Code does, so no session key is a key of Claude
+#      Code (Option-T, Option-P).
+#   5. The file tree has the keys of Finder where they fit: r renames, n makes a file, N makes a
+#      folder, backspace deletes after a question.
+
+[global]
+toggle_tree = ["alt-e", "ctrl-shift-b"]        # alt-b is Option-Left
+edge_left = ["alt-,", "ctrl-left"]             # Option-< and Option->: ctrl-left changes the Space
+edge_right = ["alt-.", "ctrl-right"]
+session_1 = ["alt-1", "f6", "alt-f6"]          # as Cmd-1 … Cmd-5 for tabs
+session_2 = ["alt-2", "f7", "alt-f7"]
+session_3 = ["alt-3", "f8", "alt-f8"]
+session_4 = ["alt-4", "f9", "alt-f9"]
+session_5 = ["alt-5", "f10", "alt-f10"]
+terminal = ["alt-0", "f5"]                     # the terminal is session 0
+terminal_run = ["alt-r", "alt-f5"]             # r for run
+
+[write]
+toggle_tree = ["alt-e", "ctrl-shift-b"]        # ctrl-e is the line end
+italic = ["alt-i", "ctrl-i"]                   # ctrl-i is Tab without the kitty protocol
+underline = ["alt-u"]                          # iTerm2 sends Cmd-Backspace as ctrl-u
+word_left = ["alt-left", "alt-b"]              # Option-Left
+word_right = ["alt-right", "alt-f"]            # Option-Right
+home = ["ctrl-a", "home"]                      # also Cmd-Left in iTerm2 ("Natural Text Editing")
+end = ["ctrl-e", "end"]                        # also Cmd-Right in iTerm2
+
+[chat]
+word_left = ["alt-left", "alt-b"]
+word_right = ["alt-right", "alt-f"]
+home = ["ctrl-a", "home"]
+end = ["ctrl-e", "end"]
+scroll_up = ["alt-up", "pageup"]               # a MacBook has no PageUp: fn-Up, or Option-Up
+scroll_down = ["alt-down", "pagedown"]
+
+[tree]
+rename = ["r", "f2"]                           # Finder: Return renames; here Return opens
+new_file = ["n", "f3"]
+new_folder = ["N", "f4"]                       # Finder: Cmd-Shift-N
+delete = ["backspace", "delete"]               # Finder: Cmd-Backspace; zendo asks first
+
+[notes]
+rename_file = ["R", "f2"]
+delete = ["backspace", "delete"]

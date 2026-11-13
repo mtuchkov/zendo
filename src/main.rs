@@ -151,7 +151,7 @@ fn parse() -> Result<Run> {
         "doctor" => Run::Doctor(paths, a.agent, a.live, a.fix),
         "upgrade" => Run::Upgrade(a.live),
         "keymap" => {
-            print!("{}", zendo::keys::DEFAULT_KEYMAP);
+            print!("{}", zendo::keys::platform_keymap(zendo::keys::MACOS));
             std::process::exit(0);
         }
         _ => {
