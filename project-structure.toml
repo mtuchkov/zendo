@@ -34,7 +34,7 @@ main = true
 
 [[entry]]
 path = ".github/workflows"
-about = "CI: cargo build and cargo test for each push and pull request to main."
+about = "The GitHub Actions workflows of the repository."
 
 [[entry]]
 path = ".skills"
