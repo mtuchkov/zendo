@@ -15,7 +15,9 @@ The script:
 1. Installs Rust with rustup (minimal profile) if `cargo` is missing, and updates Rust if it is older than 1.89.
 2. Builds zendo from `main` over HTTPS. If HTTPS does not work, it tries SSH (your key).
 3. Adds `~/.cargo/bin` to `PATH` in your shell rc file, if it is not there.
-4. Runs `zendo setup`: the Claude adapter, the login check, the handshake.
+4. On macOS, tells you that zendo uses the macOS keys, and how your terminal sends Option as Meta
+   ([macOS keys](#macos-keys)).
+5. Runs `zendo setup`: the Claude adapter, the login check, the handshake.
 
 Run from a clone of zendo (`./install.sh`), the script builds **that clone** and does not go to GitHub. It checks that its folder is the zendo repository: a git work tree with the `zendo` package and `src/bin/zendo-mock-agent/main.rs`. Piped (`| sh`), it builds `main` from GitHub.
 
@@ -136,6 +138,49 @@ WezTerm, iTerm2 with CSI u) `ctrl-i` is italic; elsewhere it is Tab, so `alt-i` 
 same holds for `shift-enter` in the chat: without the protocol, use `alt-enter`, `ctrl-j`, or `\` and
 `enter` for a new line. `ctrl-shift-b` (the file tree) and `ctrl-shift-h j k l` (select) also need
 the protocol; elsewhere use `ctrl-b` or `e` in read mode, `H J K L`, or Shift and the arrows.
+
+### macOS keys
+
+A zendo built on macOS uses the keys of
+[resources/keymap-macos.toml](resources/keymap-macos.toml) over the default keys. The installer
+builds zendo on your machine, so it gets the keys of your platform; you do not choose a file. On
+macOS, `zendo keymap` prints the default keymap with the macOS keys, and marks each changed line
+with `(macOS)`. A keymap file of your own goes over the macOS keys, as on the other platforms.
+
+Option is a zendo key, so the terminal must send Option as Meta:
+
+| Terminal | Setting |
+|---|---|
+| Terminal.app | Settings > Profiles > Keyboard > Use Option as Meta key |
+| iTerm2 | Settings > Profiles > Keys > Left Option key: Esc+ |
+| Ghostty | `macos-option-as-alt = true` |
+| WezTerm | nothing: the left Option key sends Meta |
+
+Claude Code needs the same setting for Option-Enter. Other settings:
+
+- The F-keys need `fn`, or System Settings > Keyboard > "Use F1, F2, etc. keys as standard function
+  keys". Each F-key action also has an Option key.
+- macOS takes `ctrl-←` and `ctrl-→` for the Spaces. `alt-,` and `alt-.` move the edge of a pane.
+- `ctrl-shift` keys and `ctrl-i` need the kitty keyboard protocol: Ghostty, kitty, WezTerm, or
+  iTerm2 with "Report keys using CSI u". Terminal.app does not have it.
+
+The keys that differ from the default keys:
+
+| Action | macOS | Other platforms |
+|---|---|---|
+| File tree | `alt-e`, `ctrl-shift-b` | `alt-b`, `ctrl-shift-b`, `ctrl-e` in write mode |
+| Word left, word right (write mode, chat) | `alt-←` `alt-→`, `alt-b` `alt-f` | `alt-←` `alt-→`, `ctrl-←` `ctrl-→` |
+| Line start, line end (write mode, chat) | `ctrl-a`, `ctrl-e` | `home`, `ctrl-a`, `end` |
+| Agent sessions 1 to 5 | `alt-1` … `alt-5` (also `f6` … `f10`) | `f6` … `f10` |
+| Terminal, run the shell block | `alt-0`, `alt-r` (also `f5`, `alt-f5`) | `f5`, `alt-f5` |
+| Move the edge of a pane | `alt-,`, `alt-.` | `ctrl-←`, `ctrl-→` |
+| Italic, underline (write mode) | `alt-i`, `alt-u` | `ctrl-i` or `alt-i`, `ctrl-u` |
+| Chat: scroll | `alt-↑`, `alt-↓`, `pageup`, `pagedown` | `pageup`, `pagedown` |
+| File tree: rename, new file, new folder, delete | `r`, `n`, `N`, `backspace` (also the F-keys) | `f2`, `f3`, `f4`, `delete` |
+| Notes: rename the file, delete | `R`, `backspace` | `f2`, `delete` |
+
+Terminal.app and iTerm2 send Option-← and Option-→ as `alt-b` and `alt-f`, so on macOS these keys
+move by a word and do not open the file tree.
 
 ## Text width and font size
 

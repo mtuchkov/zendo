@@ -15,9 +15,11 @@
 mod actions;
 mod legacy;
 mod key;
+mod platform;
 
 pub use actions::*;
 pub use key::*;
+pub use platform::*;
 
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use serde::{Deserialize, Serialize};
@@ -70,13 +72,6 @@ pub struct Action {
 /// The default keys, as zendo ships them: `zendo keymap` prints the file.
 pub const DEFAULT_KEYMAP: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/keymap.toml"));
 
-/// The default keys, read once.
-fn default_keys() -> &'static KeyConfig {
-    static KEYS: std::sync::OnceLock<KeyConfig> = std::sync::OnceLock::new();
-    KEYS.get_or_init(|| toml::from_str(DEFAULT_KEYMAP).expect("resources/keymap.toml parses"))
-}
-
-
 /// One key or a list of keys in the config.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -106,16 +101,21 @@ pub struct Keymap {
 }
 
 impl Keymap {
-    /// The keys in three layers: the default keymap, the keymap file of the user, and `[keys]` of the
-    /// config; a later layer gives an action other keys. Also the problems of the user's layers:
+    /// The keys in three layers: the default keymap of the platform, the keymap file of the user, and
+    /// `[keys]` of the config; a later layer gives an action other keys. Also the problems of the user's layers:
     /// unknown panes, actions and keys. The keys of the layer before stay for those.
     pub fn new(file: Option<&KeyConfig>, cfg: &KeyConfig) -> (Keymap, Vec<String>) {
+        Keymap::for_platform(MACOS, file, cfg)
+    }
+
+    /// The keys of `new`, with the default keys of macOS or of the other platforms (PANES-28).
+    pub fn for_platform(mac: bool, file: Option<&KeyConfig>, cfg: &KeyConfig) -> (Keymap, Vec<String>) {
         let layers: Vec<(&str, &KeyConfig)> = file.map(|f| ("keymap", f)).into_iter().chain([("keys", cfg)]).collect();
         let mut problems: Vec<String> = layers.iter().flat_map(|(name, l)| unknown(name, l)).collect();
         let mut map = Keymap::default();
         let mut custom = std::collections::HashSet::new();
         for act in ACTIONS {
-            let mut keys = parse_keys(default_keys(), act, "default", &mut Vec::new());
+            let mut keys = parse_keys(default_keys(mac), act, "default", &mut Vec::new());
             for (name, l) in &layers {
                 let mine = parse_keys(l, act, name, &mut problems);
                 if !mine.is_empty() {

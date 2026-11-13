@@ -32,6 +32,10 @@ update suggestion use GitHub. Nothing else uses the network.
 with a certificate error, setup tries again with the certificate store of the system, and keeps that
 setting when it works.
 
+**Platform.** The installer builds zendo on the machine where it runs, so zendo gets the keys of
+that platform. On macOS, the installer says so, and names the setting of the terminal that sends
+Option as Meta.
+
 **Builds from a clone.** When the user runs the installer or `zendo upgrade` from a clone of zendo,
 zendo builds that clone and not the main branch of GitHub.
 
@@ -80,7 +84,10 @@ CMD-1). See [zendo](zendo.md).
 | CMD-11 | Event      | When a newer version exists, the system shall show a hint in the top bar, and `U` shall upgrade zendo and start it again.            | User, 2026-11-11 |
 | CMD-12 | Unwanted   | If `zendo setup` runs outside a repository, then the system shall not report the repository checks as failures.                  | Design           |
 | CMD-13 | Ubiquitous | The installer shall put zendo on the `PATH` and tell the user how to get the new `PATH` in the open shell.                        | Design           |
+| CMD-14 | Optional   | Where the installer runs on macOS, the installer shall tell the user that zendo uses the macOS keys, and how the terminal of the user sends Option as Meta. | User, 2026-11-12 |
 
 Tests that verify detailed requirements: `detects_the_npm_tls_error_from_the_field` (CMD-6),
 `system_ca_is_appended_once` (CMD-6), `this_checkout_is_the_zendo_repo` (CMD-9),
-`short_and_long_commits_match` (CMD-10).
+`short_and_long_commits_match` (CMD-10),
+`the_installer_names_the_keys_of_macos_and_the_terminal_setting` and
+`the_installer_on_linux_keeps_the_default_keys` (CMD-14).

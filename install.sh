@@ -123,6 +123,23 @@ else
 	say "upgraded: $old → $new"
 fi
 
+# 5. The keys of the platform. A zendo built on macOS uses the keys of resources/keymap-macos.toml:
+#    Option is a zendo key, so the terminal must send Option as Meta.
+option_as_meta() {
+	case "${TERM_PROGRAM:-}" in
+	Apple_Terminal) echo "Terminal.app: Settings > Profiles > Keyboard > Use Option as Meta key." ;;
+	iTerm.app) echo "iTerm2: Settings > Profiles > Keys > Left Option key: Esc+." ;;
+	ghostty) echo "Ghostty: add \`macos-option-as-alt = true\` to the config." ;;
+	WezTerm) echo "WezTerm: the left Option key sends Meta already." ;;
+	*) echo "Set the Option key of your terminal to send Meta (Esc+). See README, macOS." ;;
+	esac
+}
+if [ "$(uname -s)" = Darwin ]; then
+	say "macOS: zendo uses the macOS keys (Option-1…5 for sessions, Option-E for the file tree)."
+	note "$(option_as_meta)"
+	note "\`zendo keymap\` shows every key."
+fi
+
 # The shell that ran this line still has the old PATH.
 finish() {
 	if [ -n "$rc_note" ]; then
@@ -132,7 +149,7 @@ finish() {
 }
 trap finish EXIT
 
-# 5. Claude: adapter, login, handshake.
+# 6. Claude: adapter, login, handshake.
 if [ -n "${ZENDO_NO_SETUP:-}" ]; then
 	exit 0
 fi
