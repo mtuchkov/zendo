@@ -1,7 +1,7 @@
 ---
 status: "draft"
-revision: "3"
-date: "2026-11-12"
+revision: "4"
+date: "2026-11-13"
 parent: "../zendo.md"
 prev: "../chat.md"
 next: "../attention.md"
@@ -37,7 +37,7 @@ zendo asks first. With `--offline` and with each agent, the `F5` terminal is ava
 | Document                                 | Content                                                            |
 | ---------------------------------------- | ------------------------------------------------------------------ |
 | [Shell blocks](shell-blocks.md)          | Shell blocks in the transcript, `▶`, `F5` and `alt-F5`, which terminal takes a block |
-| [Terminal view](terminal-view.md)        | The terminal in the chat pane, `ctrl-o` for the full screen, `alt-q`, `alt-n`, the keys, the buttons |
+| [Terminal view](terminal-view.md)        | The terminal in the chat pane, `ctrl-o` for the full screen, `alt-q`, `alt-]` and `alt-[`, the keys, the buttons |
 | [Terminal output](terminal-output.md)    | `alt-o` puts the result of the last command into the input of a chat |
 | [Terminal mouse](terminal-mouse.md)      | The wheel, the click and the drag over a terminal: for the program or for zendo |
 

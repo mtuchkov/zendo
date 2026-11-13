@@ -1,7 +1,7 @@
 ---
 status: "draft"
-revision: "1"
-date: "2026-11-11"
+revision: "2"
+date: "2026-11-13"
 parent: "zendo.md"
 prev: "work.md"
 next: "sessions.md"
@@ -29,8 +29,8 @@ zendo rejects each shell command.
 
 **Threads.** zendo keeps five agent sessions for the repository, each one thread for all files.
 `F6` to `F10` (or `alt` and the F key, where the terminal takes the F key) choose a session, and
-`alt-n` goes to the next one, after the last through the terminals of [Terminal](terminal/terminal.md),
-then to the first. Buttons on the right edge of the chat show
+`alt-]` goes to the next one, after the last through the terminals of [Terminal](terminal/terminal.md),
+then to the first; `alt-[` (or `alt-p`) goes back. Buttons on the right edge of the chat show
 the sessions one under the other: the active one in the accent color, the others in the second
 accent, as the badges of the modes; a click chooses one. Each thread is a Claude Code
 session, so the user can continue it in Claude Code. zendo keeps the session ID in its state in the
@@ -82,7 +82,7 @@ Claude Code sessions that run in the background while the user works in zendo ar
 | CLAUDE-6  | Event      | When the user asks in a thread that has a session ID, the system shall continue that session and show its earlier messages. | Design           |
 | CLAUDE-9  | Event      | When the first question of a thread goes to Claude, the system shall send `.zendo/prompt.md`, if it exists. | Design |
 | CLAUDE-26 | Event      | When a question goes to Claude and the open file did not go with one of the last 20 questions, the system shall attach the file and send the project rules for it. | User, 2026-11-12 |
-| CLAUDE-31 | Event      | When the user presses `F6` to `F10`, or `alt` and one of them, the system shall open the chat on that agent session; when the user presses `alt-n`, on the next session, after the last the terminals (TERM-41). | User, 2026-11-12 |
+| CLAUDE-31 | Event      | When the user presses `F6` to `F10`, or `alt` and one of them, the system shall open the chat on that agent session; when the user presses `alt-]` or `alt-[`, on the next or the previous session, after the last the terminals (TERM-41, TERM-49). | User, 2026-11-12; User, 2026-11-13 |
 | CLAUDE-32 | Ubiquitous | The system shall show a button for each agent session on the right edge of the chat, one under the other, named by its F key: the active one in the accent color, the others in the second accent; a click chooses the session. | User, 2026-11-12 |
 | CLAUDE-35 | Unwanted   | If the keymap in effect gives the agent sessions other keys than `F6` to `F10`, then the system shall name the agent sessions `1` to `5` on their buttons and in their names. | User, 2026-11-13 |
 | CLAUDE-27 | Event      | When the chat opens the first time, the system shall open the session of the thread and show the messages of the last session in their order, each question without the context that zendo sent with it. | User, 2026-11-12 |
