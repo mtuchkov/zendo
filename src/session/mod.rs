@@ -6,6 +6,8 @@
 //! screen, and the state.
 
 mod hooks;
+mod marks;
+pub mod output;
 pub mod keys;
 mod pty;
 mod shells;
@@ -72,6 +74,10 @@ pub struct Sessions {
     pub notify: Arc<tokio::sync::Notify>,
     /// The shell of the terminals; `None`: `$SHELL`, else `/bin/sh`.
     pub shell: Option<String>,
+    /// The home directory of the shells; `None`: the one of the user.
+    pub home: Option<std::path::PathBuf>,
+    /// The terminals that the user viewed, the last one first (TERM-24).
+    viewed: Vec<usize>,
     slots: Vec<Option<Cli>>,
     /// Text for a shell when its prompt is ready, and whether `enter` runs it.
     pending: Vec<Option<(String, bool)>>,
@@ -89,7 +95,7 @@ impl Default for Sessions {
     fn default() -> Self {
         let all = SESSIONS + TERMINALS;
         let size = (23, 80);
-        Sessions { command: None, view: None, pane: None, quit_asked: None, notify: Arc::default(), shell: None, slots: (0..all).map(|_| None).collect(), pending: vec![None; all], size, pane_size: size, sizes: vec![size; all], born: Instant::now() }
+        Sessions { command: None, view: None, pane: None, quit_asked: None, notify: Arc::default(), shell: None, home: None, viewed: Vec::new(), slots: (0..all).map(|_| None).collect(), pending: vec![None; all], size, pane_size: size, sizes: vec![size; all], born: Instant::now() }
     }
 }
 
@@ -147,9 +153,13 @@ impl Sessions {
         Ok(())
     }
 
-    /// Input for session `n`: keys, paste.
+    /// Input for session `n`: keys, paste. `enter` in a shell starts a command (TERM-27).
     pub fn write(&self, n: usize, bytes: &[u8]) {
         if let Some(c) = self.cli(n) {
+            if n >= SESSIONS && bytes.contains(&b'\r') {
+                let line = c.with_screen(|s| s.contents_between(s.cursor_position().0, 0, s.cursor_position().0, s.size().1.get()));
+                c.with_recorder(|r| r.enter(&line));
+            }
             c.write(bytes);
         }
     }
@@ -200,6 +210,7 @@ impl Sessions {
             self.pending[*n] = None;
         }
         self.slots.iter_mut().flatten().for_each(Cli::read_state);
+        self.free_shells();
         self.write_pending();
         if self.view.is_some_and(|n| !self.running(n)) {
             self.view = None;

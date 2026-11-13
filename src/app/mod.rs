@@ -232,6 +232,8 @@ pub struct App {
     pub tree_rows: Vec<(Rect, usize)>,
     /// The buttons of the agent sessions in the last frame, for mouse clicks.
     pub session_buttons: Vec<(Rect, usize)>,
+    /// The last `alt-o`: the index of its terminal, and the input before it (TERM-28).
+    pub(crate) output_pick: Option<(usize, Vec<String>, usize, usize)>,
     /// The play buttons of the shell blocks in the last frame, and their commands (TERM-10).
     pub play_buttons: Vec<(Rect, String)>,
     /// `delete`, `f2` or `m` on a file: the question in the status bar.

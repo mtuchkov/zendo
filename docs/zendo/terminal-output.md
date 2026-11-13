@@ -95,7 +95,9 @@ Tests that verify detailed requirements: `alt_o_again_goes_through_the_terminals
   the old `ZDOTDIR` or the home directory, and then add the marks.
 - fish: zendo gives the script with `-C`.
 - The scripts are in the binary of zendo; zendo writes them to `.zendo/shell/`. If the shell of the
-  user already sends OSC 133 marks, the script does not send them a second time.
+  user already sends OSC 133 marks, as fish 4 does, a second `C` or `D` mark for the same command
+  changes nothing.
+- The tests run bash and `/bin/sh`. The zsh and fish scripts have no test yet.
 
 ## Open points
 

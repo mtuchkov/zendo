@@ -25,6 +25,10 @@ impl App {
     pub fn on_key(&mut self, k: KeyEvent) {
         use crate::keys::Pane;
         self.last_input = Instant::now();
+        // Only `alt-o` right after `alt-o` takes the next terminal (TERM-28).
+        if self.keys.local(Pane::Chat, &k) != Some("insert_output") {
+            self.output_pick = None;
+        }
         if let Some(n) = self.cli.view {
             return self.key_cli(n, k);
         }

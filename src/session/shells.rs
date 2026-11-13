@@ -29,7 +29,8 @@ impl Sessions {
             return Ok(());
         }
         let program = self.shell.clone().or_else(|| std::env::var("SHELL").ok().filter(|s| !s.is_empty())).unwrap_or_else(|| "/bin/sh".into());
-        self.slots[shell(i)] = Some(Cli::spawn_shell(&program, root, self.pane_size, self.notify.clone())?);
+        let dir = root.join(".zendo").join("shell");
+        self.slots[shell(i)] = Some(Cli::spawn_shell(&program, root, &dir, self.home.as_deref(), self.pane_size, self.notify.clone())?);
         self.sizes[shell(i)] = self.pane_size;
         Ok(())
     }
@@ -50,6 +51,7 @@ impl Sessions {
             let mut bytes = keys::paste(&crate::text::shell::for_shell(&text, bracketed), bracketed);
             if run {
                 bytes.push(b'\r');
+                c.with_recorder(|r| r.enter(&text));
             }
             c.write(&bytes);
         }
@@ -58,5 +60,35 @@ impl Sessions {
     /// The text that waits for terminal `i`.
     pub fn pending(&self, i: usize) -> Option<&str> {
         self.pending[shell(i)].as_ref().map(|(t, _)| t.as_str())
+    }
+
+    /// A shell without marks whose command went in, printed, and is quiet and free again: the
+    /// command ended (TERM-27).
+    pub(super) fn free_shells(&mut self) {
+        for c in self.slots[SESSIONS..].iter().flatten() {
+            let since = c.with_recorder(|r| r.waits_since());
+            let last = c.last_output();
+            if since.is_some_and(|t| last > t && last.elapsed() > Duration::from_millis(300) && !c.busy()) {
+                c.with_recorder(super::output::Recorder::free);
+            }
+        }
+    }
+
+    /// The user views terminal slot `n` (TERM-24).
+    pub fn touch(&mut self, n: usize) {
+        self.viewed.retain(|m| *m != n);
+        self.viewed.insert(0, n);
+    }
+
+    /// The result of the last command of slot `n` (TERM-23).
+    pub fn result(&self, n: usize) -> Option<super::output::Output> {
+        self.cli(n).filter(|_| n >= SESSIONS).and_then(|c| c.with_recorder(|r| r.result()))
+    }
+
+    /// The terminals with a result: the one viewed last first, then the others (TERM-24, TERM-28,
+    /// TERM-29).
+    pub fn results(&self) -> Vec<usize> {
+        let rest = (SESSIONS..SESSIONS + TERMINALS).filter(|n| !self.viewed.contains(n));
+        self.viewed.iter().copied().chain(rest).filter(|n| self.result(*n).is_some()).collect()
     }
 }

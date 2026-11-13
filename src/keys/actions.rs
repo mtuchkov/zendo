@@ -98,6 +98,7 @@ pub const ACTIONS: &[Action] = &[
     a(Chat, "back", "stop the answer / back to the note"),
     a(Chat, "new_thread", "new thread"),
     a(Chat, "handoff", "open the Claude Code session"),
+    a(Chat, "insert_output", "put the result of the last command of a terminal into the input; again: the next terminal"),
     a(Chat, "scroll_up", "scroll up"),
     a(Chat, "scroll_down", "scroll down"),
     a(Chat, "select_left", "select left"),
