@@ -40,3 +40,13 @@ fn selection_stays_inside_its_panel() {
     s.drag(35, 1); // dragged into the right panel: clamped to the left one
     assert_eq!(s.text(&buf), "text one\nleft text two");
 }
+
+// CLAUDE-17: each pasted image goes to a new file in the temp folder of the system.
+#[test]
+fn a_pasted_image_goes_to_a_new_temp_file() {
+    let (a, b) = (paste_file(), paste_file());
+    assert_ne!(a, b, "two pastes in the same second do not overwrite each other");
+    assert!(a.starts_with(std::env::temp_dir()), "{}", a.display());
+    assert_eq!(a.extension().and_then(|e| e.to_str()), Some("png"));
+    assert!(a.parent().is_some_and(|d| d.is_dir()), "the folder is there");
+}

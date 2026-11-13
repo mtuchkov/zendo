@@ -82,9 +82,9 @@ impl App {
             }
             "paste" => {
                 // An image on the clipboard is an attachment; text may be dropped files.
-                if let Some(p) = crate::text::select::paste_image() {
-                    self.attach(Attachment::Image(p));
-                } else if let Some(t) = crate::text::select::paste().or_else(|| self.last_copy.clone()) {
+                if !self.paste_image_chip()
+                    && let Some(t) = crate::text::select::paste().or_else(|| self.last_copy.clone()).filter(|t| !t.trim().is_empty())
+                {
                     self.paste_into_chat(&t);
                 }
             }

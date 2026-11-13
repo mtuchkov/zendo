@@ -141,7 +141,7 @@ async fn tab_goes_to_the_transcript_to_select_copy_and_add() {
     key(&mut a, KeyCode::Char('h'));
     key(&mut a, KeyCode::Char('h'));
     key(&mut a, KeyCode::Char('a'));
-    assert!(a.input.text().contains("⟦↩ what⟧"), "a chip of the chat: {}", a.input.text());
+    assert!(a.input.text().contains("⟦↩ what · 1 line⟧"), "a chip of the chat (CLAUDE-35): {}", a.input.text());
     assert!(a.chips.iter().any(|c| c.context.as_deref().is_some_and(|x| x.contains("> what"))));
     let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(160, 30)).unwrap();
     term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();

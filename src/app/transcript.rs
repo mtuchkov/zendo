@@ -153,7 +153,7 @@ impl App {
         }
         let quoted: String = text.lines().map(|l| format!("> {l}\n")).collect();
         let ctx = format!("Text from this chat:\n{quoted}");
-        let label = self.add_chip(format!("{CHAT_MARK} {}", chips::selection_label(&text)), Some(ctx), None, true);
+        let label = self.add_chip(format!("{CHAT_MARK} {}", chips::text_label(&text)), Some(ctx), None, true);
         self.transcript.anchor = None;
         self.flash(format!("{} is in the chat", label.trim_matches([chips::OPEN, chips::CLOSE])));
     }

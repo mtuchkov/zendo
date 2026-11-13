@@ -19,8 +19,10 @@ The chat input is where the user writes to the agent. The connection, threads an
 a terminal without the kitty keyboard protocol sends `shift-enter` as `enter`. A `\` at the end of the line and `enter`
 also add a line, in every terminal. The input grows up to a quarter of the panel, then scrolls.
 
-**Chips.** A selection added to the chat is a chip with its first 15 chars, and `+N` when it has N more lines; it brings the selected
-text as context. A file chip shows the last 4 chars of its folder and the first 10 chars of its
+**Chips.** A text chip shows the first 15 chars of its text and always the number of its lines, as
+`IF a legal hold… · 3 lines`; it brings the text as context. A selection added to the chat is a
+text chip. A paste of more than one line, or of more than 200 chars, is a text chip too: it starts
+with the pasted text, and a short paste stays text. A file chip shows the last 4 chars of its folder and the first 10 chars of its
 name, as `ates/specificat`. The arrows step over a chip as one unit, and the chip at the cursor
 shows in the accent color; `backspace` and `delete` remove it. `@` and the start of a name show the
 4 best files under the input; the arrows choose, `tab` or `enter` adds the file as a chip. `ctrl-t`
@@ -44,7 +46,9 @@ not complete) takes one. The command goes to the agent as the user typed it.
 
 **Attachments.** When the user drops files on the terminal, or pastes their paths, the chat input
 gets one chip for each file: `[image name]` for an image, `[file name]` for any other file. `ctrl-v`
-in the chat pastes an image from the clipboard as an `[image …]` chip. zendo sends an image as image
+in the chat, or a paste without text (what a terminal sends when the clipboard holds an image),
+saves the image of the clipboard to a new file in the temp folder of the system and shows it as an
+`⟦image⟧` chip; the file goes with the question. zendo sends an image as image
 data when the agent takes images, and every other file as a link to it.
 
 ## Detailed requirements
@@ -54,14 +58,16 @@ data when the agent takes images, and every other file as a link to it.
 | CLAUDE-15 | Ubiquitous | The system shall let the user move and edit anywhere in the chat input, and show it on up to a quarter of the panel height. | User, 2026-11-11 |
 | CLAUDE-30 | Event      | When the user presses `alt-enter`, `shift-enter` or `ctrl-j` in the chat input, the system shall add a line, and the status bar shall name `alt-enter`. | User, 2026-11-12 |
 | CLAUDE-16 | Event      | When the user drops or pastes the paths of existing files into the chat input, the system shall show one chip for each file and send the files with the question. | User, 2026-11-12 |
-| CLAUDE-17 | Event      | When the user pastes an image from the clipboard into the chat input, the system shall save it and show it as an `[image …]` chip. | User, 2026-11-12 |
+| CLAUDE-17 | Event      | When the user pastes an image from the clipboard into the chat input, the system shall save it to a new file in the temp folder of the system, show it as an `⟦image⟧` chip, and send the file with the question. | User, 2026-11-13 |
+| CLAUDE-36 | Event      | When the user pastes text of more than one line, or of more than 200 chars, into the chat input, the system shall show it as a text chip that starts with the first chars of the text, and send the text as context. | User, 2026-11-13 |
 | CLAUDE-29 | Event      | When the user presses `tab` in the chat input, the system shall move the keys to the transcript, where the cursor and the selection keys of read mode work, `y` copies, and `a` adds the text to the input as a chip of its own color. | User, 2026-11-12 |
 | CLAUDE-33 | Event      | When the user sends a question while the agent answers, the system shall show it in a queue under the answer, and send it when the turn ends. | User, 2026-11-12 |
 | CLAUDE-34 | Event      | When the user presses `esc` while the agent answers, the system shall stop the answer and put the queued questions back into the chat input. | User, 2026-11-12 |
 | CLAUDE-28 | Event      | When the user types `/` at the start of the chat input, the system shall show the slash commands of the agent that match, and send a command to the agent as the user typed it. | User, 2026-11-12 |
 | CLAUDE-18 | Optional   | Where the agent takes images, the system shall send an attached image as image data; otherwise as a link to the file.         | User, 2026-11-12 |
 | CLAUDE-19 | Event      | When the user presses `enter` after a `\` at the end of the chat input, the system shall replace the `\` with a new line.    | User, 2026-11-12 |
-| CLAUDE-20 | Ubiquitous | The system shall label a selection chip with the first 15 chars of the selection, and `+N` when it has N more lines.                                 | User, 2026-11-12 |
+| CLAUDE-20 | Ubiquitous | The system shall label a text chip with the first 15 chars of its text.                                 | User, 2026-11-12 |
+| CLAUDE-35 | Ubiquitous | The system shall show the number of lines of the text on each text chip, also when the text has one line. | User, 2026-11-13 |
 | CLAUDE-21 | Ubiquitous | The system shall label a file chip with the last 4 chars of its folder and the first 10 chars of its name.         | User, 2026-11-12 |
 | CLAUDE-22 | Event      | When the user types `@` and a part of a file name in the chat input, the system shall show the 4 best matching files under the input, also for a name with a typo, and add the chosen file as a chip. | User, 2026-11-12 |
 | CLAUDE-23 | Event      | When the user presses an arrow, `backspace` or `delete` next to a chip, the system shall move over or remove the whole chip. | User, 2026-11-12 |
@@ -70,7 +76,9 @@ data when the agent takes images, and every other file as a link to it.
 
 Tests that verify detailed requirements: `dropped_files_are_paths_and_nothing_else` (CLAUDE-16),
 `images_and_files_go_with_the_prompt` (mock agent; CLAUDE-16, CLAUDE-18),
-`a_selection_chip_says_its_first_chars` (CLAUDE-20), `a_file_chip_says_its_folder_tail_and_name_head`
+`a_text_chip_says_its_first_chars_and_its_lines` (CLAUDE-20, CLAUDE-35),
+`a_long_paste_is_a_chip_and_a_short_one_is_text` and `a_pasted_text_is_a_chip_that_starts_with_its_text` (CLAUDE-36),
+`a_pasted_image_goes_to_a_new_temp_file` (CLAUDE-17), `a_file_chip_says_its_folder_tail_and_name_head`
 (CLAUDE-21), `files_match_by_start_part_and_typo` (CLAUDE-22), `user_and_agent_messages_look_different` (CLAUDE-24), `templates_are_named_ones_and_those_of_templates_folders`,
 `ctrl_t_suggests_only_templates` (CLAUDE-25), `a_name_that_starts_with_the_query_comes_first` and
 `slash_commands_come_from_the_agent_and_go_to_it_as_typed` (CLAUDE-28),

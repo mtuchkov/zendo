@@ -168,14 +168,25 @@ impl App {
         self.flash(format!("attached {}", label.trim_matches([chips::OPEN, chips::CLOSE])));
     }
 
-    /// Text pasted into the chat: dropped files become chips, the rest is text.
+    /// An image from the clipboard: a temp file, as an `⟦image⟧` chip that goes with the question.
+    /// False when the clipboard holds no image.
+    pub(crate) fn paste_image_chip(&mut self) -> bool {
+        let Some(p) = crate::text::select::paste_image() else { return false };
+        let label = self.add_chip("image".into(), None, Some(Attachment::Image(p)), false);
+        self.flash(format!("attached {}", label.trim_matches([chips::OPEN, chips::CLOSE])));
+        true
+    }
+
+    /// Text pasted into the chat: dropped files become chips, a long text is a chip, the rest is
+    /// text. An empty paste is what a terminal sends for an image: it comes from the clipboard.
     pub(crate) fn paste_into_chat(&mut self, s: &str) {
+        if s.trim().is_empty() {
+            self.paste_image_chip();
+            return;
+        }
         match crate::text::select::dropped_files(s) {
-            Some(paths) => {
-                for p in paths {
-                    self.attach(Attachment::of(p));
-                }
-            }
+            Some(paths) => paths.into_iter().for_each(|p| self.attach(Attachment::of(p))),
+            None if chips::paste_is_chip(s) => self.paste_chip(s),
             None => self.input.type_str(s),
         }
     }

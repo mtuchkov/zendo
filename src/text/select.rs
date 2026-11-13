@@ -220,12 +220,19 @@ pub fn dropped_files(s: &str) -> Option<Vec<std::path::PathBuf>> {
     (!paths.is_empty() && paths.iter().all(ok)).then_some(paths)
 }
 
-/// An image on the system clipboard, saved as a PNG file. None when there is none, or no tool.
+/// A new file for a pasted image, in the temp folder of the system: `zendo-pastes/paste-<time>-<pid>-<n>.png`.
+pub fn paste_file() -> std::path::PathBuf {
+    static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let dir = std::env::temp_dir().join("zendo-pastes");
+    let _ = std::fs::create_dir_all(&dir);
+    let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    dir.join(format!("paste-{}-{}-{n}.png", chrono::Local::now().format("%Y%m%d-%H%M%S"), std::process::id()))
+}
+
+/// An image on the system clipboard, saved to a temp file. None when there is none, or no tool.
 pub fn paste_image() -> Option<std::path::PathBuf> {
     use std::process::{Command, Stdio};
-    let dir = crate::setup::config::data_dir().join("pastes");
-    std::fs::create_dir_all(&dir).ok()?;
-    let file = dir.join(format!("paste-{}.png", chrono::Local::now().format("%Y%m%d-%H%M%S")));
+    let file = paste_file();
     let run = |cmd: &str, args: &[&str]| Command::new(cmd).args(args).stdin(Stdio::null()).stderr(Stdio::null()).output().ok().filter(|o| o.status.success()).map(|o| o.stdout);
     let saved = |bytes: Vec<u8>| (!bytes.is_empty() && std::fs::write(&file, bytes).is_ok()).then(|| file.clone());
     if cfg!(target_os = "macos") {
