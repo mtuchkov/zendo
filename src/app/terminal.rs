@@ -86,7 +86,8 @@ impl App {
             return;
         }
         match self.keys.local(Pane::Global, &k) {
-            Some("next_session") => self.next_in_chat(),
+            Some("next_session") => self.step_in_chat(true),
+            Some("prev_session") => self.step_in_chat(false),
             Some(a @ ("terminal" | "terminal_run")) => self.terminal_key(a == "terminal_run"),
             Some(a) if a.starts_with("session_") => self.switch_session(a[8..].parse::<usize>().map_or(0, |m| m - 1)),
             _ => {
@@ -96,12 +97,13 @@ impl App {
         }
     }
 
-    /// `alt-n`: the next item for the chat pane: the agent sessions, the `F5` terminal, the `[>]`
-    /// terminals that run, then the first agent session again (TERM-41).
-    pub(crate) fn next_in_chat(&mut self) {
+    /// `alt-]` and `alt-[`: the next or the previous item for the chat pane, in a ring: the agent
+    /// sessions, the `F5` terminal, the `[>]` terminals that run (TERM-41, TERM-49).
+    pub(crate) fn step_in_chat(&mut self, forward: bool) {
         let all: Vec<usize> = (0..SESSIONS + TERMINALS).filter(|n| *n <= SESSIONS || self.cli.running(*n)).collect();
         let now = self.cli.pane.unwrap_or(self.state.session);
-        let next = all.iter().position(|n| *n == now).map_or(0, |i| all[(i + 1) % all.len()]);
+        let step = if forward { 1 } else { all.len() - 1 };
+        let next = all.iter().position(|n| *n == now).map_or(0, |i| all[(i + step) % all.len()]);
         match next.checked_sub(SESSIONS) {
             Some(i) => self.open_terminal(i),
             None => self.switch_session(next),

@@ -30,7 +30,7 @@ impl App {
         self.open_session();
     }
 
-    /// F6 to F10, alt-n: the chat goes to agent session `n`, after the last one the first. The
+    /// F6 to F10, alt-] and alt-[: the chat goes to agent session `n`, after the last one the first. The
     /// chat opens on it.
     pub fn switch_session(&mut self, n: usize) {
         self.cli.pane = None;

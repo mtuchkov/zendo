@@ -113,7 +113,8 @@ impl App {
                 self.quit = true;
             }
             "toggle_tree" => self.toggle_tree(),
-            "next_session" => self.next_in_chat(),
+            "next_session" => self.step_in_chat(true),
+            "prev_session" => self.step_in_chat(false),
             "terminal" => self.terminal_key(false),
             "terminal_run" => self.terminal_key(true),
             s if s.starts_with("session_") => self.switch_session(s[8..].parse::<usize>().map_or(0, |n| n - 1)),

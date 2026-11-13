@@ -40,7 +40,7 @@ impl App {
             return;
         }
         let global = self.keys.local(Pane::Global, &k);
-        if global.is_some_and(|a| a == "next_session" || a == "terminal" || a.starts_with("session_")) {
+        if global.is_some_and(|a| matches!(a, "next_session" | "prev_session" | "terminal") || a.starts_with("session_")) {
             self.hold = None;
             self.on_key(k);
         }
