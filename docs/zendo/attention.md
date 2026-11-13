@@ -3,7 +3,7 @@ status: "draft"
 revision: "1"
 date: "2026-11-12"
 parent: "zendo.md"
-prev: "terminal-output.md"
+prev: "terminal/terminal.md"
 next: "project-structure.md"
 level: "how zendo calls the user back when a turn of an agent or a command of a terminal ends: the bell, the blinking button, the sound button"
 note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. It answers the open point on the bell in sessions.md."
@@ -20,7 +20,7 @@ bell rings once, and the button of the session blinks until the user looks at it
 - A Claude Code session goes from *works* to *idle* or *waits* (see [Sessions](sessions.md)). Only
   a state that a hook of Claude Code reports counts: the start of Claude Code and quiet output do
   not ring.
-- A command in a terminal ends, and the shell shows its prompt again (see [Terminal](terminal.md)).
+- A command in a terminal ends, and the shell shows its prompt again (see [Terminal](terminal/terminal.md)).
 
 An answer that the user stopped, an answer with a question in the queue after it, and the end of
 a process do not count.

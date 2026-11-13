@@ -1,4 +1,4 @@
-//! The terminals of zendo (docs/zendo/terminal.md): shell blocks in the chat, `F5`, `alt-F5`, and the
+//! The terminals of zendo (docs/zendo/terminal/terminal.md): shell blocks in the chat, `F5`, `alt-F5`, and the
 //! `F5` and `[>]` terminals, with `/bin/sh` as the shell.
 
 mod common;

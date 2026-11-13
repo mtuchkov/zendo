@@ -4,7 +4,7 @@ revision: "1"
 date: "2026-11-12"
 parent: "zendo.md"
 prev: "sessions.md"
-next: "terminal.md"
+next: "terminal/terminal.md"
 level: "the chat input: lines, chips, attachments and @ file suggestions"
 note: "Agent draft, split from claude.md. Not reviewed by the user."
 ---

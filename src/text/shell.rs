@@ -1,4 +1,4 @@
-//! Shell blocks in a message of the agent (docs/zendo/terminal.md): the command that `F5` puts
+//! Shell blocks in a message of the agent (docs/zendo/terminal/shell-blocks.md): the command that `F5` puts
 //! into a terminal.
 
 /// The languages of a fenced code block that hold shell commands (TERM-7).
