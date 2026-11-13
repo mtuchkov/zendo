@@ -56,6 +56,11 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     let area = f.area();
     app.cli.resize(area.height.saturating_sub(1), area.width);
     app.attention.button = None;
+    if app.hold.is_some() {
+        app.regions.clear();
+        draw_hold(f, app, &t, area);
+        return draw_selection(f, app, &t);
+    }
     if let Some(n) = app.cli.view {
         app.regions.clear();
         draw_cli(f, app, &t, n, area);

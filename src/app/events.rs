@@ -132,6 +132,7 @@ impl App {
         if self.say.as_ref().is_some_and(|s| s.key == key) {
             self.say = None;
         }
+        let held = self.holds(&key);
         let t = self.thread(&key);
         t.busy = None;
         t.thinking = false;
@@ -142,6 +143,10 @@ impl App {
         }
         if stop == "cancelled" {
             t.push(Item::Info("stopped".into()));
+        }
+        if held {
+            self.reload_after_agent();
+            return self.hold_turn_ended(&key);
         }
         let next = (!t.queue.is_empty()).then(|| t.queue.remove(0));
         self.chat_turn_ended(&key, &stop, next.is_some());
@@ -162,6 +167,9 @@ impl App {
         }
         self.agent_down = Some(text);
         let key = self.key();
+        if self.holds(&key) {
+            return self.hold_turn_ended(&key);
+        }
         self.queue_to_input(&key);
     }
 }

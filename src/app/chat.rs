@@ -181,6 +181,9 @@ impl App {
     }
 
     pub fn on_paste(&mut self, s: String) {
+        if self.hold.is_some() {
+            return;
+        }
         if let Some(n) = self.cli.view.or_else(|| self.pane_terminal()) {
             self.paste_cli(n, &s);
         } else if self.panel && self.focus == Focus::Claude {

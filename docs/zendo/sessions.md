@@ -1,10 +1,10 @@
 ---
 status: "draft"
-revision: "3"
-date: "2026-11-12"
+revision: "4"
+date: "2026-11-13"
 parent: "zendo.md"
 prev: "claude.md"
-next: "chat.md"
+next: "handoff.md"
 level: "Claude Code sessions that zendo runs: open, leave, states, up to five at a time"
 note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
@@ -17,7 +17,7 @@ when the user goes back to zendo: one researches while the user discusses in ano
 [ADR 0005](../architecture/decisions/0005-sessions-in-own-terminals.md).
 
 **Open and leave.** `ctrl-o` in the chat opens the Claude Code session of the active agent session.
-zendo starts it first if necessary. The session view takes the whole screen, with a bottom line of
+zendo starts it first if necessary. While the chat answers, `ctrl-o` waits for the end of the turn (see [Hand-off during a turn](handoff.md)). The session view takes the whole screen, with a bottom line of
 zendo. All input goes to Claude Code, except `alt-q` (back to zendo; the same key leaves a terminal
 of [Terminal](terminal/terminal.md)) and `F5` to `F10` (another session, or the `F5` terminal). When Claude
 Code exits, zendo goes back.
@@ -86,7 +86,6 @@ key, echoes a line, and exits on `q`. The tests are in `tests/sessions.rs`.
 | SESSIONS-12 | Event      | When Claude Code exits while its session view is open, the system shall show the screen from where the user opened the session.                    | Design           |
 | SESSIONS-13 | Event      | When a Claude Code session ends, the system shall open its agent session again, so that the chat shows the messages from Claude Code.               | Design           |
 | SESSIONS-14 | Ubiquitous | The system shall show the state of each running Claude Code session on its session button and in the bottom line of the session view.             | Design           |
-| SESSIONS-15 | Unwanted   | If the chat of an agent session is answering, then the system shall not open its Claude Code session, and shall say why.                            | Design           |
 | SESSIONS-16 | Event      | When the terminal changes size, the system shall give the new size to each Claude Code session.                                                    | Design           |
 | SESSIONS-17 | Unwanted   | If Claude Code does not report a state, then the system shall show *works* while the session prints and *idle* otherwise.                          | Design           |
 | SESSIONS-18 | Ubiquitous | The system shall not change the settings files of Claude Code of the user.                                                                          | Design           |
@@ -95,7 +94,7 @@ key, echoes a line, and exits on `q`. The tests are in `tests/sessions.rs`.
 
 Test of SESSIONS-20: `chat_shows_the_state_of_its_claude_code_session` in `tests/sessions.rs`.
 
-Retired: none. Revision 3 changed SESSIONS-4 and added SESSIONS-20.
+Retired in revision 4: SESSIONS-15 (zendo refused `ctrl-o` while the chat answered). [Hand-off during a turn](handoff.md) replaces it. Revision 3 changed SESSIONS-4 and added SESSIONS-20.
 
 ## Open points
 

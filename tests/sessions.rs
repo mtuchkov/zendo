@@ -173,16 +173,3 @@ async fn exit_goes_back_and_opens_the_agent_session_again() {
     assert!(a.threads.get(&session_key(0)).is_none_or(|t| t.opened && t.items.is_empty()), "the thread opens again");
     let _ = std::fs::remove_dir_all(&root);
 }
-
-// SESSIONS-15: no Claude Code session while the chat answers.
-#[tokio::test(flavor = "multi_thread")]
-async fn no_session_while_the_chat_answers() {
-    let (root, mut a) = app_with_cli("sessions-busy");
-    chat_on(&mut a, 0);
-    a.thread(&session_key(0)).busy = Some(Instant::now());
-    ctrl(&mut a, 'o');
-    assert_eq!(a.cli.view, None);
-    assert!(!a.cli.running(0));
-    assert!(a.flash.as_ref().is_some_and(|(s, _)| s.contains("answer")), "{:?}", a.flash);
-    let _ = std::fs::remove_dir_all(&root);
-}

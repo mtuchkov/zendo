@@ -31,6 +31,9 @@ impl App {
         }
         // Any key ends a mouse selection; the text is already copied.
         self.sel = None;
+        if self.hold.is_some() {
+            return self.key_hold(k);
+        }
         if let Some(n) = self.cli.view {
             return self.key_cli(n, k);
         }

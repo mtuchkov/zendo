@@ -11,24 +11,33 @@ impl App {
     }
 
     /// `ctrl-o`: show the Claude Code session of the active agent session; start it first if it
-    /// does not run (SESSIONS-7, SESSIONS-15).
+    /// does not run. While the chat answers, the session view waits for the end of the turn
+    /// (SESSIONS-7, HANDOFF-1).
     pub(crate) fn open_cli(&mut self) {
-        let Some(cmd) = self.handoff_cli() else {
+        if self.handoff_cli().is_none() {
             return self.flash(format!("{} has no command line with a resume", self.agent_label()));
-        };
+        }
         let (n, key) = (self.active(), self.key());
         if self.cli.running(n) {
             self.cli.view = Some(n);
             return;
         }
         if self.threads.get(&key).is_some_and(|t| t.busy.is_some()) {
-            return self.flash("the chat answers: wait for the answer or press esc, then open Claude Code");
+            return self.hold_cli(n);
         }
+        self.start_cli(n, None);
+    }
+
+    /// Start the Claude Code session of agent session `n` and show it; `prompt`: its first prompt
+    /// (HANDOFF-5).
+    pub(crate) fn start_cli(&mut self, n: usize, prompt: Option<&str>) {
+        let Some(cmd) = self.handoff_cli() else { return };
+        let key = session_key(n);
         let id = self.threads.get(&key).and_then(|t| t.session.clone()).or_else(|| self.state.session(&self.cfg.agent, &key));
         let Some(id) = id else {
             return self.flash("no thread yet: ask something first");
         };
-        match self.cli.open(n, &cmd, &id, &self.cfg.root) {
+        match self.cli.open(n, &cmd, crate::session::Resume { id: &id, prompt }, &self.cfg.root) {
             Ok(()) => self.cli.view = Some(n),
             Err(e) => self.flash(format!("could not start {}: {e}", cmd.program)),
         }

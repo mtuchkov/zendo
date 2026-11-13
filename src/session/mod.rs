@@ -28,6 +28,13 @@ pub struct Command {
     pub args: Vec<String>,
 }
 
+/// What a Claude Code session resumes: the session ID, and the first prompt, if any (HANDOFF-5).
+#[derive(Clone, Copy, Debug)]
+pub struct Resume<'a> {
+    pub id: &'a str,
+    pub prompt: Option<&'a str>,
+}
+
 /// The state of a running Claude Code session.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum State {
@@ -145,12 +152,12 @@ impl Sessions {
     }
 
     /// Start the Claude Code session of agent session `n` with its session ID, if it does not run.
-    pub fn open(&mut self, n: usize, cmd: &Command, id: &str, root: &Path) -> std::io::Result<()> {
+    pub fn open(&mut self, n: usize, cmd: &Command, resume: Resume, root: &Path) -> std::io::Result<()> {
         if self.running(n) {
             return Ok(());
         }
         let dir = root.join(".zendo").join("sessions");
-        let cli = Cli::spawn(cmd, id, root, &dir, n, self.size, self.notify.clone())?;
+        let cli = Cli::spawn(cmd, resume, root, &dir, n, self.size, self.notify.clone())?;
         self.slots[n] = Some(cli);
         self.sizes[n] = self.size;
         Ok(())

@@ -13,6 +13,7 @@ mod events;
 mod files;
 mod files_new;
 mod files_ops;
+mod hold;
 mod file_prompt;
 mod info;
 mod input;
@@ -32,6 +33,7 @@ pub mod write_rows;
 pub use at::{AT_ROWS, AtPick};
 pub use attention::Attention;
 pub use file_prompt::FilePrompt;
+pub use hold::{CONTINUE, HOLD_AGAIN, Hold};
 pub use say::{SAY_HERE, Say};
 pub use slash::Slash;
 pub use thread::*;
@@ -262,6 +264,8 @@ pub struct App {
     pub quit: bool,
     /// The Claude Code sessions of the agent sessions, in terminals that zendo owns.
     pub cli: crate::session::Sessions,
+    /// `ctrl-o` while the chat answers: the session view waits for the end of the turn (HANDOFF-1).
+    pub hold: Option<Hold>,
     /// The bell and the blinking buttons when a turn ends, and the sound button (ATTN-1 to ATTN-11).
     pub attention: Attention,
 

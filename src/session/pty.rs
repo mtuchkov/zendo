@@ -1,7 +1,7 @@
 //! One Claude Code process in a pseudo terminal, with its screen in a terminal emulator.
 
 use super::output::Recorder;
-use super::{Command, State, hooks, marks};
+use super::{Command, Resume, State, hooks, marks};
 use portable_pty::{Child, CommandBuilder, MasterPty, PtySize};
 use std::io::{Read, Write};
 use std::num::NonZeroU16;
@@ -61,7 +61,7 @@ fn nz(n: u16) -> NonZeroU16 {
 
 impl Cli {
     /// Start `cmd` with the hooks, then `id`, in `cwd`, on a screen of `size`.
-    pub fn spawn(cmd: &Command, id: &str, cwd: &Path, dir: &Path, n: usize, size: (u16, u16), notify: Arc<tokio::sync::Notify>) -> std::io::Result<Cli> {
+    pub fn spawn(cmd: &Command, resume: Resume, cwd: &Path, dir: &Path, n: usize, size: (u16, u16), notify: Arc<tokio::sync::Notify>) -> std::io::Result<Cli> {
         std::fs::create_dir_all(dir)?;
         let state_file = dir.join(format!("{}.state", n + 1));
         let _ = std::fs::remove_file(&state_file);
@@ -71,7 +71,8 @@ impl Cli {
         b.arg("--settings");
         b.arg(&settings);
         b.args(&cmd.args);
-        b.arg(id);
+        b.arg(resume.id);
+        b.args(resume.prompt);
         b.cwd(cwd);
         b.env("ZENDO_STATE", &state_file);
         b.env("TERM", "xterm-256color");

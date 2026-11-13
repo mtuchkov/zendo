@@ -45,6 +45,27 @@ pub(crate) fn draw_cli(f: &mut Frame, app: &mut App, t: &Theme, n: usize, area: 
     draw_cli_bar(f, app, t, n, bar);
 }
 
+/// The session view that waits for the end of a turn: the answer of the chat as it streams, and
+/// a bottom line that says when Claude Code starts and how to stop the turn (HANDOFF-1, HANDOFF-7,
+/// HANDOFF-8).
+pub(crate) fn draw_hold(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
+    let [screen, bar] = Layout::vertical([Constraint::Min(1), Constraint::Length(1)]).areas(area);
+    f.render_widget(Block::new().style(Style::new().bg(t.bg).fg(t.fg)), area);
+    let inner = Rect { x: screen.x + 2, width: screen.width.saturating_sub(4), ..screen };
+    let (lines, _) = crate::ui::thread::panel_lines(app, t, inner.width as usize);
+    let tail = lines.len().saturating_sub(inner.height as usize);
+    f.render_widget(Paragraph::new(lines[tail..].to_vec()), inner);
+    let leave = app.keys.first(crate::keys::Pane::Session, "leave");
+    let spans = vec![
+        Span::raw(" "),
+        Span::styled(" CLAUDE CODE ", Style::new().bg(t.acc).fg(t.bg).add_modifier(Modifier::BOLD)),
+        Span::styled(format!("  {}", app.hold_line()), Style::new().fg(t.acc)),
+        Span::styled(format!("   {leave}"), Style::new().fg(t.fg)),
+        Span::styled(" back to zendo", Style::new().fg(t.dim)),
+    ];
+    f.render_widget(Paragraph::new(Line::from(spans)).style(Style::new().bg(t.bg)), bar);
+}
+
 /// A terminal in the chat pane: a head line with its name and keys, and its screen (TERM-37).
 pub(crate) fn draw_pane_terminal(f: &mut Frame, app: &mut App, t: &Theme, n: usize, head: Rect, body: Rect) {
     use crate::keys::Pane;
@@ -101,6 +122,10 @@ fn draw_cli_bar(f: &mut Frame, app: &App, t: &Theme, n: usize, area: Rect) {
     let leave = app.keys.first(Pane::Session, "leave");
     spans.push(Span::styled(format!("   {leave}"), Style::new().fg(t.fg)));
     spans.push(Span::styled(" back to zendo   wheel: earlier lines", Style::new().fg(t.dim)));
+    // A message of zendo, such as a turn that did not stop (HANDOFF-6).
+    if let Some((msg, _)) = &app.flash {
+        spans.push(Span::styled(format!("   {msg}"), Style::new().fg(t.acc)));
+    }
     f.render_widget(Paragraph::new(Line::from(spans)).style(Style::new().bg(t.bg)), area);
 }
 
