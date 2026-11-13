@@ -22,15 +22,21 @@ impl App {
         self.focus = self.visible[(i + 1) % self.visible.len()];
     }
 
-    pub fn on_key(&mut self, k: KeyEvent) {
-        use crate::keys::Pane;
+    /// What any key ends: a run of `alt-o` or `tab`, a mouse selection.
+    fn key_comes(&mut self, k: &KeyEvent) {
         self.last_input = Instant::now();
+        self.tab_run.key();
         // Only `alt-o` right after `alt-o` takes the next terminal (TERM-28).
-        if self.keys.local(Pane::Chat, &k) != Some("insert_output") {
+        if self.keys.local(crate::keys::Pane::Chat, k) != Some("insert_output") {
             self.output_pick = None;
         }
         // Any key ends a mouse selection; the text is already copied.
         self.sel = None;
+    }
+
+    pub fn on_key(&mut self, k: KeyEvent) {
+        use crate::keys::Pane;
+        self.key_comes(&k);
         if self.hold.is_some() {
             return self.key_hold(k);
         }
@@ -111,18 +117,7 @@ impl App {
             "wider" => self.change_width(4),
             "narrower" => self.change_width(-4),
             "help" => self.open_help(pane),
-            // tab: the chat input, then its transcript, then the next pane.
-            "next_pane" if pane == crate::keys::Pane::Chat => {
-                self.transcript.on = true;
-                self.transcript.to_end();
-            }
-            "next_pane" => {
-                self.transcript.on = false;
-                self.next_pane();
-                if pane == crate::keys::Pane::Transcript && self.focus == Focus::Claude {
-                    self.focus = Focus::Note;
-                }
-            }
+            "next_pane" => self.tab(pane),
             e @ ("edge_left" | "edge_right") if matches!(self.focus, Focus::Tree | Focus::Claude | Focus::Delta) => {
                 let left = e == "edge_left";
                 // The edge between this pane and the note moves; the tree's edge is on its right.

@@ -14,6 +14,7 @@ impl App {
         }
         if !matches!(m.kind, MouseEventKind::Moved) {
             self.last_input = Instant::now();
+            self.tab_run.end();
         }
         if self.mouse_to_program(m) {
             return;

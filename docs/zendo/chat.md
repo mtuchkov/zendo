@@ -1,7 +1,7 @@
 ---
 status: "draft"
 revision: "1"
-date: "2026-11-12"
+date: "2026-11-13"
 parent: "zendo.md"
 prev: "cli-messages.md"
 next: "terminal/terminal.md"
@@ -27,8 +27,11 @@ shows in the accent color; `backspace` and `delete` remove it. `@` and the start
 does the same for templates: the chip tells the agent to write a new document from the template, for
 example a specification from the notes the user names with `@`.
 
-**The transcript.** `tab` in the chat input moves the keys to the transcript, and `tab` there to
-the next pane. The cursor and the selection keys of read mode work in the transcript. `y` copies the
+**The transcript.** `tab` in the chat input moves the keys to the transcript. The chat input and
+the transcript are a pair: the first `tab` of a run goes to the other pane of the pair, so `tab` in
+the transcript goes back to the input. More `tab`s go around the panes and come back into the chat
+at the pane where the run started. Another key, a click, a paste, or a pause of 2 seconds starts a
+new run. The cursor and the selection keys of read mode work in the transcript. `y` copies the
 selection, or the message under the cursor; `a` adds it to the chat input as a chip with `↩` in
 its own color. `esc` or `i` goes back to the input.
 
@@ -56,6 +59,7 @@ data when the agent takes images, and every other file as a link to it.
 | CLAUDE-16 | Event      | When the user drops or pastes the paths of existing files into the chat input, the system shall show one chip for each file and send the files with the question. | User, 2026-11-12 |
 | CLAUDE-17 | Event      | When the user pastes an image from the clipboard into the chat input, the system shall save it and show it as an `[image …]` chip. | User, 2026-11-12 |
 | CLAUDE-29 | Event      | When the user presses `tab` in the chat input, the system shall move the keys to the transcript, where the cursor and the selection keys of read mode work, `y` copies, and `a` adds the text to the input as a chip of its own color. | User, 2026-11-12 |
+| CLAUDE-36 | Event      | When the user presses `tab` in the chat input or the transcript after another key, a click, a paste, or a pause of 2 seconds, the system shall move the keys to the other pane of the two; when the user presses more `tab`s, the system shall move the focus around the panes and back into the chat at the pane where the `tab`s started. | User, 2026-11-13 |
 | CLAUDE-33 | Event      | When the user sends a question while the agent answers, the system shall show it in a queue under the answer, and send it when the turn ends. | User, 2026-11-12 |
 | CLAUDE-34 | Event      | When the user presses `esc` while the agent answers, the system shall stop the answer and put the queued questions back into the chat input. | User, 2026-11-12 |
 | CLAUDE-28 | Event      | When the user types `/` at the start of the chat input, the system shall show the slash commands of the agent that match, and send a command to the agent as the user typed it. | User, 2026-11-12 |
@@ -75,6 +79,7 @@ Tests that verify detailed requirements: `dropped_files_are_paths_and_nothing_el
 `ctrl_t_suggests_only_templates` (CLAUDE-25), `a_name_that_starts_with_the_query_comes_first` and
 `slash_commands_come_from_the_agent_and_go_to_it_as_typed` (CLAUDE-28),
 `alt_enter_is_a_new_line_and_the_status_bar_says_so` (CLAUDE-15, CLAUDE-30),
-`the_cursor_moves_and_selects_in_the_transcript` and `tab_goes_to_the_transcript_to_select_copy_and_add` (CLAUDE-29), `at_adds_a_file_chip_that_moves_and_goes_as_one`
+`the_cursor_moves_and_selects_in_the_transcript` and `tab_goes_to_the_transcript_to_select_copy_and_add` (CLAUDE-29),
+`the_first_tab_goes_to_the_sister_pane_of_the_chat` (CLAUDE-36), `at_adds_a_file_chip_that_moves_and_goes_as_one`
 (CLAUDE-22, CLAUDE-23), `a_question_while_the_agent_answers_waits_in_the_queue` (CLAUDE-33) and
 `esc_stops_and_puts_the_queue_back_in_the_input` (CLAUDE-34) in `tests/chat_queue.rs`.

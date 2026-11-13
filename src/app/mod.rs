@@ -24,6 +24,7 @@ mod read;
 mod say;
 mod selection;
 mod slash;
+mod tab;
 mod thread;
 mod transcript;
 mod tree;
@@ -36,6 +37,7 @@ pub use file_prompt::FilePrompt;
 pub use hold::{CONTINUE, HOLD_AGAIN, Hold};
 pub use say::{SAY_HERE, Say};
 pub use slash::Slash;
+pub use tab::{TAB_PAUSE, TabRun};
 pub use thread::*;
 pub use transcript::{CHAT_MARK, Transcript};
 
@@ -197,6 +199,8 @@ pub struct App {
     pub auto_recaps: Vec<Instant>,
     #[default(Instant::now())]
     pub last_input: Instant,
+    /// The run of `tab`s (CLAUDE-36).
+    pub tab_run: TabRun,
     /// Text attached to the next question, e.g. the delta.
     pub ask_context: Option<String>,
     /// The question sent when the input is empty and there is a context.

@@ -184,6 +184,7 @@ impl App {
         if self.hold.is_some() {
             return;
         }
+        self.tab_run.end();
         if let Some(n) = self.cli.view.or_else(|| self.pane_terminal()) {
             self.paste_cli(n, &s);
         } else if self.panel && self.focus == Focus::Claude {

@@ -232,3 +232,46 @@ async fn edit_is_applied_without_a_question() {
     assert!(!chat.contains("WHEN the mock agent") && !chat.contains("discard"), "no diff and no question in the chat:\n{chat}");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+/// Where the keys go: the chat input, its transcript, or another pane.
+fn place(a: &App) -> &'static str {
+    match a.focus {
+        Focus::Claude if a.transcript.on => "transcript",
+        Focus::Claude => "chat",
+        Focus::Note => "note",
+        Focus::Delta => "delta",
+        Focus::Tree => "tree",
+    }
+}
+
+/// Press `tab` once for each place, and check that the keys go there.
+fn tabs(a: &mut App, places: &[&str]) {
+    for want in places {
+        key(a, KeyCode::Tab);
+        assert_eq!(place(a), *want, "tab");
+    }
+}
+
+// CLAUDE-36: the chat input and its transcript are a pair. The first tab of a run goes to the other
+// pane of the pair; more tabs go around the panes, and back into the chat at the pane where the run
+// started. Another key or a pause starts a new run.
+#[tokio::test]
+async fn the_first_tab_goes_to_the_sister_pane_of_the_chat() {
+    let root = repo("chat-tab-pair", &files());
+    let mut a = app(&root);
+    a.open_file(root.join(A));
+    a.open_panel();
+    draw(&mut a, 160, 30);
+    assert_eq!(place(&a), "chat");
+    tabs(&mut a, &["transcript", "note", "chat", "transcript"]);
+    key(&mut a, KeyCode::Char('k'));
+    tabs(&mut a, &["chat", "note", "transcript", "chat", "note"]);
+    tabs(&mut a, &["transcript", "chat"]);
+    typ(&mut a, "x");
+    tabs(&mut a, &["transcript", "note"]);
+    a.tab_run.at = a.tab_run.at.map(|t| t - zendo::app::TAB_PAUSE);
+    tabs(&mut a, &["chat", "transcript"]);
+    a.tab_run.at = a.tab_run.at.map(|t| t - zendo::app::TAB_PAUSE);
+    tabs(&mut a, &["chat", "note", "transcript"]);
+    let _ = std::fs::remove_dir_all(&root);
+}
