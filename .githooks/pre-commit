@@ -1,8 +1,10 @@
 #!/bin/sh
-# project-structure.toml passes the checks of zendo doctor (tests/project_structure.rs).
-# The check runs when the commit changes the file, or deletes or renames a file that it can name.
+# 1. The version in Cargo.toml increases with every commit (.githooks/version-bump.sh).
+# 2. project-structure.toml passes the checks of zendo doctor (tests/project_structure.rs).
+#    The check runs when the commit changes the file, or deletes or renames a file that it can name.
 # Turn it on in a clone: git config core.hooksPath .githooks
 top=$(git rev-parse --show-toplevel) || exit 1
+"$top/.githooks/version-bump.sh" staged || exit 1
 changed=$(git diff --cached --name-only -- project-structure.toml)
 gone=$(git diff --cached --name-only --diff-filter=DR)
 [ -z "$changed$gone" ] && exit 0

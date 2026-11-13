@@ -1,0 +1,20 @@
+name: Version
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Check that every commit increases the version in Cargo.toml
+      env:
+        BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: sh .githooks/version-bump.sh "$BASE" "$HEAD"
