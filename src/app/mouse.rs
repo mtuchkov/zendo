@@ -16,10 +16,14 @@ impl App {
             self.last_input = Instant::now();
             self.tab_run.end();
         }
-        if self.mouse_to_program(m) {
+        // The float takes the mouse: only what happens over it counts.
+        if let Some(fl) = &self.float {
+            if !fl.rect.contains(ratatui::layout::Position::new(m.column, m.row)) {
+                return;
+            }
+        } else if self.mouse_to_program(m) {
             return;
-        }
-        if let Some(n) = self.cli.view {
+        } else if let Some(n) = self.cli.view {
             return self.mouse_cli(n, m);
         }
         let (x, y) = (m.column, m.row);

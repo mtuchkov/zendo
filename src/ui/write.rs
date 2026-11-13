@@ -94,11 +94,13 @@ fn write_lines(app: &App, t: &Theme, w: usize) -> (markdown::Rendered, usize, Op
         Some(i) => title_rows(lines[i].trim_start_matches('#').trim(), w, t),
         None => Vec::new(),
     };
-    let note = app.note().filter(|n| app.editor_path.as_ref() == Some(&n.path)).cloned();
+    // The float has its own head: the title, and the time when it opened (FLOAT-7).
+    let note = app.note().filter(|n| app.float.is_none() && app.editor_path.as_ref() == Some(&n.path)).cloned();
     let mut out = match &note {
         Some(n) => note_head(app, n, w, t, title_rows),
         None => title_rows,
     };
+    out.extend(float_date(app, t));
     let head = out.len();
     let src: Vec<(String, Mark)> = lines.iter().map(|l| (l.clone(), Mark::None)).collect();
     let mut r = markdown::render_live(&src, w, t, (!on_title).then_some(app.editor.row));

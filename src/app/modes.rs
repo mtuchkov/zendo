@@ -49,7 +49,7 @@ impl App {
                 self.pinned = None;
                 self.mode = Mode::Read;
             }
-            Some("new") => self.start_write(true),
+            Some("new") => self.open_float(),
             Some("search") => self.open_search(""),
             Some("tags") => self.open_search("#"),
             Some("rename") if n > 0 => self.rename(self.notes_sel),

@@ -53,7 +53,7 @@ impl App {
             "back" if self.delta_open => self.delta_open = false,
             "quit" => self.quit = true,
             "write" => self.start_write(false),
-            "new" => self.start_write(true),
+            "new" => self.open_float(),
             "notes" => self.open_notes(),
             "search" => self.open_search(""),
             "chat" => self.toggle_chat(),

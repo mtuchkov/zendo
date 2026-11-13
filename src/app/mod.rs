@@ -13,6 +13,8 @@ mod events;
 mod files;
 mod files_new;
 mod files_ops;
+mod float;
+mod jobs;
 mod hold;
 mod file_prompt;
 mod info;
@@ -34,6 +36,8 @@ pub mod write_rows;
 pub use at::{AT_ROWS, AtPick};
 pub use attention::Attention;
 pub use file_prompt::FilePrompt;
+pub use float::Float;
+pub use jobs::*;
 pub use hold::{CONTINUE, HOLD_AGAIN, Hold};
 pub use say::{SAY_HERE, Say};
 pub use slash::Slash;
@@ -83,33 +87,6 @@ pub enum Base {
     #[default]
     LastVisit,
     GitHead,
-}
-
-/// One stay on a note. It counts as work after an edit or enough scrolls and clicks.
-pub struct Visit {
-    pub path: PathBuf,
-    pub interactions: u32,
-    pub edited: bool,
-}
-
-/// Scrolls and clicks that make a visit count, when there is no edit.
-pub const ENGAGED: u32 = 12;
-/// Claude writes recaps only after the user is idle this long.
-pub const IDLE: Duration = Duration::from_secs(45);
-/// At most this many automatic recaps per hour.
-pub const AUTO_PER_HOUR: usize = 6;
-
-pub struct RecapJob {
-    pub rel: String,
-    pub hash: String,
-    pub text: String,
-    pub buf: String,
-    pub auto: bool,
-    pub failed: Option<String>,
-    /// Not a recap: a title and front matter for the file.
-    pub meta: Option<crate::agent::work::Meta>,
-    /// Not a recap: the confusing lines of the file.
-    pub review: bool,
 }
 
 #[derive(Default)]
@@ -254,6 +231,8 @@ pub struct App {
     pub cursor_y: usize,
     /// After a mode change: the screen row the cursor keeps at the next draw.
     pub keep_y: Option<usize>,
+    /// `alt-n`: the new note in a float; the screen behind waits in it (FLOAT-1).
+    pub float: Option<Float>,
     /// `ctrl-shift-s`: the arrow in the note, until the answer ends or `esc`.
     pub say: Option<Say>,
     /// `@` in the chat input: the file suggestions under it.
