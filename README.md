@@ -117,6 +117,13 @@ zendo setup --agent codex    # Codex: log in with `codex login`
 When an agent cannot do something, only that key is off. With Codex, that is
 `ctrl-o` and the background sessions.
 
+## Ergonomics
+
+Ergonomics is a requirement for every part of zendo: no save key, no question for each edit, a
+hint for every key, and a keymap that you can change. If something gets in your way, open an issue.
+[ERGONOMICS.md](ERGONOMICS.md) lists what zendo does today and how to suggest a change of the
+default keys.
+
 ## Install
 
 ```sh
@@ -132,5 +139,6 @@ top bar says so: press `U`. For proxies and certificates, see
 
 - [docs/zendo/zendo.md](docs/zendo/zendo.md): the specification (draft).
 - [docs/architecture/decisions](docs/architecture/decisions): the decisions.
+- [ERGONOMICS.md](ERGONOMICS.md): what zendo does to stay out of your way, and the keymap.
 - [INSTALLATION.md](INSTALLATION.md): install, upgrade, keys, code highlighting,
   the notes repo, certificates, removal.
