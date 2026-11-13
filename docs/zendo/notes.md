@@ -27,7 +27,8 @@ the chat. Every key comes from the keymap
 
 `ctrl-shift-s` or `alt-s` asks the agent to write an idea into the note: see [Say it here](say.md).
 
-Tables show with solid borders and fit the pane. Code blocks and front matter show with syntax
+Tables show with solid borders and fit the pane. The body rows of a table alternate two backgrounds
+of the same tone: the page color and a color a small step from it. Code blocks and front matter show with syntax
 colors: `sh`, `rust`, `java`, `python`, `go`, `yaml` and `json` are on; other languages are plugins.
 
 ## Architecturally significant requirements
@@ -69,6 +70,8 @@ colors: `sh`, `rust`, `java`, `python`, `go`, `yaml` and `json` are on; other la
 | NOTE-17 | Event      | When the user moves the cursor with Shift (`ctrl-shift-h j k l`, `H J K L`, Shift and the arrows), the system shall select the text char by char.        | User, 2026-11-11 |
 | NOTE-18 | Event      | When the user adds the selection to the chat (`ctrl-shift-a` or `alt-a`, or `+` in read mode), the system shall put a chip with the first 15 chars of the selection, and `+N` for N more lines, into the chat input and send the text as context. | User, 2026-11-11 |
 | NOTE-21 | Optional   | Where a `.sublime-syntax` file is in `~/.zendo/syntaxes/`, or a language is in `[highlight] languages`, the system shall highlight that language. | User, 2026-11-11 |
+| NOTE-34 | Ubiquitous | The system shall show the body rows of a table with alternate backgrounds of the same tone: the page color, and the page color mixed with 5 % of the text color. | User, 2026-11-12 |
 
 Tests that verify detailed requirements: `bold_italic_underline_and_tables_render` (NOTE-2),
-`the_default_languages_are_on` (NOTE-2), `a_language_is_on_by_config_or_by_plugin_file` (NOTE-21).
+`the_default_languages_are_on` (NOTE-2), `a_language_is_on_by_config_or_by_plugin_file` (NOTE-21),
+`table_rows_alternate_backgrounds` (NOTE-34).

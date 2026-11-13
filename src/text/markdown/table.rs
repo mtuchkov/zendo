@@ -1,5 +1,9 @@
-//! Tables with solid borders that fit the width.
+//! Tables with solid borders that fit the width, the body rows striped.
 use super::*;
+use crate::ui::theme::mix;
+
+/// How far the stripe of a table row goes from the page color to the text color (NOTE-34).
+pub(super) const TABLE_STRIPE: f32 = 0.05;
 
 pub(super) struct Table {
     pub(super) lines: Vec<Line<'static>>,
@@ -89,7 +93,7 @@ pub(super) fn table_at(logicals: &[Logical], i: usize, width: usize, t: &Theme, 
                     out.extend(align_cell(cell, w[c], align.get(c).copied()));
                     out.push(Span::styled("│", border));
                 }
-                lines.push(Line::from(out));
+                lines.push(striped(Line::from(out), r, t));
             }
         }
         if r == 0 {
@@ -103,6 +107,17 @@ pub(super) fn table_at(logicals: &[Logical], i: usize, width: usize, t: &Theme, 
     }
     lines.push(rule("└", "┴", "┘"));
     Some((end, Table { lines, rows }))
+}
+
+/// Source row `r` of a table (0 is the head): the second body row and each other row after it get
+/// the stripe background (NOTE-34). A span with its own background, such as inline code, keeps it.
+fn striped(line: Line<'static>, r: usize, t: &Theme) -> Line<'static> {
+    if r == 0 || r % 2 == 1 {
+        return line;
+    }
+    let bg = mix(t.bg, t.fg, TABLE_STRIPE);
+    let spans = line.spans.into_iter().map(|s| if s.style.bg.is_some() { s } else { let st = s.style.bg(bg); s.style(st) }).collect::<Vec<_>>();
+    Line::from(spans)
 }
 
 /// Column widths that fit the width: the widest column gives up a char at a time, down to 3.

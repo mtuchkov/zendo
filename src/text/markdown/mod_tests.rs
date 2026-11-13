@@ -106,3 +106,25 @@ fn rows_know_their_start_in_the_source() {
     assert_eq!(r.starts[item], Some((4, 0)));
     assert_eq!(r.starts[item + 1].map(|s| s.0), Some(4));
 }
+
+// NOTE-34: the body rows of a table alternate two backgrounds of the tone of the page.
+#[test]
+fn table_rows_alternate_backgrounds() {
+    let t = THEMES[0];
+    let r = render(&plain("| a | b |\n|---|---|\n| one | 1 |\n| two | 2 |\n| three | 3 |\n| four | 4 |"), 30, &t, false);
+    let bg = |row: usize| -> Vec<Option<ratatui::style::Color>> {
+        r.lines[row].spans.iter().filter(|s| !s.content.is_empty()).map(|s| s.style.bg).collect()
+    };
+    let stripe = crate::ui::theme::mix(t.bg, t.fg, TABLE_STRIPE);
+    // Rows: 0 top border, 1 head, 2 rule, 3..=6 body, 7 bottom border.
+    for row in [0, 1, 2, 3, 5, 7] {
+        assert!(bg(row).iter().all(Option::is_none), "row {row} keeps the page background: {:?}", r.lines[row]);
+    }
+    for row in [4, 6] {
+        assert!(bg(row).iter().all(|b| *b == Some(stripe)), "row {row} is striped: {:?}", r.lines[row]);
+    }
+    use ratatui::style::Color;
+    let (Color::Rgb(r0, g0, b0), Color::Rgb(r1, g1, b1)) = (t.bg, stripe) else { panic!("rgb theme") };
+    let delta = [r0.abs_diff(r1), g0.abs_diff(g1), b0.abs_diff(b1)];
+    assert!(delta.iter().all(|d| (4..=24).contains(d)), "the same tone, a small step from the page: {delta:?}");
+}
