@@ -95,3 +95,5 @@ The project structure is the set of top-level folders, the folders of `docs/`, a
 - The agent shall check each message with `.githooks/commit-msg` before it commits. In a clone, turn
   the check on with `git config core.hooksPath .githooks`; CI checks every commit of a push and of a
   pull request, and the title of a pull request.
+- Each commit shall increase the package version in `Cargo.toml`. The agent shall choose the new
+  version with the rules of [VERSION.md](VERSION.md).
