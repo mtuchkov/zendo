@@ -46,6 +46,10 @@ pub async fn run(
         if std::mem::take(&mut app.attention.bells) > 0 {
             bell();
         }
+        if let Some(text) = app.to_chat.take() {
+            app.mouse_to_chat(text);
+            continue;
+        }
         if let Some(text) = app.clip.take() {
             crate::text::select::copy(&text);
             app.last_copy = Some(text.clone());

@@ -68,9 +68,9 @@ impl App {
                 self.sel = None;
                 self.cli.scroll(n, m.kind == MouseEventKind::ScrollUp);
             }
-            MouseEventKind::Down(MouseButton::Left) => self.sel = self.region_at(x, y).map(|(region, rect)| Selection::start(region, rect, x, y)),
-            MouseEventKind::Drag(MouseButton::Left) => self.drag_selection(x, y),
-            MouseEventKind::Up(MouseButton::Left) => self.end_selection(),
+            MouseEventKind::Down(MouseButton::Left) => self.sel = self.region_at(x, y).map(|(region, rect)| Selection::start(region, rect, x, y).with(m.modifiers)),
+            MouseEventKind::Drag(MouseButton::Left) => self.drag_selection(x, y, m.modifiers),
+            MouseEventKind::Up(MouseButton::Left) => self.end_selection(m.modifiers),
             _ => {}
         }
     }

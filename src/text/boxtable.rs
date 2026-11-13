@@ -1,4 +1,5 @@
-//! A selection that starts in a cell of a table with box borders (`┌ ─ ┬ │ ├ ┼ └`) keeps to the
+//! A selection that starts in a cell of a table with box borders (`┌ ─ ┬ │ ├ ┼ └`, heavy, double,
+//! dashed and rounded too: the Box Drawing block of Unicode) keeps to the
 //! columns of the table (PANES-34). The table is found in the rows around the start (PANES-35);
 //! tables drawn with `|`, `-` and `+` are plain text (PANES-36). Positions are display columns: a
 //! wide char covers two.
@@ -8,24 +9,30 @@ use unicode_width::UnicodeWidthChar;
 /// How far up and down from the start of a selection the borders of a table can be (PANES-35).
 pub const REACH: usize = 100;
 
-const VERTICAL: &str = "│┃║╎╏┆┇┊┋";
-const HORIZONTAL: &str = "─━═╌╍┄┅┈┉";
-/// Corners and joints with no arm up: the top border.
-const TOP: &str = "┌┐┬╭╮┏┓┳╔╗╦╒╓╕╖╤╥┍┎┑┒┯┰┭┮┱┲";
-/// Corners and joints with no arm down: the bottom border.
-const BOTTOM: &str = "└┘┴╰╯┗┛┻╚╝╩╘╙╛╜╧╨┕┖┙┚┷┸┵┶┹┺";
+// The Box Drawing block (U+2500 to U+257F) by the arms of each char, after its Unicode name. The
+// diagonals `╱ ╲ ╳` are in no class.
+/// Up and down only: the vertical lines.
+const VERTICAL: &str = "│┃┆┇┊┋╎╏║╽╿";
+/// Left and right only: the horizontal lines.
+const HORIZONTAL: &str = "─━┄┅┈┉╌╍═╴╶╸╺╼╾";
+/// Down and no up: the top border.
+const TOP: &str = "┌┍┎┏┐┑┒┓┬┭┮┯┰┱┲┳╒╓╔╕╖╗╤╥╦╭╮╷╻";
+/// Up and no down: the bottom border.
+const BOTTOM: &str = "└┕┖┗┘┙┚┛┴┵┶┷┸┹┺┻╘╙╚╛╜╝╧╨╩╯╰╵╹";
+/// Up, down and a side: a rule inside the table, such as `├` or `┼`.
+const MIDDLE: &str = "├┝┞┟┠┡┢┣┤┥┦┧┨┩┪┫┼┽┾┿╀╁╂╃╄╅╆╇╈╉╊╋╞╟╠╡╢╣╪╫╬";
 
+/// A char of the lines of a table, of any class.
 fn is_box(c: char) -> bool {
-    ('\u{2500}'..='\u{257F}').contains(&c)
+    [VERTICAL, HORIZONTAL, TOP, BOTTOM, MIDDLE].iter().any(|class| class.contains(c))
 }
 
 fn is_vertical(c: char) -> bool {
     VERTICAL.contains(c)
 }
 
-/// A joint with arms up and down, such as `├` or `┼`: a rule inside the table.
 fn is_middle(c: char) -> bool {
-    is_box(c) && !VERTICAL.contains(c) && !HORIZONTAL.contains(c) && !TOP.contains(c) && !BOTTOM.contains(c)
+    MIDDLE.contains(c)
 }
 
 fn width(c: char) -> usize {

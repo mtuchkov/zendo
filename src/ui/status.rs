@@ -45,6 +45,9 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
         v.push(next.clone());
         v
     };
+    if app.sel.is_some_and(|s| !s.done) {
+        return mouse_selection(t);
+    }
     if tree {
         return ("FILES", t.acc, with_next(hints(Pane::Tree, &[("down", "move"), ("open", "open"), ("view", "view"), ("search", "name"), ("add_to_chat", "to chat"), ("rename", "rename"), ("move", "move to"), ("delete", "delete"), ("close", "close")])));
     }
@@ -99,6 +102,12 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
         Mode::Search => ("SEARCH", t.acc, vec![("↑ ↓".into(), "move".into()), ("enter".into(), "open at match".into()), ("esc".into(), "back".into())]),
         Mode::Theme => ("THEME", t.acc, vec![("j k".into(), "preview".into()), ("enter".into(), "keep".into()), ("esc".into(), "cancel".into())]),
     }
+}
+
+/// A drag of the mouse: what the release does, and the keys that change it (PANES-45).
+fn mouse_selection(t: &Theme) -> (&'static str, Color, Hints) {
+    let v = [("release", "copy"), ("alt-release", "to chat"), ("ctrl", "whole lines"), ("any key", "cancel")];
+    ("MOUSE SELECTION", t.acc2, v.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect())
 }
 
 /// The right side: a flash, the sync, the agent, or the words of the note.

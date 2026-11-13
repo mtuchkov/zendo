@@ -114,7 +114,11 @@ fn draw_selection(f: &mut Frame, app: &mut App, t: &Theme) {
     let Some(sel) = app.sel else { return };
     if std::mem::take(&mut app.copy_pending) {
         let text = sel.text(f.buffer_mut());
-        if !text.is_empty() {
+        if sel.chat {
+            // After the frame, the text goes to the chat input as a chip (PANES-44).
+            app.to_chat = Some(text);
+            return;
+        } else if !text.is_empty() {
             app.clip = Some(text);
         }
     }

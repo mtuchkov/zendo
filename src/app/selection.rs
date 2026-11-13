@@ -68,6 +68,11 @@ impl App {
             return None;
         }
         let (a, b) = self.selection_rows();
+        Some(self.read_context(&text, a, b))
+    }
+
+    /// `text` from rows `a` to `b` of read mode, quoted with its file and source lines.
+    fn read_context(&self, text: &str, a: usize, b: usize) -> String {
         // Source lines of the selection, 1-based, for Claude to find them in the file.
         // Lines that share a row (a paragraph, or a skipped title and blank line): take the first
         // line with text that is not the title.
@@ -79,7 +84,35 @@ impl App {
         let hi = self.read_rows.iter().rposition(|r| *r <= b).unwrap_or(lo);
         let rel = self.current.as_ref().map(|p| self.rel(p)).unwrap_or_default();
         let quoted: String = text.lines().map(|l| format!("> {l}\n")).collect();
-        Some(format!("Selected text from {rel} (about lines {}–{}):\n{quoted}", lo + 1, hi + 1))
+        format!("Selected text from {rel} (about lines {}–{}):\n{quoted}", lo + 1, hi + 1)
+    }
+
+    /// Alt and a drag of the mouse: the text goes to the chat input as a chip, with where it comes
+    /// from, and the focus goes to the input (PANES-44).
+    pub fn mouse_to_chat(&mut self, text: String) {
+        let Some(s) = self.sel.take() else { return };
+        if text.trim().is_empty() {
+            return self.flash("nothing to add here");
+        }
+        let quoted: String = text.lines().map(|l| format!("> {l}\n")).collect();
+        let rel = |a: &Self, p: &Option<std::path::PathBuf>| p.as_ref().map(|p| a.rel(p)).unwrap_or_default();
+        let ctx = match s.region {
+            Region::Note if self.mode == Mode::Read => {
+                let row = |y: u16| self.scroll + y.saturating_sub(s.rect.y) as usize;
+                self.read_context(&text, row(s.anchor.1.min(s.head.1)), row(s.anchor.1.max(s.head.1)))
+            }
+            Region::Note => format!("Selected text from {}:\n{quoted}", rel(self, &self.editor_path)),
+            Region::Delta => format!("Selected text from the delta:\n{quoted}"),
+            Region::Panel if self.cli.pane.is_some() => format!("Text from the terminal:\n{quoted}"),
+            Region::Panel => format!("Text from this chat:\n{quoted}"),
+        };
+        let label = self.add_chip(chips::selection_label(&text), Some(ctx), None, true);
+        self.open_panel();
+        if self.panel {
+            self.focus = Focus::Claude;
+            self.transcript.on = false;
+        }
+        self.flash(format!("{} is in the chat", label.trim_matches([chips::OPEN, chips::CLOSE])));
     }
 
     /// `a`: ask Claude about the selection, or the paragraph under the cursor.

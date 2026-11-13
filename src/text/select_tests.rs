@@ -1,5 +1,6 @@
 use super::*;
 use ratatui::text::Line;
+use ratatui::crossterm::event::KeyModifiers;
 use ratatui::widgets::{Paragraph, Widget};
 
 #[test]
@@ -78,4 +79,24 @@ fn a_mouse_selection_that_starts_before_a_table_goes_line_by_line() {
     let mut s = Selection::start(Region::Note, area, 0, 0);
     s.drag(5, 2);
     assert_eq!(s.text(&buf), "text before\n┌──────┬──────────┐\n│ Name");
+}
+
+#[test]
+fn ctrl_or_shift_selects_whole_lines_in_a_table() {
+    // PANES-43: the modifier breaks the glass of the cell.
+    let (area, buf) = table_buffer();
+    let mut s = Selection::start(Region::Note, area, 9, 4).with(KeyModifiers::NONE);
+    s.drag(12, 5);
+    s.hold(KeyModifiers::CONTROL);
+    assert!(s.free);
+    assert_eq!(s.text(&buf), "first    │\n│      │ wrap");
+    let s = Selection::start(Region::Note, area, 9, 4).with(KeyModifiers::SHIFT);
+    assert!(s.free && !s.chat);
+}
+
+#[test]
+fn alt_marks_the_selection_for_the_chat() {
+    // PANES-44
+    let s = Selection::start(Region::Note, Rect::new(0, 0, 10, 2), 1, 1).with(KeyModifiers::ALT);
+    assert!(s.chat && !s.free);
 }

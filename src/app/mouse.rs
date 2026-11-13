@@ -30,23 +30,36 @@ impl App {
                 self.drag = None;
                 self.state.save(&self.cfg.root);
             }
-            MouseEventKind::Down(MouseButton::Left) => self.click(x, y),
-            MouseEventKind::Drag(MouseButton::Left) => self.drag_selection(x, y),
-            MouseEventKind::Up(MouseButton::Left) => self.end_selection(),
+            MouseEventKind::Down(MouseButton::Left) => {
+                self.click(x, y);
+                self.hold(m.modifiers);
+            }
+            MouseEventKind::Drag(MouseButton::Left) => self.drag_selection(x, y, m.modifiers),
+            MouseEventKind::Up(MouseButton::Left) => self.end_selection(m.modifiers),
             MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => self.wheel(x, y, m.kind == MouseEventKind::ScrollUp),
             _ => {}
         }
     }
 
+    /// The modifier keys of a mouse event count for the selection that it makes (PANES-43, PANES-44).
+    fn hold(&mut self, m: KeyModifiers) {
+        if let Some(s) = self.sel.as_mut().filter(|s| !s.done) {
+            s.hold(m);
+        }
+    }
+
     /// A drag moves the end of the selection, until the button is up.
-    pub(crate) fn drag_selection(&mut self, x: u16, y: u16) {
+    pub(crate) fn drag_selection(&mut self, x: u16, y: u16, m: KeyModifiers) {
+        self.hold(m);
         if let Some(s) = self.sel.as_mut().filter(|s| !s.done) {
             s.drag(x, y);
         }
     }
 
-    /// The button is up: the selection is final and goes to the clipboard; an empty one goes away.
-    pub(crate) fn end_selection(&mut self) {
+    /// The button is up: the selection is final and goes to the clipboard, or with alt to the chat;
+    /// an empty one goes away.
+    pub(crate) fn end_selection(&mut self, m: KeyModifiers) {
+        self.hold(m);
         let Some(s) = self.sel.as_mut() else { return };
         if s.is_empty() {
             self.sel = None;

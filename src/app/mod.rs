@@ -275,14 +275,14 @@ pub struct App {
     pub hold: Option<Hold>,
     /// The bell and the blinking buttons when a turn ends, and the sound button (ATTN-1 to ATTN-11).
     pub attention: Attention,
-
     /// Panels on screen in the last frame, for the mouse.
     pub regions: Vec<(Region, Rect)>,
     pub sel: Option<Selection>,
-    /// Copy the selection on the next frame.
+    /// Take the mouse selection on the next frame; after the frame, its text for the clipboard, or
+    /// for a chip with alt (PANES-44).
     pub copy_pending: bool,
-    /// Text to put on the clipboard after the frame.
     pub clip: Option<String>,
+    pub to_chat: Option<String>,
 
     /// Layout facts from the last frame, for keys that move by screen.
     pub view_height: usize,

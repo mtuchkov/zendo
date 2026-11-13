@@ -116,3 +116,27 @@ fn wide_chars_take_two_columns() {
     assert_eq!(r.chars(&rows, 1), Some((2, 5)));
     assert!(in_table(&rows, (0, 1), (2, 4)).is_none());
 }
+
+#[test]
+fn heavy_double_rounded_and_mixed_tables_are_tables() {
+    // PANES-34: every char of the Box Drawing block, by its arms.
+    let tables: [[&str; 6]; 4] = [
+        ["┏━━━┳━━━┓", "┃ a ┃ b ┃", "┣━━━╋━━━┫", "┃ c ┃ d ┃", "┃ e ┃ f ┃", "┗━━━┻━━━┛"],
+        ["╔═══╦═══╗", "║ a ║ b ║", "╠═══╬═══╣", "║ c ║ d ║", "║ e ║ f ║", "╚═══╩═══╝"],
+        ["╭───┬───╮", "│ a │ b │", "├───┼───┤", "│ c │ d │", "│ e │ f │", "╰───┴───╯"],
+        ["┍━━━┯━━━┑", "│ a │ b │", "┝━━━┿━━━┥", "╎ c ╎ d ╎", "┆ e ┆ f ┆", "┕━━━┷━━━┙"],
+    ];
+    for rows in tables {
+        assert_eq!(table_at(&rows, 3, 2), Some(Table { top: 1, bottom: 4, lines: vec![0, 4, 8] }), "{rows:?}");
+        assert_eq!(resolve(&rows, (1, 2), (4, 2)).text(&rows), "a\nc\ne", "{rows:?}");
+    }
+}
+
+#[test]
+fn each_char_of_the_block_but_the_diagonals_has_one_class() {
+    // PANES-34
+    for c in ('\u{2500}'..='\u{257F}').filter(|c| !"╱╲╳".contains(*c)) {
+        let n = [VERTICAL, HORIZONTAL, TOP, BOTTOM, MIDDLE].iter().filter(|class| class.contains(c)).count();
+        assert_eq!(n, 1, "{c}");
+    }
+}

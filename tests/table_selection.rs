@@ -94,3 +94,34 @@ fn the_keys_stop_at_the_edge_of_a_cell_and_two_quick_presses_go_on() {
     assert!(two.unwrap().1 > one.unwrap().1, "the next column: {one:?} {two:?}");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+fn mouse_with(a: &mut zendo::app::App, kind: MouseEventKind, x: usize, y: usize, modifiers: KeyModifiers) {
+    a.on_mouse(MouseEvent { kind, column: x as u16, row: y as u16, modifiers });
+}
+
+// PANES-45: while the mouse selects, the status bar says MOUSE SELECTION and names the release keys.
+// PANES-44: alt at the release puts the selection into the chat input as a chip, not on the clipboard.
+#[tokio::test]
+async fn alt_and_a_drag_put_the_selection_into_the_chat() {
+    let root = repo("table-alt", &files());
+    let mut a = app(&root);
+    let screen = draw(&mut a, 140, 30);
+    let y = screen.iter().position(|r| r.contains("Before the table")).expect("the text");
+    let x = screen[y].chars().take_while(|c| *c != 'B').count();
+    mouse(&mut a, MouseEventKind::Down(MouseButton::Left), x, y);
+    mouse(&mut a, MouseEventKind::Drag(MouseButton::Left), x + 9, y);
+    let screen = draw(&mut a, 140, 30);
+    let bar = screen.iter().rev().find(|r| r.contains("MOUSE SELECTION")).unwrap_or_else(|| panic!("{screen:#?}"));
+    assert!(bar.contains("alt-release to chat") && bar.contains("ctrl whole lines"), "{bar}");
+    mouse_with(&mut a, MouseEventKind::Up(MouseButton::Left), x + 9, y, KeyModifiers::ALT);
+    draw(&mut a, 140, 30);
+    let text = a.to_chat.take().expect("the text for the chat");
+    a.mouse_to_chat(text);
+    assert_eq!(a.clip, None, "not on the clipboard");
+    let chip = a.chips.last().expect("a chip");
+    assert!(chip.label.contains("Before the"), "{}", chip.label);
+    let ctx = chip.context.clone().unwrap_or_default();
+    assert!(ctx.contains(NOTE) && ctx.contains("> Before the"), "{ctx}");
+    assert!(a.panel && a.focus == zendo::app::Focus::Claude, "the focus goes to the input");
+    let _ = std::fs::remove_dir_all(&root);
+}
