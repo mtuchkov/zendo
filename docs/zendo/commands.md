@@ -4,6 +4,7 @@ revision: "1"
 date: "2026-11-11"
 parent: "zendo.md"
 prev: "project-structure.md"
+next: "site.md"
 level: "the commands around zendo: install, setup, doctor, upgrade, version, update suggestion"
 note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user."
 ---

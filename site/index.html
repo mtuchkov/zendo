@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>zendo — a quiet room for architecture thinking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #eeeae0;      /* washi */
+    --panel: #e6e1d5;
+    --line: #cfc8b8;
+    --text: #1d1f21;    /* sumi */
+    --dim: #6f7576;     /* nezumi */
+    --shu: #c8442b;     /* vermilion seal */
+    --ai: #2f4858;      /* indigo */
+    --moss: #6a7a3a;    /* koke */
+    --sel: rgba(47,72,88,.3);
+    --status-h: 30px;
+    --chat-w: 400px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); }
+  body {
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  html, body, a, button, .tb { cursor: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='16'%20height='26'%20shape-rendering='crispEdges'%3E%3Crect%20x='0'%20y='0'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='0'%20y='2'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='2'%20y='2'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='0'%20y='4'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='2'%20y='4'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='4'%20y='4'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='0'%20y='6'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='2'%20y='6'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='4'%20y='6'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='6'%20y='6'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='0'%20y='8'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='2'%20y='8'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='4'%20y='8'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='6'%20y='8'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='8'%20y='8'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='0'%20y='10'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='2'%20y='10'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='4'%20y='10'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='6'%20y='10'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='8'%20y='10'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='10'%20y='10'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='0'%20y='12'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='2'%20y='12'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='4'%20y='12'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='6'%20y='12'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='8'%20y='12'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='10'%20y='12'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='12'%20y='12'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='0'%20y='14'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='2'%20y='14'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='4'%20y='14'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='6'%20y='14'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='8'%20y='14'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='10'%20y='14'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='12'%20y='14'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='14'%20y='14'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='0'%20y='16'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='2'%20y='16'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='4'%20y='16'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='6'%20y='16'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='8'%20y='16'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='10'%20y='16'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='0'%20y='18'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='2'%20y='18'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='6'%20y='18'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='8'%20y='18'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='10'%20y='18'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='8'%20y='20'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='10'%20y='20'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='12'%20y='20'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='8'%20y='22'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='10'%20y='22'%20width='2'%20height='2'%20fill='%23fbf8f1'/%3E%3Crect%20x='12'%20y='22'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='10'%20y='24'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3Crect%20x='12'%20y='24'%20width='2'%20height='2'%20fill='%231d1f21'/%3E%3C/svg%3E") 0 0, default; }
+  textarea { cursor: text; }
+  ::selection { background: var(--sel); color: var(--text); }
+  canvas#field { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; z-index: 0; pointer-events: none; }
+  a { color: inherit; text-decoration: none; }
+
+  /* ---------- terminal buttons ---------- */
+  .tb {
+    font: inherit; font-size: 14px; line-height: 1;
+    display: inline-flex; align-items: center; gap: 0;
+    padding: 7px 4px; margin: 0; border: 0; border-radius: 0;
+    background: transparent; color: var(--text); white-space: nowrap;
+  }
+  .tb .b { color: var(--dim); }
+  .tb .lbl { padding: 0 8px; }
+  .tb kbd {
+    font: inherit; font-weight: 700; color: var(--bg); background: var(--text);
+    padding: 2px 6px; margin-right: 2px;
+  }
+  .tb:hover .lbl, .tb:focus-visible .lbl, .tb.on .lbl { background: var(--text); color: var(--bg); }
+  .tb:focus-visible { outline: none; }
+  .tb.solid { background: var(--text); color: var(--bg); padding: 9px 6px; }
+  .tb.solid .b { color: #8d918f; }
+  .tb.solid kbd { background: var(--shu); color: var(--bg); }
+  .tb.solid:hover .lbl, .tb.solid:focus-visible .lbl { background: var(--bg); color: var(--text); }
+  .tb.small { font-size: 12px; padding: 3px 2px; }
+  .tb.small kbd { padding: 1px 5px; }
+  .tb .sel-target {
+    background: linear-gradient(var(--sel), var(--sel)) no-repeat 0 0 / var(--w, 0%) 100%;
+  }
+
+  nav.top {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 3;
+    display: flex; align-items: center; gap: 26px;
+    height: 56px; padding: 0 clamp(14px, 4vw, 52px);
+    font-size: 14px;
+  }
+  nav.top .brand { font-weight: 700; letter-spacing: .02em; }
+  nav.top .links { display: flex; gap: 22px; color: var(--dim); }
+  nav.top .links a:hover { color: var(--text); }
+  nav.top .spacer { flex: 1; }
+  nav.top .right { display: flex; gap: 10px; align-items: center; }
+
+  main.hero {
+    position: relative; z-index: 2;
+    min-height: calc(100vh - var(--status-h));
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 90px 20px 21vh; text-align: center;
+    pointer-events: none;
+  }
+  main.hero > * { pointer-events: auto; }
+  #wordmark { width: min(980px, 92vw); pointer-events: none; }
+  main.hero { transition: padding-right .28s cubic-bezier(.2,.8,.2,1); }
+  body.chat-side.chat-open main.hero { padding-right: calc(var(--chat-w) + 20px); }
+  body.chat-side.chat-open #wordmark { width: min(980px, calc(100vw - var(--chat-w) - 60px)); }
+  h1 { font-weight: 500; font-size: clamp(19px, 2.4vw, 30px); margin: clamp(26px, 5vh, 48px) 0 14px; color: var(--text); }
+  .sub { color: #4f5457; font-size: clamp(13px, 1.2vw, 15px); line-height: 1.7; margin: 0 0 30px; }
+  .actions { display: flex; gap: 22px; flex-wrap: wrap; justify-content: center; align-items: center; }
+  .cmd {
+    margin-top: 22px; display: flex; align-items: center; gap: 12px; max-width: 92vw;
+    background: rgba(230,225,213,.95); border: 1px solid var(--line);
+    padding: 6px 6px 6px 14px; font-size: 13px; color: #3f4448;
+    opacity: 0; transform: translateY(-4px); transition: opacity .25s, transform .25s;
+  }
+  .cmd.show { opacity: 1; transform: none; }
+  .cmd code { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cmd code b { color: var(--shu); font-weight: 400; }
+
+  /* ---------- panes ---------- */
+  .pane { position: fixed; z-index: 6; background: var(--bg); border: 1px solid var(--text); display: flex; flex-direction: column; font-size: 14px; }
+  .pane header {
+    display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 16px;
+    border-bottom: 1px solid var(--line); color: var(--dim); font-size: 13px; white-space: nowrap;
+  }
+  .pane header .path { overflow: hidden; text-overflow: ellipsis; flex: 1; text-align: left; }
+  .pane header .branch { color: var(--dim); }
+
+  .doc {
+    top: 64px; bottom: calc(var(--status-h) + 14px);
+    left: 50%; width: min(780px, 94vw); transform: translateX(-50%);
+    opacity: 0; visibility: hidden; transition: opacity .18s, left .25s;
+  }
+  .doc.open { opacity: 1; visibility: visible; }
+  body.chat-side.chat-open .doc { left: calc((100vw - var(--chat-w)) / 2); width: min(780px, calc(100vw - var(--chat-w) - 40px)); }
+  body.chat-bottom.chat-open .doc { bottom: calc(48vh + var(--status-h) + 10px); }
+  .doc .body { padding: 22px clamp(18px, 4vw, 44px) 40px; overflow: auto; flex: 1; text-align: left; line-height: 1.55; }
+  .doc .title { font-weight: 700; }
+  .doc .date { color: var(--dim); margin-bottom: 18px; }
+  .doc h3 { font-size: 14px; margin: 22px 0 6px; font-weight: 700; }
+  .doc ul { list-style: none; padding: 0; margin: 0; }
+  .doc li { padding-left: 18px; position: relative; }
+  .doc li::before { content: "•"; position: absolute; left: 0; color: var(--dim); }
+  .doc .kw { color: var(--dim); }
+  .doc code { color: var(--ai); }
+  .doc p { margin: 0 0 10px; }
+  .doc .agent-title { color: var(--moss); }
+  .doc pre.write { font: inherit; margin: 0; white-space: pre-wrap; }
+  .caret { display: inline-block; width: .6em; height: 1.15em; vertical-align: text-bottom; background: var(--shu); animation: blink 1.06s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .chat {
+    background: var(--panel); border: 0; transition: transform .28s cubic-bezier(.2,.8,.2,1);
+  }
+  body.chat-side .chat { top: 56px; right: 0; bottom: var(--status-h); width: var(--chat-w); border-left: 1px solid var(--text); transform: translateX(105%); }
+  body.chat-bottom .chat { left: 0; right: 0; bottom: var(--status-h); height: 48vh; border-top: 1px solid var(--text); transform: translateY(105%); }
+  body.chat-open .chat { transform: none; }
+  .chat header .sess { color: var(--text); }
+  .chat .log { flex: 1; overflow: auto; padding: 14px 16px; font-size: 13px; line-height: 1.6; text-align: left; }
+  .chat .msg { margin-bottom: 14px; }
+  .chat .who { color: var(--dim); font-size: 12px; }
+  .chat .who.agent { color: var(--moss); }
+  .chat .sh { margin-top: 8px; background: var(--bg); border: 1px solid var(--line); padding: 7px 10px; font-size: 12px; word-break: break-all; }
+  .chat .sh .run { color: var(--moss); margin-right: 6px; }
+  .chat .quote { border-left: 3px solid var(--ai); padding: 1px 0 1px 10px; color: var(--ai); margin: 4px 0; background: var(--sel); }
+  .chat .inrow { display: flex; align-items: flex-start; gap: 8px; border-top: 1px solid var(--line); padding: 10px 14px; font-size: 13px; }
+  .chat .inrow .p { color: var(--shu); font-weight: 700; padding-top: 1px; }
+  .chat .chips { padding: 0 14px; }
+  .chat .chips .quote { font-size: 12px; margin: 8px 0 0; }
+  .chat textarea {
+    flex: 1; font: inherit; background: transparent; border: 0; outline: 0; resize: none; color: var(--text);
+    min-height: 1.6em; max-height: 6em; padding: 0;
+  }
+  .chat .dots::after { content: "…"; animation: blink .8s steps(1) infinite; }
+
+  footer.status {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 7;
+    height: var(--status-h); display: flex; align-items: center; gap: 12px;
+    padding: 0 clamp(10px, 2vw, 24px);
+    background: var(--panel); border-top: 1px solid var(--line);
+    font-size: 13px; color: var(--dim); white-space: nowrap; overflow: hidden;
+  }
+  footer.status .mode { background: var(--shu); color: var(--bg); font-weight: 700; padding: 2px 9px; min-width: 64px; text-align: center; margin-right: 6px; }
+  footer.status .tb { color: var(--dim); }
+  footer.status .tb.flash .lbl { background: var(--text); color: var(--bg); }
+  footer.status .grow { flex: 1; }
+  @media (max-width: 760px) {
+    nav.top .links { display: none; }
+    footer.status .opt { display: none; }
+  }
+</style>
+</head>
+<body class="chat-side">
+<canvas id="field" aria-hidden="true"></canvas>
+
+<nav class="top">
+  <div class="links">
+    <a href="https://github.com/mtuchkov/zendo#jot">Jot</a>
+    <a href="https://github.com/mtuchkov/zendo#think">Think</a>
+    <a href="https://github.com/mtuchkov/zendo#build">Build</a>
+    <a href="https://github.com/mtuchkov/zendo/blob/main/INSTALLATION.md">Docs</a>
+  </div>
+  <div class="spacer"></div>
+  <div class="right">
+    <button class="tb" id="musicBtn" data-act="m" aria-pressed="false"><span class="b">[</span><span class="lbl"><kbd>m</kbd> <span id="musicLbl">lofi</span></span><span class="b">]</span></button>
+    <a class="tb" id="gh" href="https://github.com/mtuchkov/zendo"><span class="b">[</span><span class="lbl"><kbd>g</kbd> github</span><span class="b">]</span></a>
+    <button class="tb" data-act="i"><span class="b">[</span><span class="lbl"><kbd>i</kbd> install</span><span class="b">]</span></button>
+  </div>
+</nav>
+
+<main class="hero" id="hero">
+  <div id="wordmark" role="img" aria-label="zendo"></div>
+  <h1>A quiet room for architecture thinking</h1>
+  <p class="sub">with the agents at work next door.<br>A terminal IDE for spec-driven development: jot, think, build.</p>
+  <div class="actions">
+    <button class="tb solid" data-act="i"><span class="b">[</span><span class="lbl"><kbd>i</kbd> get zendo</span><span class="b">]</span></button>
+    <button class="tb" id="watch"><span class="b">[</span><span class="lbl">▶ <span class="sel-target" id="watchLabel">See it in action</span></span><span class="b">]</span></button>
+  </div>
+  <div class="cmd" id="cmd">
+    <code><b>$</b> curl -fsSL https://raw.githubusercontent.com/mtuchkov/zendo/main/install.sh | sh</code>
+    <button class="tb small" id="copy"><span class="b">[</span><span class="lbl">copy</span><span class="b">]</span></button>
+  </div>
+</main>
+
+<section class="pane doc" id="doc" aria-live="polite">
+  <header>
+    <span class="path" id="docPath"></span>
+    <span class="branch">master</span>
+    <button class="tb small" data-act="Escape"><span class="b">[</span><span class="lbl"><kbd>esc</kbd> close</span><span class="b">]</span></button>
+  </header>
+  <div class="body" id="docBody"></div>
+</section>
+
+<aside class="pane chat" id="chat" aria-label="Claude">
+  <header>
+    <span class="path"><span class="sess">agent</span> · session F6</span>
+    <button class="tb small" data-act="Escape"><span class="b">[</span><span class="lbl"><kbd>esc</kbd> close</span><span class="b">]</span></button>
+  </header>
+  <div class="log" id="log"></div>
+  <div class="chips" id="chips"></div>
+  <div class="inrow"><span class="p">›</span><textarea id="ask" rows="1" placeholder="ask about the selection"></textarea></div>
+</aside>
+
+<footer class="status">
+  <span class="mode" id="mode">READ</span>
+  <button class="tb small" data-act="n"><span class="lbl"><kbd>n</kbd> note</span></button>
+  <button class="tb small" data-act="s"><span class="lbl"><kbd>s</kbd> spec</span></button>
+  <button class="tb small" data-act="a" id="askKey"><span class="lbl"><kbd>a</kbd> ask</span></button>
+  <button class="tb small opt" data-act="b"><span class="lbl"><kbd>b</kbd> build</span></button>
+  <span class="grow"></span>
+  <span id="pos">ln 1 · col 1</span>
+</footer>
+
+<script>
+(() => {
+  "use strict";
+  const CMD = "curl -fsSL https://raw.githubusercontent.com/mtuchkov/zendo/main/install.sh | sh";
+
+  // Japanese traditional colors: sumi ink on washi, moss, indigo, a vermilion seal.
+  const HEX = {
+    bg: "#eeeae0", sumi: "#1d1f21", usu: "#3e4549", nezumi: "#767c7c", pale: "#b3b1a8",
+    moss: "#6a7a3a", matcha: "#97a463", ai: "#2f4858", shu: "#c8442b",
+    gravel: "#8f8672", stone: "#34332f", light: "#fbf8f1"
+  };
+  const BANDS = ["sumi", "sumi", "usu", "usu", "usu", "nezumi", "nezumi", "pale", "pale", "pale", "pale"];
+
+  // ---------- pixel font for the wordmark (9 rows) ----------
+  const FONT = {
+    Z: ["##########","##########","......###.",".....###..","....###...","...###....","..###.....","##########","##########"],
+    E: ["#########","#########","###......","###......","########.","###......","###......","#########","#########"],
+    N: ["###....###","####...###","#####..###","###.##.###","###..#####","###...####","###....###","###....###","###....###"],
+    D: ["########..","#########.","###...####","###....###","###....###","###....###","###...####","#########.","########.."],
+    O: [".########.","##########","###....###","###....###","###....###","###....###","###....###","##########",".########."]
+  };
+  const CARET_W = 5;
+
+  // ---------- 禅, for the seal glyph ----------
+  const ZEN = [
+    ".#....#.#.#.",
+    "####...#.#..",
+    "...#.#######",
+    "..#..#..#..#",
+    ".##..#######",
+    "#.#..#..#..#",
+    "..#..#######",
+    "..#.....#...",
+    "..#.########",
+    "..#.....#...",
+    "..#.....#...",
+    "..#.....#..."
+  ];
+
+  // ---------- glyphs that bloom out of the field ----------
+  const GLYPHS = {
+    doc: { color: "sumi", rows: [
+      "########...","#......##..","#.####.#.#.","#......####","#.........#","#.#######.#",
+      "#.........#","#.######..#","#.........#","#.#####...#","#.........#","###########"] },
+    chat: { color: "ai", rows: [
+      ".###########.","#...........#","#.##.##.###.#","#...........#","#.####.##...#","#...........#",
+      ".##..#######.","..#.#........","..##.........","..#.........."] },
+    term: { color: "moss", rows: [
+      "##############","#.#.#........#","##############","#............#","#.##.........#","#..##........#",
+      "#...##.......#","#..##........#","#.##..#####..#","#............#","##############"] },
+    branch: { color: "ai", rows: [
+      ".##....##..","#..#..#..#.",".##....##..",".#......#..",".#.....#...",".#....#....",
+      ".#..##.....",".###.......",".#.........",".##........","#..#.......",".##........"] }
+  };
+
+  // ---------- setup ----------
+  const $ = id => document.getElementById(id);
+  const canvas = $("field");
+  const ctx = canvas.getContext("2d");
+  const wmEl = $("wordmark"), heroEl = $("hero"), modeEl = $("mode"), posEl = $("pos");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const rand = (a = 1, b) => b === undefined ? Math.random() * a : a + Math.random() * (b - a);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const smooth = (e0, e1, x) => { const t = clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); };
+  const easeOut = k => 1 - Math.pow(1 - k, 3);
+  const easeInOut = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+  const hash = (a, b, c = 0) => { const s = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453; return s - Math.floor(s); };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  // the seal: 禅 in vermilion, no frame
+  GLYPHS.seal = { color: "shu", rows: ZEN };
+  const GLYPH_NAMES = Object.keys(GLYPHS);
+
+  let S = 1; // 23 / g: keeps sizes and speeds the same on screen whatever the pixel size
+  let W, H, dpr, g, sq, off, ox, oy, cols, rows, sandTop, sandRows, statusH;
+  let surf = [];            // the top row of the sand in each column: low in the middle, rising to the sides
+  const topAt = c => surf[clamp(Math.round(c), 0, cols - 1)];
+  let stones = [];
+  let amb = [], occ = new Set();
+  let particles = [], glyphs = [], ripples = [], trail = [];
+  let wm = null;
+  let startT = null, lastT = 0, nextAuto = 3.5, nextDrip = 4, nextSweep = 6, sweepT = -10;
+  let modeTimer = 0, baseMode = "READ";
+  let heroCache = [], heroCacheT = -1;
+  // the pointer: real mouse, or the ghost that runs the demo
+  const ptr = { x: -9999, y: -9999, c: -99, r: -99, active: false, moved: -10, idleDone: true, ghost: false };
+  let lastInput = -100, nextDemo = 5, demo = null;
+
+  function layout() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    statusH = 30;
+    // One pixel size for the whole field: sand, stones, dust and glyphs. It is as large as the
+    // window allows while the widest glyph still fits beside the wordmark.
+    const side = (W - Math.min(980, W * 0.92)) / 2;
+    g = Math.round(clamp(Math.min(W / 56, side / 14), 10, 23));
+    S = 23 / g;
+    sq = Math.round(g * 0.56);
+    off = Math.round((g - sq) / 2);
+    cols = Math.floor((W - sq) / g) + 1;
+    ox = Math.round((W - ((cols - 1) * g + sq)) / 2) - off;
+    rows = Math.floor((H - statusH - sq) / g) + 1;
+    oy = (H - statusH) - ((rows - 1) * g + sq) - off - 2;
+    sandRows = Math.max(5, Math.round(rows * 0.2));
+    sandTop = rows - sandRows;
+    const rise = Math.min(sandRows * 0.95, rows * 0.22);
+    surf = Array.from({ length: cols }, (_, c) => {
+      const nx = Math.abs((c + 0.5) / cols - 0.5) * 2;
+      return Math.round(sandTop - rise * Math.pow(nx, 2.4));
+    });
+    stones = [
+      { f: 0.16, d: 0.55, R: 1.25 * S }, { f: 0.79, d: 0.5, R: 1.75 * S }, { f: 0.87, d: 0.7, R: 0.6 * S }
+    ].map(s => { const c = Math.round(cols * s.f), top = topAt(c); return { c, r: top + (rows - top) * s.d, R: s.R }; });
+    document.body.classList.toggle("chat-side", W >= 900);
+    document.body.classList.toggle("chat-bottom", W < 900);
+    heroCache = heroBlocks();
+    amb = []; occ = new Set();
+    const target = ambTarget();
+    for (let i = 0; i < target * 4 && amb.length < target; i++) spawnAmb(lastT, true);
+    buildWordmark();
+  }
+
+  // ---------- ambient pixels ----------
+  function ambTarget() { return Math.floor(cols * sandTop * 0.11 / S); }
+  function ambWeight(c, r) {
+    const nx = Math.abs((c + 0.5) / cols - 0.5) * 2;
+    const ny = (r + 0.5) / sandTop;
+    let w = 0.015 + 0.95 * smooth(0.5, 1.0, nx) + 0.55 * smooth(0.72, 1.0, ny);
+    if (r < 3) w *= 0.35;
+    return w;
+  }
+  function spawnAmb(t, prefill) {
+    const c = Math.floor(rand(cols)), r = Math.floor(rand(sandTop));
+    if (r >= topAt(c) - 1) return;
+    const k = c + "," + r;
+    if (occ.has(k) || rand() > ambWeight(c, r)) return;
+    for (const b of heroCache) if (c >= b.c0 && c <= b.c1 && r >= b.r0 && r <= b.r1) return;
+    const life = rand(20, 45);
+    const roll = rand();
+    const tone = roll < 0.55 ? ["nezumi", 0.2] : roll < 0.78 ? ["ai", 0.3] : roll < 0.93 ? ["moss", 0.32] : roll < 0.985 ? ["sumi", 0.6] : ["shu", 0.7];
+    amb.push({ c, r, k, b: prefill ? t - rand(life) : t, life, color: tone[0], a: tone[1] });
+    occ.add(k);
+  }
+
+  // ---------- wordmark ----------
+  function buildWordmark() {
+    const gap = 2, cells = [], letterEnds = [];
+    let x = 0;
+    "ZENDO".split("").forEach((L, li) => {
+      const rowsL = FONT[L], w = rowsL[0].length;
+      rowsL.forEach((row, ry) => { for (let cx = 0; cx < w; cx++) if (row[cx] === "#") cells.push({ x: x + cx, y: ry, li }); });
+      for (let cx = 0; cx < w; cx++) {
+        if (rowsL[8][cx] !== "#") continue;
+        const h = hash(li * 31 + cx, 7);
+        if (h < 0.38) cells.push({ x: x + cx, y: 9, li, drip: 1 });
+        if (h < 0.12) cells.push({ x: x + cx, y: 10, li, drip: 2 });
+      }
+      x += w; letterEnds.push(x); x += gap;
+    });
+    cells.forEach(c => {
+      c.fx = c.x + rand(-4, 4) + (rand() - 0.5) * 10;
+      c.fy = c.y + rand(18, 40);
+      c.d = 0.25 + c.li * 0.2 + rand(0.28);
+    });
+    wm = { cells, total: x + CARET_W, caretX: x, letterEnds, start: wm ? wm.start : null };
+  }
+  function wmGeom() {
+    const r = wmEl.getBoundingClientRect();
+    const p = clamp(Math.floor(r.width / wm.total), 3, 16);
+    const w = wm.total * p, h = 11 * p;
+    if (Math.abs(r.height - h) > 0.5) wmEl.style.height = h + "px";
+    return { p, x: Math.round(r.left + (r.width - w) / 2), y: Math.round(r.top), w, h };
+  }
+
+  // ---------- grid helpers ----------
+  const px = c => ox + c * g + off, py = r => oy + r * g + off;
+  function cell(c, r, color, a) {
+    if (a <= 0.01) return;
+    ctx.globalAlpha = Math.min(1, a);
+    ctx.fillStyle = HEX[color] || color;
+    ctx.fillRect(px(c), py(r), sq, sq);
+  }
+  function toCell(x, y) { return [Math.round((x - ox - off - sq / 2) / g), Math.round((y - oy - off - sq / 2) / g)]; }
+  function rectCells(r, pad = 1) {
+    const [c0, r0] = toCell(r.left, r.top), [c1, r1] = toCell(r.right, r.bottom);
+    return { c0: c0 - pad, r0: r0 - pad, c1: c1 + pad, r1: r1 + pad };
+  }
+  function blocked(c0, r0, w, h, rects) {
+    for (const b of rects) if (c0 <= b.c1 && c0 + w - 1 >= b.c0 && r0 <= b.r1 && r0 + h - 1 >= b.r0) return true;
+    return false;
+  }
+  function heroBlocks() {
+    const out = [];
+    for (const el of heroEl.children) {
+      const r = el.getBoundingClientRect();
+      if (r.width && r.height && getComputedStyle(el).opacity !== "0") out.push(rectCells(r, 1));
+    }
+    return out;
+  }
+  const inBlocks = (c, r, list) => list.some(b => c >= b.c0 && c <= b.c1 && r >= b.r0 && r <= b.r1);
+
+  // ---------- glyph life ----------
+  // A glyph lives on the field grid (k = 1) or, where the room is tight, on a grid twice as fine (k = 0.5).
+  // Its cells are counted in units of its own grid; q.box is its place in field cells.
+  function spawnGlyph(name, cc, rr, t, k = 1) {
+    const def = GLYPHS[name];
+    const h = def.rows.length, w = def.rows[0].length;
+    const c0 = clamp(Math.round(cc / k - w / 2), 0, Math.floor(cols / k) - w);
+    const r0 = clamp(Math.round(rr / k - h / 2), Math.ceil(2 / k), Math.floor(sandTop / k) - h);
+    const cells = [];
+    def.rows.forEach((row, y) => {
+      for (let x = 0; x < w; x++) if (row[x] === "#") {
+        const ang = rand(Math.PI * 2), dist = rand(4, 13) / k;
+        cells.push({ tc: c0 + x, tr: r0 + y, fc: c0 + x + Math.cos(ang) * dist, fr: r0 + y + Math.sin(ang) * dist, d: rand(0.7) });
+      }
+    });
+    glyphs.push({ cells, color: def.color, t0: t, hold: rand(4.5, 6.5), k,
+                  box: { c0: c0 * k, r0: r0 * k, c1: (c0 + w) * k, r1: (r0 + h) * k } });
+    if (glyphs.length > 2) dissolve(glyphs.shift());
+  }
+  function overlaps(a, list) {
+    return list.some(b => a.c0 <= b.c1 && a.c1 >= b.c0 && a.r0 <= b.r1 && a.r1 >= b.r0);
+  }
+  function spawnFree(name, t) {
+    const def = GLYPHS[name];
+    const h = def.rows.length, w = def.rows[0].length;
+    const rects = heroBlocks().concat(glyphs.map(q => ({ c0: q.box.c0 - 2, r0: q.box.r0 - 2, c1: q.box.c1 + 2, r1: q.box.r1 + 2 })));
+    for (const k of [1]) {
+      for (let i = 0; i < 60; i++) {
+        const c0 = rand(0, cols - w * k), r0 = rand(3, sandTop - h * k - 0.5);
+        const box = { c0, r0, c1: c0 + w * k, r1: r0 + h * k };
+        let floor = rows;
+        for (let c = Math.floor(c0); c <= Math.ceil(box.c1); c++) floor = Math.min(floor, topAt(c));
+        if (box.r1 > floor - 1) continue;
+        if (!overlaps(box, rects)) { spawnGlyph(name, c0 + w * k / 2, r0 + h * k / 2, t, k); return; }
+      }
+    }
+  }
+  function dissolve(q) {
+    for (const p of q.cells) particles.push({ x: p.tc * q.k, y: p.tr * q.k, vx: rand(-1.4, 1.4) * S, vy: rand(-2.5, 0.2) * S, color: q.color, a: 0.95,
+                                              landOff: Math.floor(rand(sandRows * 0.85)) });
+  }
+  function fineCell(c, r, k, color, a) {
+    if (k === 1) return cell(c, r, color, a);
+    const s = Math.max(2, Math.round(sq * k));
+    ctx.globalAlpha = Math.min(1, a);
+    ctx.fillStyle = HEX[color] || color;
+    ctx.fillRect(Math.round(ox + off + sq / 2 + c * g * k - s / 2), Math.round(oy + off + sq / 2 + r * g * k - s / 2), s, s);
+  }
+
+  // ---------- frame ----------
+  const FPS = 15;          // lofi: the field steps instead of gliding
+  let lastDraw = -1;
+  function frame(ms) {
+    if (!reduce && lastDraw >= 0 && ms - lastDraw < 1000 / FPS - 2) { requestAnimationFrame(frame); return; }
+    lastDraw = ms;
+    const now = ms / 1000;
+    if (startT === null) startT = now;
+    const t = now - startT;
+    const dt = Math.min(0.1, Math.max(0, t - lastT));
+    lastT = t;
+    if (wm.start === null) wm.start = t;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = HEX.bg;
+    ctx.fillRect(0, 0, W, H);
+
+    drawAmbient(t);
+    drawSand(t);
+    drawTrail(t);
+    updateGlyphs(t);
+    updateParticles(t, dt);
+    drawWordmark(t);
+    drawSeal();
+
+    if (!reduce) {
+      if (t > nextAuto) { spawnFree(GLYPH_NAMES[Math.floor(rand(GLYPH_NAMES.length))], t); nextAuto = t + rand(12, 20); }
+      if (t > nextDrip && t - wm.start > 2.2) { drip(); nextDrip = t + rand(5, 9); }
+      if (t > nextSweep) { sweepT = t; nextSweep = t + rand(22, 32); }
+      if (false) {
+        ptr.idleDone = true;
+        if (!inBlocks(ptr.c, ptr.r, heroBlocks()) && ptr.r < sandTop - 2 && !overPane(ptr.x, ptr.y))
+          spawnGlyph(GLYPH_NAMES[Math.floor(rand(GLYPH_NAMES.length))], ptr.c, ptr.r, t);
+      }
+      if (!demo && t > nextDemo && t - lastInput > 8 && !docOpen() && !chatOpen()) runDemo(false);
+      if (modeTimer && t > modeTimer) { modeEl.textContent = baseMode; modeTimer = 0; }
+      requestAnimationFrame(frame);
+    }
+  }
+
+  function drawAmbient(t) {
+    if (t - heroCacheT > 0.5) { heroCache = heroBlocks(); heroCacheT = t; }
+    const target = ambTarget();
+    if (rand() < 0.2) spawnAmb(t, false);
+    const keep = [];
+    for (const a of amb) {
+      const age = t - a.b;
+      if (age > a.life) { occ.delete(a.k); continue; }
+      keep.push(a);
+      let al = a.a * Math.min(1, age / 3, (a.life - age) / 3.5);
+      if (a.a > 0.5) al *= 0.85 + 0.15 * Math.sin(t * 0.4 + a.c);
+      const d = Math.hypot(a.c - ptr.c, a.r - ptr.r);
+      if (ptr.active && d < 7) al *= 1 + 1.4 * (1 - d / 7);
+      cell(a.c, a.r, a.color, al);
+    }
+    amb = keep;
+  }
+
+  function drawSand(t) {
+    ripples = ripples.filter(rp => t - rp.t0 < 3);
+    const top0 = Math.min(...surf);
+    for (let r = top0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const top = surf[c];
+        if (r < top) continue;
+        const depth = (r - top) / Math.max(1, rows - top - 1);
+        let lit = false, ring = false, dmin = 99, st = null;
+        for (const s of stones) { const d = Math.hypot(c - s.c, r - s.r); if (d < dmin) { dmin = d; st = s; } }
+        if (dmin <= st.R + 0.25) {
+          cell(c, r, "stone", 1);
+          if (c < st.c && r < st.r) cell(c, r, "light", 0.14);
+          continue;
+        }
+        if (dmin < st.R + 1.3 * S && hash(c, r, 5) > 0.25) { cell(c, r, hash(c, r, 9) > 0.5 ? "moss" : "matcha", 0.75); continue; }
+        if (dmin < st.R + 4.6 * S) { ring = true; lit = (Math.round((dmin - st.R) / S) % 2) === 1; }
+        else {
+          const v = (r + (sandTop - top) + S * (0.9 * Math.sin(c * 0.2 / S + t * 0.035) + 0.35 * Math.sin(c * 0.05 / S - t * 0.018))) / S;
+          lit = ((Math.round(v) % 2) + 2) % 2 === 0;
+        }
+        let glow = 0;
+        for (const rp of ripples) {
+          const age = t - rp.t0, rad = age * 2.6 * S;
+          if (Math.abs(Math.hypot(c - rp.c, r - rp.r) - rad) < 0.55) glow = Math.max(glow, 1 - age / 3);
+        }
+        if (r - top < 2 && hash(c, r) > 0.45 + (r - top) * 0.3 && !glow) continue;
+        if (lit) {
+          let a = 0.2 + 0.25 * depth + (ring ? 0.06 : 0);
+          cell(c, r, glow ? "ai" : "gravel", a + glow * 0.5);
+        } else if (glow) cell(c, r, "ai", glow * 0.45);
+      }
+    }
+  }
+
+  function drawTrail(t) {
+    trail = trail.filter(s => t - s.t < 1.4);
+    for (const s of trail) {
+      const k = 1 - (t - s.t) / 1.4, R = 0.4 + 1.1 * k;
+      for (let dc = -3; dc <= 3; dc++) for (let dr = -3; dr <= 3; dr++) {
+        const c = s.c + dc, r = s.r + dr;
+        if (((c + r) & 1) || Math.hypot(dc, dr) > R || r >= topAt(c)) continue;
+        cell(c, r, "moss", 0.4 * k);
+      }
+    }
+  }
+
+  // The demo's ghost pointer: the same small pixel arrow as the page cursor.
+  const ARROW = ["X.......", "XX......", "XoX.....", "XooX....", "XoooX...", "XooooX..", "XoooooX.", "XooXXXXX", "XoXXoX..", "XX.XoX..", "....XoX.", "....XoX.", ".....XX."];
+  function drawSeal() {
+    if (!ptr.ghost || !ptr.active) return;
+    const q = 2, x0 = Math.round(ptr.x), y0 = Math.round(ptr.y);
+    ARROW.forEach((row, y) => { for (let x = 0; x < row.length; x++) {
+      if (row[x] === ".") continue;
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = row[x] === "X" ? HEX.sumi : HEX.light;
+      ctx.fillRect(x0 + x * q, y0 + y * q, q, q);
+    } });
+  }
+
+  function updateGlyphs(t) {
+    const alive = [];
+    for (const q of glyphs) {
+      const age = t - q.t0, tIn = 2.0;
+      if (age > tIn + q.hold) { dissolve(q); continue; }
+      alive.push(q);
+      q.cells.forEach((p, i) => {
+        const k = easeOut(clamp((age - p.d) / 1.3, 0, 1));
+        const c = Math.round(p.fc + (p.tc - p.fc) * k), r = Math.round(p.fr + (p.tr - p.fr) * k);
+        fineCell(c, r, q.k, q.color, age > tIn ? 0.92 : 0.25 + 0.75 * k);
+      });
+    }
+    glyphs = alive;
+  }
+
+  function updateParticles(t, dt) {
+    const keep = [];
+    for (const p of particles) {
+      p.vy += 4.5 * S * dt; p.vx *= 0.97; p.vy = Math.min(p.vy, 6 * S);
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.a = Math.max(0.35, p.a - 0.12 * dt);
+      const land = topAt(p.x) + p.landOff;
+      if (p.y >= land) {
+        if (ripples.length < 7 && (p.ripple || rand() < 0.22)) ripples.push({ c: Math.round(p.x), r: land, t0: t });
+        continue;
+      }
+      if (p.x < -2 || p.x > cols + 2) continue;
+      keep.push(p);
+      cell(Math.round(p.x), Math.round(p.y), p.color, p.a);
+    }
+    particles = keep;
+  }
+
+  function drip() {
+    const pool = wm.cells.filter(c => c.y >= 7);
+    const s = pool[Math.floor(rand(pool.length))];
+    const G = wmGeom();
+    const [c, r] = toCell(G.x + (s.x + 0.5) * G.p, G.y + (s.y + 0.5) * G.p);
+    particles.push({ x: c, y: r + 1, vx: rand(-0.4, 0.4), vy: rand(0, 1), color: "usu", a: 0.7,
+                     landOff: Math.floor(rand(sandRows * 0.85)) });
+  }
+
+  function drawWordmark(t) {
+    const G = wmGeom(), age = t - wm.start, p = G.p;
+    const hover = ptr.active && ptr.x > G.x - 60 && ptr.x < G.x + G.w + 60 && ptr.y > G.y - 60 && ptr.y < G.y + G.h + 60;
+    const R = 5 * p;
+    const sweepK = (t - sweepT) / 3, sweepX = -8 + sweepK * (wm.total + 16);
+    for (const c of wm.cells) {
+      const k = easeOut(clamp((age - c.d) / 0.85, 0, 1));
+      const x = Math.round(c.fx + (c.x - c.fx) * k), y = Math.round(c.fy + (c.y - c.fy) * k);
+      let lift = 0;
+      if (hover && k >= 1) {
+        const d = Math.hypot(G.x + (c.x + 0.5) * p - ptr.x, G.y + (c.y + 0.5) * p - ptr.y);
+        if (d < R) lift = Math.round(Math.pow(1 - d / R, 2) * 2.4);
+      }
+      let a = c.drip === 1 ? 0.6 : c.drip === 2 ? 0.32 : 1;
+      if (k < 1) a *= 0.35 + 0.65 * k;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = HEX[BANDS[c.y] || "pale"];
+      const X = G.x + x * p, Y = G.y + (y - lift) * p;
+      ctx.fillRect(X, Y, p, p);
+      if (sweepK >= 0 && sweepK <= 1) {
+        const s = 1 - Math.abs(c.x - c.y * 0.6 - sweepX) / 3;
+        if (s > 0) { ctx.globalAlpha = s * 0.4; ctx.fillStyle = HEX.light; ctx.fillRect(X, Y, p, p); }
+      }
+    }
+    let caretX = wm.caretX;
+    for (let i = 0; i < 5; i++) if (age < 0.25 + i * 0.2 + 0.6) { caretX = i === 0 ? 0 : wm.letterEnds[i - 1] + 2; break; }
+    const typing = age < 0.25 + 4 * 0.2 + 0.6;
+    const blinkOn = music.on && music.ac ? beatPhase() < 0.5 : Math.floor(age / 0.9) % 2 === 0;
+    if (age > 0.1 && (typing || blinkOn)) {
+      for (let y = 0; y < 9; y++) for (let x = 0; x < CARET_W; x++) {
+        ctx.globalAlpha = y < 7 ? 1 : 0.55;
+        ctx.fillStyle = HEX.shu;
+        ctx.fillRect(G.x + (caretX + x) * p, G.y + y * p, p, p);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // =====================================================================
+  // panes: note, spec, chat
+  // =====================================================================
+  const docEl = $("doc"), docPath = $("docPath"), docBody = $("docBody");
+  const chatEl = $("chat"), logEl = $("log"), chipsEl = $("chips"), askEl = $("ask");
+  const docOpen = () => docEl.classList.contains("open");
+  const chatOpen = () => document.body.classList.contains("chat-open");
+  const overPane = (x, y) => { const e = document.elementFromPoint(x, y); return !!(e && e.closest(".pane")); };
+  let docTok = 0;
+
+  function setMode(label, temporary) {
+    modeEl.textContent = label;
+    if (temporary) modeTimer = lastT + 1.6; else { baseMode = label; modeTimer = 0; }
+  }
+  const today = new Date();
+  const ymd = today.toISOString().slice(0, 10);
+  const dateLine = today.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) + " · " +
+                   today.toTimeString().slice(0, 5);
+
+  function closeDoc() { docEl.classList.remove("open"); docTok++; if (!chatOpen()) setMode("READ"); updatePos(); }
+
+  // n: a new note, written by an invisible hand, titled by the agent on the way out of write mode
+  const NOTE = [
+    "the build is green.\n",
+    "the spec still says \"maybe\".\n",
+    "I sit with it. tea.\n\n",
+    "- [ ] decide what \"eventually consistent\" means for the coffee machine\n",
+    "- [ ] ask the agent why the test passes only on Fridays\n",
+    "- [ ] stop naming services after birds\n",
+    "- [x] breathe in. breathe out. git commit.\n"
+  ].join("");
+  async function openNote() {
+    const tok = ++docTok;
+    docEl.classList.add("open");
+    setMode("WRITE");
+    docPath.textContent = "docs/notes/" + ymd + "-untitled.md";
+    docBody.innerHTML = '<div class="title" id="nTitle">&nbsp;</div><div class="date">' + dateLine + '</div><pre class="write"><span id="nText"></span><span class="caret"></span></pre>';
+    const out = $("nText");
+    await sleep(350);
+    for (let i = 0; i < NOTE.length; i++) {
+      if (tok !== docTok) return;
+      out.textContent += NOTE[i];
+      updatePos(out.textContent);
+      const ch = NOTE[i];
+      await sleep(ch === "\n" ? 260 : ch === "." ? 160 : rand(18, 55));
+    }
+    await sleep(900);
+    if (tok !== docTok) return;
+    // leaving write mode: the agent adds a title
+    docBody.querySelector(".caret").remove();
+    setMode("READ");
+    const title = $("nTitle"), name = "On tea, green builds and the coffee machine";
+    title.classList.add("agent-title");
+    title.textContent = "";
+    for (const ch of name) { if (tok !== docTok) return; title.textContent += ch; await sleep(22); }
+    docPath.textContent = "docs/notes/" + ymd + "-tea-green-builds.md";
+    await sleep(500);
+    title.classList.remove("agent-title");
+  }
+
+  // s: the zendo ergonomics spec, in EARS
+  const kw = s => s.replace(/\b(WHEN|WHILE|IF|THEN|WHERE)\b/g, '<span class="kw">$1</span>');
+  const SPEC = {
+    intro: "The hands stay on the keys. The eyes stay on the document. Everything else waits next door.",
+    sections: [
+      ["Keys", [
+        "The editor shall open each pane with one key.",
+        "WHEN the user presses <code>a</code> with a selection, the editor shall send the file, the selection and the rules of the project to the agent.",
+        "WHEN the user presses <code>alt-q</code>, the editor shall give the focus back to the document, and the agent shall continue in the background.",
+        "IF the agent cannot do what a key asks, THEN the editor shall turn off only that key."
+      ]],
+      ["Panes", [
+        "The document shall be the main pane.",
+        "WHILE the window is narrower than 100 columns, the editor shall open the chat below the document.",
+        "WHILE the window is 100 columns or wider, the editor shall open the chat beside the document.",
+        "WHEN an agent changes a file, the editor shall show the change word by word in the delta."
+      ]],
+      ["Length", [
+        "WHEN a document has more than 1,000 words, the editor shall show the word count in red.",
+        "WHEN the user presses <code>S</code>, the agent shall split the document so that each part keeps one level of detail."
+      ]],
+      ["Calm", [
+        "The editor shall not ask the user to confirm each edit of the agent.",
+        "The agent shall not run a shell command. Only the user shall run it.",
+        "WHILE an agent works, the editor shall show its state on the session button: works, waits or idle.",
+        "The editor shall not make a sound."
+      ]]
+    ],
+    open: "Open: is a blinking caret too loud?"
+  };
+  function openSpec() {
+    docTok++;
+    docEl.classList.add("open");
+    setMode("READ");
+    docPath.textContent = "docs/zendo/ergonomics.md";
+    let html = '<div class="title">zendo ergonomics</div><div class="date">' + dateLine + ' · draft</div><p>' + SPEC.intro + '</p>';
+    for (const [h, items] of SPEC.sections) html += "<h3>" + h + "</h3><ul>" + items.map(i => "<li>" + kw(i) + "</li>").join("") + "</ul>";
+    html += '<p style="margin-top:22px">' + SPEC.open + "</p>";
+    docBody.innerHTML = html;
+    docBody.scrollTop = 0;
+    updatePos(docBody.textContent);
+  }
+
+  function updatePos(text) {
+    if (docOpen() && text !== undefined) {
+      const n = (text.match(/\S+/g) || []).length;
+      posEl.textContent = n + " / 1000 words";
+    } else if (!docOpen()) posEl.textContent = "ln " + (Math.max(0, ptr.r) + 1) + " · col " + (Math.max(0, ptr.c) + 1);
+  }
+
+  // a: the chat with the agent, beside the document when wide, below it when narrow
+  function openChat(quote) {
+    document.body.classList.add("chat-open");
+    setMode("ASK");
+    if (quote) chipsEl.innerHTML = '<div class="quote"></div>', chipsEl.firstChild.textContent = quote;
+  }
+  function closeChat() { document.body.classList.remove("chat-open"); askEl.blur(); setMode(docOpen() ? baseModeForDoc() : "READ"); }
+  const baseModeForDoc = () => docBody.querySelector(".caret") ? "WRITE" : "READ";
+  function addMsg(who, text, quote) {
+    const m = document.createElement("div");
+    m.className = "msg";
+    m.innerHTML = '<div class="who ' + (who === "agent" ? "agent" : "") + '">' + who + "</div>";
+    if (quote) { const q = document.createElement("div"); q.className = "quote"; q.textContent = quote; m.appendChild(q); }
+    const b = document.createElement("div"); b.textContent = text; m.appendChild(b);
+    logEl.appendChild(m); logEl.scrollTop = logEl.scrollHeight;
+    return b;
+  }
+  async function stream(el, text, tok) {
+    el.textContent = "";
+    el.classList.add("dots");
+    await sleep(700);
+    el.classList.remove("dots");
+    for (const w of text.split(/(\s+)/)) {
+      if (tok !== undefined && demo && tok !== demo.tok) return;
+      el.textContent += w; logEl.scrollTop = logEl.scrollHeight;
+      await sleep(w.trim() ? rand(25, 70) : 0);
+    }
+  }
+  const REPLY_DEMO = "You can install it with curl. Run this command in your shell:";
+  const REPLY_LOCAL = "This page is only a quiet copy of the room, so no agent listens here. In zendo, a sends your question with the file, the selection and your rules to Claude Code or Codex. Press i to install it.";
+  async function sendAsk() {
+    const text = askEl.value.trim();
+    const chip = chipsEl.textContent.trim();
+    if (!text && !chip) return;
+    askEl.value = ""; chipsEl.innerHTML = "";
+    addMsg("you", text || "(the selection)", chip || null);
+    await stream(addMsg("agent", ""), REPLY_LOCAL);
+  }
+  askEl.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAsk(); }
+    if (e.key === "Escape") { e.preventDefault(); closeChat(); }
+    e.stopPropagation();
+  });
+
+  // =====================================================================
+  // the demo: the seal glides to "See it in action", selects it, presses a, asks
+  // =====================================================================
+  const watchLabel = $("watchLabel"), askKey = $("askKey");
+  function setPointer(x, y) {
+    const [c, r] = toCell(x, y);
+    if (c !== ptr.c || r !== ptr.r) {
+      if (ptr.active && ptr.r < topAt(ptr.c)) trail.push({ c: ptr.c, r: ptr.r, t: lastT });
+      if (trail.length > 40) trail.shift();
+      ptr.c = c; ptr.r = r; ptr.moved = lastT; ptr.idleDone = false;
+      updatePos();
+    }
+    ptr.x = x; ptr.y = y;
+  }
+  function tween(x1, y1, ms, tok, onStep) {
+    const x0 = ptr.x, y0 = ptr.y, t0 = performance.now();
+    return new Promise(res => {
+      const step = () => {
+        if (!demo || demo.tok !== tok) return res(false);
+        const k = clamp((performance.now() - t0) / ms, 0, 1), e = easeInOut(k);
+        setPointer(x0 + (x1 - x0) * e, y0 + (y1 - y0) * e);
+        if (onStep) onStep(k);
+        if (k < 1) requestAnimationFrame(step); else res(true);
+      };
+      requestAnimationFrame(step);
+    });
+  }
+  // Ends the demo. The chat stays open: once the agent has answered, the user closes it with esc.
+  function endDemo() {
+    if (!demo) return;
+    watchLabel.style.setProperty("--w", "0%");
+    askKey.classList.remove("flash");
+    ptr.ghost = false; ptr.active = false;
+    demo = null;
+    nextDemo = lastT + 40;
+  }
+  async function runDemo(forced) {
+    const tok = Math.random();
+    demo = { tok, forced, ownsChat: !chatOpen() };
+    if (demo.ownsChat) logEl.innerHTML = "";
+    const alive = () => demo && demo.tok === tok;
+    ptr.ghost = true;
+    if (!forced || ptr.x < 0) { ptr.x = W * (0.65 + rand(0.25)); ptr.y = H * 0.82; }
+    ptr.active = true;
+    const r = watchLabel.getBoundingClientRect();
+    const y = r.top + r.height / 2;
+    if (!await tween(r.left + 1, y, forced ? 500 : 1500, tok)) return;
+    await sleep(250); if (!alive()) return;
+    if (!await tween(r.right, y, 800, tok, k => watchLabel.style.setProperty("--w", (k * 100).toFixed(1) + "%"))) return;
+    await sleep(450); if (!alive()) return;
+    askKey.classList.add("flash");
+    setMode("ASK", true);
+    await sleep(260); if (!alive()) return;
+    askKey.classList.remove("flash");
+    openChat(watchLabel.textContent);
+    // from here the pointer is not needed: moving the mouse no longer stops the demo
+    demo.chatShown = true;
+    ptr.ghost = false; ptr.active = false;
+    const q = "how?";
+    for (const ch of q) { if (!alive()) return; askEl.value += ch; await sleep(rand(30, 70)); }
+    await sleep(300); if (!alive()) return;
+    askEl.value = ""; chipsEl.innerHTML = "";
+    addMsg("you", q, watchLabel.textContent);
+    watchLabel.style.setProperty("--w", "0%");
+    const ans = addMsg("agent", "");
+    await stream(ans, REPLY_DEMO, tok); if (!alive()) return;
+    await sleep(250); if (!alive()) return;
+    const sh = document.createElement("div");
+    sh.className = "sh";
+    sh.innerHTML = '<span class="run">▶</span>';
+    sh.appendChild(document.createTextNode(CMD));
+    ans.parentNode.appendChild(sh); logEl.scrollTop = logEl.scrollHeight;
+    if (!forced) {
+      // an unasked demo tidies up after itself, but only if nobody touched the page while it was open
+      const shown = lastT;
+      await sleep(15000); if (!alive()) return;
+      if (lastInput <= shown) closeChat();
+    }
+    endDemo();
+  }
+
+  // =====================================================================
+  // input
+  // =====================================================================
+  function act(key) {
+    lastInput = lastT;
+    switch (key) {
+      case "n": closeChatIfDemo(); openNote(); break;
+      case "s": closeChatIfDemo(); openSpec(); break;
+      case "a": {
+        const sel = String(window.getSelection() || "").trim();
+        if (demo) endDemo();
+        openChat(sel ? sel.slice(0, 280) : null);
+        setTimeout(() => askEl.focus(), 260);
+        break;
+      }
+      case "b": setMode("BUILD", true); glyphAt("term"); break;
+      case "i": install(); break;
+      case "g": $("gh").click(); break;
+      case "m": toggleMusic(); break;
+      case "Escape": if (chatOpen()) closeChat(); else if (docOpen()) closeDoc(); break;
+    }
+  }
+  function closeChatIfDemo() { if (demo) endDemo(); }
+  function glyphAt(name) {
+    if (ptr.active && !ptr.ghost && !inBlocks(ptr.c, ptr.r, heroBlocks()) && ptr.r < sandTop - 2 && !overPane(ptr.x, ptr.y)) spawnGlyph(name, ptr.c, ptr.r, lastT);
+    else spawnFree(name, lastT);
+  }
+
+  window.addEventListener("pointermove", e => {
+    if (e.pointerType === "touch") return;
+    lastInput = lastT;
+    if (demo && !demo.chatShown) { if (demo.forced) return; endDemo(); }
+    setPointer(e.clientX, e.clientY);
+    ptr.active = e.clientY < H - statusH;
+  });
+  document.addEventListener("pointerleave", () => { if (!ptr.ghost) ptr.active = false; });
+  window.addEventListener("blur", () => { if (!ptr.ghost) ptr.active = false; });
+  window.addEventListener("pointerdown", e => {
+    lastInput = lastT;
+    if (e.target.closest("a, button, .cmd, .pane, textarea")) return;
+    const [c, r] = toCell(e.clientX, e.clientY);
+    if (r >= topAt(c)) { ripples.push({ c, r, t0: lastT }); return; }
+    spawnGlyph(GLYPH_NAMES[Math.floor(rand(GLYPH_NAMES.length))], c, r, lastT);
+    ptr.idleDone = true;
+  });
+  window.addEventListener("keydown", e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target.closest && e.target.closest("textarea, input")) return;
+    const k = e.key === "Escape" ? "Escape" : e.key.toLowerCase();
+    if ("nsabigm".includes(k) && k.length === 1 || k === "Escape") { e.preventDefault(); act(k); }
+  });
+  document.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); act(b.dataset.act); }));
+  $("watch").addEventListener("click", () => { if (demo) endDemo(); lastInput = lastT; runDemo(true); });
+
+  // ---------- install ----------
+  const cmdEl = $("cmd"), copyBtn = $("copy"), copyLbl = copyBtn.querySelector(".lbl");
+  async function copyCmd() {
+    try { await navigator.clipboard.writeText(CMD); copyLbl.textContent = "copied"; }
+    catch (_) { copyLbl.textContent = "select it"; }
+    setTimeout(() => { copyLbl.textContent = "copy"; }, 1600);
+  }
+  function install() { cmdEl.classList.add("show"); copyCmd(); }
+  copyBtn.addEventListener("click", copyCmd);
+
+  // =====================================================================
+  // lofi: an original tune, made in the browser, so no one owns it
+  // A file named lofi.mp3 next to this page (a CC0 track, say) plays instead.
+  // =====================================================================
+  const BPM = 72, BEAT = 60 / BPM, STEP = BEAT / 4;
+  const CHORDS = [            // Fmaj9, Em7, Dm9, Cmaj9, with the root an octave down for the bass
+    { bass: 41, keys: [53, 57, 60, 64, 67] },
+    { bass: 40, keys: [52, 55, 59, 62, 66] },
+    { bass: 38, keys: [50, 53, 57, 60, 64] },
+    { bass: 36, keys: [48, 52, 55, 59, 62] }
+  ];
+  const music = { ac: null, on: false, file: null, useFile: false, timer: null, next: 0, step: 0, bar: 0, t0: 0 };
+  const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+  const beatPhase = () => (((music.ac.currentTime - music.t0) / BEAT) % 1 + 1) % 1;
+
+  // try the file first; fall back to the synth if it is not there
+  (() => {
+    const a = new Audio();
+    a.loop = true; a.preload = "auto"; a.volume = 0.5;
+    a.addEventListener("canplaythrough", () => { music.file = a; music.useFile = true; }, { once: true });
+    a.src = "lofi.mp3";
+  })();
+
+  function initAudio() {
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    const master = ac.createGain(); master.gain.value = 0;
+    const tone = ac.createBiquadFilter(); tone.type = "lowpass"; tone.frequency.value = 4200; tone.Q.value = 0.3;
+    const comp = ac.createDynamicsCompressor(); comp.threshold.value = -20; comp.ratio.value = 3;
+    master.connect(tone); tone.connect(comp); comp.connect(ac.destination);
+    // a small room
+    const len = Math.floor(ac.sampleRate * 2.6), ir = ac.createBuffer(2, len, ac.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.4); }
+    const rev = ac.createConvolver(); rev.buffer = ir;
+    const wet = ac.createGain(); wet.gain.value = 0.3; rev.connect(wet); wet.connect(master);
+    // white noise for the drums
+    const nb = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), nd = nb.getChannelData(0);
+    for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    // vinyl: a soft hiss with a dusty crackle
+    const vb = ac.createBuffer(1, ac.sampleRate * 4, ac.sampleRate), vd = vb.getChannelData(0);
+    for (let i = 0; i < vd.length; i++) { const r = Math.random(); vd[i] = r < 0.0006 ? (Math.random() * 2 - 1) * 0.8 : (Math.random() * 2 - 1) * 0.01; }
+    const vinyl = ac.createBufferSource(); vinyl.buffer = vb; vinyl.loop = true;
+    const vf = ac.createBiquadFilter(); vf.type = "bandpass"; vf.frequency.value = 2400; vf.Q.value = 0.4;
+    const vg = ac.createGain(); vg.gain.value = 0.22;
+    vinyl.connect(vf); vf.connect(vg); vg.connect(master); vinyl.start();
+    Object.assign(music, { ac, master, rev, noise: nb });
+  }
+  function route(node, dry, send) {
+    const d = music.ac.createGain(); d.gain.value = dry; node.connect(d); d.connect(music.master);
+    if (send) { const w = music.ac.createGain(); w.gain.value = send; node.connect(w); w.connect(music.rev); }
+  }
+  function env(g, t, peak, attack, hold, release) {
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + attack);
+    g.gain.exponentialRampToValueAtTime(peak * 0.45, t + attack + hold);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + attack + hold + release);
+  }
+  // an old electric piano: triangle and sine, slightly apart, with tape wow
+  function keys(n, t, dur, vel) {
+    const ac = music.ac, wow = 7 * Math.sin(t * 2 * Math.PI * 0.27);
+    const g = ac.createGain(), f = ac.createBiquadFilter();
+    f.type = "lowpass"; f.frequency.setValueAtTime(2400, t); f.frequency.exponentialRampToValueAtTime(800, t + dur + 0.5);
+    [["triangle", -6, 1], ["sine", 6, 1], ["sine", 0, 0.12]].forEach(([type, det, mul], i) => {
+      const o = ac.createOscillator(), og = ac.createGain();
+      o.type = type; o.frequency.value = mtof(n) * (i === 2 ? 2 : 1); o.detune.value = det + wow;
+      og.gain.value = mul; o.connect(og); og.connect(f);
+      o.start(t); o.stop(t + dur + 1.4);
+    });
+    f.connect(g); env(g, t, vel, 0.02, dur * 0.6, dur * 0.4 + 1.1);
+    route(g, 0.8, 0.35);
+  }
+  function bass(n, t, dur) {
+    const ac = music.ac, o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+    o.type = "triangle"; o.frequency.value = mtof(n);
+    f.type = "lowpass"; f.frequency.value = 380;
+    o.connect(f); f.connect(g); env(g, t, 0.32, 0.015, dur * 0.7, 0.25);
+    o.start(t); o.stop(t + dur + 0.4);
+    route(g, 1, 0);
+  }
+  function kick(t, v) {
+    const ac = music.ac, o = ac.createOscillator(), g = ac.createGain();
+    o.frequency.setValueAtTime(115, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.14);
+    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
+    o.connect(g); o.start(t); o.stop(t + 0.45);
+    route(g, 1, 0);
+  }
+  function noiseHit(t, v, type, freq, q, decay, send) {
+    const ac = music.ac, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = music.noise; f.type = type; f.frequency.value = freq; f.Q.value = q;
+    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+    s.connect(f); f.connect(g); s.start(t, Math.random() * 0.5); s.stop(t + decay + 0.02);
+    route(g, 1, send);
+  }
+  const snare = (t, v) => { noiseHit(t, v, "bandpass", 1700, 0.7, 0.2, 0.4); };
+  const hat = (t, v) => { noiseHit(t, v, "highpass", 7600, 0.5, 0.045, 0.05); };
+  function playStep(step, t) {
+    const bar = music.bar, ch = CHORDS[bar % 4];
+    if (step === 0) {
+      ch.keys.forEach((n, i) => keys(n, t + i * 0.018, BEAT * 2.2, 0.075));
+      bass(ch.bass, t, BEAT * 1.6);
+      // on every bar a drop falls beside a stone; it makes a ring where it lands
+      setTimeout(() => {
+        const s = stones[Math.floor(rand(stones.length))];
+        if (!s) return;
+        const c = Math.round(s.c + (rand() < 0.5 ? -1 : 1) * (s.R + rand(1.5, 3) * S));
+        const top = topAt(c);
+        particles.push({ x: c, y: Math.max(2, top - rand(9, 14) * S), vx: 0, vy: 0, color: "ai", a: 0.85,
+                         landOff: Math.max(1, Math.round(s.r - top)), ripple: true });
+      }, Math.max(0, (t - music.ac.currentTime) * 1000));
+    }
+    if (step === 10 && rand() < 0.6) ch.keys.slice(1).forEach((n, i) => keys(n, t + i * 0.022, BEAT, 0.05));
+    if (step === 8) bass(ch.bass + (rand() < 0.3 ? 7 : 0), t, BEAT * 0.9);
+    if (step === 14 && rand() < 0.35) bass(ch.bass + 12, t, BEAT * 0.4);
+    {
+      if (step === 0 || step === 10 || (step === 7 && rand() < 0.4) || (step === 14 && bar % 4 === 3)) kick(t, step === 7 ? 0.45 : 0.8);
+      if (step === 4 || step === 12) snare(t, 0.22);
+      if (step % 2 === 0) hat(t, rand(0.05, 0.1));
+      else if (rand() < 0.15) hat(t, 0.035);
+    }
+  }
+  function scheduler() {
+    const ac = music.ac;
+    const ahead = document.hidden ? 1.6 : 0.15;
+    while (music.next < ac.currentTime + ahead) {
+      const swing = music.step % 2 === 1 ? STEP * 0.28 : 0;
+      playStep(music.step, music.next + swing);
+      music.next += STEP;
+      if (++music.step === 16) { music.step = 0; music.bar++; }
+    }
+  }
+  // Music is on by default. Browsers keep a page silent until the visitor first clicks or presses a key,
+  // so the music starts at once where that is allowed, and otherwise on the first click or key.
+  music.want = true;
+  async function startMusic() {
+    if (!music.ac) initAudio();
+    const ac = music.ac;
+    await ac.resume();
+    if (ac.state !== "running" || music.on) return;
+    music.on = true;
+    const now = ac.currentTime;
+    if (music.useFile) {
+      try { await music.file.play(); } catch (_) { music.useFile = false; }
+      music.t0 = ac.currentTime;
+    }
+    if (!music.useFile) {
+      music.next = now + 0.1; music.t0 = music.next; music.step = 0; music.bar = 0;
+      clearInterval(music.timer); music.timer = setInterval(scheduler, 25);
+      music.master.gain.cancelScheduledValues(now);
+      music.master.gain.setTargetAtTime(0.6, now, 0.6);
+    }
+  }
+  function stopMusic() {
+    if (!music.on) return;
+    const ac = music.ac, now = ac.currentTime;
+    music.on = false;
+    if (music.useFile) music.file.pause();
+    music.master.gain.cancelScheduledValues(now);
+    music.master.gain.setTargetAtTime(0, now, 0.35);
+    setTimeout(() => { if (!music.on) { clearInterval(music.timer); ac.suspend(); } }, 1600);
+  }
+  function showMusic() {
+    const btn = $("musicBtn");
+    btn.classList.toggle("on", music.want);
+    btn.setAttribute("aria-pressed", String(music.want));
+    $("musicLbl").textContent = music.want ? "lofi ♪" : "lofi";
+  }
+  async function toggleMusic() {
+    // playing: stop. Silent (off, or on but still waiting for a click): play.
+    music.want = !music.on;
+    showMusic();
+    try { if (music.want) await startMusic(); else stopMusic(); } catch (_) {}
+  }
+  function armMusic() {
+    showMusic();
+    try { initAudio(); } catch (_) { return; }
+    music.ac.resume().catch(() => {});
+    setTimeout(() => { if (music.want && music.ac.state === "running") startMusic(); }, 300);
+    const onGesture = e => {
+      // the music button and the m key decide for themselves
+      if (e.target && e.target.closest && e.target.closest("#musicBtn")) return;
+      if (e.type === "keydown" && e.key && e.key.toLowerCase() === "m") return;
+      if (music.want && !music.on) startMusic().catch(() => {});
+    };
+    ["pointerdown", "keydown", "touchend"].forEach(type => window.addEventListener(type, onGesture, { capture: true }));
+  }
+
+  // ---------- go ----------
+  let resizeTimer;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { layout(); if (reduce) still(); }, 80);
+  });
+  function still() { startT = performance.now() / 1000 - 30; requestAnimationFrame(frame); }
+  const begin = () => { layout(); armMusic(); if (reduce) still(); else requestAnimationFrame(frame); };
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(begin); else begin();
+})();
+</script>
+</body>
+</html>

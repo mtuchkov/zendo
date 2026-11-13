@@ -60,6 +60,11 @@ template = "docs/guides/templates/code-review.md"
 path = ".githooks"
 about = "Git hooks of the repository: commit-msg checks each message; pre-commit checks project-structure.toml; lint-range.sh checks a range in CI. Turn on with `git config core.hooksPath .githooks`."
 
+[[entry]]
+path = "site"
+about = "The landing page of zendo: one self-contained index.html with the pixel garden, the demo and the lofi music. Not documentation."
+claude = "Keep the page one file with no build step. A file lofi.mp3 beside it replaces the music made in the browser; only a CC0 track goes there."
+
 # ----- Documentation -------------------------------------------------------------------------
 
 [[entry]]
