@@ -1,19 +1,20 @@
 ---
 status: "draft"
-revision: "1"
+revision: "2"
 date: "2026-11-12"
 parent: "zendo.md"
 prev: "chat.md"
-next: "attention.md"
+next: "terminal-output.md"
 level: "terminals of zendo: shell blocks in the chat, the play button, F5 and [>] terminals"
-note: "Agent draft from the request of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Depends on Sessions (sessions.md, draft) and ADR 0005."
+note: "Agent draft from the request of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Revision 2: the terminal shows in the chat pane, `ctrl-o` makes it full screen, `alt-n` goes through the terminals (user, 2026-11-12). Depends on Sessions (sessions.md, draft) and ADR 0005."
 ---
 
 # Terminal
 
 An answer of the agent often holds a shell command. zendo finds such a command in the transcript
 and shows a green play button `▶` on it. The user moves the cursor into the command and presses
-`F5`: zendo puts the command into the shell of a terminal, does not run it, and shows the terminal.
+`F5`: zendo puts the command into the shell of a terminal, does not run it, and shows the terminal
+in the chat pane.
 The user reads the command, changes it if necessary, and presses `enter`. `alt-F5` puts the command
 in and runs it at once. The agent never runs the command; only the user does (CLAUDE-3 stays).
 
@@ -32,9 +33,13 @@ for example the folder after `cd`, until it exits. There are at most five termin
   not run a command: `F5`, then the `[>]` terminals from the top, then a new `[>]` terminal. A
   `[>]` terminal goes away when its shell exits.
 
-**The terminal view.** A terminal takes the whole screen, as a Claude Code session does; the user
-types into the shell there. The bottom line shows the agent sessions and the terminals. `alt-q`
-leaves the view, as it leaves a Claude Code session, and the command continues.
+**The terminal view.** A terminal shows in the chat pane, in place of the transcript and the input;
+the other panes stay on the screen. The user types into the shell there. `ctrl-o` makes the terminal
+full screen, with the bottom line of the session view. `ctrl-o` is not a toggle: on the full screen
+it goes to the shell. The full screen ends when the user leaves the terminal; the next time, the
+terminal shows in the chat pane again. `alt-q` leaves the terminal from both modes, and the command
+continues. `alt-n` goes to the next agent session, and after the last one through the terminals:
+`F5`, then the `[>]` terminals from the top, then the first agent session again.
 
 **Buttons.** Under the agent buttons `F6` to `F10` come a gap with a horizontal line, `F5`, and the
 `[>]` buttons. Terminal buttons have the color of the text, whitish in a dark theme, so that they
@@ -60,6 +65,9 @@ differ from agent sessions at once.
 | TERM-4 | Unwanted   | If five terminals are open and each one runs a command, then the system shall not put the block into a terminal, and shall tell the user. | User, 2026-11-12 |
 | TERM-5 | Ubiquitous | The system shall run each terminal in a terminal that zendo owns, without tmux, a multiplexer, or a server process. | SESSIONS-3 |
 | TERM-6 | Event      | When the user leaves a terminal, the system shall keep its command running until it ends or zendo quits. | SESSIONS-1 |
+| TERM-37 | Event     | When the system shows a terminal, the system shall show it in the chat pane, and keep the other panes on the screen. | User, 2026-11-12 |
+| TERM-38 | Event     | When the user presses `ctrl-o` while the chat pane shows a terminal, the system shall show that terminal on the full screen. | User, 2026-11-12 |
+| TERM-41 | Event     | When the user presses `alt-n`, the system shall show the next item of this sequence: the agent sessions, the `F5` terminal, the `[>]` terminals from the top, and then the first agent session again. | User, 2026-11-12 |
 
 ### Acceptance tests
 
@@ -97,6 +105,28 @@ The tests are in `tests/terminal.rs`. They put answers with ` ```sh ` blocks int
 - When the user presses `alt-F5` on a block `touch ran`.
 - Then no new terminal opens, the chat tells the user why, and `ran` does not exist.
 
+**`a_terminal_shows_in_the_chat_pane`** (terminal check; verifies TERM-37, TERM-40)
+
+- Given a screen of 120 columns and 40 lines, and an answer with a block `tput cols`.
+- When the user presses `alt-F5` on the block.
+- Then the chat pane shows the terminal, the note pane is on the screen, and the terminal shows the
+  width of the chat pane, not `120`.
+
+**`ctrl_o_makes_the_terminal_full_screen`** (terminal check; verifies TERM-38, TERM-39, TERM-40, TERM-42)
+
+- Given the `F5` terminal in the chat pane.
+- When the user presses `ctrl-o`, runs `tput cols`, presses `ctrl-o` again, presses `alt-q`, and
+  then `F5`.
+- Then after the first `ctrl-o` no other pane is on the screen and the terminal shows `120`; the
+  second `ctrl-o` goes to the shell; after `F5` the terminal is in the chat pane and the note pane is
+  on the screen.
+
+**`alt_n_goes_through_the_terminals`** (terminal check; verifies TERM-41)
+
+- Given the `F5` terminal and one `[>]` terminal that run, and the chat on agent session 5.
+- When the user presses `alt-n` three times.
+- Then the chat pane shows `F5`, then the `[>]` terminal, then agent session 1.
+
 ## Detailed requirements
 
 | ID      | Pattern    | Requirement | Source |
@@ -107,14 +137,17 @@ The tests are in `tests/terminal.rs`. They put answers with ` ```sh ` blocks int
 | TERM-10 | Event      | When the user clicks the play button of a shell block, the system shall do what `F5` does. | Design |
 | TERM-11 | Event      | When the user presses `F5` outside a shell block, or in another pane, the system shall show the `F5` terminal. | User, 2026-11-12 |
 | TERM-12 | Event      | When a terminal is used the first time, the system shall start the shell of the user in the root of the repository. | Design |
-| TERM-13 | State      | While a terminal is on the screen, the system shall send all keys and paste to the shell, except `alt-q` and the keys that choose a session. | User, 2026-11-12; SESSIONS-9 |
-| TERM-22 | Event      | When the user presses `alt-q` in a terminal, the system shall show the screen from where the user opened the terminal, as SESSIONS-10 does for a Claude Code session. | User, 2026-11-12 |
+| TERM-13 | State      | While a terminal has the keys, the system shall send all keys and paste to the shell, except `alt-q`, `alt-n`, the keys that choose a session, and `ctrl-o` in the chat pane. | User, 2026-11-12; SESSIONS-9 |
+| TERM-22 | Event      | When the user presses `alt-q` in a terminal, in the chat pane or on the full screen, the system shall show the screen from where the user opened the terminal, as SESSIONS-10 does for a Claude Code session. | User, 2026-11-12 |
+| TERM-39 | State      | While a terminal is on the full screen, the system shall send `ctrl-o` to the shell. | User, 2026-11-12 |
+| TERM-40 | Event      | When the area of a terminal changes, the system shall set the size of the terminal to the size of the new area. | Design |
+| TERM-42 | Event      | When the user leaves a terminal that is on the full screen, or goes to a different terminal or session, the system shall stop the full screen mode of that terminal. | User, 2026-11-12 |
 | TERM-14 | Ubiquitous | The system shall show the terminal buttons under the agent buttons, after a gap with a horizontal line: first `F5`, then a `[>]` button for each open `[>]` terminal. | User, 2026-11-12 |
 | TERM-15 | Ubiquitous | The system shall show the terminal buttons in the color of the text of the theme, and mark the session on the screen in the bottom line of the terminal view. | User, 2026-11-12 |
 | TERM-16 | State      | While a terminal runs a command, the system shall show a busy mark on its button. | Design |
 | TERM-17 | Event      | When the shell of a terminal exits, the system shall remove a `[>]` terminal and its button, and start the `F5` shell again with the next use of `F5`. | Design |
 | TERM-18 | Unwanted   | If the user quits zendo while a terminal runs a command, then the system shall ask the user before it stops the command. | SESSIONS-6 |
-| TERM-19 | Ubiquitous | The system shall take the keys of the terminals from the keymap, with `f5`, `alt-f5` and `alt-q` as the defaults. | PANES-17 |
+| TERM-19 | Ubiquitous | The system shall take the keys of the terminals from the keymap, with `f5`, `alt-f5`, `alt-q`, `alt-n` and `ctrl-o` as the defaults. | PANES-17 |
 | TERM-20 | Optional   | Where zendo runs with `--offline` or with any agent, the system shall give the user the `F5` terminal. | Design |
 
 Tests that verify detailed requirements: `play_button_and_terminal_buttons` (TERM-8, TERM-11,
@@ -126,3 +159,6 @@ TERM-14, TERM-16), `shell_blocks_are_shell_fences_and_prompt_blocks` and
 | Open question | Affects | Answered by |
 | ------------- | ------- | ----------- |
 | In the terminal view, `F5` to `F10` choose a session, so programs such as `htop` and `mc` do not get them. Is that acceptable? | TERM-13 | User |
+| In the chat pane, `ctrl-o` does not go to the shell, so `nano` (write the file) and bash (`operate-and-get-next`) do not get it there; they get it on the full screen. Is that acceptable? | TERM-13, TERM-39 | User |
+| In the session view of a Claude Code session, `alt-n` leaves the full screen and goes to the next item, as in a terminal. Is that acceptable? | TERM-41, TERM-42 | User |
+| This document has about 2,000 words, over the limit of about 1,000. Split it into a `terminal/` directory with children (a change of the project structure)? | AGENTS.md | User |
