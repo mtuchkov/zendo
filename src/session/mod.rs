@@ -62,8 +62,10 @@ pub const QUIT_AGAIN: Duration = Duration::from_secs(5);
 pub struct Sessions {
     /// The command line; `None`: the one of the agent profile.
     pub command: Option<Command>,
-    /// The session on screen, if the session view is open.
+    /// The session on the full screen, if the session view is open.
     pub view: Option<usize>,
+    /// The terminal in the chat pane, in place of the transcript (TERM-37).
+    pub pane: Option<usize>,
     /// When zendo asked whether to stop the sessions on quit.
     pub quit_asked: Option<Instant>,
     /// Wakes the terminal loop when a session prints.
@@ -75,6 +77,10 @@ pub struct Sessions {
     pending: Vec<Option<(String, bool)>>,
     /// The size of the screen of a session: rows, columns.
     size: (u16, u16),
+    /// The size of a terminal in the chat pane.
+    pane_size: (u16, u16),
+    /// The size of each slot now.
+    sizes: Vec<(u16, u16)>,
     /// For the spinners.
     born: Instant,
 }
@@ -82,7 +88,8 @@ pub struct Sessions {
 impl Default for Sessions {
     fn default() -> Self {
         let all = SESSIONS + TERMINALS;
-        Sessions { command: None, view: None, quit_asked: None, notify: Arc::default(), shell: None, slots: (0..all).map(|_| None).collect(), pending: vec![None; all], size: (23, 80), born: Instant::now() }
+        let size = (23, 80);
+        Sessions { command: None, view: None, pane: None, quit_asked: None, notify: Arc::default(), shell: None, slots: (0..all).map(|_| None).collect(), pending: vec![None; all], size, pane_size: size, sizes: vec![size; all], born: Instant::now() }
     }
 }
 
@@ -136,6 +143,7 @@ impl Sessions {
         let dir = root.join(".zendo").join("sessions");
         let cli = Cli::spawn(cmd, id, root, &dir, n, self.size, self.notify.clone())?;
         self.slots[n] = Some(cli);
+        self.sizes[n] = self.size;
         Ok(())
     }
 
@@ -153,14 +161,35 @@ impl Sessions {
         }
     }
 
-    /// The size of the screen of each session (SESSIONS-16).
+    /// The terminal in the chat pane, unless it is on the full screen.
+    fn in_pane(&self) -> Option<usize> {
+        self.pane.filter(|p| self.view != Some(*p))
+    }
+
+    /// The size of the screen of each session that is not in the chat pane (SESSIONS-16, TERM-40).
     pub fn resize(&mut self, rows: u16, cols: u16) {
-        let size = (rows.max(2), cols.max(10));
-        if size == self.size {
+        self.size = (rows.max(2), cols.max(10));
+        let pane = self.in_pane();
+        (0..self.slots.len()).filter(|n| Some(*n) != pane).for_each(|n| self.fit(n, self.size));
+    }
+
+    /// The size of a terminal in the chat pane (TERM-40).
+    pub fn resize_pane(&mut self, rows: u16, cols: u16) {
+        self.pane_size = (rows.max(2), cols.max(10));
+        if let Some(n) = self.in_pane() {
+            self.fit(n, self.pane_size);
+        }
+    }
+
+    /// Give slot `n` the size `size`, if it has another one.
+    fn fit(&mut self, n: usize, size: (u16, u16)) {
+        if self.sizes[n] == size {
             return;
         }
-        self.size = size;
-        self.slots.iter().flatten().for_each(|c| c.resize(size));
+        self.sizes[n] = size;
+        if let Some(c) = self.cli(n) {
+            c.resize(size);
+        }
     }
 
     /// Read the states, and take the sessions that ended: their numbers.
@@ -175,6 +204,9 @@ impl Sessions {
         if self.view.is_some_and(|n| !self.running(n)) {
             self.view = None;
         }
+        if self.pane.is_some_and(|n| !self.running(n)) {
+            self.pane = None;
+        }
         ended
     }
 
@@ -187,6 +219,7 @@ impl Sessions {
     pub fn stop_all(&mut self) {
         self.slots.iter_mut().filter_map(Option::take).for_each(Cli::stop);
         self.view = None;
+        self.pane = None;
     }
 }
 

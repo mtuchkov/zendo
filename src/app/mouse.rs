@@ -103,6 +103,8 @@ impl App {
             return;
         }
         match self.region_at(x, y).map(|(r, _)| r) {
+            // The wheel over a terminal in the chat pane scrolls through the lines that left it.
+            Some(Region::Panel) if self.cli.pane.is_some() => self.cli.scroll(self.cli.pane.unwrap_or_default(), up),
             Some(Region::Panel) => {
                 self.panel_scroll = if up { self.panel_scroll + n } else { self.panel_scroll.saturating_sub(n) };
             }

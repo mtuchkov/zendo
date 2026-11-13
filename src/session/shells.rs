@@ -29,7 +29,8 @@ impl Sessions {
             return Ok(());
         }
         let program = self.shell.clone().or_else(|| std::env::var("SHELL").ok().filter(|s| !s.is_empty())).unwrap_or_else(|| "/bin/sh".into());
-        self.slots[shell(i)] = Some(Cli::spawn_shell(&program, root, self.size, self.notify.clone())?);
+        self.slots[shell(i)] = Some(Cli::spawn_shell(&program, root, self.pane_size, self.notify.clone())?);
+        self.sizes[shell(i)] = self.pane_size;
         Ok(())
     }
 

@@ -74,7 +74,7 @@ impl App {
         let chat = self.panel && matches!(self.mode, Mode::Read | Mode::Write | Mode::Help);
         let shown = match self.cli.view {
             Some(v) => v == n,
-            None => chat && n == self.state.session,
+            None => chat && self.cli.pane.map_or(n == self.state.session, |p| p == n),
         };
         self.attention.focused && shown
     }

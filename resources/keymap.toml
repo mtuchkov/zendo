@@ -26,7 +26,7 @@ session_2 = ["f7", "alt-f7"]  # agent session 2
 session_3 = ["f8", "alt-f8"]  # agent session 3
 session_4 = ["f9", "alt-f9"]  # agent session 4
 session_5 = ["f10", "alt-f10"]  # agent session 5
-next_session = ["alt-n"]  # the next agent session
+next_session = ["alt-n"]  # the next agent session, after the last the terminals
 terminal = ["f5"]  # put the shell block under the cursor into a terminal; elsewhere the F5 terminal
 terminal_run = ["alt-f5"]  # put the shell block under the cursor into a terminal and run it
 
@@ -193,6 +193,7 @@ delete = ["delete"]  # delete the file
 close = ["esc", "o", "q"]  # close
 
 [session]
-# A Claude Code session or a terminal on the whole screen. All other keys go to the program;
+# A Claude Code session or a terminal on the whole screen, or a terminal in the chat pane. All other
+# keys go to the program; alt-n goes to the next session or terminal;
 # F5 to F10 choose a session.
 leave = ["alt-q"]  # back to zendo; the program runs on

@@ -30,8 +30,20 @@ fn f5(a: &mut App, alt: bool) {
     a.on_key(KeyEvent::new(KeyCode::F(5), if alt { KeyModifiers::ALT } else { KeyModifiers::NONE }));
 }
 
+fn alt(a: &mut App, c: char) {
+    a.on_key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::ALT));
+}
+
 fn alt_q(a: &mut App) {
-    a.on_key(KeyEvent::new(KeyCode::Char('q'), KeyModifiers::ALT));
+    alt(a, 'q');
+}
+
+/// The size of the screen of the shell of slot `n`, as `stty size` gives it: `rows cols`.
+fn stty_size(a: &mut App, n: usize) -> String {
+    a.cli.write(n, b"echo size=$(stty size)=\r");
+    let tag = |a: &App| a.cli.text(n).rsplit("size=").next().and_then(|t| t.split_once('=')).map(|(v, _)| v.to_string());
+    wait(a, 10, |a| a.cli.text(n).matches("size=").count() >= 2 && tag(a).is_some_and(|v| !v.contains('$')));
+    tag(a).unwrap()
 }
 
 /// Tick until `done` holds, at most `secs` seconds.
@@ -56,7 +68,7 @@ async fn f5_puts_the_block_into_the_shell_and_does_not_run_it() {
     let (root, mut a) = app_with_shell("term-f5");
     answer(&mut a, "touch ran");
     f5(&mut a, false);
-    assert_eq!(a.cli.view, Some(shell(0)), "the F5 terminal shows");
+    assert_eq!(a.cli.pane, Some(shell(0)), "the F5 terminal shows in the chat pane");
     wait(&mut a, 10, |a| a.cli.text(shell(0)).contains("touch ran"));
     std::thread::sleep(Duration::from_millis(300));
     assert!(!root.join("ran").exists(), "F5 does not run the command");
@@ -105,10 +117,10 @@ async fn a_busy_f5_terminal_opens_a_new_one() {
     f5(&mut a, true);
     wait(&mut a, 10, |a| a.cli.busy(0));
     alt_q(&mut a);
-    assert_eq!(a.cli.view, None, "alt-q goes back to zendo");
+    assert_eq!((a.cli.view, a.cli.pane), (None, None), "alt-q goes back to zendo");
     answer(&mut a, "echo two-$((1+1))");
     f5(&mut a, true);
-    assert_eq!(a.cli.view, Some(shell(1)), "a [>] terminal");
+    assert_eq!(a.cli.pane, Some(shell(1)), "a [>] terminal");
     wait(&mut a, 10, |a| a.cli.text(shell(1)).contains("two-2"));
     assert!(a.cli.busy(0), "sleep still runs");
     done(&root, &mut a);
@@ -121,13 +133,13 @@ async fn five_busy_terminals_take_nothing() {
     answer(&mut a, "sleep 30");
     for i in 0..5 {
         f5(&mut a, true);
-        assert_eq!(a.cli.view, Some(shell(i)));
+        assert_eq!(a.cli.pane, Some(shell(i)));
         wait(&mut a, 10, |a| a.cli.busy(i));
         alt_q(&mut a);
     }
     answer(&mut a, "touch ran");
     f5(&mut a, true);
-    assert_eq!(a.cli.view, None, "no new terminal");
+    assert_eq!(a.cli.pane, None, "no new terminal");
     assert!(a.flash.as_ref().is_some_and(|(s, _)| s.contains("terminals run")), "{:?}", a.flash);
     std::thread::sleep(Duration::from_millis(300));
     assert!(!root.join("ran").exists());
@@ -151,11 +163,71 @@ async fn play_button_and_terminal_buttons() {
     a.focus = Focus::Note;
     a.transcript.on = false;
     f5(&mut a, false);
-    assert_eq!(a.cli.view, Some(SESSIONS), "F5 elsewhere shows the F5 terminal");
+    assert_eq!(a.cli.pane, Some(SESSIONS), "F5 elsewhere shows the F5 terminal");
     a.cli.put(0, "sleep 30", true);
     wait(&mut a, 10, |a| a.cli.busy(0));
     alt_q(&mut a);
     let screen = draw(&mut a, 120, 40).join("\n");
     assert!(screen.contains("F5•"), "the busy mark:\n{screen}");
+    done(&root, &mut a);
+}
+
+// TERM-37, TERM-40: a terminal shows in the chat pane, the note stays on the screen, and the shell
+// gets the size of the chat pane.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_terminal_shows_in_the_chat_pane() {
+    let (root, mut a) = app_with_shell("term-pane");
+    answer(&mut a, "true");
+    f5(&mut a, true);
+    assert_eq!((a.cli.pane, a.cli.view), (Some(shell(0)), None), "the chat pane, not the full screen");
+    let screen = draw(&mut a, 120, 40).join("\n");
+    assert!(screen.contains("# A") || screen.contains(" A"), "the note is on the screen:\n{screen}");
+    let size = stty_size(&mut a, shell(0));
+    let cols: u16 = size.split_whitespace().nth(1).unwrap().parse().unwrap();
+    assert!(cols < 100, "the shell has the width of the chat pane, not of the screen: {size}");
+    done(&root, &mut a);
+}
+
+// TERM-38, TERM-39, TERM-40, TERM-42: ctrl-o makes the terminal full screen; there ctrl-o goes to
+// the shell; after the user leaves, the terminal shows in the chat pane again.
+#[tokio::test(flavor = "multi_thread")]
+async fn ctrl_o_makes_the_terminal_full_screen() {
+    let (root, mut a) = app_with_shell("term-full");
+    f5(&mut a, false);
+    assert_eq!(a.cli.pane, Some(shell(0)));
+    ctrl(&mut a, 'o');
+    assert_eq!(a.cli.view, Some(shell(0)), "ctrl-o: the full screen");
+    draw(&mut a, 120, 40);
+    assert_eq!(stty_size(&mut a, shell(0)), "39 120", "the shell has the size of the screen");
+    ctrl(&mut a, 'o');
+    assert_eq!(a.cli.view, Some(shell(0)), "ctrl-o on the full screen goes to the shell");
+    alt_q(&mut a);
+    assert_eq!((a.cli.view, a.cli.pane), (None, None), "alt-q leaves the terminal");
+    f5(&mut a, false);
+    assert_eq!((a.cli.pane, a.cli.view), (Some(shell(0)), None), "the next time: the chat pane");
+    let screen = draw(&mut a, 120, 40).join("\n");
+    assert!(screen.contains(" A"), "the note is on the screen:\n{screen}");
+    done(&root, &mut a);
+}
+
+// TERM-41: alt-n goes from the last agent session to F5, to each [>] terminal, then to agent
+// session 1.
+#[tokio::test(flavor = "multi_thread")]
+async fn alt_n_goes_through_the_terminals() {
+    let (root, mut a) = app_with_shell("term-alt-n");
+    answer(&mut a, "sleep 30");
+    f5(&mut a, true);
+    wait(&mut a, 10, |a| a.cli.busy(0));
+    answer(&mut a, "true");
+    f5(&mut a, false);
+    assert_eq!(a.cli.pane, Some(shell(1)), "a [>] terminal runs");
+    a.switch_session(SESSIONS - 1);
+    assert_eq!(a.cli.pane, None, "the chat shows agent session 5");
+    alt(&mut a, 'n');
+    assert_eq!(a.cli.pane, Some(shell(0)), "after the last agent session: F5");
+    alt(&mut a, 'n');
+    assert_eq!(a.cli.pane, Some(shell(1)), "then the [>] terminal");
+    alt(&mut a, 'n');
+    assert_eq!((a.cli.pane, a.state.session), (None, 0), "then agent session 1");
     done(&root, &mut a);
 }
