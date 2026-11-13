@@ -44,6 +44,16 @@ pub struct State {
     /// Per file, keyed by the repo-relative path.
     #[serde(default)]
     pub files: BTreeMap<String, FileState>,
+    /// The files that the user opened in the note pane, the most recent first (FIND-2, FIND-4).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub recent: Vec<Opened>,
+}
+
+/// A file that the user opened in the note pane, and when.
+#[derive(Clone, Serialize, Deserialize)]
+pub struct Opened {
+    pub path: String,
+    pub at: DateTime<Local>,
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]

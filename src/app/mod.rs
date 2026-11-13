@@ -13,6 +13,7 @@ mod events;
 mod files;
 mod files_new;
 mod files_ops;
+mod find;
 mod float;
 mod jobs;
 mod hold;
@@ -36,6 +37,7 @@ pub mod write_rows;
 pub use at::{AT_ROWS, AtPick};
 pub use attention::Attention;
 pub use file_prompt::FilePrompt;
+pub use find::{Find, FindItem};
 pub use float::Float;
 pub use jobs::*;
 pub use hold::{CONTINUE, HOLD_AGAIN, Hold};
@@ -67,6 +69,7 @@ pub enum Mode {
     Write,
     Notes,
     Search,
+    Find,
     Theme,
     Help,
 }
@@ -233,6 +236,8 @@ pub struct App {
     pub keep_y: Option<usize>,
     /// `alt-n`: the new note in a float; the screen behind waits in it (FLOAT-1).
     pub float: Option<Float>,
+    /// `alt-/`: the find panel and the recent files (FIND-1).
+    pub find: Find,
     /// `ctrl-shift-s`: the arrow in the note, until the answer ends or `esc`.
     pub say: Option<Say>,
     /// `@` in the chat input: the file suggestions under it.

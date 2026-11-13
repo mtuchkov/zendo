@@ -113,6 +113,7 @@ struct Node {
 
 mod scan;
 mod sections;
+pub use scan::is_text;
 pub use sections::section_id;
 
 impl Tree {

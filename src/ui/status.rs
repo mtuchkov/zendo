@@ -99,7 +99,7 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
             ("WRITE", t.acc2, v)
         }
         Mode::Notes => ("NOTES", t.acc, hints(Pane::Notes, &[("down", "move"), ("open", "open"), ("new", "new"), ("rename", "rename"), ("tags", "by tag"), ("close", "close")])),
-        Mode::Search => ("SEARCH", t.acc, vec![("↑ ↓".into(), "move".into()), ("enter".into(), "open at match".into()), ("esc".into(), "back".into())]),
+        m @ (Mode::Search | Mode::Find) => if m == Mode::Find { ("FIND", t.acc, list_keys("open")) } else { ("SEARCH", t.acc, list_keys("open at match")) },
         Mode::Theme => ("THEME", t.acc, vec![("j k".into(), "preview".into()), ("enter".into(), "keep".into()), ("esc".into(), "cancel".into())]),
     }
 }
@@ -137,6 +137,7 @@ fn status_right(app: &App, claude: bool) -> String {
             format!("{words} words · {saved}")
         }
         Mode::Notes | Mode::Search => format!("{} notes · {}", app.notes.len(), app.rel(&app.cfg.notes_dir)),
+        Mode::Find => format!("{} files", app.find.items.len()),
         Mode::Theme => THEMES[app.theme].name.to_string(),
         _ if app.note().is_some() && app.word_limit > 0 => format!("{} / {} words", app.word_count, app.word_limit),
         _ => app.note().map(|_| format!("{} words", app.word_count)).unwrap_or_default(),
@@ -181,4 +182,9 @@ pub fn group_label(labels: &[&str]) -> String {
     }
     let tails: Vec<String> = labels.iter().map(|l| l.chars().skip(prefix).collect()).collect();
     format!("{}{}", first[..prefix].iter().collect::<String>(), tails.join("/"))
+}
+
+/// The fixed keys of the search box and of the find panel.
+fn list_keys(open: &str) -> Vec<(String, String)> {
+    vec![("↑ ↓".into(), "move".into()), ("enter".into(), open.into()), ("esc".into(), "back".into())]
 }

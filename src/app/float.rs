@@ -96,8 +96,13 @@ impl App {
         if self.editor_path.is_some() {
             self.ask_for_meta();
         }
+        let made = self.editor_path.clone();
         let Some(mut fl) = self.float.take() else { return };
         fl.swap(self);
+        // The new note is a recent file (FIND-6).
+        if let Some(p) = made {
+            self.add_recent(&p);
+        }
     }
 
     /// A key in the float: the keys of write mode; the keys that open a pane or move the focus do

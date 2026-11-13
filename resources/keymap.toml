@@ -19,6 +19,7 @@
 [global]
 # navigation
 next_pane = ["tab"]  # next pane
+find = ["alt-/"]  # find a file: the recent files, by path and by text
 
 # editing
 new_note = ["alt-n"]  # a new note in a float
@@ -57,7 +58,7 @@ top = ["g", "home"]  # top
 bottom = ["G", "end"]  # bottom
 next_note = ["]"]  # next note
 prev_note = ["["]  # previous note
-search = ["/"]  # search
+search = ["/"]  # find a file: the recent files, by path and by text
 
 # text selection
 select = ["v"]  # start / stop a selection

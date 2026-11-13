@@ -35,6 +35,7 @@ impl App {
             attention: Attention::from_config(&user),
             ..Default::default()
         };
+        app.find.seen = app.current.clone();
         app.load_structure();
         // The tree was open last time: fill it; with no note on screen, start in it.
         if app.state.tree {

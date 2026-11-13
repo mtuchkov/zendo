@@ -134,6 +134,7 @@ impl App {
             self.mark_tree();
         }
         self.sync_visit();
+        self.track_recent();
         self.recap_tick();
         self.cli_tick();
         self.hold_tick();
