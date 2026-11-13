@@ -38,8 +38,16 @@ impl App {
     /// SESSIONS-11).
     pub(crate) fn key_cli(&mut self, n: usize, k: KeyEvent) {
         if self.keys.local(Pane::Session, &k) == Some("leave") {
+            // A terminal on the full screen leaves the chat pane too (TERM-22, TERM-42).
+            if self.cli.pane == Some(n) {
+                self.cli.pane = None;
+            }
             self.cli.view = None;
             return;
+        }
+        if self.keys.local(Pane::Global, &k) == Some("next_session") {
+            self.cli.view = None;
+            return self.next_in_chat();
         }
         if self.keys.local(Pane::Global, &k) == Some("terminal") {
             return self.open_terminal(0);

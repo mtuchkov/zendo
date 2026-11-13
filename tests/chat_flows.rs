@@ -171,12 +171,14 @@ async fn say_here_is_a_chip_with_the_line_and_sends_a_default_question() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// CLAUDE-31, CLAUDE-32: five agent sessions; F6 to F10 choose one, alt-n the next, after the last
-// the first; each has its own thread; the buttons show the active one in the accent color.
+// CLAUDE-31, CLAUDE-32, TERM-41: five agent sessions; F6 to F10 choose one, alt-n the next, after
+// the last the F5 terminal, then the first; each has its own thread; the buttons show the active one
+// in the accent color.
 #[tokio::test]
 async fn five_agent_sessions_with_f6_to_f10_and_alt_n() {
     let root = repo("chat-sessions", &files());
     let mut a = app(&root);
+    a.cli.shell = Some("/bin/sh".into());
     a.open_file(root.join(A));
     a.open_panel();
     ask(&mut a, "first session").await;
@@ -190,10 +192,11 @@ async fn five_agent_sessions_with_f6_to_f10_and_alt_n() {
     let (f6, f8) = (find("F6"), find("F8"));
     assert_eq!(f6.0, f8.0, "one under the other");
     assert_eq!((buf[f8].bg, buf[f6].bg), (a.theme().acc, a.theme().acc2), "the active one in the accent color");
-    for want in [3, 4, 0] {
+    for want in [(3, None), (4, None), (4, Some(zendo::session::shell(0))), (0, None)] {
         a.on_key(KeyEvent::new(KeyCode::Char('n'), KeyModifiers::ALT));
-        assert_eq!(a.state.session, want);
+        assert_eq!((a.state.session, a.cli.pane), want);
     }
+    a.cli.stop_all();
     assert!(a.threads[CHAT_KEY].items.iter().any(|i| matches!(i, Item::User(s) if s == "first session")), "the first thread is still there");
     assert_eq!(app(&root).state.session, 0, "kept for the repository");
     let _ = std::fs::remove_dir_all(&root);

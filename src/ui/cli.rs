@@ -42,6 +42,21 @@ pub(crate) fn draw_cli(f: &mut Frame, app: &App, t: &Theme, n: usize, area: Rect
     draw_cli_bar(f, app, t, n, bar);
 }
 
+/// A terminal in the chat pane: a head line with its name and keys, and its screen (TERM-37).
+pub(crate) fn draw_pane_terminal(f: &mut Frame, app: &mut App, t: &Theme, n: usize, head: Rect, body: Rect) {
+    use crate::keys::Pane;
+    let (full, leave) = (app.keys.first(Pane::Chat, "handoff"), app.keys.first(Pane::Session, "leave"));
+    let dim = Style::new().fg(t.dim);
+    let line = vec![Span::styled(name(app, n), dim.add_modifier(Modifier::BOLD)), Span::styled(format!("  {full} full screen  {leave} back"), dim)];
+    f.render_widget(Paragraph::new(Line::from(line)), head);
+    f.render_widget(Block::new().style(Style::reset()), body);
+    let pos = app.cli.with_screen(n, |s| paint(s, f.buffer_mut(), body)).flatten();
+    if let Some(pos) = pos.filter(|_| app.focus == Focus::Claude) {
+        f.set_cursor_position(pos);
+    }
+    app.regions.push((crate::text::select::Region::Panel, body));
+}
+
 /// The name of session `n`: the F key of an agent session or of the `F5` terminal, `[>]` for
 /// another terminal.
 pub(crate) fn name(app: &App, n: usize) -> String {

@@ -7,6 +7,12 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     // the right edge.
     let inner = Rect { x: area.x + 3, y: area.y, width: area.width.saturating_sub(5 + BUTTON_W + 1), height: area.height };
     draw_sessions(f, app, t, Rect { x: area.right().saturating_sub(BUTTON_W + 1), width: BUTTON_W, ..area });
+    // A terminal shows in place of the thread and the input (TERM-37, TERM-40).
+    let body = Rect { y: inner.y + 2, height: inner.height.saturating_sub(2), ..inner };
+    app.cli.resize_pane(body.height, body.width);
+    if let Some(n) = app.cli.pane {
+        return draw_pane_terminal(f, app, t, n, Rect { height: 1, ..inner }, body);
+    }
     let w = inner.width as usize;
     // The input grows with its text, up to a quarter of the panel; then it scrolls.
     let in_w = (inner.width as usize).saturating_sub(4).max(10);

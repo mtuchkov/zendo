@@ -151,7 +151,7 @@ async fn a_turn_on_the_screen_rings_only_without_the_focus() {
 async fn the_end_of_a_terminal_command_rings_and_blinks() {
     let (root, mut a) = app_here("attn-term");
     key(&mut a, KeyCode::F(5));
-    assert_eq!(a.cli.view, Some(shell(0)), "F5 shows the F5 terminal");
+    assert_eq!(a.cli.pane, Some(shell(0)), "F5 shows the F5 terminal");
     wait(&mut a, 10, |a| a.cli.text(shell(0)).contains('$') || a.cli.text(shell(0)).contains('#'));
     a.cli.write(shell(0), b"sleep 1\r");
     wait(&mut a, 5, |a| a.cli.busy(0));

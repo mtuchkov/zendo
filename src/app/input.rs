@@ -28,6 +28,9 @@ impl App {
         if let Some(n) = self.cli.view {
             return self.key_cli(n, k);
         }
+        if let Some(n) = self.pane_terminal() {
+            return self.key_pane_terminal(n, k);
+        }
         // Any key ends a mouse selection; the text is already copied.
         self.sel = None;
         if self.mode == Mode::Help {
@@ -94,7 +97,7 @@ impl App {
                 self.quit = true;
             }
             "toggle_tree" => self.toggle_tree(),
-            "next_session" => self.switch_session(self.state.session + 1),
+            "next_session" => self.next_in_chat(),
             "terminal" => self.terminal_key(false),
             "terminal_run" => self.terminal_key(true),
             s if s.starts_with("session_") => self.switch_session(s[8..].parse::<usize>().map_or(0, |n| n - 1)),

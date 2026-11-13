@@ -33,6 +33,7 @@ impl App {
     /// F6 to F10, alt-n: the chat goes to agent session `n`, after the last one the first. The
     /// chat opens on it.
     pub fn switch_session(&mut self, n: usize) {
+        self.cli.pane = None;
         self.state.session = n % SESSIONS;
         self.state.save(&self.cfg.root);
         self.at = None;
@@ -180,7 +181,7 @@ impl App {
     }
 
     pub fn on_paste(&mut self, s: String) {
-        if let Some(n) = self.cli.view {
+        if let Some(n) = self.cli.view.or_else(|| self.pane_terminal()) {
             self.paste_cli(n, &s);
         } else if self.panel && self.focus == Focus::Claude {
             self.paste_into_chat(&s);
