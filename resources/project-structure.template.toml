@@ -12,7 +12,8 @@ note = "Made by zendo doctor from its template."
 name = "{{NAME}}"
 about = "What {{NAME}} is, in one or two sentences."
 claude = """
-- Put each new file where this file says. Do not change this file unless the user asks.
+- Follow AGENTS.md for the requirements style and project-structure.toml for the new file location.
+- Do not change this file unless the user asks.
 - Every change keeps the tests green and adds a test for new behavior when one is possible."""
 
 # ----- Project-wide files ------------------------------------------------------------------

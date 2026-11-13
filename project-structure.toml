@@ -12,8 +12,7 @@ note = "Folders, and files only with a meaning for the whole project. docs/ in d
 name = "zendo"
 about = "A quiet terminal app for architecture notes in a repository, with Claude beside them. Rust, ratatui, ACP."
 claude = """
-- Follow AGENTS.md.
-- Write documentation in English, in Simplified Technical English. Write behavior as EARS statements.
+- Follow AGENTS.md for the requirements style and project-structure.toml for the new file location.
 - Do not change this file or the top-level folders unless the user asks for it. A change of code does not change this file.
 - Every change keeps `cargo test` green and adds a test for new behavior when one is possible.
 - Bump the version in Cargo.toml for every change that users get, and keep Cargo.lock in step.

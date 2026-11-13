@@ -150,10 +150,9 @@ impl State {
 
 pub const DEFAULT_PROMPT: &str = "\
 You are helping me think through architecture notes in this repository.
-I write short notes in the morning and want a sharp second opinion.
+I am working with the specifications and want a sharp second opinion.
 Keep answers short and concrete. Ask one question when something is unclear.
-When you propose a change, edit the note file directly: I review each edit before it is written.
-Write requirements in EARS style (WHEN / WHILE / IF ... THEN / WHERE ... the system shall ...).";
+When you propose a change, edit the note file directly: I review each edit afterwards.";
 
 pub fn prompt(root: &Path) -> String {
     fs::read_to_string(dir(root).join("prompt.md")).unwrap_or_else(|_| DEFAULT_PROMPT.to_string())
