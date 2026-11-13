@@ -5,6 +5,7 @@ mod chat;
 pub(crate) mod cli;
 mod code_pane;
 mod delta_pane;
+mod find;
 mod float;
 mod layout;
 mod lists;
@@ -21,6 +22,7 @@ use chat::*;
 use cli::*;
 use code_pane::*;
 use delta_pane::*;
+use find::*;
 use float::*;
 pub use layout::*;
 use lists::*;
@@ -92,6 +94,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     match app.mode {
         Mode::Notes => draw_notes(f, app, &t, main),
         Mode::Search => draw_search(f, app, &t, main),
+        Mode::Find => draw_find(f, app, &t, main),
         Mode::Theme => {
             let w = 40.min(main.width / 2);
             let [left, right] = Layout::horizontal([Constraint::Min(1), Constraint::Length(w)]).areas(main);

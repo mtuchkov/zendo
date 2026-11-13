@@ -55,7 +55,7 @@ impl App {
             "write" => self.start_write(false),
             "new" => self.open_float(),
             "notes" => self.open_notes(),
-            "search" => self.open_search(""),
+            "search" => self.open_find(),
             "chat" => self.toggle_chat(),
             "theme" => {
                 self.theme_before = self.theme;

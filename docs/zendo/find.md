@@ -1,13 +1,13 @@
 ---
-status: "approved"
+status: "implemented"
 approved: "2026-11-13"
-revision: "1"
+revision: "2"
 date: "2026-11-13"
 parent: "zendo.md"
 prev: "float.md"
 next: "notes-repo.md"
 level: "the find panel: recent files, search by path and by text, the preview"
-note: "Agent draft of the decisions of the user on 2026-11-13, approved by the user."
+note: "Agent draft of the decisions of the user on 2026-11-13, approved by the user. Revision 2: the test names and kinds as in the code."
 ---
 
 # Find: recent files and search
@@ -77,7 +77,7 @@ the query. `enter` opens the selected file in the note pane in read mode, at the
 - When the user presses `alt-/`.
 - Then the list shows `b.md` and `a.md`, in this order, and `b.md` is selected.
 
-**`moving_in_the_list_shows_the_preview`** (terminal check, `zendo --mock`, 140×40; verifies FIND-3)
+**`moving_in_the_list_shows_the_preview`** (integration test on a test terminal of 140×40; verifies FIND-3)
 
 - Given the recent files `b.md` and `a.md`.
 - When the user opens the panel and presses `down`.
@@ -86,8 +86,8 @@ the query. `enter` opens the selected file in the note pane in read mode, at the
 **`the_recent_files_stay_after_a_restart`** (unit test; verifies FIND-4)
 
 - Given the user opened `a.md`, then `b.md`, and quit.
-- When the user starts zendo again and presses `alt-/`.
-- Then the list shows `a.md` first.
+- When the user starts zendo again, opens `c.md` and presses `alt-/`.
+- Then the list shows `b.md`, then `a.md`.
 
 ## Detailed requirements
 
@@ -108,10 +108,10 @@ the query. `enter` opens the selected file in the note pane in read mode, at the
 | FIND-16 | Unwanted   | If a markdown file is in a hidden folder or git ignores it, then the system shall not search its text (FILES-1).                                       | FILES-1          |
 
 Tests that verify detailed requirements: `the_row_shows_title_path_and_time` (FIND-5),
-`a_tree_preview_is_not_recent` (FIND-6), `a_deleted_file_is_not_recent` (FIND-7),
+`a_tree_preview_is_not_recent` and `a_note_from_the_float_is_recent` (FIND-6), `a_deleted_file_is_not_recent` (FIND-7),
 `a_rename_keeps_the_recent_place` (FIND-8), `a_query_finds_paths_then_text` (FIND-9),
-`the_preview_shows_the_match` (FIND-10), `enter_opens_at_the_match` (FIND-11),
-`esc_changes_nothing` (FIND-12), the tests of `src/docs/search_tests.rs` (FIND-14),
-`alt_slash_opens_find_over_a_full_screen_session` (FIND-15), `ignored_files_are_not_searched`
+`the_preview_shows_the_match_and_enter_opens_at_it` (FIND-10, FIND-11), `esc_changes_nothing` (FIND-12),
+`a_narrow_panel_shows_the_preview_under_the_list` (FIND-13), the tests of `src/docs/search_tests.rs` (FIND-14),
+`alt_slash_opens_find_over_a_full_screen_session` in `tests/terminal.rs` (FIND-15), `ignored_files_are_not_searched`
 (FIND-16), and `slash_in_the_notes_list_searches_the_notes` (FIND-17).
 

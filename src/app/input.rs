@@ -24,6 +24,7 @@ impl App {
 
     /// What any key ends: a run of `alt-o` or `tab`, a mouse selection.
     fn key_comes(&mut self, k: &KeyEvent) {
+        self.track_recent();
         self.last_input = Instant::now();
         self.tab_run.key();
         // Only `alt-o` right after `alt-o` takes the next terminal (TERM-28).
@@ -37,11 +38,14 @@ impl App {
     /// The views that take a key before the panes: the float, the waiting view, a session on the
     /// full screen, a terminal in the chat pane. True when one of them took it.
     fn key_to_view(&mut self, k: KeyEvent) -> bool {
-        // The float opens over every pane and view, also a session on the full screen (FLOAT-14).
-        let float = self.mode != Mode::Help && self.keys.local(crate::keys::Pane::Global, &k) == Some("new_note");
+        // The float and find open over every pane and view, also a session on the full screen
+        // (FLOAT-14, FIND-15).
+        let global = if self.mode == Mode::Help { None } else { self.keys.local(crate::keys::Pane::Global, &k) };
         match (self.cli.view, self.pane_terminal()) {
             _ if self.float.is_some() => self.key_float(k),
-            _ if float => self.open_float(),
+            _ if global == Some("new_note") => self.open_float(),
+            _ if global == Some("find") && self.mode != Mode::Find => self.open_find(),
+            _ if self.mode == Mode::Find => return false,
             _ if self.hold.is_some() => self.key_hold(k),
             (Some(n), _) => self.key_cli(n, k),
             (None, Some(n)) => self.key_pane_terminal(n, k),
@@ -78,6 +82,7 @@ impl App {
                     self.key_notes(act)
                 }
                 Mode::Search => self.key_search(k),
+                Mode::Find => self.key_find(k),
                 Mode::Theme => self.key_theme(k),
                 _ => {}
             };
@@ -124,6 +129,7 @@ impl App {
             }
             "toggle_tree" => self.toggle_tree(),
             "new_note" => self.open_float(),
+            "find" => self.open_find(),
             "next_session" => self.step_in_chat(true),
             "prev_session" => self.step_in_chat(false),
             "terminal" => self.terminal_key(false),

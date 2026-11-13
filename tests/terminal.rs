@@ -258,3 +258,20 @@ async fn alt_n_opens_the_float_over_a_full_screen_session() {
     assert_eq!((a.float.is_none(), a.cli.view), (true, Some(shell(0))), "back on the full screen");
     done(&root, &mut a);
 }
+
+// FIND-15, TERM-13: alt-/ on the full screen of a terminal opens the find panel over it; esc gives
+// back the full screen.
+#[tokio::test(flavor = "multi_thread")]
+async fn alt_slash_opens_find_over_a_full_screen_session() {
+    let (root, mut a) = app_with_shell("term-find");
+    f5(&mut a, false);
+    ctrl(&mut a, 'o');
+    assert_eq!(a.cli.view, Some(shell(0)));
+    alt(&mut a, '/');
+    assert_eq!(a.mode, zendo::app::Mode::Find, "the find panel is open");
+    let screen = draw(&mut a, 120, 40).join("\n");
+    assert!(screen.contains(" FIND "), "the panel is on the screen:\n{screen}");
+    key(&mut a, KeyCode::Esc);
+    assert_eq!((a.mode, a.cli.view), (zendo::app::Mode::Read, Some(shell(0))), "back on the full screen");
+    done(&root, &mut a);
+}

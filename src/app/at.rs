@@ -70,7 +70,7 @@ pub fn template_files(named: &[PathBuf], files: &[PathBuf]) -> Vec<PathBuf> {
 }
 
 /// The files of the repository, from its root; what git ignores is left out.
-fn repo_files(root: &Path) -> Vec<PathBuf> {
+pub(crate) fn repo_files(root: &Path) -> Vec<PathBuf> {
     let walk = ignore::WalkBuilder::new(root).hidden(true).git_ignore(true).require_git(false).build();
     walk.flatten()
         .filter(|e| e.file_type().is_some_and(|t| t.is_file()))

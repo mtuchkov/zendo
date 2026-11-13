@@ -133,6 +133,7 @@ impl App {
             self.state.set_session(&self.cfg.agent, &nk, id);
             self.state.save(&self.cfg.root);
         }
+        self.rename_recent(&ok, &nk);
         if let Some(t) = self.threads.remove(&ok) {
             self.threads.insert(nk, t);
         }

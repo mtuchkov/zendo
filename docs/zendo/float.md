@@ -1,13 +1,13 @@
 ---
-status: "approved"
+status: "implemented"
 approved: "2026-11-13"
-revision: "1"
+revision: "2"
 date: "2026-11-13"
 parent: "zendo.md"
 prev: "notes-list.md"
 next: "find.md"
 level: "the new note in a float: how it opens, what it shows, how it closes"
-note: "Agent draft of the decisions of the user on 2026-11-13, approved by the user."
+note: "Agent draft of the decisions of the user on 2026-11-13, approved by the user. Revision 2: the test names and kinds as in the code."
 ---
 
 # New note in a float
@@ -65,7 +65,7 @@ file, pane, mode, cursor and selection. The new note is in the notes list and in
   delta.
 - Then each time a float opens in write mode with an empty note and the cursor after `# `.
 
-**`the_float_hides_the_panes_and_the_hints`** (terminal check, `zendo --mock`, 120×40; verifies FLOAT-2)
+**`the_float_hides_the_panes_and_the_hints`** (integration test on a test terminal of 120×40; verifies FLOAT-2)
 
 - Given the wide screen layout with the file tree, the note and the chat open.
 - When the user presses `alt-n`.
@@ -105,6 +105,6 @@ Tests that verify detailed requirements: `n_opens_the_float` (FLOAT-5),
 `the_top_line_shows_the_path_after_the_first_save` (FLOAT-6), `the_float_fits_the_text_column` and
 `a_narrow_note_pane_centers_the_float` (FLOAT-8, FLOAT-9),
 `pane_keys_do_nothing_in_the_float` (FLOAT-10, FLOAT-11), `an_empty_float_makes_no_file` (FLOAT-12),
-`alt_n_opens_the_float_over_a_full_screen_session` (FLOAT-14), `enter_in_the_notes_list_opens_the_note_pane`
+`alt_n_opens_the_float_over_a_full_screen_session` in `tests/terminal.rs` (FLOAT-14), `n_opens_the_float`
 (FLOAT-15).
 
