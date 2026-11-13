@@ -4,7 +4,7 @@ revision: "1"
 date: "2026-11-12"
 parent: "zendo.md"
 prev: "say.md"
-next: "notes-repo.md"
+next: "float.md"
 level: "notes: titles, tags and links, the notes list, search"
 note: "Agent draft, split from notes.md. Not reviewed by the user."
 ---
@@ -16,7 +16,7 @@ title. Words like `#word` are tags. `[[name]]` is a link to another note. A new 
 from the date and a short form of the title. The note pane is in [Notes](notes.md).
 
 The notes list (`o`) shows the notes by age: today, this week, older. `enter` opens a note, `n`
-writes a new one, `r` renames the file to match the title, `f2` renames it to a typed name, and
+writes a new one in a [float](float.md), `r` renames the file to match the title, `f2` renames it to a typed name, and
 `delete` deletes it after a `y`. `/` searches the text of all notes; a search that starts with `#`
 finds a tag, and one that starts with `?` asks the agent about all notes.
 

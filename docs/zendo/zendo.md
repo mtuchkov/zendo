@@ -8,6 +8,8 @@ children:
   - "write.md"
   - "say.md"
   - "notes-list.md"
+  - "float.md"
+  - "find.md"
   - "notes-repo.md"
   - "length.md"
   - "files.md"
@@ -38,6 +40,8 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Write mode](write.md)                       | The live view, hard wrap, the cursor between modes            |
 | [Say it here](say.md)                        | `ctrl-shift-s`: the agent writes an idea at a place in the note |
 | [Notes list and search](notes-list.md)       | Titles, tags, links, the notes list, search                   |
+| [New note in a float](float.md)              | `alt-n`: a new note in a float over the open file, without distraction |
+| [Find](find.md)                              | `alt-/`: recent files, search by path and text, the preview   |
 | [Notes repo](notes-repo.md)                  | Notes in a private git repo, in sync between machines         |
 | [Length](length.md)                          | The word limit, the red area, the split with Claude            |
 | [File tree](files.md)                        | The files of the repository and their views                   |

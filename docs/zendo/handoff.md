@@ -1,6 +1,6 @@
 ---
 status: "draft"
-revision: "1"
+revision: "2"
 date: "2026-11-13"
 parent: "zendo.md"
 prev: "sessions.md"
@@ -73,7 +73,7 @@ The tests are in `tests/handoff.rs`, with the mock agent and the mock command li
 | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | HANDOFF-7 | State   | While the session view waits, the system shall show on its bottom line that Claude Code starts when the turn ends, and that `ctrl-o` again stops the turn. | User, 2026-11-13 |
 | HANDOFF-8 | State   | While the session view waits after a stop, the system shall show `stopping the turn…` on its bottom line.                                            | User, 2026-11-13 |
-| HANDOFF-9 | State   | While the session view waits, the system shall keep `alt-q`, `F5` to `F10` and `alt-n`, and shall ignore all other keys and paste.                     | User, 2026-11-13 |
+| HANDOFF-9 | State   | While the session view waits, the system shall keep `alt-q`, `F5` to `F10`, `alt-]`, `alt-[`, `alt-n` and `alt-/`, and shall ignore all other keys and paste.                     | User, 2026-11-13 |
 | HANDOFF-10 | Event  | When the user leaves the session view while it waits, the system shall not start the Claude Code session when the turn ends.                         | Design           |
 | HANDOFF-11 | Event  | When the turn ends while the session view waits, the system shall put the queued questions of the chat into the chat input, and shall not send them to the agent. | Design |
 

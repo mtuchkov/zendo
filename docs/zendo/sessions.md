@@ -1,6 +1,6 @@
 ---
 status: "draft"
-revision: "4"
+revision: "5"
 date: "2026-11-13"
 parent: "zendo.md"
 prev: "claude.md"
@@ -19,7 +19,8 @@ when the user goes back to zendo: one researches while the user discusses in ano
 **Open and leave.** `ctrl-o` in the chat opens the Claude Code session of the active agent session.
 zendo starts it first if necessary. While the chat answers, `ctrl-o` waits for the end of the turn (see [Hand-off during a turn](handoff.md)). The session view takes the whole screen, with a bottom line of
 zendo. All input goes to Claude Code, except `alt-q` (back to zendo; the same key leaves a terminal
-of [Terminal](terminal/terminal.md)) and `F5` to `F10` (another session, or the `F5` terminal). When Claude
+of [Terminal](terminal/terminal.md)) `F5` to `F10` (another session, or the `F5` terminal), `alt-]` and `alt-[` (the next and the previous
+session), `alt-n` (a new note in a [float](float.md)) and `alt-/` ([find](find.md)). When Claude
 Code exits, zendo goes back.
 
 **States.** Each running Claude Code session has one state: *works*, *waits* (for an answer or a
@@ -81,7 +82,7 @@ key, echoes a line, and exits on `q`. The tests are in `tests/sessions.rs`.
 | ----------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | SESSIONS-7  | Event      | When the user presses `ctrl-o` in the chat, the system shall show the Claude Code session of the active agent session, and start it first if it does not run. | CLAUDE-10 |
 | SESSIONS-8  | Event      | When the user opens a Claude Code session again, the system shall show the screen of Claude Code as it is now.                                     | User, 2026-11-12 |
-| SESSIONS-9  | State      | While the session view is open, the system shall send all keys and paste to Claude Code, except the leave key and the keys of the agent sessions.  | Design           |
+| SESSIONS-9  | State      | While the session view is open, the system shall send all keys and paste to Claude Code, except the leave key, the keys of the agent sessions, and the keys of the float and of find.  | Design; FLOAT-14, FIND-15 |
 | SESSIONS-10 | Event      | When the user presses `alt-q` in the session view, the system shall show the screen from where the user opened the session.                         | User, 2026-11-12 |
 | SESSIONS-11 | Event      | When the user presses the key of an agent session in the session view, the system shall show its Claude Code session if it runs, else the chat on that agent session. | Design |
 | SESSIONS-12 | Event      | When Claude Code exits while its session view is open, the system shall show the screen from where the user opened the session.                    | Design           |
