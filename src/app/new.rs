@@ -26,6 +26,7 @@ impl App {
             input_width: 40,
             keys,
             key_problems,
+            keymap_file: user.keymap.clone(),
             ask_about: "",
             word_limit: DEFAULT_WORDS,
             view_height: 20,

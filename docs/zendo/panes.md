@@ -1,6 +1,6 @@
 ---
 status: "draft"
-revision: "2"
+revision: "3"
 date: "2026-11-13"
 parent: "zendo.md"
 next: "notes.md"
@@ -77,6 +77,9 @@ terminals change it with `ctrl-+` and `ctrl--`. In read mode: `w` switches the l
 | PANES-17 | Ubiquitous | The system shall take the keys of every action of every pane from the default keymap file that it ships, then from the keymap file that the config names, then from `[keys.<pane>]` in the config. | User, 2026-11-11 |
 | PANES-28 | Ubiquitous | The system shall take the key in each key hint, message and help text from the keymap in effect, for each action that the keymap has. | User, 2026-11-13 |
 | PANES-29 | Unwanted   | If an action has no key in the keymap in effect, then the system shall show no hint for that action. | User, 2026-11-13 |
+| PANES-30 | Ubiquitous | The system shall show the actions of each pane in groups, in the help and in the default keymap file: navigation, text selection, editing, features, sessions and terminals, panes and view, zendo. | User, 2026-11-13 |
+| PANES-31 | Event      | When the system shows the help, the system shall show the keymap file that the config names, and the version of zendo; the commit and the local copy only for a build with uncommitted changes. | User, 2026-11-13 |
+| PANES-32 | Unwanted   | If the user presses `ctrl-c`, then the system shall not quit: `ctrl-c` copies. | User, 2026-11-13 |
 | PANES-18 | Ubiquitous | The system shall have a key for every action, and no buttons.                                                                         | User, 2026-11-11 |
 | PANES-19 | Unwanted   | If `[keys]` in the config names an unknown pane, action or key, then the system shall keep the default keys and tell the user.       | Design           |
 | PANES-21 | Event      | When the user opens the delta and it does not fit beside the file tree, the system shall close the file tree. | User, 2026-11-12 |
@@ -93,7 +96,11 @@ Tests that verify detailed requirements: `the_delta_closes_the_tree_when_it_does
 `the_status_bar_asks_for_zendo_doctor_without_a_structure_file` (PANES-27), `the_default_keymap_file_names_every_action` (PANES-17),
 `a_user_keymap_file_then_the_config_change_keys`, `zendo_keymap_prints_the_default_keymap` (PANES-17,
 PANES-23), `a_key_of_two_actions_is_a_problem` (PANES-24), `without_the_kitty_protocol_ctrl_hjkl_select`
-(PANES-25), the tests of `tests/keymap_hints.rs` (PANES-28, PANES-29).
+(PANES-25), the tests of `tests/keymap_hints.rs` (PANES-28, PANES-29),
+`the_keymap_file_groups_the_actions_as_the_help_does` and `each_group_of_a_pane_has_one_place` (PANES-30),
+`the_help_shows_groups_the_keymap_file_and_the_version` (PANES-30, PANES-31),
+`the_help_shows_the_details_of_the_version_only_for_a_build_with_changes` (PANES-31),
+`ctrl_c_does_not_quit` (PANES-32).
 
 The keys of the search box, the theme list, the question of a file and the file name filter of the
 tree are not in the keymap. Their hints show those fixed keys.

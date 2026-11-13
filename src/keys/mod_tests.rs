@@ -20,7 +20,7 @@ fn keys_parse_and_match_events() {
     assert_eq!(k.action(Pane::Read, &ev(KeyCode::Char('J'), ctrl_shift)), Some("select_down"));
     assert_eq!(k.action(Pane::Write, &ev(KeyCode::Char('h'), ctrl_shift)), Some("select_left"));
     assert_eq!(k.action(Pane::Write, &ev(KeyCode::Char('c'), KeyModifiers::CONTROL)), Some("copy"));
-    assert_eq!(k.action(Pane::Tree, &ev(KeyCode::Char('c'), KeyModifiers::CONTROL)), Some("quit"));
+    assert_eq!(k.action(Pane::Tree, &ev(KeyCode::Char('q'), KeyModifiers::CONTROL)), Some("quit"));
     // ctrl-shift and an arrow selects a char, as ctrl-shift-h j k l; alt-shift and an arrow, a word.
     assert_eq!(k.action(Pane::Write, &ev(KeyCode::Left, KeyModifiers::CONTROL | KeyModifiers::SHIFT)), Some("select_left"));
     assert_eq!(k.action(Pane::Chat, &ev(KeyCode::Enter, KeyModifiers::ALT)), Some("newline"));
@@ -139,4 +139,47 @@ fn without_the_kitty_protocol_ctrl_hjkl_select() {
     }
     assert_eq!(k.action(Pane::Write, &ev(KeyCode::Char('b'), KeyModifiers::CONTROL)), Some("bold"), "a key of its own wins");
     assert_eq!(k.action(Pane::Write, &ev(KeyCode::Char('s'), KeyModifiers::CONTROL)), Some("say"), "ctrl-shift-s, as no save key is in the way");
+}
+
+// PANES-32: ctrl-c is copy, not quit: no pane quits on ctrl-c.
+#[test]
+fn ctrl_c_does_not_quit() {
+    let k = Keymap::defaults();
+    for pane in Pane::ALL {
+        assert_ne!(k.action(pane, &ev(KeyCode::Char('c'), KeyModifiers::CONTROL)), Some("quit"), "{pane:?}");
+    }
+    assert!(!k.label(Pane::Global, "quit").contains("^c"), "{}", k.label(Pane::Global, "quit"));
+}
+
+// PANES-30: the keymap file shows the actions of each pane in groups, in the order of the help: a
+// `# <group>` line, then the actions of that group.
+#[test]
+fn the_keymap_file_groups_the_actions_as_the_help_does() {
+    let mut pane = "";
+    let mut group: Option<Group> = None;
+    let mut in_file = Vec::new();
+    for line in DEFAULT_KEYMAP.lines().map(str::trim) {
+        if let Some(p) = line.strip_prefix('[').and_then(|l| l.strip_suffix(']')) {
+            (pane, group) = (p, None);
+        } else if let Some(g) = line.strip_prefix("# ").and_then(|l| Group::ALL.into_iter().find(|g| g.name() == l)) {
+            group = Some(g);
+        } else if let Some((name, _)) = line.split_once(" = ").filter(|_| !line.starts_with('#')) {
+            in_file.push((pane.to_string(), group.map(Group::name), name.to_string()));
+        }
+    }
+    let actions: Vec<_> = ACTIONS.iter().map(|a| (a.pane.name().to_string(), Some(a.group.name()), a.name.to_string())).collect();
+    assert_eq!(in_file, actions);
+}
+
+// PANES-30: the actions of one group of a pane come one after the other, so that each group has one heading.
+#[test]
+fn each_group_of_a_pane_has_one_place() {
+    for pane in Pane::ALL {
+        let mut groups: Vec<Group> = ACTIONS.iter().filter(|a| a.pane == pane).map(|a| a.group).collect();
+        groups.dedup();
+        let mut once = groups.clone();
+        once.sort();
+        once.dedup();
+        assert_eq!(groups.len(), once.len(), "{pane:?}: {groups:?}");
+    }
 }

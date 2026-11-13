@@ -60,9 +60,38 @@ impl Pane {
     }
 }
 
-/// An action of a pane, and what the help says about it.
+/// A group of actions in the help and in the keymap file (PANES-30).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Group {
+    Navigation,
+    Selection,
+    Editing,
+    Features,
+    Sessions,
+    View,
+    App,
+}
+
+impl Group {
+    pub const ALL: [Group; 7] = [Group::Navigation, Group::Selection, Group::Editing, Group::Features, Group::Sessions, Group::View, Group::App];
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Group::Navigation => "navigation",
+            Group::Selection => "text selection",
+            Group::Editing => "editing",
+            Group::Features => "features",
+            Group::Sessions => "sessions and terminals",
+            Group::View => "panes and view",
+            Group::App => "zendo",
+        }
+    }
+}
+
+/// An action of a pane, its group, and what the help says about it.
 pub struct Action {
     pub pane: Pane,
+    pub group: Group,
     pub name: &'static str,
     pub help: &'static str,
 }

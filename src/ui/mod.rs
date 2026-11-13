@@ -96,7 +96,8 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         Mode::Read | Mode::Write | Mode::Help => {
             draw_panes(f, app, &t, main);
             if app.mode == Mode::Help {
-                draw_help(f, app, &t, area);
+                // Over the panes and the top line, not over the status bar.
+                draw_help(f, app, &t, Rect { height: rule.y - area.y, ..area });
             }
         }
     }

@@ -93,6 +93,16 @@ pub fn version_line() -> String {
     format!("zendo {} ({})", env!("CARGO_PKG_VERSION"), parts.join(", "))
 }
 
+/// The version for the help: only the version, and the details of `version_line` only for a build
+/// with uncommitted changes (PANES-31).
+pub fn help_version() -> String {
+    help_version_for(built_dirty())
+}
+
+pub(super) fn help_version_for(dirty: bool) -> String {
+    if dirty { version_line() } else { format!("zendo {}", env!("CARGO_PKG_VERSION")) }
+}
+
 /// For a build from your clone: the clone has `head` and it is in the history of the build.
 pub(super) fn clone_has(src: &Path, head: &str, built: &str) -> bool {
     let ok = |args: &[&str]| std::process::Command::new("git").arg("-C").arg(src).args(args).output().is_ok_and(|o| o.status.success());

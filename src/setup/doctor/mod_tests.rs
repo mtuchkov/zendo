@@ -56,3 +56,11 @@ fn doctor_names_the_handoff_key_of_the_user() {
     assert_eq!(key, "^k");
     assert!(codex_note(&key).contains("(^k)") && !codex_note(&key).contains("ctrl-o"));
 }
+
+// PANES-31: the help shows only the version, and the commit and the local copy only for a build
+// with uncommitted changes.
+#[test]
+fn the_help_shows_the_details_of_the_version_only_for_a_build_with_changes() {
+    assert_eq!(help_version_for(false), format!("zendo {}", env!("CARGO_PKG_VERSION")));
+    assert_eq!(help_version_for(true), version_line());
+}

@@ -173,6 +173,8 @@ pub struct App {
     /// The keymap of every pane, and what is wrong in `[keys]` of the config.
     pub keys: crate::keys::Keymap,
     pub key_problems: Vec<String>,
+    /// The keymap file that the config names, for the help (PANES-31).
+    pub keymap_file: Option<String>,
     /// The last text that zendo copied, for paste when the system clipboard cannot be read.
     pub last_copy: Option<String>,
     pub threads: HashMap<String, Thread>,

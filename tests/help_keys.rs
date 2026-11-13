@@ -54,3 +54,18 @@ fn the_status_bar_asks_for_zendo_doctor_without_a_structure_file() {
     assert!(!bar.contains("zendo doctor"), "{bar}");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// PANES-30, PANES-31: the help shows the keys in groups, the keymap file, and the version without
+// the notes for the config.
+#[test]
+fn the_help_shows_groups_the_keymap_file_and_the_version() {
+    let root = repo("help-groups", &[("docs/notes/2026-11-12-a.md", "# A\n\ntext\n")]);
+    let mut a = app(&root);
+    key(&mut a, KeyCode::F(1));
+    let screen = draw(&mut a, 200, 70).join("\n");
+    for s in ["navigation", "text selection", "features", "keymap: ", &format!("zendo {}", env!("CARGO_PKG_VERSION"))] {
+        assert!(screen.contains(s), "{s}:\n{screen}");
+    }
+    assert!(!screen.contains("Other keys"), "{screen}");
+    let _ = std::fs::remove_dir_all(&root);
+}
