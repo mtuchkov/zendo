@@ -18,6 +18,7 @@ pub const ACTIONS: &[Action] = &[
     a(Global, Sessions, "session_4", "agent session 4"),
     a(Global, Sessions, "session_5", "agent session 5"),
     a(Global, Sessions, "next_session", "the next agent session"),
+    a(Global, Sessions, "prev_session", "the previous agent session or terminal"),
     a(Global, Sessions, "terminal", "put the shell block under the cursor into a terminal; elsewhere the F5 terminal"),
     a(Global, Sessions, "terminal_run", "put the shell block under the cursor into a terminal and run it"),
     a(Global, View, "toggle_tree", "file tree"),

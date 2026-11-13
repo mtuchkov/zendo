@@ -212,11 +212,11 @@ async fn ctrl_o_makes_the_terminal_full_screen() {
     done(&root, &mut a);
 }
 
-// TERM-41: alt-n goes from the last agent session to F5, to each [>] terminal, then to agent
-// session 1.
+// TERM-41, TERM-49: alt-] goes from the last agent session to F5, to each [>] terminal, then to
+// agent session 1; alt-[ goes the same way back.
 #[tokio::test(flavor = "multi_thread")]
-async fn alt_n_goes_through_the_terminals() {
-    let (root, mut a) = app_with_shell("term-alt-n");
+async fn alt_bracket_goes_through_the_terminals() {
+    let (root, mut a) = app_with_shell("term-alt-bracket");
     answer(&mut a, "sleep 30");
     f5(&mut a, true);
     wait(&mut a, 10, |a| a.cli.busy(0));
@@ -225,11 +225,17 @@ async fn alt_n_goes_through_the_terminals() {
     assert_eq!(a.cli.pane, Some(shell(1)), "a [>] terminal runs");
     a.switch_session(SESSIONS - 1);
     assert_eq!(a.cli.pane, None, "the chat shows agent session 5");
-    alt(&mut a, 'n');
+    alt(&mut a, ']');
     assert_eq!(a.cli.pane, Some(shell(0)), "after the last agent session: F5");
-    alt(&mut a, 'n');
+    alt(&mut a, ']');
     assert_eq!(a.cli.pane, Some(shell(1)), "then the [>] terminal");
-    alt(&mut a, 'n');
+    alt(&mut a, ']');
     assert_eq!((a.cli.pane, a.state.session), (None, 0), "then agent session 1");
+    alt(&mut a, '[');
+    assert_eq!(a.cli.pane, Some(shell(1)), "back: the [>] terminal");
+    alt(&mut a, 'p');
+    assert_eq!(a.cli.pane, Some(shell(0)), "alt-p is alt-[ too: F5");
+    alt(&mut a, '[');
+    assert_eq!((a.cli.pane, a.state.session), (None, SESSIONS - 1), "then agent session 5");
     done(&root, &mut a);
 }
