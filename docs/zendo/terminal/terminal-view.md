@@ -80,11 +80,14 @@ The tests are in `tests/terminal.rs`, with `/bin/sh` as the shell.
 | TERM-40 | Event      | When the area of a terminal changes, the system shall set the size of the terminal to the size of the new area. | Design |
 | TERM-42 | Event      | When the user leaves a terminal that is on the full screen, or goes to a different terminal or session, the system shall stop the full screen mode of that terminal. | User, 2026-11-12 |
 | TERM-14 | Ubiquitous | The system shall show the terminal buttons under the agent buttons, after a gap with a horizontal line: first `F5`, then a `[>]` button for each open `[>]` terminal. | User, 2026-11-12 |
+| TERM-48 | Unwanted   | If the keymap in effect gives the first terminal another key than `F5`, then the system shall name it `[>]`, as the other terminals. | User, 2026-11-13 |
 | TERM-15 | Ubiquitous | The system shall show the terminal buttons in the color of the text of the theme, and mark the session on the screen in the bottom line of the full screen. | User, 2026-11-12 |
 | TERM-16 | State      | While a terminal runs a command, the system shall show a busy mark on its button. | Design |
 | TERM-19 | Ubiquitous | The system shall take the keys of the terminals from the keymap, with `f5`, `alt-f5`, `alt-q`, `alt-n` and `ctrl-o` as the defaults. | PANES-17 |
 
 `play_button_and_terminal_buttons` in [Shell blocks](shell-blocks.md) verifies TERM-14 and TERM-16.
+`other_session_keys_name_the_buttons_1_to_5_and_the_terminal_by_its_mark` in `tests/keymap_hints.rs`
+verifies TERM-48.
 
 ## Open points
 

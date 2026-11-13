@@ -191,6 +191,12 @@ impl Keymap {
         self.key(pane, name).map(|k| format!("{k}{text}")).unwrap_or_default()
     }
 
+    /// The action has the first key that zendo ships for it.
+    pub fn has_default_key(&self, pane: Pane, name: &str) -> bool {
+        static DEFAULTS: std::sync::OnceLock<Keymap> = std::sync::OnceLock::new();
+        self.first(pane, name) == DEFAULTS.get_or_init(Keymap::defaults).first(pane, name)
+    }
+
     /// The first key of an action, for the status bar.
     pub fn first(&self, pane: Pane, name: &str) -> String {
         self.keys.iter().find(|((p, n), _)| *p == pane && *n == name).and_then(|(_, ks)| ks.first()).map(Key::label).unwrap_or_default()

@@ -80,12 +80,15 @@ pub(crate) fn draw_pane_terminal(f: &mut Frame, app: &mut App, t: &Theme, n: usi
 }
 
 /// The name of session `n`: the F key of an agent session or of the `F5` terminal, `[>]` for
-/// another terminal.
+/// another terminal. With other keys than F6 to F10 in the keymap, the agent sessions are `1` to
+/// `5` (CLAUDE-35); with another key than F5, the first terminal is `[>]` too (TERM-48).
 pub(crate) fn name(app: &App, n: usize) -> String {
     use crate::keys::Pane;
+    let f_keys = (1..=crate::app::SESSIONS).all(|k| app.keys.has_default_key(Pane::Global, &format!("session_{k}")));
     match n.checked_sub(crate::app::SESSIONS) {
-        None => app.keys.first(Pane::Global, &format!("session_{}", n + 1)).to_uppercase(),
-        Some(0) => app.keys.first(Pane::Global, "terminal").to_uppercase(),
+        None if f_keys => app.keys.first(Pane::Global, &format!("session_{}", n + 1)).to_uppercase(),
+        None => (n + 1).to_string(),
+        Some(0) if app.keys.has_default_key(Pane::Global, "terminal") => app.keys.first(Pane::Global, "terminal").to_uppercase(),
         Some(_) => "[>]".into(),
     }
 }

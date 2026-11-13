@@ -84,6 +84,7 @@ Claude Code sessions that run in the background while the user works in zendo ar
 | CLAUDE-26 | Event      | When a question goes to Claude and the open file did not go with one of the last 20 questions, the system shall attach the file and send the project rules for it. | User, 2026-11-12 |
 | CLAUDE-31 | Event      | When the user presses `F6` to `F10`, or `alt` and one of them, the system shall open the chat on that agent session; when the user presses `alt-n`, on the next session, after the last the terminals (TERM-41). | User, 2026-11-12 |
 | CLAUDE-32 | Ubiquitous | The system shall show a button for each agent session on the right edge of the chat, one under the other, named by its F key: the active one in the accent color, the others in the second accent; a click chooses the session. | User, 2026-11-12 |
+| CLAUDE-35 | Unwanted   | If the keymap in effect gives the agent sessions other keys than `F6` to `F10`, then the system shall name the agent sessions `1` to `5` on their buttons and in their names. | User, 2026-11-13 |
 | CLAUDE-27 | Event      | When the chat opens the first time, the system shall open the session of the thread and show the messages of the last session in their order, each question without the context that zendo sent with it. | User, 2026-11-12 |
 | CLAUDE-10 | Optional   | Where the agent has a command line with a resume, the system shall continue the thread there when the user presses `ctrl-o`. | Design           |
 | CLAUDE-13 | Ubiquitous | The system shall work with Claude and with Codex through their pinned ACP adapters, and with any ACP agent command.         | User, 2026-11-11 |
@@ -96,4 +97,6 @@ Retired in revision 1: CLAUDE-2 (wait for the decision of the user on an edit), 
 Tests: `one_thread_for_every_file_and_the_file_goes_once` (CLAUDE-5, CLAUDE-26) and
 `the_chat_shows_the_last_session_when_it_opens` (CLAUDE-27, CLAUDE-6),
 `five_agent_sessions_with_f6_to_f10_and_alt_n` (CLAUDE-5, CLAUDE-31, CLAUDE-32) and
-`alt_and_an_f_key_choose_a_session_too` (CLAUDE-31) in `tests/chat_flows.rs`.
+`alt_and_an_f_key_choose_a_session_too` (CLAUDE-31) in `tests/chat_flows.rs`,
+`other_session_keys_name_the_buttons_1_to_5_and_the_terminal_by_its_mark` (CLAUDE-35, TERM-48) in
+`tests/keymap_hints.rs`.
