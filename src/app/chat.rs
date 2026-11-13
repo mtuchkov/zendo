@@ -98,7 +98,7 @@ impl App {
     pub(crate) fn dispatch(&mut self, key: String, out: Outgoing) {
         let known = self.state.session(&self.cfg.agent, &key);
         let t = self.thread(&key);
-        t.items.push(Item::User(out.question));
+        t.push(Item::User(out.question));
         t.busy = Some(Instant::now());
         t.primed |= !out.command;
         t.files.push(out.sent);

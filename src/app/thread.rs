@@ -76,3 +76,17 @@ pub struct Chip {
     pub context: Option<String>,
     pub attach: Option<Attachment>,
 }
+
+impl Thread {
+    /// Adds an item to the thread. The time of the run of tools before it stops: the agent moved on.
+    pub fn push(&mut self, it: Item) {
+        if let Some(Item::Tools { started, took: took @ None, .. }) = self.items.last_mut() {
+            *took = Some(started.elapsed());
+        }
+        self.items.push(it);
+    }
+}
+
+#[cfg(test)]
+#[path = "thread_tests.rs"]
+mod tests;

@@ -17,7 +17,7 @@ impl App {
             Event::UserText { key, text } => {
                 let t = self.thread(&key);
                 if t.busy.is_none() || matches!(t.items.last(), Some(Item::Info(_))) {
-                    t.items.push(Item::User(text));
+                    t.push(Item::User(text));
                 }
             }
             Event::Text { key, text } => {
@@ -25,7 +25,7 @@ impl App {
                 t.thinking = false;
                 match t.items.last_mut() {
                     Some(Item::Agent(s)) => s.push_str(&text),
-                    _ => t.items.push(Item::Agent(text.trim_start().to_string())),
+                    _ => t.push(Item::Agent(text.trim_start().to_string())),
                 }
             }
             Event::Thought { key } => self.thread(&key).thinking = true,
@@ -37,7 +37,7 @@ impl App {
                     a.send(Cmd::Answer { request, option: allow.map(|c| c.id.clone()) });
                 }
             }
-            Event::Blocked { key, title } => self.thread(&key).items.push(Item::Blocked(title)),
+            Event::Blocked { key, title } => self.thread(&key).push(Item::Blocked(title)),
             Event::TurnEnd { key, stop } => self.on_turn_end(key, stop),
             Event::Error { key, text } => {
                 let key = key.unwrap_or_else(|| self.key());
@@ -46,7 +46,7 @@ impl App {
                 } else {
                     text
                 };
-                self.thread(&key).items.push(Item::Error(text));
+                self.thread(&key).push(Item::Error(text));
             }
             Event::Exited { text } => self.on_exited(text),
             Event::Commands { list } => {
@@ -120,7 +120,7 @@ impl App {
             None if new.title.is_empty() => {}
             None => match t.items.last_mut() {
                 Some(Item::Tools { uses, .. }) => uses.push(new),
-                _ => t.items.push(Item::Tools { uses: vec![new], started: Instant::now(), took: None }),
+                _ => t.push(Item::Tools { uses: vec![new], started: Instant::now(), took: None }),
             },
         }
         if done {
@@ -141,7 +141,7 @@ impl App {
             }
         }
         if stop == "cancelled" {
-            t.items.push(Item::Info("stopped".into()));
+            t.push(Item::Info("stopped".into()));
         }
         let next = (!t.queue.is_empty()).then(|| t.queue.remove(0));
         self.chat_turn_ended(&key, &stop, next.is_some());

@@ -114,8 +114,8 @@ impl App {
         self.cli.write(n, b"\r");
         let key = self.key();
         let t = self.thread(&key);
-        t.items.push(Item::User(q));
-        t.items.push(Item::Info("sent to Claude Code; it queues the message while it works".into()));
+        t.push(Item::User(q));
+        t.push(Item::Info("sent to Claude Code; it queues the message while it works".into()));
         self.panel_scroll = 0;
     }
 
@@ -127,7 +127,7 @@ impl App {
         }
         let k = self.keys.first(Pane::Chat, "handoff");
         let key = self.key();
-        self.thread(&key).items.push(Item::Info(format!("this agent session is open in Claude Code: {k} shows it")));
+        self.thread(&key).push(Item::Info(format!("this agent session is open in Claude Code: {k} shows it")));
         true
     }
 
