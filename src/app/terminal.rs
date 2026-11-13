@@ -17,7 +17,7 @@ impl App {
     }
 
     /// Put `command` into a terminal that does not run a command, and show it.
-    pub(crate) fn put_into_terminal(&mut self, command: &str, run: bool) {
+    pub fn put_into_terminal(&mut self, command: &str, run: bool) {
         let Some(i) = self.cli.free_terminal() else {
             return self.flash(format!("all {TERMINALS} terminals run a command: wait for one, or stop one"));
         };
@@ -43,6 +43,28 @@ impl App {
         }
         (self.panel, self.focus) = (true, Focus::Claude);
         self.cli.pane = Some(shell(i));
+        self.cli.touch(shell(i));
+    }
+
+    /// `alt-o` in the input of a chat: the result of the terminal viewed last goes into the input;
+    /// `alt-o` again takes the next terminal instead (TERM-24, TERM-28, TERM-31).
+    pub(crate) fn insert_output(&mut self) {
+        let order = self.cli.results();
+        let pick = self.output_pick.take();
+        if order.is_empty() {
+            return self.flash("no terminal has the result of a command yet");
+        }
+        let next = match pick {
+            Some((i, lines, row, col)) => {
+                (self.input.lines, self.input.row, self.input.col) = (lines, row, col);
+                (i + 1) % order.len()
+            }
+            None => 0,
+        };
+        self.output_pick = Some((next, self.input.lines.clone(), self.input.row, self.input.col));
+        let Some(o) = self.cli.result(order[next]) else { return };
+        let name = crate::ui::cli::name(self, order[next]);
+        self.input.type_str(&output_text(&name, &o));
     }
 
     /// The terminal in the chat pane has the keys: the chat pane is on the screen and has the focus.
@@ -85,4 +107,16 @@ impl App {
             None => self.switch_session(next),
         }
     }
+}
+
+/// A result as text for the input: the terminal, the command, the exit code, the output
+/// (TERM-27, TERM-30, TERM-32, TERM-33).
+fn output_text(name: &str, o: &crate::session::output::Output) -> String {
+    let state = match (o.done, o.exit) {
+        (false, _) => "runs, not complete: the output so far".to_string(),
+        (true, Some(code)) => format!("exit {code}"),
+        (true, None) => "exit code unknown".to_string(),
+    };
+    let dropped = if o.dropped > 0 { format!("\n({} earlier lines dropped)", o.dropped) } else { String::new() };
+    format!("Terminal {name}: `{}` · {state}{dropped}\n```text\n{}\n```\n", o.command, o.text)
 }

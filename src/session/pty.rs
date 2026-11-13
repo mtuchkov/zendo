@@ -1,6 +1,7 @@
 //! One Claude Code process in a pseudo terminal, with its screen in a terminal emulator.
 
-use super::{Command, State, hooks};
+use super::output::Recorder;
+use super::{Command, State, hooks, marks};
 use portable_pty::{Child, CommandBuilder, MasterPty, PtySize};
 use std::io::{Read, Write};
 use std::num::NonZeroU16;
@@ -13,9 +14,10 @@ const SCROLLBACK: usize = 2000;
 /// A session that reported *works* and printed nothing for this long is idle (SESSIONS-17).
 const QUIET: Duration = Duration::from_secs(3);
 
-/// Answers to the queries of the program: the cursor position and the device attributes.
+/// Answers to the queries of the program: the cursor position and the device attributes; and the
+/// result of the last command of a shell (TERM-23).
 #[derive(Default)]
-pub struct Replies(Vec<u8>);
+pub struct Replies(Vec<u8>, Recorder);
 
 impl vt100::Callbacks for Replies {
     fn unhandled_csi(&mut self, screen: &mut vt100::Screen, i1: Option<u8>, _i2: Option<u8>, params: &[&[u16]], c: char) {
@@ -76,9 +78,14 @@ impl Cli {
         Cli::start(b, size, notify, state_file, false)
     }
 
-    /// Start the shell `program` of a terminal in `cwd` (TERM-12).
-    pub fn spawn_shell(program: &str, cwd: &Path, size: (u16, u16), notify: Arc<tokio::sync::Notify>) -> std::io::Result<Cli> {
+    /// Start the shell `program` of a terminal in `cwd`, with the script of the marks in `dir`, and
+    /// `home` as the home directory if it is given (TERM-12, TERM-34).
+    pub fn spawn_shell(program: &str, cwd: &Path, dir: &Path, home: Option<&Path>, size: (u16, u16), notify: Arc<tokio::sync::Notify>) -> std::io::Result<Cli> {
         let mut b = CommandBuilder::new(program);
+        if let Some(home) = home {
+            b.env("HOME", home);
+        }
+        marks::prepare(&mut b, program, dir)?;
         b.cwd(cwd);
         b.env("TERM", "xterm-256color");
         Cli::start(b, size, notify, PathBuf::new(), true)
@@ -115,6 +122,16 @@ impl Cli {
 
     pub fn pid(&self) -> Option<u32> {
         self.child.process_id()
+    }
+
+    /// Run `f` with the recorder of the results of the commands.
+    pub fn with_recorder<T>(&self, f: impl FnOnce(&mut Recorder) -> T) -> T {
+        f(&mut self.screen.lock().unwrap_or_else(|e| e.into_inner()).callbacks_mut().1)
+    }
+
+    /// The time of the last output of the program.
+    pub fn last_output(&self) -> Instant {
+        self.last_output.lock().map(|t| *t).unwrap_or(self.started)
     }
 
     pub fn with_screen<T>(&self, f: impl FnOnce(&vt100::Screen) -> T) -> T {
@@ -201,6 +218,7 @@ fn read_loop(mut reader: Box<dyn Read + Send>, screen: Screen, writer: Writer, l
             let replies = {
                 let mut p = screen.lock().unwrap_or_else(|e| e.into_inner());
                 p.process(&buf[..n]);
+                p.callbacks_mut().1.feed(&buf[..n]);
                 std::mem::take(&mut p.callbacks_mut().0)
             };
             if !replies.is_empty() {

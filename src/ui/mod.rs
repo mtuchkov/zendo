@@ -2,7 +2,7 @@
 
 pub mod theme;
 mod chat;
-mod cli;
+pub(crate) mod cli;
 mod code_pane;
 mod delta_pane;
 mod layout;
