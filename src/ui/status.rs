@@ -65,8 +65,11 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
         }
         return ("TRANSCRIPT", t.acc2, with_next(v));
     }
+    // Text is selected where the user writes: the keys of `[selection]` first (PANES-37).
+    let selected = |e: &crate::text::editor::Editor| if e.selection().is_some() { hints(Pane::Selected, &[("copy", "copy"), ("cut", "cut")]) } else { Vec::new() };
     if claude {
-        let mut v = hints(Pane::Chat, &[("send", "send"), ("newline", "new line"), ("new_thread", "new thread"), ("handoff", "Claude Code"), ("back", "back")]);
+        let mut v = selected(&app.input);
+        v.extend(hints(Pane::Chat, &[("send", "send"), ("newline", "new line"), ("new_thread", "new thread"), ("handoff", "Claude Code"), ("back", "back")]));
         v.push((app.keys.first(Pane::Global, "next_session"), "next session".into()));
         return ("CHAT", t.acc, with_next(v));
     }
@@ -87,11 +90,11 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
             }
             ("READ", t.acc, v)
         }
-        Mode::Write => (
-            "WRITE",
-            t.acc2,
-            hints(Pane::Write, &[("done", "read"), ("chat", "chat"), ("add_to_chat", "to chat"), ("say", "say here"), ("bold", "bold"), ("italic", "italic"), ("underline", "underline"), ("toggle_tree", "files"), ("delta", "delta")]),
-        ),
+        Mode::Write => {
+            let mut v = selected(&app.editor);
+            v.extend(hints(Pane::Write, &[("done", "read"), ("chat", "chat"), ("add_to_chat", "to chat"), ("say", "say here"), ("bold", "bold"), ("italic", "italic"), ("underline", "underline"), ("toggle_tree", "files"), ("delta", "delta")]));
+            ("WRITE", t.acc2, v)
+        }
         Mode::Notes => ("NOTES", t.acc, hints(Pane::Notes, &[("down", "move"), ("open", "open"), ("new", "new"), ("rename", "rename"), ("tags", "by tag"), ("close", "close")])),
         Mode::Search => ("SEARCH", t.acc, vec![("↑ ↓".into(), "move".into()), ("enter".into(), "open at match".into()), ("esc".into(), "back".into())]),
         Mode::Theme => ("THEME", t.acc, vec![("j k".into(), "preview".into()), ("enter".into(), "keep".into()), ("esc".into(), "cancel".into())]),

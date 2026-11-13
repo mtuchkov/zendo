@@ -7,6 +7,8 @@
 # A key: `j`, `J`, `+`, `ctrl-b`, `alt-i`, `shift-down`, `ctrl-shift-h`, `alt-shift-left`, `enter`,
 # `esc`, `tab`, `space`, `backspace`, `delete`, `up`, `down`, `left`, `right`, `home`, `end`,
 # `pageup`, `pagedown`, `f1`…`f12`. The keys of a pane come first, then the global keys.
+# `[selection]` holds the keys while text is selected where you write (the note in write mode, the
+# chat input): they come before the keys of the pane, so there a letter key does not type.
 # `zendo doctor` reports unknown panes, actions and keys, and a key of two actions in one pane.
 # The `# <group>` lines group the actions of a pane as the help does: navigation, text selection,
 # editing, features, sessions and terminals, panes and view, zendo.
@@ -158,6 +160,14 @@ templates = ["ctrl-t"]  # add a template: the agent writes a new document from i
 
 # panes and view
 back = ["esc"]  # stop the answer / back to the note
+
+[selection]
+# While text is selected in the note in write mode or in the chat input. Without a selection, these
+# keys type as usual. In read mode and in the transcript, `copy` of the pane copies.
+
+# text selection
+copy = ["c"]  # copy the selection
+cut = ["x"]  # cut the selection
 
 [transcript]
 # navigation

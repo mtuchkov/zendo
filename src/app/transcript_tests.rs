@@ -30,3 +30,17 @@ fn the_cursor_moves_and_selects_in_the_transcript() {
     x.move_col(-1);
     assert_eq!((x.row, x.col), (0, 0), "left stops at the start");
 }
+
+// PANES-34: a selection that starts in a cell of a table keeps to its column.
+#[test]
+fn a_selection_in_a_table_of_the_transcript_keeps_to_the_column() {
+    let mut x = t(&["Here:", "┌──────┬──────────┐", "│ Name │ Value    │", "├──────┼──────────┤", "│ a    │ first    │", "│      │ wrapped  │", "└──────┴──────────┘", "Done."]);
+    (x.row, x.col) = (4, 9);
+    x.anchor = Some((x.row, x.col));
+    (x.row, x.col) = (7, 30);
+    assert_eq!(x.text(), "first\nwrapped", "the end stays in the table");
+    let table = x.table();
+    assert_eq!(x.marked(table.as_ref(), 4), Some((9, 18)));
+    assert_eq!(x.marked(table.as_ref(), 6), None, "the border is not selected");
+    assert_eq!(x.marked(table.as_ref(), 7), None);
+}

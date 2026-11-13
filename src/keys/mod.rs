@@ -10,7 +10,8 @@
 //!
 //! A key is a name with modifiers: `j`, `J`, `+`, `ctrl-b`, `alt-i`, `shift-down`, `ctrl-shift-left`,
 //! `enter`, `esc`, `tab`, `space`, `backspace`, `delete`, `up`, `down`, `left`, `right`, `home`, `end`,
-//! `pageup`, `pagedown`, `f1`…`f12`. The keys of a pane come first, then the global keys.
+//! `pageup`, `pagedown`, `f1`…`f12`. The keys of a pane come first, then the global keys. While
+//! text is selected where the user writes, the keys of `[selection]` come before both.
 
 mod actions;
 mod legacy;
@@ -30,6 +31,9 @@ pub enum Pane {
     Read,
     Write,
     Chat,
+    /// Keys while text is selected where the user writes: the note in write mode, the chat input.
+    /// They come before the keys of the pane (PANES-37).
+    Selected,
     Transcript,
     Tree,
     Delta,
@@ -39,7 +43,7 @@ pub enum Pane {
 }
 
 impl Pane {
-    pub const ALL: [Pane; 9] = [Pane::Global, Pane::Read, Pane::Write, Pane::Chat, Pane::Transcript, Pane::Tree, Pane::Delta, Pane::Notes, Pane::Session];
+    pub const ALL: [Pane; 10] = [Pane::Global, Pane::Read, Pane::Write, Pane::Chat, Pane::Selected, Pane::Transcript, Pane::Tree, Pane::Delta, Pane::Notes, Pane::Session];
 
     pub fn name(self) -> &'static str {
         match self {
@@ -47,6 +51,7 @@ impl Pane {
             Pane::Read => "read",
             Pane::Write => "write",
             Pane::Chat => "chat",
+            Pane::Selected => "selection",
             Pane::Transcript => "transcript",
             Pane::Tree => "tree",
             Pane::Delta => "delta",

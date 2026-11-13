@@ -9,6 +9,11 @@ impl App {
         Some(if a <= c { (a, c) } else { (c, a) })
     }
 
+    /// The selection in read mode, when it starts in a cell of a table with box borders (PANES-34).
+    pub fn read_table(&self) -> Option<crate::text::boxtable::Range> {
+        crate::text::boxtable::in_table(&self.read_text, self.read_anchor?, (self.read_cursor, self.read_col))
+    }
+
     /// The selected rows; without a selection, the paragraph under the cursor.
     pub fn selection_rows(&self) -> (usize, usize) {
         if let Some(((a, _), (b, _))) = self.read_selection() {
@@ -26,6 +31,9 @@ impl App {
     }
 
     pub(crate) fn selection_text(&self) -> String {
+        if let Some(t) = self.read_table() {
+            return t.text(&self.read_text).trim().to_string();
+        }
         if let Some(((r1, c1), (r2, c2))) = self.read_selection() {
             let mut rows = Vec::new();
             for r in r1..=r2.min(self.read_text.len().saturating_sub(1)) {
@@ -117,5 +125,29 @@ impl App {
             self.focus = back;
             self.flash(format!("{} is in the chat", label.trim_matches([chips::OPEN, chips::CLOSE])));
         }
+    }
+
+    /// While text is selected in the note in write mode or in the chat input, the keys of
+    /// `[selection]` come first: `c` copies and `x` cuts (PANES-37). True when the key did that.
+    pub(crate) fn selection_key(&mut self, pane: crate::keys::Pane, k: &KeyEvent) -> bool {
+        use crate::keys::Pane;
+        let Some(act) = self.keys.local(Pane::Selected, k) else { return false };
+        let e = match pane {
+            Pane::Write => &mut self.editor,
+            Pane::Chat => &mut self.input,
+            _ => return false,
+        };
+        let Some(text) = e.selected_text().filter(|_| e.selection().is_some()) else { return false };
+        match act {
+            "cut" => {
+                e.delete_selection();
+            }
+            _ => e.clear_selection(),
+        }
+        self.clip = Some(text);
+        if pane == Pane::Write && act == "cut" {
+            self.last_edit = Instant::now();
+        }
+        true
     }
 }

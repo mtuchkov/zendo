@@ -40,3 +40,42 @@ fn selection_stays_inside_its_panel() {
     s.drag(35, 1); // dragged into the right panel: clamped to the left one
     assert_eq!(s.text(&buf), "text one\nleft text two");
 }
+
+const TABLE: [&str; 6] = [
+    "┌──────┬──────────┐",
+    "│ Name │ Value    │",
+    "├──────┼──────────┤",
+    "│ a    │ first    │",
+    "│      │ wrapped  │",
+    "└──────┴──────────┘",
+];
+
+fn table_buffer() -> (Rect, Buffer) {
+    let area = Rect::new(0, 0, 30, 7);
+    let mut buf = Buffer::empty(area);
+    let lines: Vec<Line> = std::iter::once("text before").chain(TABLE).map(Line::raw).collect();
+    Paragraph::new(lines).render(area, &mut buf);
+    (area, buf)
+}
+
+#[test]
+fn a_mouse_selection_in_a_table_keeps_to_the_column() {
+    // PANES-34: from "first" down and to the left; the column of the names stays out.
+    let (area, mut buf) = table_buffer();
+    let mut s = Selection::start(Region::Note, area, 9, 4);
+    s.drag(16, 5);
+    assert_eq!(s.text(&buf), "first\nwrapped");
+    s.paint(&mut buf, Color::Red, Color::Black);
+    assert_eq!(buf[(9, 4)].bg, Color::Red);
+    assert_ne!(buf[(2, 5)].bg, Color::Red, "the other column is not selected");
+    assert_ne!(buf[(19, 5)].bg, Color::Red, "past the table is not selected");
+}
+
+#[test]
+fn a_mouse_selection_that_starts_before_a_table_goes_line_by_line() {
+    // PANES-34
+    let (area, buf) = table_buffer();
+    let mut s = Selection::start(Region::Note, area, 0, 0);
+    s.drag(5, 2);
+    assert_eq!(s.text(&buf), "text before\n┌──────┬──────────┐\n│ Name");
+}

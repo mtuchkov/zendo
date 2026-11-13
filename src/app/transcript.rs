@@ -89,9 +89,27 @@ impl Transcript {
         Some(if a <= c { (a, c) } else { (c, a) })
     }
 
+    /// The selection, when it starts in a cell of a table with box borders (PANES-34).
+    pub fn table(&self) -> Option<crate::text::boxtable::Range> {
+        crate::text::boxtable::in_table(&self.rows, self.anchor?, (self.row, self.col))
+    }
+
+    /// The selected chars of row `i`, end exclusive; `table` is the selection in a table.
+    pub fn marked(&self, table: Option<&crate::text::boxtable::Range>, i: usize) -> Option<(usize, usize)> {
+        if let Some(t) = table {
+            return t.chars(&self.rows, i);
+        }
+        let ((r1, c1), (r2, c2)) = self.selection().filter(|((r1, _), (r2, _))| (*r1..=*r2).contains(&i))?;
+        let n = self.rows[i].trim_end().chars().count();
+        Some((if i == r1 { c1 } else { 0 }, if i == r2 { c2 + 1 } else { n.max(1) }))
+    }
+
     /// The selected text; without a selection, the message under the cursor (the rows between
     /// blank rows).
     pub fn text(&self) -> String {
+        if let Some(t) = self.table() {
+            return t.text(&self.rows).trim().to_string();
+        }
         let ((r1, c1), (r2, c2)) = self.selection().unwrap_or_else(|| {
             let blank = |i: usize| self.rows.get(i).is_none_or(|l| l.trim().is_empty());
             let a = (0..=self.row).rev().take_while(|i| !blank(*i)).last().unwrap_or(self.row);

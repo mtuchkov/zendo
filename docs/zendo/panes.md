@@ -1,11 +1,11 @@
 ---
 status: "draft"
-revision: "3"
+revision: "4"
 date: "2026-11-13"
 parent: "zendo.md"
 next: "notes.md"
-level: "the panes as a whole: layouts, widths, hiding, focus, mouse selection, themes"
-note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user."
+level: "the panes as a whole: layouts, widths, hiding, focus, selection, themes"
+note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. PANES-34 to PANES-41 (selection in tables, keys of [selection]) are agent drafts."
 ---
 
 # Panes and layouts
@@ -26,6 +26,11 @@ text column wider or narrower (kept for the repository). The font size is the te
 terminals change it with `ctrl-+` and `ctrl--`. In read mode: `w` switches the layout,
 `t` switches the theme, `alt-?` (or `f1`, `?`) shows all keys.
 
+A selection that starts in a cell of a table with box borders (`┌ ─ ┬ │ ├ ┼ └`) keeps to the
+columns of the table: a drag down a column copies only that column. A selection that starts outside
+the table goes line by line, as before. While text is selected in the note in write mode or in the
+chat input, `c` copies and `x` cuts; the keys are in `[selection]` of the keymap.
+
 ## Architecturally significant requirements
 
 | ID       | Pattern  | Requirement                                                                                                                                                                                              | Source           |
@@ -33,6 +38,7 @@ terminals change it with `ctrl-+` and `ctrl--`. In read mode: `w` switches the l
 | PANES-1  | Unwanted | If the open panes do not fit into the terminal, then the system shall hide panes from the edges by turns: first the rightmost pane right of the note, then the leftmost pane left of the note, and again. | User, 2026-11-11 |
 | PANES-2  | Unwanted | If the system hides panes, then it shall keep the pane in focus, and shall hide the note last.                                                                                                          | User, 2026-11-11 |
 | PANES-3  | Event    | When the user drags the mouse, the system shall select text only inside the pane where the drag started.                                                                                                | User, 2026-11-11 |
+| PANES-34 | Event    | When the user starts a selection in a cell of a table with box borders, with the mouse or with the keys, the system shall keep the selection to the rows of the table and to the columns from the cell of its start to the cell of its end. | User, 2026-11-13 |
 
 ### Acceptance tests
 
@@ -53,6 +59,13 @@ terminals change it with `ctrl-+` and `ctrl--`. In read mode: `w` switches the l
 - Given the note and the chat side by side.
 - When the user drags from the note into the chat.
 - Then the selection holds only lines of the note.
+
+**`a_drag_in_a_table_copies_the_column`** (integration test; verifies PANES-34)
+
+- Given a note with a table of two columns, in read mode.
+- When the user drags from a cell of the second column down two rows.
+- Then the clipboard holds only the text of the second column, one row for each line, without the
+  lines of the table.
 
 ## Detailed requirements
 
@@ -88,6 +101,13 @@ terminals change it with `ctrl-+` and `ctrl--`. In read mode: `w` switches the l
 | PANES-23 | Event      | When the user runs `zendo keymap`, the system shall print the default keymap file, so that the user can start a keymap of their own from it. | User, 2026-11-12 |
 | PANES-24 | Unwanted   | If one key has two actions in one pane of the keymap, then the system shall tell the user, and the key shall do the first action. | User, 2026-11-12 |
 | PANES-25 | Unwanted   | If the terminal has no kitty keyboard protocol and sends `ctrl-shift` and a letter as `ctrl` and the letter, then the system shall do the action of `ctrl-shift` and the letter when `ctrl` and the letter has no action. | User, 2026-11-12 |
+| PANES-35 | Ubiquitous | The system shall look for the borders of a table at most 100 rows up and down from the start of the selection. Where the rows of a pane end before a border, the border on the other side shall be enough. | User, 2026-11-13 |
+| PANES-36 | Unwanted   | If a selection starts outside a table, or in a table drawn with `\|`, `-` and `+`, then the system shall select the text line by line. | User, 2026-11-13 |
+| PANES-40 | Event      | When the user copies a selection in a table, the system shall put a tab between the cells of a row, leave out the lines and the rules of the table, and leave out the rows with no text. | Design |
+| PANES-41 | Event      | When the end of a selection in a table goes above or below the table, the system shall select the column of the start to its end; when it goes left or right of the table, the system shall stop it at the first or the last column. | Design |
+| PANES-37 | State      | While text is selected in the note in write mode or in the chat input, the system shall copy the selection when the user presses `c`, and cut it when the user presses `x`, before the other keys of the pane. | User, 2026-11-13 |
+| PANES-38 | Unwanted   | If no text is selected, then the system shall type `c` and `x` as text. | User, 2026-11-13 |
+| PANES-39 | Ubiquitous | The system shall take the keys of PANES-37 from `[selection]` of the keymap, and show them in the help of write mode and of the chat as a section of their own. | User, 2026-11-13 |
 
 zendo takes the mouse. To use the selection of the terminal, the user holds a modifier key, usually
 Shift, or Option in iTerm2.
@@ -102,7 +122,13 @@ PANES-23), `a_key_of_two_actions_is_a_problem` (PANES-24), `without_the_kitty_pr
 `the_help_shows_groups_the_keymap_file_and_the_version` (PANES-30, PANES-31),
 `the_help_shows_the_details_of_the_version_only_for_a_build_with_changes` (PANES-31),
 `ctrl_c_does_not_quit` (PANES-32),
-`alt_enter_is_a_new_line_and_the_status_bar_says_so` and `a_terminal_shows_in_the_chat_pane` (PANES-33).
+`alt_enter_is_a_new_line_and_the_status_bar_says_so` and `a_terminal_shows_in_the_chat_pane` (PANES-33),
+the tests of `src/text/boxtable_tests.rs` (PANES-34, PANES-35, PANES-36, PANES-40, PANES-41),
+`the_keys_of_read_mode_select_in_a_column`, `a_drag_from_before_a_table_goes_line_by_line` and
+`a_selection_in_a_table_of_the_transcript_keeps_to_the_column` (PANES-34, PANES-36),
+`c_copies_and_x_cuts_the_selection_in_write_mode` and `x_cuts_the_selection_in_the_chat_input`
+(PANES-37), `without_a_selection_c_and_x_are_text` (PANES-38),
+`the_selection_keys_are_in_the_keymap_and_the_help` (PANES-39).
 
 The keys of the search box, the theme list, the question of a file and the file name filter of the
 tree are not in the keymap. Their hints show those fixed keys.

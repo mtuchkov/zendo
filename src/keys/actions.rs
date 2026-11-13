@@ -115,6 +115,9 @@ pub const ACTIONS: &[Action] = &[
     a(Chat, Features, "insert_output", "put the result of the last command of a terminal into the input; again: the next terminal"),
     a(Chat, Features, "templates", "add a template: the agent writes a new document from it"),
     a(Chat, View, "back", "stop the answer / back to the note"),
+    // selection: while text is selected in the note in write mode or in the chat input
+    a(Selected, Selection, "copy", "copy the selection"),
+    a(Selected, Selection, "cut", "cut the selection"),
     // transcript
     a(Transcript, Navigation, "down", "cursor down"),
     a(Transcript, Navigation, "up", "cursor up"),

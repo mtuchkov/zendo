@@ -139,6 +139,7 @@ pub(crate) fn draw_read(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     app.read_col = app.read_col.min(len.saturating_sub(1));
     let marks = confusing_rows(app, &app.rel(&note.path), &app.read_rows, lines.len());
     let w = col.width as usize;
+    let table = if active { app.read_table() } else { None };
     let view: Vec<Line> = lines
         .into_iter()
         .enumerate()
@@ -146,7 +147,7 @@ pub(crate) fn draw_read(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
         .take(h)
         .map(|(i, l)| if marks.contains(&i) { tint(l, confusing(t), w) } else { l })
         .zip(app.scroll..)
-        .map(|(l, i)| if active { mark_row(app, t, i, l, w) } else { l })
+        .map(|(l, i)| if active { mark_row(app, t, i, l, w, table.as_ref()) } else { l })
         .collect();
     f.render_widget(Paragraph::new(view), col);
     if code {
@@ -190,9 +191,15 @@ fn draw_no_notes(f: &mut Frame, app: &App, t: &Theme, col: Rect) {
     f.render_widget(Paragraph::new(msg), Rect { y, height: col.height.saturating_sub(y - col.y), ..col });
 }
 
-/// The cursor line and the selection on one row.
-fn mark_row(app: &App, t: &Theme, i: usize, l: Line<'static>, width: usize) -> Line<'static> {
+/// The cursor line and the selection on one row; `table` is the selection in a table (PANES-34).
+fn mark_row(app: &App, t: &Theme, i: usize, l: Line<'static>, width: usize, table: Option<&crate::text::boxtable::Range>) -> Line<'static> {
     let l = if i == app.read_cursor { tint(l, cursor_line(t), width) } else { l };
+    if let Some(r) = table {
+        return match r.chars(&app.read_text, i) {
+            Some((a, b)) => paint(l, a, b, delta::mix(t.bg, t.acc2, 0.42)),
+            None => l,
+        };
+    }
     match app.read_selection() {
         Some(((r1, c1), (r2, c2))) if i >= r1 && i <= r2 => {
             let n = app.read_text.get(i).map_or(0, |r| r.trim_end().chars().count());

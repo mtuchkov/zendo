@@ -5,6 +5,8 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::Color;
 use unicode_width::UnicodeWidthStr;
 
+use super::boxtable;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Region {
     Note,
@@ -55,7 +57,26 @@ impl Selection {
         Some((from, to.min(self.rect.right())))
     }
 
+    /// The rows of the panel as the screen shows them, and the selection in them, when it starts in
+    /// a cell of a table with box borders (PANES-34).
+    fn in_table(&self, buf: &Buffer) -> Option<(Vec<String>, boxtable::Range)> {
+        let rows: Vec<String> = (self.rect.y..self.rect.bottom()).map(|y| screen_row(buf, self.rect, y)).collect();
+        let at = |(x, y): (u16, u16)| ((y - self.rect.y) as usize, (x - self.rect.x) as usize);
+        let range = boxtable::resolve(&rows, at(self.anchor), at(self.head));
+        range.cols.is_some().then_some((rows, range))
+    }
+
     pub fn paint(&self, buf: &mut Buffer, bg: Color, fg: Color) {
+        if let Some((rows, range)) = self.in_table(buf) {
+            for (i, (a, b)) in (0..rows.len()).filter_map(|i| range.span(i, 0).map(|s| (i as u16, s))) {
+                for x in a as u16..b as u16 {
+                    if let Some(c) = buf.cell_mut(Position::new(self.rect.x + x, self.rect.y + i)) {
+                        c.set_bg(bg).set_fg(fg);
+                    }
+                }
+            }
+            return;
+        }
         let (s, e) = self.ordered();
         for y in s.1..=e.1 {
             let Some((from, to)) = self.cols(y) else { continue };
@@ -69,6 +90,9 @@ impl Selection {
 
     /// The text under the selection, as the screen shows it.
     pub fn text(&self, buf: &Buffer) -> String {
+        if let Some((rows, range)) = self.in_table(buf) {
+            return range.text(&rows);
+        }
         let (s, e) = self.ordered();
         let mut rows = Vec::new();
         for y in s.1..=e.1 {
@@ -96,6 +120,18 @@ impl Selection {
         }
         out.trim_end().to_string()
     }
+}
+
+/// Row `y` of `rect`, one char for each cell: a wide char and the cell that it covers are one char.
+fn screen_row(buf: &Buffer, rect: Rect, y: u16) -> String {
+    let mut row = String::new();
+    let mut x = rect.x;
+    while x < rect.right() {
+        let sym = buf.cell(Position::new(x, y)).map(|c| c.symbol()).filter(|s| !s.is_empty()).unwrap_or(" ");
+        row.push_str(sym);
+        x += sym.width().max(1) as u16;
+    }
+    row
 }
 
 fn clamp(r: Rect, x: u16, y: u16) -> (u16, u16) {

@@ -36,6 +36,12 @@ pub(crate) fn draw_themes(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
 pub(crate) fn draw_help(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     use crate::keys::Pane;
     let mut groups = help_section(app, t, app.help_pane);
+    // Where the user writes, the keys while text is selected (PANES-39).
+    if matches!(app.help_pane, Pane::Write | Pane::Chat) {
+        let mut sel = help_section(app, t, Pane::Selected);
+        sel[0].insert(0, Line::raw(""));
+        groups.append(&mut sel);
+    }
     if app.help_pane != Pane::Global {
         let mut global = help_section(app, t, Pane::Global);
         global[0].insert(0, Line::raw(""));

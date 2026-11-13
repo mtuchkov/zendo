@@ -82,6 +82,9 @@ impl App {
             return self.key_tree_find(k);
         }
         let pane = self.key_pane();
+        if self.selection_key(pane, &k) {
+            return;
+        }
         let local = self.keys.local(pane, &k);
         if local.is_none()
             && let Some(act) = self.keys.local(Pane::Global, &k)

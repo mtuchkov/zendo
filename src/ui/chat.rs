@@ -67,16 +67,14 @@ fn draw_transcript(f: &mut Frame, app: &mut App, t: &Theme, body: Rect, lines: V
     let start = if on { bottom.min(tr.row).max((tr.row + 1).saturating_sub(h)).min(max) } else { bottom };
     app.panel_scroll = max - start;
     let sel = delta::mix(t.bg, t.acc2, 0.42);
+    let table = if on { tr.table() } else { None };
     let view: Vec<Line> = lines
         .into_iter()
         .enumerate()
         .skip(start)
         .take(h)
-        .map(|(i, l)| match tr.selection() {
-            Some(((r1, c1), (r2, c2))) if on && i >= r1 && i <= r2 => {
-                let n = tr.rows[i].trim_end().chars().count();
-                paint(l, if i == r1 { c1 } else { 0 }, if i == r2 { c2 + 1 } else { n.max(1) }, sel)
-            }
+        .map(|(i, l)| match tr.marked(table.as_ref(), i) {
+            Some((a, b)) if on => paint(l, a, b, sel),
             _ if on && i == tr.row => tint(l, cursor_line(t), w),
             _ => l,
         })
