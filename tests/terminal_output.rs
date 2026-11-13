@@ -170,18 +170,42 @@ async fn a_long_output_keeps_the_last_500_lines() {
     done(&root, &mut a);
 }
 
-// TERM-34, TERM-35: bash reads the .bashrc of the user, the marks do not show, and the file of the
-// user stays the same.
-#[tokio::test(flavor = "multi_thread")]
-async fn the_marks_do_not_change_the_files_of_the_user() {
-    let rc = "export ZENDO_RC=from-rc\n";
-    let (root, mut a) = app_with("out-rc", "bash", rc);
+/// TERM-34, TERM-35: `program` reads `rc` at `file` in the home of the user, the marks do not show
+/// on the screen, also not in a prompt of the user, and the file stays the same.
+fn marks_keep_the_files_of_the_user(name: &str, program: &str, file: &str, rc: &str) {
+    if std::process::Command::new(program).arg("-c").arg("true").status().is_err() {
+        return eprintln!("{program} is not installed: skipped");
+    }
+    let (root, mut a) = app_with(name, program, "");
+    let path = root.join(".home").join(file);
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(&path, rc).unwrap();
     key(&mut a, KeyCode::F(5));
     run(&mut a, 0, "echo rc=$ZENDO_RC");
     let o = a.cli.result(shell(0)).unwrap();
-    assert_eq!((o.text.as_str(), o.exit), ("rc=from-rc", Some(0)), "the .bashrc of the user, and the marks");
+    assert_eq!((o.text.as_str(), o.exit), ("rc=from-rc", Some(0)), "{program}: the file of the user, and the marks");
     let screen = a.cli.text(shell(0));
-    assert!(!screen.contains("133") && !screen.contains('\u{7}'), "no marks on the screen:\n{screen}");
-    assert_eq!(std::fs::read_to_string(root.join(".home/.bashrc")).unwrap(), rc);
+    assert!(!screen.contains("133") && !screen.contains("\\e") && !screen.contains('\u{7}'), "{program}: no marks on the screen:\n{screen}");
+    assert!(screen.contains("PROMPT>"), "{program}: the prompt of the user:\n{screen}");
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), rc);
     done(&root, &mut a);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_marks_do_not_change_the_files_of_the_user() {
+    marks_keep_the_files_of_the_user("out-rc", "bash", ".bashrc", "export ZENDO_RC=from-rc\nPS1='PROMPT> '\n");
+}
+
+// TERM-34, TERM-35: the same for zsh, with a prompt as oh-my-zsh sets it.
+#[tokio::test(flavor = "multi_thread")]
+async fn zsh_marks_do_not_show_and_keep_the_files_of_the_user() {
+    let rc = "export ZENDO_RC=from-rc\nsetopt prompt_subst\nPROMPT='%F{cyan}PROMPT>%f '\n";
+    marks_keep_the_files_of_the_user("out-zsh", "zsh", ".zshrc", rc);
+}
+
+// TERM-34, TERM-35: the same for fish.
+#[tokio::test(flavor = "multi_thread")]
+async fn fish_marks_do_not_show_and_keep_the_files_of_the_user() {
+    let rc = "set -gx ZENDO_RC from-rc\nfunction fish_prompt; echo -n 'PROMPT> '; end\n";
+    marks_keep_the_files_of_the_user("out-fish", "fish", ".config/fish/config.fish", rc);
 }

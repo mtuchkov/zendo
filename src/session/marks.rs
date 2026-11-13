@@ -31,9 +31,12 @@ if [[ -z $__zendo_marks ]]; then
   __zendo_marks=1
   __zendo_precmd() { local s=$?; print -n "\e]133;D;$s\a\e]133;A\a"; }
   __zendo_preexec() { print -n "\e]133;C\a"; }
-  precmd_functions=(__zendo_precmd $precmd_functions)
+  # Prompt expansion does not read \e and \a: the mark needs the bytes. The last precmd adds it,
+  # also to a prompt that a theme sets again in its own precmd.
+  __zendo_b=$'\e]133;B\a'
+  __zendo_prompt() { [[ $PS1 == *$__zendo_b* ]] || PS1="$PS1%{$__zendo_b%}"; }
+  precmd_functions=(__zendo_precmd $precmd_functions __zendo_prompt)
   preexec_functions+=(__zendo_preexec)
-  PS1="$PS1%{\e]133;B\a%}"
 fi
 "#;
 
