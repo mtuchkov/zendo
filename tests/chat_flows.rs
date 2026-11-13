@@ -52,7 +52,7 @@ async fn one_thread_for_every_file_and_the_file_goes_once() {
 }
 
 // CLAUDE-15: the status bar names alt-enter for a new line: a terminal without the kitty keyboard protocol
-// sends shift-enter as enter.
+// sends shift-enter as enter. PANES-33: the badge of the chat pane is `CHAT`.
 #[tokio::test]
 async fn alt_enter_is_a_new_line_and_the_status_bar_says_so() {
     let root = repo("chat-alt-enter", &files());
@@ -60,7 +60,7 @@ async fn alt_enter_is_a_new_line_and_the_status_bar_says_so() {
     a.open_panel();
     a.focus = Focus::Claude;
     let screen = draw(&mut a, 160, 30);
-    let bar = screen.iter().rev().find(|r| r.contains("CLAUDE")).unwrap();
+    let bar = screen.iter().rev().find(|r| r.contains(" CHAT ")).unwrap();
     assert!(bar.contains("alt-enter new line"), "{bar}");
     typ(&mut a, "one");
     a.on_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::ALT));

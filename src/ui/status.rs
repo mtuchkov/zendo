@@ -51,6 +51,11 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
     if delta {
         return ("DELTA", t.acc2, with_next(hints(Pane::Delta, &[("base", "other base"), ("ask", "ask claude"), ("recap", "recap"), ("close", "close")])));
     }
+    if claude && app.pane_terminal().is_some_and(|n| n >= crate::app::SESSIONS) {
+        // A shell in the chat pane gets every other key (PANES-33, TERM-38).
+        let v = [(Pane::Chat, "handoff", "full screen"), (Pane::Session, "leave", "back"), (Pane::Global, "next_session", "next session")];
+        return ("SHELL", t.acc, v.iter().map(|(p, a, text)| (app.keys.first(*p, a), text.to_string())).collect());
+    }
     if claude && app.transcript.on {
         let mut v = hints(Pane::Transcript, &[("down", "move"), ("select_down", "select"), ("copy", "copy"), ("add_to_chat", "to chat"), ("input", "input")]);
         if app.transcript.block().is_some() {
@@ -63,7 +68,7 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
     if claude {
         let mut v = hints(Pane::Chat, &[("send", "send"), ("newline", "new line"), ("new_thread", "new thread"), ("handoff", "Claude Code"), ("back", "back")]);
         v.push((app.keys.first(Pane::Global, "next_session"), "next session".into()));
-        return ("CLAUDE", t.acc, with_next(v));
+        return ("CHAT", t.acc, with_next(v));
     }
     match app.mode {
         Mode::Read if app.read_anchor.is_some() => ("SELECT", t.acc2, hints(Pane::Read, &[("select_down", "extend"), ("ask", "ask claude"), ("add_to_chat", "add to chat"), ("copy", "copy"), ("back", "cancel")])),

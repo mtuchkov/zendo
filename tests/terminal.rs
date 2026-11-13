@@ -172,8 +172,8 @@ async fn play_button_and_terminal_buttons() {
     done(&root, &mut a);
 }
 
-// TERM-37, TERM-40: a terminal shows in the chat pane, the note stays on the screen, and the shell
-// gets the size of the chat pane.
+// TERM-37, TERM-40, PANES-33: a terminal shows in the chat pane, the note stays on the screen, the
+// shell gets the size of the chat pane, and the badge of the pane is `SHELL`.
 #[tokio::test(flavor = "multi_thread")]
 async fn a_terminal_shows_in_the_chat_pane() {
     let (root, mut a) = app_with_shell("term-pane");
@@ -182,6 +182,8 @@ async fn a_terminal_shows_in_the_chat_pane() {
     assert_eq!((a.cli.pane, a.cli.view), (Some(shell(0)), None), "the chat pane, not the full screen");
     let screen = draw(&mut a, 120, 40).join("\n");
     assert!(screen.contains("# A") || screen.contains(" A"), "the note is on the screen:\n{screen}");
+    let bar = screen.lines().last().unwrap_or_default();
+    assert!(bar.contains(" SHELL ") && !bar.contains(" CHAT "), "the badge of a shell: {bar}");
     let size = stty_size(&mut a, shell(0));
     let cols: u16 = size.split_whitespace().nth(1).unwrap().parse().unwrap();
     assert!(cols < 100, "the shell has the width of the chat pane, not of the screen: {size}");
