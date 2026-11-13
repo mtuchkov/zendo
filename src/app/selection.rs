@@ -14,6 +14,18 @@ impl App {
         crate::text::boxtable::in_table(&self.read_text, self.read_anchor?, (self.read_cursor, self.read_col))
     }
 
+    /// A selection in a table: the cursor stops at the edge of its cell, and two quick presses go
+    /// on to the next cell (PANES-42).
+    pub(crate) fn read_soft_stop(&mut self, act: &str, before: (usize, usize)) {
+        use crate::text::softstop::Dir;
+        let (Some(dir), Some(anchor)) = (Dir::of(act), self.read_anchor) else { return };
+        let after = (self.read_cursor, self.read_col);
+        (self.read_cursor, self.read_col) = self.read_stop.step(&self.read_text, anchor, before, after, dir, Instant::now());
+        if dir.horizontal() {
+            self.read_want = self.read_col;
+        }
+    }
+
     /// The selected rows; without a selection, the paragraph under the cursor.
     pub fn selection_rows(&self) -> (usize, usize) {
         if let Some(((a, _), (b, _))) = self.read_selection() {

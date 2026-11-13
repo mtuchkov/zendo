@@ -40,6 +40,12 @@ impl App {
         if act.starts_with("select_") && self.read_anchor.is_none() {
             self.read_anchor = Some((self.read_cursor, self.read_col));
         }
+        let before = (self.read_cursor, self.read_col);
+        self.read_action(act, page);
+        self.read_soft_stop(act, before);
+    }
+
+    fn read_action(&mut self, act: &str, page: isize) {
         match act {
             "back" if self.say.is_some() => self.say = None,
             "back" if self.read_anchor.is_some() => self.read_anchor = None,

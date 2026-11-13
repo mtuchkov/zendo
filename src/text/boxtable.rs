@@ -103,6 +103,11 @@ pub fn table_at<S: AsRef<str>>(rows: &[S], r: usize, col: usize) -> Option<Table
     (top_border || bottom_border).then_some(Table { top, bottom, lines })
 }
 
+/// Row `r` is a rule inside table `t`, such as `├───┼───┤`.
+pub(crate) fn is_rule<S: AsRef<str>>(rows: &[S], r: usize, t: &Table) -> bool {
+    rows.get(r).and_then(|row| char_at(row.as_ref(), t.lines[0])).is_some_and(is_middle)
+}
+
 /// From row `r` along the vertical line at `col`, up or down: the last row inside the table, and
 /// whether a border ends it. None when the line breaks.
 fn edge<S: AsRef<str>>(rows: &[S], r: usize, col: usize, up: bool) -> Option<(usize, bool)> {
@@ -205,7 +210,7 @@ fn within<S: AsRef<str>>(rows: &[S], t: &Table, anchor: (usize, usize), head: (u
     let (from, to) = (al.min(hl) + 1, ar.max(hr));
     let (start, end) = if anchor <= head { (anchor, head) } else { (head, anchor) };
     let fit = |(r, c): (usize, usize)| (r, c.clamp(from, to - 1));
-    let rules = (start.0..=end.0).filter(|r| rows.get(*r).and_then(|row| char_at(row.as_ref(), first)).is_some_and(is_middle)).collect();
+    let rules = (start.0..=end.0).filter(|r| is_rule(rows, *r, t)).collect();
     Range { start: fit(start), end: fit(end), cols: Some((from, to)), rules }
 }
 

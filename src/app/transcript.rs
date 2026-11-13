@@ -16,6 +16,8 @@ pub struct Transcript {
     pub col: usize,
     want: usize,
     pub anchor: Option<(usize, usize)>,
+    /// The stop of the selection keys at the edge of a cell of a table (PANES-42).
+    stop: crate::text::softstop::SoftStop,
     /// The shell blocks of the last frame: their first row, the row after them, their command.
     pub blocks: Vec<(usize, usize, String)>,
 }
@@ -94,6 +96,16 @@ impl Transcript {
         crate::text::boxtable::in_table(&self.rows, self.anchor?, (self.row, self.col))
     }
 
+    /// A selection in a table: the cursor stops at the edge of its cell, and two quick presses go
+    /// on to the next cell (PANES-42).
+    pub fn soft_stop(&mut self, act: &str, before: (usize, usize), now: Instant) {
+        let (Some(dir), Some(anchor)) = (crate::text::softstop::Dir::of(act), self.anchor) else { return };
+        (self.row, self.col) = self.stop.step(&self.rows, anchor, before, (self.row, self.col), dir, now);
+        if dir.horizontal() {
+            self.want = self.col;
+        }
+    }
+
     /// The selected chars of row `i`, end exclusive; `table` is the selection in a table.
     pub fn marked(&self, table: Option<&crate::text::boxtable::Range>, i: usize) -> Option<(usize, usize)> {
         if let Some(t) = table {
@@ -135,6 +147,7 @@ impl App {
         if act.starts_with("select_") && t.anchor.is_none() {
             t.anchor = Some((t.row, t.col));
         }
+        let before = (t.row, t.col);
         match act {
             "down" | "select_down" => t.move_rows(1),
             "up" | "select_up" => t.move_rows(-1),
@@ -153,6 +166,7 @@ impl App {
             "add_to_chat" => self.transcript_to_chat(),
             _ => {}
         }
+        self.transcript.soft_stop(act, before, Instant::now());
     }
 
     fn copy_transcript(&mut self) {

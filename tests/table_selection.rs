@@ -70,3 +70,27 @@ fn a_drag_from_before_a_table_goes_line_by_line() {
     assert!(clip.starts_with("Before the table.") && clip.contains('┌') && clip.contains("│ Field"), "{clip:?}");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// PANES-42: the selection keys stop at the edge of the cell; a held key stays there, and two quick
+// presses go on to the next cell.
+#[test]
+fn the_keys_stop_at_the_edge_of_a_cell_and_two_quick_presses_go_on() {
+    let root = repo("table-soft", &files());
+    let mut a = app(&root);
+    draw(&mut a, 120, 30);
+    a.read_cursor = a.read_text.iter().position(|r| r.contains("keep it")).expect("the table row");
+    a.read_col = a.read_text[a.read_cursor].chars().position(|c| c == 'N').unwrap();
+    a.read_want = a.read_col;
+    key(&mut a, KeyCode::Char('v'));
+    for _ in 0..12 {
+        key(&mut a, KeyCode::Char('l'));
+    }
+    let one = a.read_table().expect("a selection in the table").cols;
+    let row = a.read_text[a.read_cursor].clone();
+    assert_eq!(row.chars().nth(a.read_col + 1), Some('│'), "the cursor stops before the line: {row}");
+    std::thread::sleep(std::time::Duration::from_millis(150));
+    key(&mut a, KeyCode::Char('l'));
+    let two = a.read_table().expect("a selection in the table").cols;
+    assert!(two.unwrap().1 > one.unwrap().1, "the next column: {one:?} {two:?}");
+    let _ = std::fs::remove_dir_all(&root);
+}

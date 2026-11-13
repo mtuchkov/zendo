@@ -44,3 +44,22 @@ fn a_selection_in_a_table_of_the_transcript_keeps_to_the_column() {
     assert_eq!(x.marked(table.as_ref(), 6), None, "the border is not selected");
     assert_eq!(x.marked(table.as_ref(), 7), None);
 }
+
+// PANES-42: the selection keys of the transcript stop at the edge of a cell; two quick presses go on.
+#[test]
+fn the_keys_of_the_transcript_stop_at_the_edge_of_a_cell() {
+    let mut x = t(&["┌──────┬──────────┐", "│ a    │ first    │", "└──────┴──────────┘"]);
+    (x.row, x.col) = (1, 2);
+    x.anchor = Some((1, 2));
+    let t0 = Instant::now();
+    for i in 0..8 {
+        let before = (x.row, x.col);
+        x.move_col(1);
+        x.soft_stop("select_right", before, t0 + std::time::Duration::from_millis(20 * i));
+    }
+    assert_eq!((x.row, x.col), (1, 6), "the edge of the cell");
+    let before = (x.row, x.col);
+    x.move_col(1);
+    x.soft_stop("select_right", before, t0 + std::time::Duration::from_millis(300));
+    assert_eq!((x.row, x.col), (1, 8), "the next cell");
+}

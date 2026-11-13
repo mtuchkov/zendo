@@ -210,9 +210,10 @@ pub struct App {
     /// Read mode: the cursor row and the selection anchor, in rendered rows.
     pub read_cursor: usize,
     pub read_anchor: Option<(usize, usize)>,
-    /// The column of the read cursor in its row, in chars; and the column it wants on up and down.
+    /// The read cursor column in chars, the column it wants on up and down, the stop at a cell edge (PANES-42).
     pub read_col: usize,
     pub read_want: usize,
+    pub read_stop: crate::text::softstop::SoftStop,
     /// The word limit of the open file, its words, and the row of the word after the limit.
     pub word_limit: usize,
     pub word_count: usize,

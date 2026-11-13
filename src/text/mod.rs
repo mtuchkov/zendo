@@ -5,5 +5,6 @@ pub mod highlight;
 pub mod markdown;
 pub mod align;
 pub mod boxtable;
+pub mod softstop;
 pub mod select;
 pub mod shell;
