@@ -55,23 +55,21 @@ pub(crate) fn draw_hold(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let (lines, _) = crate::ui::thread::panel_lines(app, t, inner.width as usize);
     let tail = lines.len().saturating_sub(inner.height as usize);
     f.render_widget(Paragraph::new(lines[tail..].to_vec()), inner);
-    let leave = app.keys.first(crate::keys::Pane::Session, "leave");
-    let spans = vec![
+    let mut spans = vec![
         Span::raw(" "),
         Span::styled(" CLAUDE CODE ", Style::new().bg(t.acc).fg(t.bg).add_modifier(Modifier::BOLD)),
         Span::styled(format!("  {}", app.hold_line()), Style::new().fg(t.acc)),
-        Span::styled(format!("   {leave}"), Style::new().fg(t.fg)),
-        Span::styled(" back to zendo", Style::new().fg(t.dim)),
     ];
+    spans.extend(key_spans(app, t, "leave", " back to zendo"));
     f.render_widget(Paragraph::new(Line::from(spans)).style(Style::new().bg(t.bg)), bar);
 }
 
 /// A terminal in the chat pane: a head line with its name and keys, and its screen (TERM-37).
 pub(crate) fn draw_pane_terminal(f: &mut Frame, app: &mut App, t: &Theme, n: usize, head: Rect, body: Rect) {
     use crate::keys::Pane;
-    let (full, leave) = (app.keys.first(Pane::Chat, "handoff"), app.keys.first(Pane::Session, "leave"));
     let dim = Style::new().fg(t.dim);
-    let line = vec![Span::styled(name(app, n), dim.add_modifier(Modifier::BOLD)), Span::styled(format!("  {full} full screen  {leave} back"), dim)];
+    let keys = [app.keys.hint(Pane::Chat, "handoff", " full screen"), app.keys.hint(Pane::Session, "leave", " back")];
+    let line = vec![Span::styled(name(app, n), dim.add_modifier(Modifier::BOLD)), Span::styled(keys.iter().filter(|h| !h.is_empty()).map(|h| format!("  {h}")).collect::<String>(), dim)];
     f.render_widget(Paragraph::new(Line::from(line)), head);
     f.render_widget(Block::new().style(Style::reset()), body);
     let pos = app.cli.with_screen(n, |s| paint(s, f.buffer_mut(), body)).flatten();
@@ -101,7 +99,6 @@ fn shown(app: &App) -> impl Iterator<Item = usize> + '_ {
 
 /// The bottom line: the badge, the sessions with their states, and the keys of zendo.
 fn draw_cli_bar(f: &mut Frame, app: &App, t: &Theme, n: usize, area: Rect) {
-    use crate::keys::Pane;
     let badge = if n < crate::app::SESSIONS { " CLAUDE CODE " } else { " TERMINAL " };
     let mut spans = vec![Span::raw(" "), Span::styled(badge, Style::new().bg(t.acc).fg(t.bg).add_modifier(Modifier::BOLD)), Span::raw("  ")];
     for m in shown(app) {
@@ -119,14 +116,19 @@ fn draw_cli_bar(f: &mut Frame, app: &App, t: &Theme, n: usize, area: Rect) {
         };
         spans.push(Span::styled(text, style));
     }
-    let leave = app.keys.first(Pane::Session, "leave");
-    spans.push(Span::styled(format!("   {leave}"), Style::new().fg(t.fg)));
-    spans.push(Span::styled(" back to zendo   wheel: earlier lines", Style::new().fg(t.dim)));
+    spans.extend(key_spans(app, t, "leave", " back to zendo"));
+    spans.push(Span::styled("   wheel: earlier lines", Style::new().fg(t.dim)));
     // A message of zendo, such as a turn that did not stop (HANDOFF-6).
     if let Some((msg, _)) = &app.flash {
         spans.push(Span::styled(format!("   {msg}"), Style::new().fg(t.acc)));
     }
     f.render_widget(Paragraph::new(Line::from(spans)).style(Style::new().bg(t.bg)), area);
+}
+
+/// The key of a session action and what it does, for a bottom line; none without a key (PANES-29).
+fn key_spans(app: &App, t: &Theme, action: &str, text: &str) -> Vec<Span<'static>> {
+    let Some(k) = app.keys.key(crate::keys::Pane::Session, action) else { return Vec::new() };
+    vec![Span::styled(format!("   {k}"), Style::new().fg(t.fg)), Span::styled(text.to_string(), Style::new().fg(t.dim))]
 }
 
 /// The text of a session button: its name, and the mark of the state of its program; a terminal

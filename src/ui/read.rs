@@ -163,13 +163,28 @@ pub(crate) fn draw_read(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     }
 }
 
+/// The first hint without notes: the key of a new note, and where notes go (PANES-28).
+fn no_notes_new(app: &App) -> String {
+    let dir = app.rel(&app.cfg.notes_dir);
+    app.keys.key(crate::keys::Pane::Read, "new").map_or(format!("A new note goes to {dir}."), |k| format!("Press {k} to write the first one. It goes to {dir}."))
+}
+
+/// The second hint without notes: the keys of the chat and of the help (PANES-28, PANES-29).
+fn no_notes_keys(app: &App) -> String {
+    use crate::keys::Pane;
+    let chat = app.keys.key(Pane::Read, "chat").map(|k| format!("{k} to talk to Claude"));
+    let help = app.keys.key(Pane::Global, "help").map(|k| format!("{k} for keys"));
+    let parts: Vec<String> = chat.into_iter().chain(help).collect();
+    if parts.is_empty() { String::new() } else { format!("Press {}.", parts.join(", ")) }
+}
+
 /// The read pane when there is no note.
 fn draw_no_notes(f: &mut Frame, app: &App, t: &Theme, col: Rect) {
     let msg = vec![
         Line::styled("No notes yet.", Style::new().fg(t.fg).add_modifier(Modifier::BOLD)),
         Line::raw(""),
-        Line::styled(format!("Press n to write the first one. It goes to {}.", app.rel(&app.cfg.notes_dir)), Style::new().fg(t.dim)),
-        Line::styled("Press c to talk to Claude, alt-? for keys.", Style::new().fg(t.dim)),
+        Line::styled(no_notes_new(app), Style::new().fg(t.dim)),
+        Line::styled(no_notes_keys(app), Style::new().fg(t.dim)),
     ];
     let y = col.y + col.height / 3;
     f.render_widget(Paragraph::new(msg), Rect { y, height: col.height.saturating_sub(y - col.y), ..col });

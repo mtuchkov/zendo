@@ -119,7 +119,8 @@ impl App {
                 Ok(found) => {
                     self.update_rx = None;
                     if let Some(sha) = found {
-                        self.flash(format!("a newer zendo is on GitHub ({sha}) · U upgrades now"));
+                        let how = self.keys.key(crate::keys::Pane::Read, "upgrade").map(|k| format!(" · {k} upgrades now")).unwrap_or_default();
+                        self.flash(format!("a newer zendo is on GitHub ({sha}){how}"));
                         self.update = Some(sha);
                     }
                 }

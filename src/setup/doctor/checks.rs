@@ -38,8 +38,9 @@ pub(super) async fn checks(paths: &Paths, agent_flag: Option<String>, live: bool
     let (cmd, source) = check_config(&cfg, agent_flag, o);
     check_network(o);
     check_node(&cmd, source, &env, o).await;
-    let kind = check_adapter(&cmd, source, o);
-    check_claude(kind, &env, o).await;
+    let handoff = handoff_key(&cfg);
+    let kind = check_adapter(&cmd, source, &handoff, o);
+    check_claude(kind, &env, &handoff, o).await;
     if let Some((h, mut rx)) = handshake(paths, &cmd, source, &env, o).await {
         if live {
             live_prompt(&h, &mut rx, o).await;

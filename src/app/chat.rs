@@ -39,8 +39,8 @@ impl App {
         self.at = None;
         self.slash.open = false;
         self.open_panel();
-        let f = self.keys.first(crate::keys::Pane::Global, &format!("session_{}", self.state.session + 1));
-        self.flash(format!("agent session {} · {f}", self.state.session + 1));
+        let f = self.keys.hint(crate::keys::Pane::Global, &format!("session_{}", self.state.session + 1), "");
+        self.flash(format!("agent session {}{}", self.state.session + 1, if f.is_empty() { f } else { format!(" · {f}") }));
     }
 
     /// Open the session of the chat before the first question: the last session shows its

@@ -96,14 +96,14 @@ fn agent_blocks(s: &str, t: &Theme, w: usize) -> (Vec<Line<'static>>, Blocks) {
 fn cli_line(app: &App, t: &Theme) -> Option<Line<'static>> {
     use crate::session::State;
     let state = app.cli.state(app.state.session.min(crate::app::SESSIONS - 1))?;
-    let key = app.keys.first(crate::keys::Pane::Chat, "handoff");
+    let shows = app.keys.key(crate::keys::Pane::Chat, "handoff").map(|k| format!(" · {k} shows it")).unwrap_or_default();
     let spin = SPIN[(app.cli.since().as_millis() / 300) as usize % 4];
     let (text, color) = match state {
         State::Works => (format!("Claude Code works {spin}"), t.dim),
         State::Waits => ("Claude Code waits for you".to_string(), t.acc),
         State::Idle => ("Claude Code is idle".to_string(), t.dim),
     };
-    Some(Line::from(vec![Span::styled(text, Style::new().fg(color)), Span::styled(format!(" · {key} shows it"), Style::new().fg(t.dim))]))
+    Some(Line::from(vec![Span::styled(text, Style::new().fg(color)), Span::styled(shows, Style::new().fg(t.dim))]))
 }
 
 /// The question in a message that zendo sent: a replayed message has the context before it.

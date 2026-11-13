@@ -25,7 +25,7 @@ pub struct Hold {
 impl App {
     /// `ctrl-o` while the chat of agent session `n` answers: the session view waits (HANDOFF-1,
     /// HANDOFF-2).
-    pub(crate) fn hold_cli(&mut self, n: usize) {
+    pub fn hold_cli(&mut self, n: usize) {
         self.hold = Some(Hold { n, pressed: Instant::now(), stopped: None });
     }
 
@@ -82,10 +82,10 @@ impl App {
 
     /// The text of the bottom line of the waiting view (HANDOFF-7, HANDOFF-8).
     pub fn hold_line(&self) -> String {
-        let again = self.keys.first(Pane::Chat, "handoff");
-        match self.hold.and_then(|h| h.stopped) {
-            Some(_) => "stopping the turn… Claude Code starts when it ends".into(),
-            None => format!("Claude Code starts when the turn ends · {again} again: stop the turn and continue in Claude Code"),
+        if self.hold.is_some_and(|h| h.stopped.is_some()) {
+            return "stopping the turn… Claude Code starts when it ends".into();
         }
+        let again = self.keys.key(Pane::Chat, "handoff").map(|k| format!(" · {k} again: stop the turn and continue in Claude Code"));
+        format!("Claude Code starts when the turn ends{}", again.unwrap_or_default())
     }
 }

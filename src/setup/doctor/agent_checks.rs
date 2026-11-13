@@ -35,7 +35,7 @@ pub(super) async fn check_node(cmd: &str, source: Source, env: &BTreeMap<String,
 }
 
 /// The installed adapter and, for Codex, its login. The kind of agent the command is.
-pub(super) fn check_adapter(cmd: &str, source: Source, o: &mut Out) -> config::Kind {
+pub(super) fn check_adapter(cmd: &str, source: Source, handoff: &str, o: &mut Out) -> config::Kind {
     let kind = config::kind_of(cmd);
     if source == Source::Installed
         && let Some(p) = config::Profile::by_kind(kind)
@@ -56,14 +56,24 @@ pub(super) fn check_adapter(cmd: &str, source: Source, o: &mut Out) -> config::K
             o.fail("login", "Codex is not logged in");
             o.hint(CODEX_LOGIN);
         }
-        o.more("With Codex: no hand-off to the command line (ctrl-o). Everything else works the same.");
+        o.more(codex_note(handoff));
     }
 
     kind
 }
 
+/// The hand-off key of the keymap of the user, for the messages of the doctor (PANES-28).
+pub(super) fn handoff_key(cfg: &config::UserConfig) -> String {
+    cfg.keymap().0.key(crate::keys::Pane::Chat, "handoff").unwrap_or_else(|| "the hand-off key".into())
+}
+
+/// What Codex cannot do (CLAUDE-14), with the hand-off key of the user (PANES-28).
+pub(super) fn codex_note(handoff: &str) -> String {
+    format!("With Codex: no hand-off to the command line ({handoff}). Everything else works the same.")
+}
+
 /// Claude Code and its login, when the agent is Claude.
-pub(super) async fn check_claude(kind: config::Kind, env: &BTreeMap<String, String>, o: &mut Out) {
+pub(super) async fn check_claude(kind: config::Kind, env: &BTreeMap<String, String>, handoff: &str, o: &mut Out) {
     // Claude Code login, when the agent is Claude.
     let is_claude = kind == config::Kind::Claude;
     match if is_claude { run("claude", &["--version"], env, 20).await } else { Some((false, String::new())) } {
@@ -83,7 +93,7 @@ pub(super) async fn check_claude(kind: config::Kind, env: &BTreeMap<String, Stri
                 None => o.warn("login", "could not run `claude auth status`"),
             }
         }
-        _ => o.warn("claude", "the `claude` command is not on PATH; login and ctrl-o handoff cannot be checked"),
+        _ => o.warn("claude", format!("the `claude` command is not on PATH; login and the {handoff} hand-off cannot be checked")),
     }
 
 }

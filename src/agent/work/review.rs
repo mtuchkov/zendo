@@ -48,13 +48,16 @@ pub fn parse_review(s: &str) -> (String, Vec<(usize, String)>) {
 }
 
 impl App {
-    /// `ctrl-r`: the first press waits for the second; the second asks for the review.
+    /// `ctrl-r`, or the review key of the keymap: the first press waits for the second; the second asks for the review.
     pub fn review_key(&mut self) {
         if self.reviews.armed.take().is_some_and(|t| t.elapsed() < REVIEW_CHORD) {
             return self.review_now();
         }
         self.reviews.armed = Some(Instant::now());
-        self.flash("ctrl-r again: Claude marks the confusing lines");
+        let pane = if self.mode == crate::app::Mode::Write { crate::keys::Pane::Write } else { crate::keys::Pane::Read };
+        if let Some(k) = self.keys.key(pane, "review") {
+            self.flash(format!("{k} again: Claude marks the confusing lines"));
+        }
     }
 
     /// Ask Claude to review the open file now.

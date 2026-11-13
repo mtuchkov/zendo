@@ -151,6 +151,17 @@ impl Keymap {
         self.keys.iter().find(|((p, n), _)| *p == pane && *n == name).map(|(_, ks)| ks.iter().map(Key::label).collect::<Vec<_>>().join(" ")).unwrap_or_default()
     }
 
+    /// The first key of an action, for a hint or a message; `None` when the action has no key
+    /// (PANES-28, PANES-29).
+    pub fn key(&self, pane: Pane, name: &str) -> Option<String> {
+        Some(self.first(pane, name)).filter(|k| !k.is_empty())
+    }
+
+    /// A hint: the first key of an action and `text`; empty when the action has no key (PANES-29).
+    pub fn hint(&self, pane: Pane, name: &str, text: &str) -> String {
+        self.key(pane, name).map(|k| format!("{k}{text}")).unwrap_or_default()
+    }
+
     /// The first key of an action, for the status bar.
     pub fn first(&self, pane: Pane, name: &str) -> String {
         self.keys.iter().find(|((p, n), _)| *p == pane && *n == name).and_then(|(_, ks)| ks.first()).map(Key::label).unwrap_or_default()

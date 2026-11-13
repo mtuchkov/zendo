@@ -136,9 +136,12 @@ fn input_hint(app: &App, key: &str) -> String {
     if app.cli.running(app.state.session.min(crate::app::SESSIONS - 1)) {
         "goes to Claude Code, which queues it while it works".to_string()
     } else if busy {
-        "enter queues the next question · esc stops".to_string()
+        let send = app.keys.key(crate::keys::Pane::Chat, "send").map(|k| format!("{k} queues the next question"));
+        let stop = app.keys.key(crate::keys::Pane::Chat, "back").map(|k| format!("{k} stops"));
+        send.into_iter().chain(stop).collect::<Vec<_>>().join(" · ")
     } else if app.ask_context.is_some() {
-        format!("ask about {}, or press enter", if app.ask_about.is_empty() { "it" } else { app.ask_about })
+        let about = if app.ask_about.is_empty() { "it" } else { app.ask_about };
+        format!("ask about {about}{}", app.keys.key(crate::keys::Pane::Chat, "send").map(|k| format!(", or press {k}")).unwrap_or_default())
     } else if app.scope() == ALL_KEY {
         "ask about all notes".to_string()
     } else {

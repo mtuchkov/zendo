@@ -47,3 +47,12 @@ fn system_ca_is_appended_once() {
     assert_eq!(e["NODE_OPTIONS"], "--max-old-space-size=4096 --use-system-ca");
     assert_eq!(with_system_ca(&e)["NODE_OPTIONS"], e["NODE_OPTIONS"]);
 }
+
+// PANES-28: zendo doctor names the hand-off key of the keymap of the user, not ctrl-o.
+#[test]
+fn doctor_names_the_handoff_key_of_the_user() {
+    let cfg = UserConfig { keys: toml::from_str("[chat]\nhandoff = [\"ctrl-k\"]\n").unwrap(), ..UserConfig::default() };
+    let key = handoff_key(&cfg);
+    assert_eq!(key, "^k");
+    assert!(codex_note(&key).contains("(^k)") && !codex_note(&key).contains("ctrl-o"));
+}

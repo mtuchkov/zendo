@@ -134,9 +134,9 @@ impl App {
         if !self.cli.running(self.active()) {
             return false;
         }
-        let k = self.keys.first(Pane::Chat, "handoff");
+        let shows = self.keys.key(Pane::Chat, "handoff").map(|k| format!(": {k} shows it")).unwrap_or_default();
         let key = self.key();
-        self.thread(&key).push(Item::Info(format!("this agent session is open in Claude Code: {k} shows it")));
+        self.thread(&key).push(Item::Info(format!("this agent session is open in Claude Code{shows}")));
         true
     }
 

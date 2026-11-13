@@ -5,8 +5,11 @@ pub(crate) fn draw_status(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     let claude = app.panel && app.focus == Focus::Claude && matches!(app.mode, Mode::Read | Mode::Write);
     let (badge, color, mut keys) = status_keys(app, t, claude);
     // The key of the help, in every pane and mode, first: it is always on the screen.
-    keys.retain(|(_, v)| v != "keys");
-    keys.insert(0, (app.keys.first(crate::keys::Pane::Global, "help"), "keys".into()));
+    // An action without a key has no hint (PANES-29).
+    keys.retain(|(k, v)| v != "keys" && !k.is_empty());
+    if let Some(help) = app.keys.key(crate::keys::Pane::Global, "help") {
+        keys.insert(0, (help, "keys".into()));
+    }
     let mut spans = vec![Span::raw("  "), Span::styled(format!(" {badge} "), Style::new().bg(color).fg(t.bg).add_modifier(Modifier::BOLD)), Span::raw("  ")];
     let right = status_right(app, claude);
     // The right side shows whole: the hints at the end give way, the help key stays.
@@ -35,7 +38,7 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
     let delta = app.delta_open && app.focus == Focus::Delta && matches!(app.mode, Mode::Read | Mode::Write);
     let tree = app.state.tree && app.focus == Focus::Tree && matches!(app.mode, Mode::Read | Mode::Write);
     let hints = |p: Pane, list: &[(&str, &str)]| -> Hints {
-        list.iter().filter(|(a, _)| app.agent_can(a)).map(|(a, text)| (app.keys.first(p, a), text.to_string())).filter(|(k, _)| !k.is_empty()).collect()
+        list.iter().filter(|(a, _)| app.agent_can(a)).map(|(a, text)| (app.keys.first(p, a), text.to_string())).collect()
     };
     let next = (app.keys.first(Pane::Global, "next_pane"), "next pane".to_string());
     let with_next = |mut v: Hints| {
@@ -67,7 +70,10 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
         Mode::Read | Mode::Help => {
             let mut v = hints(Pane::Read, &[("down", "cursor"), ("select_down", "select"), ("ask", "ask"), ("say", "say here"), ("add_to_chat", "to chat"), ("chat", "chat"), ("write", "write"), ("search", "search"), ("help", "keys")]);
             // The four cursor keys and the four select keys, each with one label.
-            let four = |names: [&str; 4]| group_label(&names.map(|n| app.keys.first(Pane::Read, n)).iter().map(String::as_str).collect::<Vec<_>>());
+            let four = |names: [&str; 4]| {
+                let keys = names.map(|n| app.keys.first(Pane::Read, n));
+                if keys.iter().any(String::is_empty) { String::new() } else { group_label(&keys.iter().map(String::as_str).collect::<Vec<_>>()) }
+            };
             v[0].0 = four(["left", "down", "up", "right"]);
             v[1].0 = four(["select_left", "select_down", "select_up", "select_right"]);
             v.insert(5, (app.keys.first(Pane::Global, "toggle_tree"), "files".into()));

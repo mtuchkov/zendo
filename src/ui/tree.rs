@@ -25,10 +25,10 @@ pub(crate) fn draw_tree(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     }
     if rows.is_empty() {
         let msg = match app.tree.view {
-            View::All | View::Folders => "No .md files.",
-            View::Text => "No text files.",
-            View::Docs => "No .md files under a docs folder. Press v to show all.",
-            View::Structure => "No main materials. Mark entries with main = true in project-structure.toml.",
+            View::All | View::Folders => "No .md files.".to_string(),
+            View::Text => "No text files.".to_string(),
+            View::Docs => format!("No .md files under a docs folder.{}", app.keys.key(crate::keys::Pane::Tree, "view").map(|k| format!(" Press {k} to show all.")).unwrap_or_default()),
+            View::Structure => "No main materials. Mark entries with main = true in project-structure.toml.".to_string(),
         };
         f.render_widget(Paragraph::new(markdown::wrap(vec![Span::styled(msg, dim)], w.saturating_sub(1), " ", " ")), body);
         return;

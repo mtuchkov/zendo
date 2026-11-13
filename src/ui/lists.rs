@@ -26,7 +26,8 @@ pub(crate) fn draw_notes(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let mut lines: Vec<Line> = vec![Line::raw("")];
     lines.extend(rows.into_iter().skip(start).take(list_h).map(|(l, _)| l));
     if app.notes.is_empty() {
-        lines.push(Line::styled("  No notes yet. Press n.", dim));
+        let press = app.keys.key(crate::keys::Pane::Notes, "new").map(|k| format!(" Press {k}.")).unwrap_or_default();
+        lines.push(Line::styled(format!("  No notes yet.{press}"), dim));
     }
     f.render_widget(Paragraph::new(lines), inner);
     if !foot.is_empty() {
