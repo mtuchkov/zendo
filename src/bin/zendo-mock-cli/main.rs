@@ -2,7 +2,8 @@
 //!
 //! It prints its arguments, then `tick N` each 100 ms. In raw mode it reads keys: `r` reports the
 //! state "works", `w` reports "waits", `i` reports "idle", `q` exits, and `enter` prints `got: <the line>`. A state goes to the file in `$ZENDO_STATE`, as the
-//! hooks of Claude Code do.
+//! hooks of Claude Code do. On `enter`, the inputs of the "prompt sent" and "stop" hooks go to the
+//! file in `$ZENDO_MESSAGES`: the line, and `answer: <the line>`.
 
 use ratatui::crossterm::terminal;
 use std::io::{Read, Write};
@@ -11,6 +12,17 @@ use std::time::Duration;
 fn report(state: &str) {
     if let Ok(path) = std::env::var("ZENDO_STATE") {
         let _ = std::fs::write(path, state);
+    }
+}
+
+/// The inputs of the "prompt sent" and "stop" hooks for a prompt, one line each, as the hooks of
+/// zendo append them.
+fn hooks(prompt: &str) {
+    let Ok(path) = std::env::var("ZENDO_MESSAGES") else { return };
+    let sent = serde_json::json!({ "hook_event_name": "UserPromptSubmit", "prompt": prompt });
+    let stop = serde_json::json!({ "hook_event_name": "Stop", "last_assistant_message": format!("answer: {prompt}") });
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
+        let _ = writeln!(f, "{sent}\n{stop}");
     }
 }
 
@@ -40,6 +52,7 @@ fn main() {
             b'\r' | b'\n' => {
                 print!("got: {}\r\n", String::from_utf8_lossy(&line));
                 let _ = std::io::stdout().flush();
+                hooks(&String::from_utf8_lossy(&line));
                 line.clear();
                 continue;
             }

@@ -1,6 +1,7 @@
 //! One Claude Code process in a pseudo terminal, with its screen in a terminal emulator.
 
 use super::output::Recorder;
+use super::messages::{Inbox, Message};
 use super::{Command, Resume, State, hooks, marks};
 use portable_pty::{Child, CommandBuilder, MasterPty, PtySize};
 use std::io::{Read, Write};
@@ -49,6 +50,8 @@ pub struct Cli {
     started: Instant,
     /// A hook reported *works*, or the shell ran a command, since the last end (ATTN-1, ATTN-6).
     worked: bool,
+    /// The messages from the hooks of Claude Code (CLIMSG-2); none for a shell.
+    inbox: Option<Inbox>,
 }
 
 fn pty_size((rows, cols): (u16, u16)) -> PtySize {
@@ -75,8 +78,18 @@ impl Cli {
         b.args(resume.prompt);
         b.cwd(cwd);
         b.env("ZENDO_STATE", &state_file);
+        let messages = dir.join(format!("{}.messages", n + 1));
+        let _ = std::fs::remove_file(&messages);
+        b.env("ZENDO_MESSAGES", &messages);
         b.env("TERM", "xterm-256color");
-        Cli::start(b, size, notify, state_file, false)
+        let mut cli = Cli::start(b, size, notify, state_file, false)?;
+        cli.inbox = Some(Inbox::new(messages));
+        Ok(cli)
+    }
+
+    /// The prompts and answers that the hooks reported since the last call (CLIMSG-1).
+    pub fn messages(&mut self) -> Vec<Message> {
+        self.inbox.as_mut().map(Inbox::take).unwrap_or_default()
     }
 
     /// Start the shell `program` of a terminal in `cwd`, with the script of the marks in `dir`, and
@@ -103,7 +116,7 @@ impl Cli {
         let started = Instant::now();
         let last_output = Arc::new(Mutex::new(started));
         read_loop(reader, screen.clone(), writer.clone(), last_output.clone(), notify);
-        Ok(Cli { child, master: pair.master, writer, screen, last_output, state_file, reported: None, shell, started, worked: false })
+        Ok(Cli { child, master: pair.master, writer, screen, last_output, state_file, reported: None, shell, started, worked: false, inbox: None })
     }
 
     /// A shell runs a command: the foreground process group of the terminal is not the shell.

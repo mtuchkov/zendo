@@ -4,7 +4,7 @@ revision: "1"
 date: "2026-11-13"
 parent: "zendo.md"
 prev: "sessions.md"
-next: "chat.md"
+next: "cli-messages.md"
 level: "ctrl-o while the chat answers: the waiting session view, the stop, and the start of Claude Code"
 note: "Agent draft from the decisions of the user on 2026-11-13 in chat. It replaces SESSIONS-15 of sessions.md. Not reviewed by the user as a document. The requirement IDs are proposals until the user reviews this document."
 ---

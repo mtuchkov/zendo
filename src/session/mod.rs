@@ -7,12 +7,14 @@
 
 mod hooks;
 mod marks;
+mod messages;
 pub mod output;
 pub mod keys;
 pub mod mouse;
 mod pty;
 mod shells;
 
+pub use messages::{Message, plain};
 pub use pty::Cli;
 pub use shells::{TERMINALS, shell};
 
@@ -229,6 +231,11 @@ impl Sessions {
             self.pane = None;
         }
         ended
+    }
+
+    /// The prompts and answers of each Claude Code session since the last call (CLIMSG-1).
+    pub fn messages(&mut self) -> Vec<(usize, Message)> {
+        self.slots[..SESSIONS].iter_mut().enumerate().filter_map(|(n, s)| s.as_mut().map(|c| (n, c))).flat_map(|(n, c)| c.messages().into_iter().map(move |m| (n, m))).collect()
     }
 
     /// The sessions whose turn or command ended since the last call (ATTN-1).

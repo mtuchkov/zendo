@@ -29,7 +29,8 @@ button blinks (see [Attention](attention.md)).
 
 **One writer for a thread.** While a Claude Code session runs, a question in its chat goes to Claude
 Code, not through ACP; Claude Code queues it while it works. When the Claude Code session ends, zendo
-opens the agent session again, so the chat shows what happened there.
+opens the agent session again, so the chat shows what happened there. While Claude Code runs, the
+chat shows its prompts and answers (see [Claude Code messages in the chat](cli-messages.md)).
 
 **Quit.** A Claude Code session lives while zendo runs; the conversation stays. If sessions run,
 the first quit asks. With Codex these keys are off (CLAUDE-14).

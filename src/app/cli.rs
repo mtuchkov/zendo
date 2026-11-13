@@ -79,6 +79,7 @@ impl App {
     /// The states, and the sessions that ended: zendo goes back, and opens the agent session again,
     /// so the chat shows what happened in Claude Code (SESSIONS-12, SESSIONS-13).
     pub(crate) fn cli_tick(&mut self) {
+        self.cli_messages();
         for n in self.cli.tick().into_iter().filter(|n| *n < SESSIONS) {
             let key = session_key(n);
             if let Some(a) = &self.agent {
@@ -89,6 +90,22 @@ impl App {
                 self.open_session();
             }
             self.flash(format!("Claude Code session {} ended", n + 1));
+        }
+    }
+
+    /// The prompts and answers of the Claude Code sessions go to the chats of their agent sessions;
+    /// a question that the chat sent shows once (CLIMSG-1, CLIMSG-4).
+    fn cli_messages(&mut self) {
+        use crate::session::{Message, plain};
+        for (n, m) in self.cli.messages() {
+            let t = self.thread(&session_key(n));
+            match m {
+                Message::Prompt(p) => match t.sent_to_cli.iter().position(|s| *s == plain(&p)) {
+                    Some(i) => drop(t.sent_to_cli.remove(i)),
+                    None => t.push(Item::User(plain(&p))),
+                },
+                Message::Answer(a) => t.push(Item::Agent(a)),
+            }
         }
     }
 
@@ -118,11 +135,13 @@ impl App {
         }
         let bracketed = self.cli.with_screen(n, |s| s.bracketed_paste()).unwrap_or(false);
         // Without bracketed paste a new line would send the question: alt-enter is a new line.
+        let sent = crate::session::plain(&text);
         let body = if bracketed { text } else { text.replace('\n', "\x1b\r") };
         self.cli.write(n, &keys::paste(&body, bracketed));
         self.cli.write(n, b"\r");
         let key = self.key();
         let t = self.thread(&key);
+        t.sent_to_cli.push(sent);
         t.push(Item::User(q));
         t.push(Item::Info("sent to Claude Code; it queues the message while it works".into()));
         self.panel_scroll = 0;

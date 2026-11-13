@@ -46,6 +46,8 @@ pub struct Thread {
     pub opened: bool,
     /// Questions that wait for the end of the turn (CLAUDE-33).
     pub queue: Vec<Outgoing>,
+    /// Questions that the chat sent to Claude Code: the hook does not show them again (CLIMSG-4).
+    pub sent_to_cli: Vec<String>,
 }
 
 /// A question as it goes to the agent: the text with its context, and the files.

@@ -15,6 +15,7 @@ children:
   - "claude.md"
   - "sessions.md"
   - "handoff.md"
+  - "cli-messages.md"
   - "chat.md"
   - "terminal/terminal.md"
   - "attention.md"
@@ -43,6 +44,7 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Claude](claude.md)                          | The connection to Claude, threads, edits                      |
 | [Sessions](sessions.md)                      | Claude Code sessions in the background, more than one at a time |
 | [Hand-off during a turn](handoff.md)         | `ctrl-o` while the chat answers: wait, or stop and continue    |
+| [Claude Code messages in the chat](cli-messages.md) | The prompts and answers of a running Claude Code session in its chat |
 | [Chat](chat.md)                              | The chat input: chips, attachments, `@` file suggestions        |
 | [Terminal](terminal/terminal.md)             | Shell blocks in the chat, the `F5` and `[>]` terminals in the chat pane, their output for the agent |
 | [Attention](attention.md)                    | The bell and the blinking button when a turn ends; `[sound]`   |
