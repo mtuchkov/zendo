@@ -6,14 +6,20 @@ pub fn wrap(spans: Vec<Span<'static>>, width: usize, first: &str, rest: &str) ->
     let mut lines: Vec<Line<'static>> = Vec::new();
     let mut cur: Vec<Span<'static>> = vec![Span::raw(first.to_string())];
     let mut cur_w = first.width();
-    // Break into (text, style) tokens at spaces, keeping trailing spaces.
-    let mut tokens: Vec<(String, Style)> = Vec::new();
-    for span in spans {
-        for piece in span.content.split_inclusive(' ') {
-            tokens.push((piece.to_string(), span.style));
-        }
-    }
-    for (tok, style) in tokens {
+    // Break into (text, style) tokens at spaces, keeping trailing spaces; `None` is a `\n`.
+    let tokens = spans.iter().flat_map(|span| {
+        span.content.split('\n').enumerate().flat_map(move |(i, line)| {
+            let pieces = line.split_inclusive(' ').map(move |p| Some((p.to_string(), span.style)));
+            (i > 0).then_some(None).into_iter().chain(pieces)
+        })
+    });
+    for tok in tokens.collect::<Vec<_>>() {
+        let Some((tok, style)) = tok else {
+            lines.push(Line::from(std::mem::take(&mut cur)));
+            cur.push(Span::raw(rest.to_string()));
+            cur_w = rest.width();
+            continue;
+        };
         let w = tok.trim_end().width();
         if cur_w + w > width && cur_w > rest.width().max(first.width()) {
             lines.push(Line::from(std::mem::take(&mut cur)));

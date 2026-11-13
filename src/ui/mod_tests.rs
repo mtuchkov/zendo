@@ -44,6 +44,15 @@ fn user_and_agent_messages_look_different() {
     assert_ne!(code.style.bg, Some(t.panel), "inline code on the panel color would not show");
 }
 
+// CLAUDE-30: a line that the user adds in the chat input stays a line of its own in the transcript.
+#[test]
+fn a_user_message_keeps_its_lines() {
+    let t = THEMES[0];
+    let rows: Vec<String> = user_lines("one\ntwo\n\nthree", &t, 30).iter().map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect()).collect();
+    let rows: Vec<&str> = rows.iter().map(|r| r.trim_end()).collect();
+    assert_eq!(rows, [" › one", "   two", "", "   three"], "{rows:?}");
+}
+
 // The status bar names a group of keys at once: `h/j/k/l cursor`, `^⇧h/j/k/l select`.
 #[test]
 fn a_group_of_keys_has_one_label() {
