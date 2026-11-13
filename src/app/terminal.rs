@@ -1,4 +1,4 @@
-//! The terminals of zendo (docs/zendo/terminal.md): `F5` puts the shell block under the cursor of
+//! The terminals of zendo (docs/zendo/terminal/shell-blocks.md): `F5` puts the shell block under the cursor of
 //! the transcript into a terminal, `alt-F5` also runs it, and `F5` elsewhere shows the `F5`
 //! terminal.
 use super::*;

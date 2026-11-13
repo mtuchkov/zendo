@@ -1,4 +1,4 @@
-//! The result of the last command of a terminal (docs/zendo/terminal-output.md): `alt-o` in the input
+//! The result of the last command of a terminal (docs/zendo/terminal/terminal-output.md): `alt-o` in the input
 //! of a chat, the OSC 133 marks of bash, and `/bin/sh` without marks.
 
 mod common;

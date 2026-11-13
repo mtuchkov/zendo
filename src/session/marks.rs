@@ -4,7 +4,7 @@ use portable_pty::CommandBuilder;
 use std::path::Path;
 
 /// bash: `--rcfile`; the file reads `~/.bashrc`, then adds the marks.
-const BASH: &str = r#"# zendo: the OSC 133 marks of the terminals of zendo (docs/zendo/terminal-output.md).
+const BASH: &str = r#"# zendo: the OSC 133 marks of the terminals of zendo (docs/zendo/terminal/terminal-output.md).
 [ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"
 if [ -z "$__zendo_marks" ]; then
   __zendo_marks=1
@@ -16,7 +16,7 @@ fi
 "#;
 
 /// zsh: `ZDOTDIR` points here; the files read the files of the user, then add the marks.
-const ZSHENV: &str = r#"# zendo: reads the .zshenv of the user (docs/zendo/terminal-output.md).
+const ZSHENV: &str = r#"# zendo: reads the .zshenv of the user (docs/zendo/terminal/terminal-output.md).
 __zendo_zdotdir=$ZDOTDIR
 ZDOTDIR=${ZENDO_ZDOTDIR:-$HOME}
 [[ -f $ZDOTDIR/.zshenv ]] && source $ZDOTDIR/.zshenv

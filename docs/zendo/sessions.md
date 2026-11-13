@@ -19,7 +19,7 @@ when the user goes back to zendo: one researches while the user discusses in ano
 **Open and leave.** `ctrl-o` in the chat opens the Claude Code session of the active agent session.
 zendo starts it first if necessary. The session view takes the whole screen, with a bottom line of
 zendo. All input goes to Claude Code, except `alt-q` (back to zendo; the same key leaves a terminal
-of [Terminal](terminal.md)) and `F5` to `F10` (another session, or the `F5` terminal). When Claude
+of [Terminal](terminal/terminal.md)) and `F5` to `F10` (another session, or the `F5` terminal). When Claude
 Code exits, zendo goes back.
 
 **States.** Each running Claude Code session has one state: *works*, *waits* (for an answer or a

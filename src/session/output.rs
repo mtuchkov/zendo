@@ -1,4 +1,4 @@
-//! The result of the last command of a terminal (docs/zendo/terminal-output.md): the OSC 133 marks
+//! The result of the last command of a terminal (docs/zendo/terminal/terminal-output.md): the OSC 133 marks
 //! of the shell, or the time from `enter` to a free terminal when the shell sends no marks.
 
 /// The lines of the output that a result keeps, from the end (TERM-32).

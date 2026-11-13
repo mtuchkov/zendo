@@ -1,4 +1,4 @@
-//! The terminals of zendo (docs/zendo/terminal.md): the `F5` terminal and up to four `[>]`
+//! The terminals of zendo (docs/zendo/terminal/terminal.md): the `F5` terminal and up to four `[>]`
 //! terminals, each a shell in a terminal that zendo owns.
 use super::*;
 

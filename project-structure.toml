@@ -76,6 +76,10 @@ main = true
 template = "docs/guides/templates/specification.md"
 
 [[entry]]
+path = "docs/zendo/terminal"
+about = "The terminals of zendo: terminal.md is the parent; its children are the shell blocks, the terminal view, and the output of a command for the agent."
+
+[[entry]]
 path = "docs/architecture/decisions"
 label = "Decisions"
 about = "Architecture decision records, one file for each decision."

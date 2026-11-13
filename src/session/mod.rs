@@ -60,7 +60,7 @@ impl State {
 pub const QUIT_AGAIN: Duration = Duration::from_secs(5);
 
 /// The Claude Code sessions of the five agent sessions, then the shells of the five terminals
-/// (docs/zendo/terminal.md): slot `n` of a terminal is `shell(i)`.
+/// (docs/zendo/terminal/terminal.md): slot `n` of a terminal is `shell(i)`.
 pub struct Sessions {
     /// The command line; `None`: the one of the agent profile.
     pub command: Option<Command>,

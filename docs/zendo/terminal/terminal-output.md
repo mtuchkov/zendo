@@ -2,11 +2,10 @@
 status: "draft"
 revision: "1"
 date: "2026-11-12"
-parent: "zendo.md"
-prev: "terminal.md"
-next: "attention.md"
+parent: "terminal.md"
+prev: "terminal-view.md"
 level: "the result of the last command of a terminal: how zendo finds it, and how the user puts it into the chat of an agent session"
-note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. A sibling of terminal.md, because terminal.md is over the length limit."
+note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. A child of terminal.md."
 ---
 
 # Terminal output
@@ -84,20 +83,7 @@ as the shell without marks.
 Tests that verify detailed requirements: `alt_o_again_goes_through_the_terminals`,
 `a_command_that_runs_gives_output_that_is_not_complete`, `no_result_puts_nothing`,
 `a_long_output_keeps_the_last_500_lines` and `the_marks_do_not_change_the_files_of_the_user` in
-`tests/terminal_output.rs` (TERM-28 to TERM-35), and the unit tests of the result in
-`src/session/output_tests.rs` (TERM-26, TERM-27, TERM-32, TERM-33).
-
-## Design notes
-
-- bash: zendo starts the shell with `--rcfile` set to its own file. That file reads `~/.bashrc`, and
-  then adds the marks.
-- zsh: zendo sets `ZDOTDIR` to its own directory. The files there read the files of the user from
-  the old `ZDOTDIR` or the home directory, and then add the marks.
-- fish: zendo gives the script with `-C`.
-- The scripts are in the binary of zendo; zendo writes them to `.zendo/shell/`. If the shell of the
-  user already sends OSC 133 marks, as fish 4 does, a second `C` or `D` mark for the same command
-  changes nothing.
-- The tests run bash and `/bin/sh`. The zsh and fish scripts have no test yet.
+`tests/terminal_output.rs` (TERM-28 to TERM-35).
 
 ## Open points
 
