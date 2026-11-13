@@ -26,11 +26,7 @@ first. It feels like an IDE, and in many ways it is one: a file tree, an
 editor, terminals, agents. But an IDE is not the goal of zendo. The goal is
 to write specifications and give them to agents.
 
-Every action is one key away, and zendo helps you learn the keys fast: `alt-?`
-shows the keys of the pane you are in. You can change every key: see
-[Keys](INSTALLATION.md#keys).
-
-The loop has three steps:
+Zendo implements SDD in three steps:
 
 1. **Jot** a thought the moment it comes.
 2. **Think** it through in the document, with an agent as a sharp reviewer.
