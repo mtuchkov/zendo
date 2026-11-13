@@ -9,6 +9,7 @@ children:
   - "shell-blocks.md"
   - "terminal-view.md"
   - "terminal-output.md"
+  - "terminal-mouse.md"
 level: "the terminals of zendo as a whole: what a terminal is, how many, who runs a command"
 note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Revision 3: split into children by topic (user, 2026-11-12). Depends on Sessions (sessions.md, draft) and ADR 0005."
 ---
@@ -38,6 +39,7 @@ zendo asks first. With `--offline` and with each agent, the `F5` terminal is ava
 | [Shell blocks](shell-blocks.md)          | Shell blocks in the transcript, `▶`, `F5` and `alt-F5`, which terminal takes a block |
 | [Terminal view](terminal-view.md)        | The terminal in the chat pane, `ctrl-o` for the full screen, `alt-q`, `alt-n`, the keys, the buttons |
 | [Terminal output](terminal-output.md)    | `alt-o` puts the result of the last command into the input of a chat |
+| [Terminal mouse](terminal-mouse.md)      | The wheel, the click and the drag over a terminal: for the program or for zendo |
 
 ## Architecturally significant requirements
 

@@ -4,6 +4,7 @@ revision: "1"
 date: "2026-11-12"
 parent: "terminal.md"
 prev: "terminal-view.md"
+next: "terminal-mouse.md"
 level: "the result of the last command of a terminal: how zendo finds it, and how the user puts it into the chat of an agent session"
 note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. A child of terminal.md."
 ---

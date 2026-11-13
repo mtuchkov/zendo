@@ -6,6 +6,7 @@ mod chat;
 mod chat_keys;
 mod cli;
 mod terminal;
+mod terminal_mouse;
 pub mod cursor_map;
 pub mod chips;
 mod events;

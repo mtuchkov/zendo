@@ -7,14 +7,18 @@ impl App {
     }
 
     /// Mouse: drag selects inside one panel, release copies, the wheel scrolls the panel under it.
+    /// A program in a terminal that takes the mouse gets it first (TERM-43, TERM-44).
     pub fn on_mouse(&mut self, m: MouseEvent) {
+        if !matches!(m.kind, MouseEventKind::Moved) {
+            self.last_input = Instant::now();
+        }
+        if self.mouse_to_program(m) {
+            return;
+        }
         if let Some(n) = self.cli.view {
             return self.mouse_cli(n, m);
         }
         let (x, y) = (m.column, m.row);
-        if !matches!(m.kind, MouseEventKind::Moved) {
-            self.last_input = Instant::now();
-        }
         match m.kind {
             MouseEventKind::Down(MouseButton::Left) if self.start_drag(x, y) => {}
             MouseEventKind::Drag(MouseButton::Left) if self.drag.is_some() => self.drag_to(x),
@@ -23,27 +27,31 @@ impl App {
                 self.state.save(&self.cfg.root);
             }
             MouseEventKind::Down(MouseButton::Left) => self.click(x, y),
-            MouseEventKind::Drag(MouseButton::Left) => {
-                if let Some(s) = self.sel.as_mut().filter(|s| !s.done) {
-                    s.drag(x, y);
-                }
-            }
-            MouseEventKind::Up(MouseButton::Left) => {
-                if let Some(s) = self.sel.as_mut() {
-                    if s.is_empty() {
-                        self.sel = None;
-                    } else {
-                        s.done = true;
-                        self.copy_pending = true;
-                        let note = s.region != Region::Panel;
-                        if note {
-                            self.interact(2);
-                        }
-                    }
-                }
-            }
+            MouseEventKind::Drag(MouseButton::Left) => self.drag_selection(x, y),
+            MouseEventKind::Up(MouseButton::Left) => self.end_selection(),
             MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => self.wheel(x, y, m.kind == MouseEventKind::ScrollUp),
             _ => {}
+        }
+    }
+
+    /// A drag moves the end of the selection, until the button is up.
+    pub(crate) fn drag_selection(&mut self, x: u16, y: u16) {
+        if let Some(s) = self.sel.as_mut().filter(|s| !s.done) {
+            s.drag(x, y);
+        }
+    }
+
+    /// The button is up: the selection is final and goes to the clipboard; an empty one goes away.
+    pub(crate) fn end_selection(&mut self) {
+        let Some(s) = self.sel.as_mut() else { return };
+        if s.is_empty() {
+            self.sel = None;
+            return;
+        }
+        s.done = true;
+        self.copy_pending = true;
+        if s.region != Region::Panel {
+            self.interact(2);
         }
     }
 

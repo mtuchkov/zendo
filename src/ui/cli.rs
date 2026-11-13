@@ -33,8 +33,11 @@ fn paint(s: &vt100::Screen, buf: &mut Buffer, area: Rect) -> Option<(u16, u16)> 
     shown.then_some((area.x + col, area.y + row))
 }
 
-pub(crate) fn draw_cli(f: &mut Frame, app: &App, t: &Theme, n: usize, area: Rect) {
+/// A session on the full screen: its screen, which the mouse can select from (TERM-46), and the
+/// bottom line.
+pub(crate) fn draw_cli(f: &mut Frame, app: &mut App, t: &Theme, n: usize, area: Rect) {
     let [screen, bar] = Layout::vertical([Constraint::Min(1), Constraint::Length(1)]).areas(area);
+    app.regions.push((Region::Panel, screen));
     f.render_widget(Block::new().style(Style::reset()), screen);
     if let Some(Some(pos)) = app.cli.with_screen(n, |s| paint(s, f.buffer_mut(), screen)) {
         f.set_cursor_position(pos);

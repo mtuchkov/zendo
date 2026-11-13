@@ -57,7 +57,9 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     app.cli.resize(area.height.saturating_sub(1), area.width);
     app.attention.button = None;
     if let Some(n) = app.cli.view {
-        return draw_cli(f, app, &t, n, area);
+        app.regions.clear();
+        draw_cli(f, app, &t, n, area);
+        return draw_selection(f, app, &t);
     }
     f.render_widget(Block::new().style(Style::new().bg(t.bg).fg(t.fg)), area);
     let ask = u16::from(app.file_prompt.is_some());
@@ -98,16 +100,19 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     draw_status(f, app, &t, status);
     draw_file_prompt(f, app, &t, prompt);
 
-    if let Some(sel) = app.sel {
-        if app.copy_pending {
-            app.copy_pending = false;
-            let text = sel.text(f.buffer_mut());
-            if !text.is_empty() {
-                app.clip = Some(text);
-            }
+    draw_selection(f, app, &t);
+}
+
+/// The mouse selection on top of the frame; after the release, its text goes to the clipboard.
+fn draw_selection(f: &mut Frame, app: &mut App, t: &Theme) {
+    let Some(sel) = app.sel else { return };
+    if std::mem::take(&mut app.copy_pending) {
+        let text = sel.text(f.buffer_mut());
+        if !text.is_empty() {
+            app.clip = Some(text);
         }
-        sel.paint(f.buffer_mut(), t.acc2, t.bg);
     }
+    sel.paint(f.buffer_mut(), t.acc2, t.bg);
 }
 
 /// The panes side by side: the note fills what the others leave; their edges can be dragged.

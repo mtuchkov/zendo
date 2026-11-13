@@ -9,6 +9,7 @@ mod hooks;
 mod marks;
 pub mod output;
 pub mod keys;
+pub mod mouse;
 mod pty;
 mod shells;
 
@@ -68,6 +69,8 @@ pub struct Sessions {
     pub view: Option<usize>,
     /// The terminal in the chat pane, in place of the transcript (TERM-37).
     pub pane: Option<usize>,
+    /// The session whose program got the press of a mouse button: it gets the release too.
+    pub pressed: Option<usize>,
     /// When zendo asked whether to stop the sessions on quit.
     pub quit_asked: Option<Instant>,
     /// Wakes the terminal loop when a session prints.
@@ -95,7 +98,7 @@ impl Default for Sessions {
     fn default() -> Self {
         let all = SESSIONS + TERMINALS;
         let size = (23, 80);
-        Sessions { command: None, view: None, pane: None, quit_asked: None, notify: Arc::default(), shell: None, home: None, viewed: Vec::new(), slots: (0..all).map(|_| None).collect(), pending: vec![None; all], size, pane_size: size, sizes: vec![size; all], born: Instant::now() }
+        Sessions { command: None, view: None, pane: None, pressed: None, quit_asked: None, notify: Arc::default(), shell: None, home: None, viewed: Vec::new(), slots: (0..all).map(|_| None).collect(), pending: vec![None; all], size, pane_size: size, sizes: vec![size; all], born: Instant::now() }
     }
 }
 

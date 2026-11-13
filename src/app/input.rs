@@ -29,14 +29,14 @@ impl App {
         if self.keys.local(Pane::Chat, &k) != Some("insert_output") {
             self.output_pick = None;
         }
+        // Any key ends a mouse selection; the text is already copied.
+        self.sel = None;
         if let Some(n) = self.cli.view {
             return self.key_cli(n, k);
         }
         if let Some(n) = self.pane_terminal() {
             return self.key_pane_terminal(n, k);
         }
-        // Any key ends a mouse selection; the text is already copied.
-        self.sel = None;
         if self.mode == Mode::Help {
             self.mode = self.back;
             return;

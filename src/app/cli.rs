@@ -67,15 +67,6 @@ impl App {
         self.cli.write(n, &keys::paste(s, bracketed));
     }
 
-    /// The wheel in the session view scrolls through the lines that left the screen.
-    pub(crate) fn mouse_cli(&mut self, n: usize, m: MouseEvent) {
-        match m.kind {
-            MouseEventKind::ScrollUp => self.cli.scroll(n, true),
-            MouseEventKind::ScrollDown => self.cli.scroll(n, false),
-            _ => {}
-        }
-    }
-
     /// The states, and the sessions that ended: zendo goes back, and opens the agent session again,
     /// so the chat shows what happened in Claude Code (SESSIONS-12, SESSIONS-13).
     pub(crate) fn cli_tick(&mut self) {
