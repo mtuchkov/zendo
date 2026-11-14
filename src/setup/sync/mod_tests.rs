@@ -18,6 +18,21 @@ fn location_is_machine_then_path_from_home() {
     assert_eq!(clean_name("  "), "machine");
 }
 
+// NOTESREP-1: a home behind a symlink (as /var → /private/var on macOS) is still the home, so a
+// repository under it keeps its folder of this machine and root.
+#[cfg(unix)]
+#[test]
+fn a_home_behind_a_symlink_is_still_the_home() {
+    let base = std::env::temp_dir().join(format!("zendo-sync-link-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(base.join("real/src/proj")).unwrap();
+    std::os::unix::fs::symlink(base.join("real"), base.join("home")).unwrap();
+    let root = base.join("real/src/proj").canonicalize().unwrap();
+    let got = location_dir(Path::new("/n"), "m1", &root, Some(&base.join("home")));
+    assert_eq!(got, Path::new("/n/m1/src/proj"));
+    let _ = std::fs::remove_dir_all(&base);
+}
+
 fn sh(dir: &Path, args: &[&str]) {
     let ok = Command::new("git").arg("-C").arg(dir).args(args).stdout(Stdio::null()).stderr(Stdio::null()).status().unwrap().success();
     assert!(ok, "git {args:?}");

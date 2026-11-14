@@ -49,6 +49,12 @@ The user turns the notes repo on with `zendo setup --notes-repo <folder or git U
 - When zendo finds the folder of `/Users/m/src/zendo`, of `/Users/m`, and of `/opt/work`.
 - Then the folders are `mbp/src/zendo`, `mbp/~` and `mbp/_/opt/work`.
 
+**`a_home_behind_a_symlink_is_still_the_home`** (unit test; verifies NOTESREP-1)
+
+- Given a home that is a symlink to another folder, as `/var` is to `/private/var` on macOS.
+- When zendo finds the folder of a repository under the real path of the home.
+- Then the folder is the path from the home, `m1/src/proj`, and not `m1/_/…`.
+
 **`syncer_commits_on_its_own_and_at_exit`** (unit test; verifies NOTESREP-2)
 
 - Given a notes repo with a remote, and the sync on.

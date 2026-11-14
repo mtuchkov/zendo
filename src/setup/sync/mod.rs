@@ -64,7 +64,9 @@ pub fn clean_name(raw: &str) -> String {
 /// The folder of the notes of `root` on `machine`, inside the notes repo.
 pub fn location_dir(repo: &Path, machine: &str, root: &Path, home: Option<&Path>) -> PathBuf {
     let base = repo.join(machine);
-    match home.and_then(|h| root.strip_prefix(h).ok()) {
+    // The home as given, or behind its symlinks: the root is often canonical (/var → /private/var).
+    let homes = home.into_iter().flat_map(|h| [Some(h.to_path_buf()), h.canonicalize().ok()]).flatten();
+    match homes.filter_map(|h| root.strip_prefix(&h).ok().map(Path::to_path_buf)).next() {
         Some(rel) if rel.as_os_str().is_empty() => base.join("~"),
         Some(rel) => base.join(rel),
         None => base.join("_").join(root.strip_prefix("/").unwrap_or(root)),
