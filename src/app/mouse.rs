@@ -185,18 +185,16 @@ impl App {
         total.saturating_sub(others + note).max(20)
     }
 
-    /// A press on the edge between two panes starts a drag; returns true when it did.
+    /// A press on the edge between two panes, or one column beside it, starts a drag; returns true
+    /// when it did (PANES-10).
     pub(crate) fn start_drag(&mut self, x: u16, y: u16) -> bool {
-        for i in 1..self.pane_rects.len() {
-            let (left, lr) = self.pane_rects[i - 1];
-            let (right, rr) = self.pane_rects[i];
-            if x == rr.x && y >= rr.y && y < rr.bottom() {
-                // The note fills the rest: resize the other pane of the edge.
-                self.drag = Some(if right == Focus::Note { (left, lr.x, true) } else { (right, rr.right(), false) });
-                return true;
-            }
-        }
-        false
+        let hit = self.pane_rects.windows(2).find(|w| x.abs_diff(w[1].1.x) <= 1 && y >= w[1].1.y && y < w[1].1.bottom());
+        let Some(&[(left, lr), (right, rr)]) = hit else { return false };
+        // The anchor moves with the grab, so the width changes only as far as the mouse moves.
+        let shift = |a: u16| (a + x).saturating_sub(rr.x);
+        // The note fills the rest: resize the other pane of the edge.
+        self.drag = Some(if right == Focus::Note { (left, shift(lr.x), true) } else { (right, shift(rr.right()), false) });
+        true
     }
 
     pub(crate) fn drag_to(&mut self, x: u16) {
