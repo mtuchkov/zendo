@@ -101,14 +101,37 @@ impl App {
     /// sessions, the `F5` terminal, the `[>]` terminals that run (TERM-41, TERM-49).
     pub(crate) fn step_in_chat(&mut self, forward: bool) {
         let all: Vec<usize> = (0..SESSIONS + TERMINALS).filter(|n| *n <= SESSIONS || self.cli.running(*n)).collect();
-        let now = self.cli.pane.unwrap_or(self.state.session);
-        let step = if forward { 1 } else { all.len() - 1 };
-        let next = all.iter().position(|n| *n == now).map_or(0, |i| all[(i + step) % all.len()]);
+        let next = ring_step(&all, self.cli.pane.unwrap_or(self.state.session), forward);
         match next.checked_sub(SESSIONS) {
             Some(i) => self.open_terminal(i),
             None => self.switch_session(next),
         }
     }
+
+    /// `alt-]` and `alt-[` on the full screen: the next or the previous session or terminal that
+    /// runs, on the full screen (TERM-51).
+    pub(crate) fn step_full_screen(&mut self, forward: bool) {
+        let all: Vec<usize> = (0..SESSIONS + TERMINALS).filter(|n| self.cli.running(*n)).collect();
+        let Some(now) = self.cli.view else { return };
+        let next = ring_step(&all, now, forward);
+        if self.cli.pane == Some(now) {
+            self.cli.pane = None;
+        }
+        match next.checked_sub(SESSIONS) {
+            Some(i) => self.open_terminal(i),
+            None => self.switch_session(next),
+        }
+        self.cli.view = Some(next);
+    }
+}
+
+/// The item after `now` in the ring, or before it; the first item when `now` is not in it.
+fn ring_step(all: &[usize], now: usize, forward: bool) -> usize {
+    let step = if forward { 1 } else { all.len().saturating_sub(1) };
+    all.iter().position(|n| *n == now).map_or(all.first().copied().unwrap_or(0), |i| all[(i + step) % all.len()])
+}
+
+impl App {
 }
 
 /// A result as text for the input: the terminal, the command, the exit code, the output
