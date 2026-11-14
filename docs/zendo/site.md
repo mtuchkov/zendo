@@ -4,6 +4,7 @@ revision: "1"
 date: "2026-11-13"
 parent: "zendo.md"
 prev: "commands.md"
+next: "lofi.md"
 level: "what a visitor of the landing page sees, hears and does, and the decisions of the user that shaped it"
 note: "Agent draft from the requests of the user on 2026-11-13, after site/index.html was built. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
@@ -28,7 +29,7 @@ spec and the agent chat. When the visitor does nothing, the page shows how `a` w
 - The colors are traditional Japanese colors, not the colors of the zendo UI: washi paper, sumi ink,
   moss, indigo, and vermilion.
 - The page is one HTML file with no build step. It loads only fonts from Google Fonts.
-- The music is made in the browser, so no one owns it. A CC0 track in `site/lofi.mp3` replaces it.
+- The music is made in the browser, so no one owns it. A CC0 track in `site/lofi.mp3` replaces it. See [Lofi music](lofi.md).
 - The chat on the page is a demo. No agent answers, and the page says so when the visitor asks.
 
 ## Architecturally significant requirements

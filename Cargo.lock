@@ -2883,7 +2883,7 @@ dependencies = [
 
 [[package]]
 name = "zendo"
-version = "0.53.0"
+version = "0.53.1"
 dependencies = [
  "agent-client-protocol",
  "anyhow",

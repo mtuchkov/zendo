@@ -24,6 +24,7 @@ children:
   - "project-structure.md"
   - "commands.md"
   - "site.md"
+  - "lofi.md"
 level: "what zendo is, its parts, and the qualities that hold for all parts"
 note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
@@ -56,6 +57,7 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Project structure](project-structure.md)    | `project-structure.toml`: use and repair                      |
 | [Commands](commands.md)                      | Install, `zendo setup`, `zendo doctor`, `zendo upgrade`          |
 | [Landing page](site.md)                      | The page in `site/`: the pixel garden, the demo, the lofi music  |
+| [Lofi music](lofi.md)                        | Calm music that zendo makes itself; notes of the first version   |
 
 ## Scope
 
