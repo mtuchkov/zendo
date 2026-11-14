@@ -30,7 +30,7 @@ zendo rejects each shell command.
 **Threads.** zendo keeps five agent sessions for the repository, each one thread for all files.
 `F6` to `F10` (or `alt` and the F key, where the terminal takes the F key) choose a session, and
 `alt-]` goes to the next one, after the last through the terminals of [Terminal](terminal/terminal.md),
-then to the first; `alt-[` (or `alt-p`) goes back. Buttons on the right edge of the chat show
+then to the first; `alt-[` goes back. Buttons on the right edge of the chat show
 the sessions one under the other: the active one in the accent color, the others in the second
 accent, as the badges of the modes; a click chooses one. Each thread is a Claude Code
 session, so the user can continue it in Claude Code. zendo keeps the session ID in its state in the

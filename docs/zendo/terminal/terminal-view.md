@@ -22,7 +22,7 @@ the chat pane again.
 
 **Leave and go on.** `alt-q` leaves the terminal from both modes, and the command continues.
 `alt-]` goes to the next agent session, and after the last one through the terminals: `F5`, then the
-`[>]` terminals from the top, then the first agent session again. `alt-[` (or `alt-p`) goes the same way back.
+`[>]` terminals from the top, then the first agent session again. `alt-[` goes the same way back.
 `alt-n` is free for the new note in a [float](../float.md). All other keys and paste go to the
 shell, except the keys that choose a session.
 
@@ -45,7 +45,7 @@ differ from agent sessions at once.
 | TERM-37 | Event   | When the system shows a terminal, the system shall show it in the chat pane, and keep the other panes on the screen. | User, 2026-11-12 |
 | TERM-38 | Event   | When the user presses `ctrl-o` while the chat pane shows a terminal, the system shall show that terminal on the full screen. | User, 2026-11-12 |
 | TERM-41 | Event   | When the user presses `alt-]`, the system shall show the next item of this sequence: the agent sessions, the `F5` terminal, the `[>]` terminals from the top, and then the first agent session again. | User, 2026-11-12; User, 2026-11-13 |
-| TERM-49 | Event   | When the user presses `alt-[` or `alt-p`, the system shall show the previous item of the sequence of TERM-41, and after the first agent session the last item. | User, 2026-11-13 |
+| TERM-49 | Event   | When the user presses `alt-[`, the system shall show the previous item of the sequence of TERM-41, and after the first agent session the last item. | User, 2026-11-13 |
 
 ### Acceptance tests
 
@@ -77,21 +77,20 @@ The tests are in `tests/terminal.rs`, with `/bin/sh` as the shell.
 
 | ID      | Pattern    | Requirement | Source |
 | ------- | ---------- | ----------- | ------ |
-| TERM-13 | State      | While a terminal has the keys, the system shall send all keys and paste to the shell, except `alt-q`, `alt-]`, `alt-[`, `alt-p`, `alt-n`, `alt-/`, the keys that choose a session, and `ctrl-o` in the chat pane. | User, 2026-11-12; SESSIONS-9 |
+| TERM-13 | State      | While a terminal has the keys, the system shall send all keys and paste to the shell, except `alt-q`, `alt-]`, `alt-[`, `alt-n`, `alt-/`, the keys that choose a session, and `ctrl-o` in the chat pane. | User, 2026-11-12; SESSIONS-9 |
 | TERM-22 | Event      | When the user presses `alt-q` in a terminal, in the chat pane or on the full screen, the system shall show the screen from where the user opened the terminal, as SESSIONS-10 does for a Claude Code session. | User, 2026-11-12 |
 | TERM-39 | State      | While a terminal is on the full screen, the system shall send `ctrl-o` to the shell. | User, 2026-11-12 |
 | TERM-40 | Event      | When the area of a terminal changes, the system shall set the size of the terminal to the size of the new area. | Design |
 | TERM-42 | Event      | When the user leaves a terminal that is on the full screen, or goes to a different terminal or session, the system shall stop the full screen mode of that terminal. | User, 2026-11-12 |
 | TERM-14 | Ubiquitous | The system shall show the terminal buttons under the agent buttons, after a gap with a horizontal line: first `F5`, then a `[>]` button for each open `[>]` terminal. | User, 2026-11-12 |
-| TERM-50 | Ubiquitous | The system shall give `alt-[` the second default key `alt-p`, because a terminal without the kitty keyboard protocol sends `alt-[` as the start of a CSI sequence. | User, 2026-11-13 |
 | TERM-48 | Unwanted   | If the keymap in effect gives the first terminal another key than `F5`, then the system shall name it `[>]`, as the other terminals. | User, 2026-11-13 |
 | TERM-15 | Ubiquitous | The system shall show the terminal buttons in the color of the text of the theme, and mark the session on the screen in the bottom line of the full screen. | User, 2026-11-12 |
 | TERM-16 | State      | While a terminal runs a command, the system shall show a busy mark on its button. | Design |
-| TERM-19 | Ubiquitous | The system shall take the keys of the terminals from the keymap, with `f5`, `alt-f5`, `alt-q`, `alt-]`, `alt-[`, `alt-p` and `ctrl-o` as the defaults. | PANES-17 |
+| TERM-19 | Ubiquitous | The system shall take the keys of the terminals from the keymap, with `f5`, `alt-f5`, `alt-q`, `alt-]`, `alt-[` and `ctrl-o` as the defaults. | PANES-17 |
 
 `play_button_and_terminal_buttons` in [Shell blocks](shell-blocks.md) verifies TERM-14 and TERM-16.
 `other_session_keys_name_the_buttons_1_to_5_and_the_terminal_by_its_mark` in `tests/keymap_hints.rs`
-verifies TERM-48. `alt_p_is_the_second_key_of_the_previous_session` in `tests/keymap_hints.rs` verifies TERM-50.
+verifies TERM-48. `alt_brackets_are_the_session_keys` in `tests/keymap_hints.rs` verifies TERM-41 and TERM-49.
 
 ## Open points
 
