@@ -1,4 +1,4 @@
-//! Every action of every pane, by group, in the order of the help. The keys are in resources/keymap.toml.
+//! Every action of every pane, by group, in the order of the help. The keys are in resources/keymap-linux.toml and keymap-mac.toml.
 use super::*;
 
 const fn a(pane: Pane, group: Group, name: &'static str, help: &'static str) -> Action {

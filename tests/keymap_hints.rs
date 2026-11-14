@@ -178,15 +178,53 @@ async fn other_session_keys_name_the_buttons_1_to_5_and_the_terminal_by_its_mark
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// TERM-41, TERM-49: the default keymap gives the next session alt-], the previous session alt-[,
+// TERM-41, TERM-49: the Linux keymap gives the next session alt-], the previous session alt-[,
 // and leaves alt-n to the new note.
 #[test]
-fn alt_brackets_are_the_session_keys() {
-    use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-    let (keys, problems) = Keymap::new(None, &toml::from_str::<KeyConfig>("").unwrap());
-    assert!(problems.is_empty(), "{problems:?}");
-    let alt = |c| KeyEvent::new(KeyCode::Char(c), KeyModifiers::ALT);
+fn the_linux_keymap_gives_alt_brackets_to_the_sessions() {
+    let keys = keymap_of(zendo::keys::LINUX_KEYMAP);
     assert_eq!(keys.local(Pane::Global, &alt(']')), Some("next_session"));
     assert_eq!(keys.local(Pane::Global, &alt('[')), Some("prev_session"));
+    assert_ne!(keys.local(Pane::Global, &alt('}')), Some("prev_session"), "alt-}} is the key of the Mac");
     assert_ne!(keys.local(Pane::Global, &alt('n')), Some("next_session"), "alt-n is the new note");
+}
+
+// TERM-41, TERM-49: the Mac keymap gives the previous session alt-}, because Apple Terminal sends
+// alt-[ as ESC [, the start of a CSI sequence. A legacy terminal sends alt-} as ESC }; the kitty
+// keyboard protocol sends `]` with alt and shift, and that must not be alt-], the next session.
+#[test]
+fn the_mac_keymap_gives_alt_brace_to_the_previous_session() {
+    use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    let keys = keymap_of(zendo::keys::MAC_KEYMAP);
+    let kitty = KeyEvent::new(KeyCode::Char(']'), KeyModifiers::ALT | KeyModifiers::SHIFT);
+    assert_eq!(keys.local(Pane::Global, &alt(']')), Some("next_session"));
+    assert_eq!(keys.local(Pane::Global, &alt('}')), Some("prev_session"));
+    assert_eq!(keys.local(Pane::Global, &kitty), Some("prev_session"));
+    assert_ne!(keys.local(Pane::Global, &alt('[')), Some("prev_session"), "alt-[ does not reach zendo");
+}
+
+// TERM-19: the Mac keymap and the Linux keymap differ only in the keys of prev_session.
+#[test]
+fn the_mac_and_linux_keymaps_differ_only_in_the_previous_session() {
+    let without_prev = |text: &str| {
+        let mut cfg: KeyConfig = toml::from_str(text).unwrap();
+        cfg.values_mut().for_each(|pane| drop(pane.remove("prev_session")));
+        cfg
+    };
+    assert_eq!(without_prev(zendo::keys::MAC_KEYMAP), without_prev(zendo::keys::LINUX_KEYMAP));
+    let default = if cfg!(target_os = "macos") { zendo::keys::MAC_KEYMAP } else { zendo::keys::LINUX_KEYMAP };
+    assert_eq!(zendo::keys::DEFAULT_KEYMAP, default, "zendo takes the keymap of its system");
+}
+
+/// The keymap of this file, with no problems.
+fn keymap_of(text: &str) -> Keymap {
+    let file: KeyConfig = toml::from_str(text).unwrap();
+    let (keys, problems) = Keymap::new(Some(&file), &KeyConfig::new());
+    assert!(problems.is_empty(), "{problems:?}");
+    keys
+}
+
+fn alt(c: char) -> ratatui::crossterm::event::KeyEvent {
+    use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    KeyEvent::new(KeyCode::Char(c), KeyModifiers::ALT)
 }

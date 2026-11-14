@@ -22,7 +22,7 @@ the chat pane again.
 
 **Leave and go on.** `alt-q` leaves the terminal from both modes, and the command continues.
 `alt-]` goes to the next agent session, and after the last one through the terminals: `F5`, then the
-`[>]` terminals from the top, then the first agent session again. `alt-[` goes the same way back.
+`[>]` terminals from the top, then the first agent session again. `alt-[` (`alt-}` on macOS) goes the same way back.
 The keys keep the view: in the chat pane they show the next item in the chat pane; on the full
 screen they show the next session or terminal that runs on the full screen.
 `alt-n` is free for the new note in a [float](../float.md). All other keys and paste go to the
@@ -47,8 +47,8 @@ differ from agent sessions at once.
 | TERM-37 | Event   | When the system shows a terminal, the system shall show it in the chat pane, and keep the other panes on the screen. | User, 2026-11-12 |
 | TERM-38 | Event   | When the user presses `ctrl-o` while the chat pane shows a terminal, the system shall show that terminal on the full screen. | User, 2026-11-12 |
 | TERM-41 | Event   | When the user presses `alt-]`, the system shall show the next item of this sequence: the agent sessions, the `F5` terminal, the `[>]` terminals from the top, and then the first agent session again. | User, 2026-11-12; User, 2026-11-13 |
-| TERM-49 | Event   | When the user presses `alt-[`, the system shall show the previous item of the sequence of TERM-41, and after the first agent session the last item. | User, 2026-11-13 |
-| TERM-51 | State   | While a session or a terminal is on the full screen, when the user presses `alt-]` or `alt-[`, the system shall show on the full screen the next or the previous agent session or terminal that runs. | User, 2026-11-13 |
+| TERM-49 | Event   | Where the system runs on Linux, when the user presses `alt-[`, and where it runs on macOS, when the user presses `alt-}`, the system shall show the previous item of the sequence of TERM-41, and after the first agent session the last item. | User, 2026-11-13 |
+| TERM-51 | State   | While a session or a terminal is on the full screen, when the user presses `alt-]` or the key of TERM-49, the system shall show on the full screen the next or the previous agent session or terminal that runs. | User, 2026-11-13 |
 
 ### Acceptance tests
 
@@ -72,21 +72,21 @@ The tests are in `tests/terminal.rs`, with `/bin/sh` as the shell.
 **`alt_bracket_goes_through_the_terminals`** (terminal check; verifies TERM-41, TERM-49)
 
 - Given the `F5` terminal and one `[>]` terminal that run, and the chat on agent session 5.
-- When the user presses `alt-]` three times, and then `alt-[` three times.
+- When the user presses `alt-]` three times, and then the key of TERM-49 three times.
 - Then the chat pane shows `F5`, then the `[>]` terminal, then agent session 1; and then the `[>]`
   terminal, `F5`, and agent session 5.
 
 **`alt_bracket_keeps_the_full_screen`** (terminal check; verifies TERM-51)
 
 - Given the `F5` terminal and one `[>]` terminal that run, and `F5` on the full screen.
-- When the user presses `alt-]` twice, and then `alt-[`.
+- When the user presses `alt-]` twice, and then the key of TERM-49.
 - Then the full screen shows the `[>]` terminal, then `F5`, then the `[>]` terminal again.
 
 ## Detailed requirements
 
 | ID      | Pattern    | Requirement | Source |
 | ------- | ---------- | ----------- | ------ |
-| TERM-13 | State      | While a terminal has the keys, the system shall send all keys and paste to the shell, except `alt-q`, `alt-]`, `alt-[`, `alt-n`, `alt-/`, the keys that choose a session, and `ctrl-o` in the chat pane. | User, 2026-11-12; SESSIONS-9 |
+| TERM-13 | State      | While a terminal has the keys, the system shall send all keys and paste to the shell, except `alt-q`, `alt-]`, `alt-[` (`alt-}` on macOS), `alt-n`, `alt-/`, the keys that choose a session, and `ctrl-o` in the chat pane. | User, 2026-11-12; SESSIONS-9 |
 | TERM-22 | Event      | When the user presses `alt-q` in a terminal, in the chat pane or on the full screen, the system shall show the screen from where the user opened the terminal, as SESSIONS-10 does for a Claude Code session. | User, 2026-11-12 |
 | TERM-39 | State      | While a terminal is on the full screen, the system shall send `ctrl-o` to the shell. | User, 2026-11-12 |
 | TERM-40 | Event      | When the area of a terminal changes, the system shall set the size of the terminal to the size of the new area. | Design |
@@ -95,11 +95,13 @@ The tests are in `tests/terminal.rs`, with `/bin/sh` as the shell.
 | TERM-48 | Unwanted   | If the keymap in effect gives the first terminal another key than `F5`, then the system shall name it `[>]`, as the other terminals. | User, 2026-11-13 |
 | TERM-15 | Ubiquitous | The system shall show the terminal buttons in the color of the text of the theme, and mark the session on the screen in the bottom line of the full screen. | User, 2026-11-12 |
 | TERM-16 | State      | While a terminal runs a command, the system shall show a busy mark on its button. | Design |
-| TERM-19 | Ubiquitous | The system shall take the keys of the terminals from the keymap, with `f5`, `alt-f5`, `alt-q`, `alt-]`, `alt-[` and `ctrl-o` as the defaults. | PANES-17 |
+| TERM-19 | Ubiquitous | The system shall take the keys of the terminals from the keymap, with `f5`, `alt-f5`, `alt-q`, `alt-]`, `alt-[` on Linux or `alt-}` on macOS, and `ctrl-o` as the defaults. | PANES-17 |
 
 `play_button_and_terminal_buttons` in [Shell blocks](shell-blocks.md) verifies TERM-14 and TERM-16.
 `other_session_keys_name_the_buttons_1_to_5_and_the_terminal_by_its_mark` in `tests/keymap_hints.rs`
-verifies TERM-48. `alt_brackets_are_the_session_keys` in `tests/keymap_hints.rs` verifies TERM-41 and TERM-49.
+verifies TERM-48. `the_linux_keymap_gives_alt_brackets_to_the_sessions` and
+`the_mac_keymap_gives_alt_brace_to_the_previous_session` in `tests/keymap_hints.rs` verify TERM-41 and
+TERM-49; `the_mac_and_linux_keymaps_differ_only_in_the_previous_session` verifies TERM-19.
 
 ## Open points
 

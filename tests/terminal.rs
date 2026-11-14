@@ -30,6 +30,9 @@ fn f5(a: &mut App, alt: bool) {
     a.on_key(KeyEvent::new(KeyCode::F(5), if alt { KeyModifiers::ALT } else { KeyModifiers::NONE }));
 }
 
+/// The key of the previous session: alt-[ on Linux, alt-} on the Mac (TERM-49).
+const PREV: char = if cfg!(target_os = "macos") { '}' } else { '[' };
+
 fn alt(a: &mut App, c: char) {
     a.on_key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::ALT));
 }
@@ -213,7 +216,7 @@ async fn ctrl_o_makes_the_terminal_full_screen() {
 }
 
 // TERM-41, TERM-49: alt-] goes from the last agent session to F5, to each [>] terminal, then to
-// agent session 1; alt-[ goes the same way back.
+// agent session 1; alt-[ (alt-} on the Mac) goes the same way back.
 #[tokio::test(flavor = "multi_thread")]
 async fn alt_bracket_goes_through_the_terminals() {
     let (root, mut a) = app_with_shell("term-alt-bracket");
@@ -231,11 +234,11 @@ async fn alt_bracket_goes_through_the_terminals() {
     assert_eq!(a.cli.pane, Some(shell(1)), "then the [>] terminal");
     alt(&mut a, ']');
     assert_eq!((a.cli.pane, a.state.session), (None, 0), "then agent session 1");
-    alt(&mut a, '[');
+    alt(&mut a, PREV);
     assert_eq!(a.cli.pane, Some(shell(1)), "back: the [>] terminal");
-    alt(&mut a, '[');
+    alt(&mut a, PREV);
     assert_eq!(a.cli.pane, Some(shell(0)), "then F5");
-    alt(&mut a, '[');
+    alt(&mut a, PREV);
     assert_eq!((a.cli.pane, a.state.session), (None, SESSIONS - 1), "then agent session 5");
     done(&root, &mut a);
 }
@@ -276,7 +279,7 @@ async fn alt_slash_opens_find_over_a_full_screen_session() {
     done(&root, &mut a);
 }
 
-// TERM-51: on the full screen, alt-] and alt-[ show the next or the previous session or terminal
+// TERM-51: on the full screen, alt-] and alt-[ (alt-} on the Mac) show the next or the previous session or terminal
 // that runs, on the full screen; the agent sessions without Claude Code are not in the ring.
 #[tokio::test(flavor = "multi_thread")]
 async fn alt_bracket_keeps_the_full_screen() {
@@ -287,7 +290,7 @@ async fn alt_bracket_keeps_the_full_screen() {
     answer(&mut a, "true");
     f5(&mut a, false);
     assert_eq!(a.cli.pane, Some(shell(1)), "a [>] terminal runs");
-    alt(&mut a, '[');
+    alt(&mut a, PREV);
     assert_eq!(a.cli.pane, Some(shell(0)), "F5 in the chat pane");
     ctrl(&mut a, 'o');
     assert_eq!(a.cli.view, Some(shell(0)), "F5 on the full screen");
@@ -295,7 +298,7 @@ async fn alt_bracket_keeps_the_full_screen() {
     assert_eq!(a.cli.view, Some(shell(1)), "the [>] terminal on the full screen");
     alt(&mut a, ']');
     assert_eq!(a.cli.view, Some(shell(0)), "F5 again: no agent session runs Claude Code");
-    alt(&mut a, '[');
+    alt(&mut a, PREV);
     assert_eq!(a.cli.view, Some(shell(1)), "back: the [>] terminal on the full screen");
     done(&root, &mut a);
 }

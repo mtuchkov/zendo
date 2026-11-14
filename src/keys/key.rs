@@ -19,6 +19,11 @@ impl Key {
                 shift = true;
                 KeyCode::Tab
             }
+            // The kitty keyboard protocol sends alt-} as `]` with alt and shift: make it `}`.
+            KeyCode::Char(c) if shift && alt && !ctrl && !c.is_ascii_alphabetic() => {
+                shift = false;
+                KeyCode::Char(us_shifted(c))
+            }
             KeyCode::Char(c) => {
                 // ctrl-shift-b keeps its Shift (kitty keyboard protocol); a plain char carries it.
                 shift = shift && ctrl && c.is_ascii_alphabetic();
@@ -131,4 +136,14 @@ impl Key {
         }
         s + &name
     }
+}
+
+/// The character that Shift gives on a US keyboard: `]` gives `}`. Other characters stay.
+fn us_shifted(c: char) -> char {
+    const PAIRS: [(char, char); 21] = [
+        ('`', '~'), ('1', '!'), ('2', '@'), ('3', '#'), ('4', '$'), ('5', '%'), ('6', '^'), ('7', '&'), ('8', '*'), ('9', '('),
+        ('0', ')'), ('-', '_'), ('=', '+'), ('[', '{'), (']', '}'), ('\\', '|'), (';', ':'), ('\'', '"'), (',', '<'), ('.', '>'),
+        ('/', '?'),
+    ];
+    PAIRS.iter().find(|(k, _)| *k == c).map_or(c, |(_, s)| *s)
 }
