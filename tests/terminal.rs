@@ -233,8 +233,8 @@ async fn alt_bracket_goes_through_the_terminals() {
     assert_eq!((a.cli.pane, a.state.session), (None, 0), "then agent session 1");
     alt(&mut a, '[');
     assert_eq!(a.cli.pane, Some(shell(1)), "back: the [>] terminal");
-    alt(&mut a, 'p');
-    assert_eq!(a.cli.pane, Some(shell(0)), "alt-p is alt-[ too: F5");
+    alt(&mut a, '[');
+    assert_eq!(a.cli.pane, Some(shell(0)), "then F5");
     alt(&mut a, '[');
     assert_eq!((a.cli.pane, a.state.session), (None, SESSIONS - 1), "then agent session 5");
     done(&root, &mut a);

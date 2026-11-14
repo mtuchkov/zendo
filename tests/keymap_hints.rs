@@ -178,16 +178,15 @@ async fn other_session_keys_name_the_buttons_1_to_5_and_the_terminal_by_its_mark
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// TERM-41, TERM-49, TERM-50: the default keymap gives the next session alt-], and the previous
-// session alt-[ and alt-p, for terminals that send alt-[ as the start of a CSI sequence.
+// TERM-41, TERM-49: the default keymap gives the next session alt-], the previous session alt-[,
+// and leaves alt-n to the new note.
 #[test]
-fn alt_p_is_the_second_key_of_the_previous_session() {
+fn alt_brackets_are_the_session_keys() {
     use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     let (keys, problems) = Keymap::new(None, &toml::from_str::<KeyConfig>("").unwrap());
     assert!(problems.is_empty(), "{problems:?}");
     let alt = |c| KeyEvent::new(KeyCode::Char(c), KeyModifiers::ALT);
     assert_eq!(keys.local(Pane::Global, &alt(']')), Some("next_session"));
     assert_eq!(keys.local(Pane::Global, &alt('[')), Some("prev_session"));
-    assert_eq!(keys.local(Pane::Global, &alt('p')), Some("prev_session"));
     assert_ne!(keys.local(Pane::Global, &alt('n')), Some("next_session"), "alt-n is the new note");
 }

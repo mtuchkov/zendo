@@ -31,7 +31,7 @@ session_3 = ["f8", "alt-f8"]  # agent session 3
 session_4 = ["f9", "alt-f9"]  # agent session 4
 session_5 = ["f10", "alt-f10"]  # agent session 5
 next_session = ["alt-]"]  # the next agent session, after the last the terminals
-prev_session = ["alt-[", "alt-p"]  # the previous agent session or terminal
+prev_session = ["alt-["]  # the previous agent session or terminal
 terminal = ["f5"]  # put the shell block under the cursor into a terminal; elsewhere the F5 terminal
 terminal_run = ["alt-f5"]  # put the shell block under the cursor into a terminal and run it
 
