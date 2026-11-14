@@ -57,7 +57,7 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Project structure](project-structure.md)    | `project-structure.toml`: use and repair                      |
 | [Commands](commands.md)                      | Install, `zendo setup`, `zendo doctor`, `zendo upgrade`          |
 | [Landing page](site.md)                      | The page in `site/`: the pixel garden, the demo, the lofi music  |
-| [Lofi music](lofi.md)                        | Calm music that zendo makes itself; notes of the first version   |
+| [Lofi music](lofi.md)                        | Calm music that zendo makes itself                               |
 
 ## Scope
 
