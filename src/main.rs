@@ -23,6 +23,7 @@ USAGE
                                               --fix repairs project-structure.toml (zendo, then Claude)
   zendo upgrade [--force]                      build the newest main from GitHub, then run setup
   zendo keymap                                 print the default keys: start ~/.zendo/keymap.toml from it
+  zendo mcp --session N                        the MCP server of zendo session N (zendo starts it)
 
 OPTIONS
   --notes DIR   notes folder, relative to the repo root (default: docs/notes, or $ZENDO_NOTES)
@@ -161,8 +162,21 @@ fn parse() -> Result<Run> {
     })
 }
 
+/// `zendo mcp --session N`: the MCP server of zendo session N (SESSIONS-21).
+fn mcp_session() -> Option<usize> {
+    let a: Vec<String> = std::env::args().skip(1).collect();
+    match a.as_slice() {
+        [m, s, n] if m == "mcp" && s == "--session" => n.parse().ok(),
+        _ => None,
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Before anything else: the server only answers on stdin and stdout.
+    if let Some(n) = mcp_session() {
+        return Ok(zendo::mcp::serve(std::io::stdin().lock(), std::io::stdout().lock(), n)?);
+    }
     let cfg = match parse()? {
         Run::Tui(cfg) => cfg,
         Run::Setup(paths, agent, notes_repo) => std::process::exit(if doctor::setup(&paths, agent, notes_repo).await { 0 } else { 1 }),

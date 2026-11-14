@@ -2,6 +2,7 @@ pub mod agent;
 pub mod app;
 pub mod docs;
 pub mod keys;
+pub mod mcp;
 pub mod session;
 pub mod setup;
 pub mod text;

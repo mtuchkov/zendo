@@ -57,6 +57,12 @@ claude = "For each code review, write a report here. Name it <YYYY-MM-DD>-<scope
 template = "docs/guides/templates/code-review.md"
 
 [[entry]]
+path = ".worktrees"
+label = "Worktrees"
+about = "One git worktree for each zendo session: .worktrees/<zendo session id>. Not in git."
+claude = "Change code only in the worktree of your zendo session (the tool `session` of the MCP server `zendo`). Do not create, use or remove other worktrees."
+
+[[entry]]
 path = ".githooks"
 about = "Git hooks of the repository: commit-msg checks each message; pre-commit checks project-structure.toml; lint-range.sh checks a range in CI. Turn on with `git config core.hooksPath .githooks`."
 

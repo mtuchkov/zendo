@@ -93,7 +93,9 @@ async fn main() -> Result<()> {
             agent_client_protocol::on_receive_request!(),
         )
         .on_receive_request(
-            async move |_req: NewSessionRequest, responder, cx: Cx| {
+            async move |req: NewSessionRequest, responder, cx: Cx| {
+                // For the tests of SESSIONS-21: the MCP servers that zendo gave the session.
+                let _ = std::fs::write(req.cwd.join(".zendo/mock-mcp.json"), serde_json::to_string(&req.mcp_servers).unwrap_or_default());
                 let id = format!("mock-{}", std::process::id() as u64 * 1000 + NEXT.fetch_add(1, Ordering::Relaxed));
                 responder.respond(NewSessionResponse::new(id.clone()))?;
                 commands(&cx, &id.into())

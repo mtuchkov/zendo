@@ -254,7 +254,7 @@ pub(super) async fn open_session(
         let id = SessionId::new(known.clone());
         shared.keys.lock().unwrap().insert(known.clone(), key.to_string());
         *shared.loading.lock().unwrap() = Some(key.to_string());
-        let r = cx.send_request(LoadSessionRequest::new(id.clone(), cwd.to_path_buf())).block_task().await;
+        let r = cx.send_request(LoadSessionRequest::new(id.clone(), cwd.to_path_buf()).mcp_servers(crate::mcp::acp_servers(key))).block_task().await;
         *shared.loading.lock().unwrap() = None;
         match r {
             Ok(_) => {
@@ -264,7 +264,7 @@ pub(super) async fn open_session(
             Err(_) => shared.emit(Event::Error { key: Some(key.to_string()), text: "could not resume the earlier thread, so this is a new one (details in .zendo/agent.log)".into() }),
         }
     }
-    let r = cx.send_request(NewSessionRequest::new(cwd.to_path_buf())).block_task().await?;
+    let r = cx.send_request(NewSessionRequest::new(cwd.to_path_buf()).mcp_servers(crate::mcp::acp_servers(key))).block_task().await?;
     let id = r.session_id;
     shared.keys.lock().unwrap().insert(id.0.to_string(), key.to_string());
     shared.emit(Event::Session { key: key.to_string(), id: id.0.to_string(), resumed: false });
