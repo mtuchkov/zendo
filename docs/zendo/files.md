@@ -1,17 +1,20 @@
 ---
-status: "draft"
-revision: "1"
+status: "implemented"
+approved: "2026-11-13"
+revision: "2"
 date: "2026-11-11"
 parent: "zendo.md"
 prev: "length.md"
 next: "work.md"
 level: "the file tree pane: which files it lists, its views, folding, opening a file"
-note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user."
+note: "Agent rewrite of the reference of zendo 0.9.1. Revision 2 adds FILES-25 (the notes of the notes repo), approved by the user."
 ---
 
 # File tree
 
-The file tree lists the markdown files of the repository. It sits on the left of the screen and
+The file tree lists the markdown files of the repository. While the [notes repo](notes-repo.md) is
+on, the notes of the repository live outside it, so the structure view shows them as a `notes`
+folder at the top, or the docs view when the repository has no main materials. The tree sits on the left of the screen and
 opens and closes with `ctrl-shift-b` or `alt-b` in every pane, or `e` in read mode. It has five views:
 
 - **structure**: the main materials of [project-structure.toml](project-structure.md), in the order
@@ -45,6 +48,7 @@ status bar.
 | FILES-1 | Ubiquitous | The system shall list the markdown files of the repository, and skip the files that git ignores and the hidden folders.                           | User, 2026-11-11 |
 | FILES-2 | Ubiquitous | The system shall show the structure view first when the repository has main materials, and the docs view first when it does not.                  | User, 2026-11-11 |
 | FILES-3 | Event      | When the user opens a file from the tree, the system shall open it like a note, with read, write, delta, recap and Claude.                         | User, 2026-11-11 |
+| FILES-25 | State     | While the notes repo is on, the system shall show the notes of the repository from the notes repo as a `notes` folder at the top of the structure view, or of the docs view when the repository has no main materials. | User, 2026-11-13 |
 
 ### Acceptance tests
 
@@ -66,6 +70,16 @@ status bar.
 - Given a test repository with `docs/design.md`.
 - When the user opens it from the tree, writes a line and asks Claude about it.
 - Then the file on disk has the line, and the chat shows the question with the file name.
+
+**`the_tree_shows_the_notes_of_the_notes_repo`** (unit test; verifies FILES-25)
+
+- Given a test repository with `project-structure.toml` and `docs/design.md`, and a notes repo with
+  one note of this repository.
+- When zendo opens the file tree in the structure view.
+- Then the first row is the `notes` folder, it holds the note, and opening the note opens the file
+  in the notes repo.
+- And when the test repository has no `project-structure.toml`, the docs view shows the same
+  `notes` folder first.
 
 ## Detailed requirements
 

@@ -36,6 +36,7 @@ impl Tree {
         self.files = files;
         self.dirs = dirs;
         self.root = root.to_path_buf();
+        self.scan_notes();
         self.scanned = Some(Instant::now());
     }
 

@@ -1,13 +1,13 @@
 ---
 status: "implemented"
 approved: "2026-11-13"
-revision: "2"
+revision: "3"
 date: "2026-11-13"
 parent: "zendo.md"
 prev: "float.md"
 next: "notes-repo.md"
 level: "the find panel: recent files, search by path and by text, the preview"
-note: "Agent draft of the decisions of the user on 2026-11-13, approved by the user. Revision 2: the test names and kinds as in the code."
+note: "Revision 2 was approved by the user on 2026-11-13 and implemented. Revision 3 adds FIND-18 (the notes of the notes repo), approved by the user on 2026-11-13."
 ---
 
 # Find: recent files and search
@@ -106,6 +106,7 @@ the query. `enter` opens the selected file in the note pane in read mode, at the
 | FIND-15 | State      | While a Claude Code session or a terminal is on the full screen, the system shall open the find panel over it when the user presses `alt-/`, and not send the key to the program. | User, 2026-11-13 |
 | FIND-17 | Event      | When the user presses `/` in the notes list, the system shall search the text of the notes only, as NOTE-12, and not open the find panel. | User, 2026-11-13 |
 | FIND-16 | Unwanted   | If a markdown file is in a hidden folder or git ignores it, then the system shall not search its text (FILES-1).                                       | FILES-1          |
+| FIND-18 | State      | While the notes repo is on, the system shall search the notes of the repository in the notes repo by path and by text, as the markdown files of the repository (FIND-9, FILES-25). | User, 2026-11-13 |
 
 Tests that verify detailed requirements: `the_row_shows_title_path_and_time` (FIND-5),
 `a_tree_preview_is_not_recent` and `a_note_from_the_float_is_recent` (FIND-6), `a_deleted_file_is_not_recent` (FIND-7),
@@ -113,5 +114,6 @@ Tests that verify detailed requirements: `the_row_shows_title_path_and_time` (FI
 `the_preview_shows_the_match_and_enter_opens_at_it` (FIND-10, FIND-11), `esc_changes_nothing` (FIND-12),
 `a_narrow_panel_shows_the_preview_under_the_list` (FIND-13), the tests of `src/docs/search_tests.rs` (FIND-14),
 `alt_slash_opens_find_over_a_full_screen_session` in `tests/terminal.rs` (FIND-15), `ignored_files_are_not_searched`
-(FIND-16), and `slash_in_the_notes_list_searches_the_notes` (FIND-17).
+(FIND-16), `slash_in_the_notes_list_searches_the_notes` (FIND-17), and
+`a_query_finds_the_notes_of_the_notes_repo` (FIND-18).
 

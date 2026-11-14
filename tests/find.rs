@@ -292,3 +292,36 @@ async fn a_note_from_the_float_is_recent() {
     assert!(got[0].ends_with("-tea.md") && got[1] == A, "{got:?}");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// FIND-18: while the notes repo is on, a query finds the notes of the repository in the notes repo,
+// by path and by text.
+#[tokio::test]
+async fn a_query_finds_the_notes_of_the_notes_repo() {
+    let root = repo("find-notes-repo", &files());
+    let notes = std::env::temp_dir().join(format!("zendo-ui-find-notes-repo-notes-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&notes);
+    std::fs::create_dir_all(&notes).unwrap();
+    std::fs::write(notes.join("2026-11-13-spotify.md"), "# Spotify\n\nChoose the playlist.\n").unwrap();
+    std::fs::write(notes.join("2026-11-13-other.md"), "# Other\n\nA PLAYLIST too.\n").unwrap();
+    let mut a = App::new(zendo::app::Config {
+        root: root.clone(),
+        notes_dir: notes.clone(),
+        agent: env!("CARGO_BIN_EXE_zendo-mock-agent").to_string(),
+        agent_env: Default::default(),
+        offline: false,
+        notes_repo: Some(zendo::setup::config::NotesRepo { path: notes.clone(), machine: "m".into(), sync_seconds: 15 }),
+    })
+    .unwrap();
+    let got = |a: &App| a.find.items.iter().map(|i| i.path.clone()).collect::<Vec<_>>();
+    alt(&mut a, '/');
+    typ(&mut a, "spotify");
+    assert_eq!(got(&a), vec![notes.join("2026-11-13-spotify.md")], "by path");
+    key(&mut a, KeyCode::Esc);
+    alt(&mut a, '/');
+    typ(&mut a, "playlist");
+    let paths = got(&a);
+    assert_eq!(paths.len(), 2, "by text: {paths:?}");
+    assert!(paths.contains(&notes.join("2026-11-13-other.md")), "{paths:?}");
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&notes);
+}

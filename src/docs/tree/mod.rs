@@ -82,6 +82,10 @@ pub struct Tree {
     pub dirs: Vec<PathBuf>,
     /// The file name filter (`/` in the tree): while it is on, the tree is a flat list of matches.
     pub find: Option<String>,
+    /// The notes folder in the notes repo, while the notes repo is on (FILES-25).
+    pub notes: Option<PathBuf>,
+    /// The markdown files of the notes folder, relative to it.
+    pub notes_files: Vec<PathBuf>,
     docs: GlobMatcher,
 }
 
@@ -100,6 +104,8 @@ impl Default for Tree {
             changed: BTreeSet::new(),
             dirs: Vec::new(),
             find: None,
+            notes: None,
+            notes_files: Vec::new(),
             docs: Glob::new(DOCS_GLOB).expect("valid glob").compile_matcher(),
         }
     }
@@ -111,6 +117,7 @@ struct Node {
     files: Vec<String>,
 }
 
+mod notes;
 mod scan;
 mod sections;
 pub use scan::is_text;
@@ -151,10 +158,12 @@ impl Tree {
         if let Some(q) = self.find.as_deref().filter(|q| !q.trim().is_empty()) {
             return self.found(q);
         }
-        if let Some(st) = self.structured() {
-            return self.section_rows(st);
+        let mut out = self.notes_rows();
+        match self.structured() {
+            Some(st) => out.extend(self.section_rows(st)),
+            None => out.extend(self.tree_rows(&self.files, &self.dirs, Path::new(""), 0)),
         }
-        self.tree_rows(&self.files, &self.dirs, Path::new(""), 0)
+        out
     }
 
     fn tree_rows(&self, files: &[PathBuf], dirs: &[PathBuf], at: &Path, depth: usize) -> Vec<Row> {

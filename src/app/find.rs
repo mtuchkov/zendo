@@ -152,11 +152,17 @@ impl App {
         if self.find.files.is_empty() {
             let root = self.cfg.root.clone();
             self.find.files = crate::app::at::repo_files(&root);
+            // FIND-18: the notes of the notes repo, by their absolute path (`root.join` keeps it).
+            if let Some(dir) = self.repo_notes_outside() {
+                let md = crate::app::at::repo_files(&dir).into_iter().filter(|f| f.extension().is_some_and(|x| x == "md"));
+                self.find.files.extend(md.map(|f| dir.join(f)));
+            }
             self.find.docs = self.find.files.iter().filter(|f| !code::is_code(f)).filter_map(|f| notes::load(&root.join(f)).ok()).collect();
         }
+        let notes_dir = self.repo_notes_outside();
         let words: Vec<String> = q.to_lowercase().split_whitespace().map(str::to_string).collect();
         let rank = |rel: &str| self.state.recent.iter().position(|o| o.path == rel).unwrap_or(RECENT);
-        let mut by_path: Vec<&PathBuf> = self.find.files.iter().filter(|f| has_words(f, &words)).collect();
+        let mut by_path: Vec<&PathBuf> = self.find.files.iter().filter(|f| has_words(&shown_path(f, notes_dir.as_deref()), &words)).collect();
         by_path.sort_by_key(|f| (rank(&f.display().to_string()), f.to_path_buf()));
         let root = &self.cfg.root;
         let mut items: Vec<FindItem> = by_path
@@ -204,6 +210,14 @@ impl App {
 fn has_words(rel: &Path, words: &[String]) -> bool {
     let p = rel.display().to_string().to_lowercase();
     words.iter().all(|w| p.contains(w.as_str()))
+}
+
+/// The path that a query matches: a note of the notes repo as `notes/…`, not its whole path.
+fn shown_path(f: &Path, notes_dir: Option<&Path>) -> PathBuf {
+    match notes_dir.and_then(|d| f.strip_prefix(d).ok()) {
+        Some(rel) => Path::new("notes").join(rel),
+        None => f.to_path_buf(),
+    }
 }
 
 /// The rows of the matches in the text.

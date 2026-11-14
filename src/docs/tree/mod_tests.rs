@@ -155,3 +155,47 @@ fn an_entry_with_more_paths_shows_its_files_as_one_flat_list() {
     assert_eq!(t.rows().len(), 1, "the row closes the list");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+/// A notes folder outside the repository, as in a notes repo, with one note.
+fn notes_folder(name: &str) -> PathBuf {
+    let d = std::env::temp_dir().join(format!("zendo-tree-notes-{name}-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&d);
+    std::fs::create_dir_all(&d).unwrap();
+    std::fs::write(d.join("2026-11-13-idea.md"), "# Idea\n").unwrap();
+    std::fs::write(d.join(".zendo-location.toml"), "root = \"x\"\n").unwrap();
+    d
+}
+
+// FILES-25: while the notes repo is on, the structure view, or the docs view without main
+// materials, shows the notes of the notes repo as a `notes` folder at the top.
+#[test]
+fn the_tree_shows_the_notes_of_the_notes_repo() {
+    let root = repo("notes-repo");
+    let notes = notes_folder("structure");
+    std::fs::write(root.join("project-structure.toml"), "[[entry]]\npath = \"docs/adr\"\nlabel = \"Decisions\"\nmain = true\n").unwrap();
+    let mut t = Tree { structure: Some(Structure::load(&root).unwrap().unwrap()), view: View::Structure, notes: Some(notes.clone()), ..Tree::default() };
+    t.scan(&root);
+    let rows = t.rows();
+    let names: Vec<String> = rows.iter().map(|r| format!("{}{}", "  ".repeat(r.depth), r.name)).collect();
+    assert_eq!(names, vec!["notes", "  2026-11-13-idea.md", "Decisions"]);
+    assert_eq!(rows[0].rel, notes);
+    assert_eq!(root.join(&rows[1].rel), notes.join("2026-11-13-idea.md"), "opening the row opens the file in the notes repo");
+    t.toggle(&notes);
+    assert_eq!(t.rows().len(), 2, "the notes folder closes");
+    t.reveal(&notes.join("2026-11-13-idea.md"));
+    assert_eq!(t.rows()[t.sel].rel, notes.join("2026-11-13-idea.md"), "reveal opens the notes folder");
+    t.next_view();
+    t.scan(&root);
+    assert!(!t.rows().iter().any(|r| r.rel.starts_with(&notes)), "the docs view has main materials elsewhere");
+
+    // Without main materials, the docs view shows the notes first.
+    let _ = std::fs::remove_file(root.join("project-structure.toml"));
+    let mut t = Tree { notes: Some(notes.clone()), ..Tree::default() };
+    t.scan(&root);
+    let rows = t.rows();
+    assert_eq!((rows[0].name.as_str(), rows[1].rel.clone()), ("notes", notes.join("2026-11-13-idea.md")));
+    t.view = View::All;
+    assert!(!t.rows().iter().any(|r| r.rel.starts_with(&notes)), "only the structure or the docs view");
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&notes);
+}

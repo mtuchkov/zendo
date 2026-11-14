@@ -5,11 +5,19 @@ impl App {
     /// Fill the file tree. In a repo: the repo. Outside a repo (the home folder): only the notes.
     pub fn scan_tree(&mut self) {
         if self.cfg.root.join(".git").exists() {
+            // FILES-25: the notes of the notes repo live outside the repository.
+            self.tree.notes = self.repo_notes_outside();
             self.tree.scan(&self.cfg.root);
         } else {
             let under = self.cfg.notes_dir.clone();
             self.tree.scan_in(&self.cfg.root, &under);
         }
+    }
+
+    /// The notes folder in the notes repo, while the notes repo is on and the folder is outside the
+    /// repository (FILES-25, FIND-18).
+    pub fn repo_notes_outside(&self) -> Option<PathBuf> {
+        self.cfg.notes_repo.as_ref().map(|_| self.cfg.notes_dir.clone()).filter(|d| !d.starts_with(&self.cfg.root))
     }
 
     /// The agent profile, when zendo knows the agent.
