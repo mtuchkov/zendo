@@ -275,3 +275,27 @@ async fn alt_slash_opens_find_over_a_full_screen_session() {
     assert_eq!((a.mode, a.cli.view), (zendo::app::Mode::Read, Some(shell(0))), "back on the full screen");
     done(&root, &mut a);
 }
+
+// TERM-51: on the full screen, alt-] and alt-[ show the next or the previous session or terminal
+// that runs, on the full screen; the agent sessions without Claude Code are not in the ring.
+#[tokio::test(flavor = "multi_thread")]
+async fn alt_bracket_keeps_the_full_screen() {
+    let (root, mut a) = app_with_shell("term-full-ring");
+    answer(&mut a, "sleep 30");
+    f5(&mut a, true);
+    wait(&mut a, 10, |a| a.cli.busy(0));
+    answer(&mut a, "true");
+    f5(&mut a, false);
+    assert_eq!(a.cli.pane, Some(shell(1)), "a [>] terminal runs");
+    alt(&mut a, '[');
+    assert_eq!(a.cli.pane, Some(shell(0)), "F5 in the chat pane");
+    ctrl(&mut a, 'o');
+    assert_eq!(a.cli.view, Some(shell(0)), "F5 on the full screen");
+    alt(&mut a, ']');
+    assert_eq!(a.cli.view, Some(shell(1)), "the [>] terminal on the full screen");
+    alt(&mut a, ']');
+    assert_eq!(a.cli.view, Some(shell(0)), "F5 again: no agent session runs Claude Code");
+    alt(&mut a, '[');
+    assert_eq!(a.cli.view, Some(shell(1)), "back: the [>] terminal on the full screen");
+    done(&root, &mut a);
+}

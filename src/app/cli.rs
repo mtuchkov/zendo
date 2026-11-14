@@ -55,8 +55,7 @@ impl App {
             return;
         }
         if let Some(a @ ("next_session" | "prev_session")) = self.keys.local(Pane::Global, &k) {
-            self.cli.view = None;
-            return self.step_in_chat(a == "next_session");
+            return self.step_full_screen(a == "next_session");
         }
         if self.keys.local(Pane::Global, &k) == Some("terminal") {
             return self.open_terminal(0);

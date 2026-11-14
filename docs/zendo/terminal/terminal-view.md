@@ -23,6 +23,8 @@ the chat pane again.
 **Leave and go on.** `alt-q` leaves the terminal from both modes, and the command continues.
 `alt-]` goes to the next agent session, and after the last one through the terminals: `F5`, then the
 `[>]` terminals from the top, then the first agent session again. `alt-[` goes the same way back.
+The keys keep the view: in the chat pane they show the next item in the chat pane; on the full
+screen they show the next session or terminal that runs on the full screen.
 `alt-n` is free for the new note in a [float](../float.md). All other keys and paste go to the
 shell, except the keys that choose a session.
 
@@ -46,6 +48,7 @@ differ from agent sessions at once.
 | TERM-38 | Event   | When the user presses `ctrl-o` while the chat pane shows a terminal, the system shall show that terminal on the full screen. | User, 2026-11-12 |
 | TERM-41 | Event   | When the user presses `alt-]`, the system shall show the next item of this sequence: the agent sessions, the `F5` terminal, the `[>]` terminals from the top, and then the first agent session again. | User, 2026-11-12; User, 2026-11-13 |
 | TERM-49 | Event   | When the user presses `alt-[`, the system shall show the previous item of the sequence of TERM-41, and after the first agent session the last item. | User, 2026-11-13 |
+| TERM-51 | State   | While a session or a terminal is on the full screen, when the user presses `alt-]` or `alt-[`, the system shall show on the full screen the next or the previous agent session or terminal that runs. | User, 2026-11-13 |
 
 ### Acceptance tests
 
@@ -73,6 +76,12 @@ The tests are in `tests/terminal.rs`, with `/bin/sh` as the shell.
 - Then the chat pane shows `F5`, then the `[>]` terminal, then agent session 1; and then the `[>]`
   terminal, `F5`, and agent session 5.
 
+**`alt_bracket_keeps_the_full_screen`** (terminal check; verifies TERM-51)
+
+- Given the `F5` terminal and one `[>]` terminal that run, and `F5` on the full screen.
+- When the user presses `alt-]` twice, and then `alt-[`.
+- Then the full screen shows the `[>]` terminal, then `F5`, then the `[>]` terminal again.
+
 ## Detailed requirements
 
 | ID      | Pattern    | Requirement | Source |
@@ -98,4 +107,3 @@ verifies TERM-48. `alt_brackets_are_the_session_keys` in `tests/keymap_hints.rs`
 | ------------- | ------- | ----------- |
 | `F5` to `F10` choose a session, so programs such as `htop` and `mc` do not get them. Is that acceptable? | TERM-13 | User |
 | In the chat pane, `ctrl-o` does not go to the shell, so `nano` (write the file) and bash (`operate-and-get-next`) get it only on the full screen. Is that acceptable? | TERM-13, TERM-39 | User |
-| On the full screen of a Claude Code session, `alt-]` and `alt-[` also leave the full screen and go to the next or the previous item. Is that acceptable? | TERM-41, TERM-42, TERM-49 | User |
