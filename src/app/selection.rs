@@ -47,14 +47,15 @@ impl App {
             return t.text(&self.read_text).trim().to_string();
         }
         if let Some(((r1, c1), (r2, c2))) = self.read_selection() {
-            let mut rows = Vec::new();
-            for r in r1..=r2.min(self.read_text.len().saturating_sub(1)) {
-                let chars: Vec<char> = self.read_text[r].trim_end().chars().collect();
+            let lines = self.read_text.get(r1..=r2.min(self.read_text.len().saturating_sub(1))).unwrap_or(&[]);
+            let part = |(i, line): (usize, &String)| {
+                let r = r1 + i;
+                let chars: Vec<char> = line.trim_end().chars().collect();
                 let from = if r == r1 { c1.min(chars.len()) } else { 0 };
                 let to = if r == r2 { (c2 + 1).min(chars.len()) } else { chars.len() };
-                rows.push(chars[from..to.max(from)].iter().collect::<String>());
-            }
-            return rows.join("\n").trim().to_string();
+                chars[from..to.max(from)].iter().collect::<String>()
+            };
+            return lines.iter().enumerate().map(part).collect::<Vec<_>>().join("\n").trim().to_string();
         }
         let (a, b) = self.selection_rows();
         let rows: Vec<&str> = self.read_text.get(a..=b.min(self.read_text.len().saturating_sub(1))).unwrap_or(&[]).iter().map(|s| s.trim_end()).collect();

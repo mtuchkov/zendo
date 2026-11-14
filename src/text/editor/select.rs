@@ -14,17 +14,14 @@ impl Editor {
 
     pub fn selected_text(&self) -> Option<String> {
         let ((r1, c1), (r2, c2)) = self.selection()?;
-        let mut out = String::new();
-        for r in r1..=r2 {
-            let chars: Vec<char> = self.lines[r].chars().collect();
+        let part = |(i, line): (usize, &String)| {
+            let r = r1 + i;
+            let chars: Vec<char> = line.chars().collect();
             let from = if r == r1 { c1 } else { 0 };
             let to = if r == r2 { c2.min(chars.len()) } else { chars.len() };
-            out.extend(&chars[from.min(to)..to]);
-            if r < r2 {
-                out.push('\n');
-            }
-        }
-        Some(out)
+            chars[from.min(to)..to].iter().collect::<String>()
+        };
+        Some(self.lines[r1..=r2].iter().enumerate().map(part).collect::<Vec<_>>().join("\n"))
     }
 
     /// A delete key: delete the selected text, or, when there is none, do `delete`.
