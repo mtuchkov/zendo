@@ -11,7 +11,15 @@ if [ -z "$__zendo_marks" ]; then
   __zendo_end() { local s=$?; printf '\033]133;D;%s\007' "$s"; return $s; }
   PROMPT_COMMAND="__zendo_end${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
   PS1="\[\033]133;A\007\]${PS1}\[\033]133;B\007\]"
-  PS0="${PS0}"$'\033]133;C\007'
+  if (( BASH_VERSINFO[0] * 100 + BASH_VERSINFO[1] >= 404 )); then
+    PS0="${PS0}"$'\033]133;C\007'
+  else
+    # bash before 4.4 (macOS /bin/bash 3.2) has no PS0: the DEBUG trap marks the first command
+    # after the prompt; the end of PROMPT_COMMAND arms it again.
+    __zendo_pre() { [ -n "$__zendo_ready" ] || return 0; __zendo_ready=; printf '\033]133;C\007'; }
+    trap '__zendo_pre' DEBUG
+    PROMPT_COMMAND="${PROMPT_COMMAND};__zendo_ready=1"
+  fi
 fi
 "#;
 
