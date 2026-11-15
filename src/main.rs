@@ -269,9 +269,8 @@ async fn open_app(cfg: Config) -> Result<App> {
     }
     app.update_rx = Some(update_rx);
     if let Some(l) = live {
-        app.agent = Some(l.handle);
-        app.agent_events = Some(l.events);
-        app.agent_name = Some(l.name);
+        app.link.connect(l.handle, l.events);
+        app.link.set_name(l.name);
     }
     Ok(app)
 }

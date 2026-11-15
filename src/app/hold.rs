@@ -57,9 +57,7 @@ impl App {
             return;
         }
         h.stopped = Some(Instant::now());
-        if let Some(a) = &self.agent {
-            a.send(Cmd::Cancel { key: session_key(h.n) });
-        }
+        self.link.send(Cmd::Cancel { key: session_key(h.n) });
     }
 
     /// The waiting view is on the thread `key`.

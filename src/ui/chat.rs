@@ -52,9 +52,9 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
 
     let (mut lines, blocks) = panel_lines(app, t, w);
     app.threads.transcript_mut().show_blocks(blocks);
-    if let Some(down) = &app.agent_down {
+    if let Some(down) = app.link.down() {
         lines.extend(markdown::wrap(vec![Span::styled(format!("{down}. Run `zendo doctor` in a terminal to see why, then ask again. Log: .zendo/agent.log"), Style::new().fg(t.del))], w, "", ""));
-    } else if app.agent_name.is_none() && app.agent.is_some() {
+    } else if !app.link.ready() && app.link.running() {
         lines.push(Line::styled(format!("starting {} {}", short_agent(&app.cfg.agent), SPIN[(app.last_edit.elapsed().as_millis() / 300) as usize % 4]), dim));
     }
     fr.regions.push((crate::text::select::Region::Panel, body));

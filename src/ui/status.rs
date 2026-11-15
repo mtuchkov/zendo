@@ -122,7 +122,7 @@ fn status_right(app: &App, fr: &Cache, claude: bool) -> String {
         return format!("no {} · run zendo init", crate::docs::structure::FILE);
     }
     if claude {
-        return if app.agent_name.is_some() { app.agent_short() } else { String::new() };
+        return if app.link.ready() { app.agent_short() } else { String::new() };
     }
     match app.mode {
         Mode::Write => {

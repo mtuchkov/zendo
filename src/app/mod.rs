@@ -19,6 +19,7 @@ mod files_state;
 mod find;
 mod float;
 mod jobs;
+mod link;
 mod hold;
 mod file_prompt;
 mod info;
@@ -54,6 +55,7 @@ pub use files_state::tree_keys::{FilterKey, Picked};
 pub use find::{Find, FindItem};
 pub use float::Float;
 pub use jobs::*;
+pub use link::AgentLink;
 pub use hold::{CONTINUE, HOLD_AGAIN, Hold};
 pub use say::{SAY_HERE, Say};
 pub use slash::Slash;
@@ -67,7 +69,7 @@ pub use reader::Reader;
 pub use work::Work;
 pub use worktree::{RECAP_EVERY, TreeAct, WorktreeUi};
 
-use crate::agent::{self, AgentHandle, Attachment, Cmd, Event};
+use crate::agent::{self, Attachment, Cmd, Event};
 use crate::text::editor::Editor;
 use crate::docs::notes::{self, Note, Store};
 use crate::docs::search::{self, Group};
@@ -78,7 +80,7 @@ use chrono::Local;
 use crate::text::select::{Region, Selection};
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::layout::Rect;
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
@@ -147,28 +149,18 @@ pub struct App {
     pub composer: Composer,
     /// The chat threads, the transcript cursor, the pinned thread, and the scroll of the chat pane.
     pub threads: Threads,
-    /// The agent takes images in a prompt (from its ACP capabilities).
-    pub agent_images: bool,
     /// The keymap of every pane, and what is wrong in `[keys]` of the config.
     pub keys: crate::keys::Keymap,
     pub key_problems: Vec<String>,
     /// The keymap file that the config names, for the help (PANES-31).
     pub keymap_file: Option<String>,
-    pub agent: Option<AgentHandle>,
-    pub agent_events: Option<tokio::sync::mpsc::UnboundedReceiver<Event>>,
-    pub agent_name: Option<String>,
-    pub agent_down: Option<String>,
 
+    /// The connection to the agent, and the questions for the names of sessions and images.
+    pub link: AgentLink,
     /// The delta, the visit that counts, and the recaps and reviews of the agent.
     pub work: Work,
     /// Files to get a title or front matter from the agent, after write mode.
     pub meta_queue: VecDeque<String>,
-    /// For each session ID: the last question for its name (NAMES-10, NAMES-14).
-    pub names_asked: HashMap<String, crate::agent::work::Asked>,
-    /// The model that names the agent sessions; none: the default model of the agent (NAMES-12).
-    pub name_model: Option<String>,
-    /// The pasted images that the name model names: by session key, the file and the answer so far.
-    pub image_names: HashMap<String, (PathBuf, String)>,
     #[default(Instant::now())]
     pub last_input: Instant,
     /// The run of `tab`s (CLAUDE-36).

@@ -64,7 +64,7 @@ impl App {
             let t = self.threads.get(&session_key(n))?;
             let items = t.items.get(t.name_from..)?;
             let size = told(items, t.busy.is_some())?;
-            due(size, t.busy, self.names_asked.get(&id), now).then(|| (n, id, size, conversation(items)))
+            due(size, t.busy, self.link.asked(&id), now).then(|| (n, id, size, conversation(items)))
         })
     }
 
@@ -72,8 +72,7 @@ impl App {
     /// due. True when it asked.
     pub(super) fn name_tick(&mut self) -> bool {
         let Some((n, id, size, messages)) = self.to_name() else { return false };
-        let keeps = self.names_asked.get(&id).map_or(0, |a| a.keeps);
-        self.names_asked.insert(id.clone(), Asked { size, at: Instant::now(), keeps });
+        self.link.ask_name(&id, size);
         let prompt = match self.session_name(n) {
             Some(name) => RENAME_PROMPT.replace("{{NAME}}", &name),
             None => NAME_PROMPT.to_string(),
@@ -81,12 +80,10 @@ impl App {
         let prompt = prompt.replace("{{TAKEN}}", &self.taken_names(n).join(", ")).replace("{{MESSAGES}}", &messages);
         self.work.start(RecapJob { name: Some((n, id)), ..RecapJob::default() });
         let key = format!("{RECAP_PREFIX}name {}", n + 1);
-        if let Some(a) = &self.agent {
-            if let Some(model) = self.name_model.clone() {
-                a.send(Cmd::Model { key: key.clone(), model });
-            }
-            a.send(Cmd::Prompt { key, known: None, text: prompt, attach: vec![] });
+        if let Some(model) = self.link.name_model() {
+            self.link.send(Cmd::Model { key: key.clone(), model });
         }
+        self.link.send(Cmd::Prompt { key, known: None, text: prompt, attach: vec![] });
         true
     }
 
@@ -106,9 +103,7 @@ impl App {
                 self.state.save(&self.cfg.root);
             }
             (None, Some(_)) => {
-                if let Some(a) = self.names_asked.get_mut(&id) {
-                    a.keeps = (a.keeps + 1).min(MOST_KEEPS);
-                }
+                self.link.name_kept(&id, MOST_KEEPS);
             }
             (None, None) => {}
         }

@@ -41,7 +41,7 @@ fn args(a: &App) -> String {
 async fn late_events(a: &mut App) {
     let end = Instant::now() + Duration::from_secs(1);
     while Instant::now() < end {
-        let Some(rx) = a.agent_events.as_mut() else { return };
+        let Some(rx) = a.link.events_mut() else { return };
         if let Ok(Some(e)) = tokio::time::timeout(Duration::from_millis(50), rx.recv()).await {
             a.on_agent(e);
         }

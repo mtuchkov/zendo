@@ -3,15 +3,13 @@ use super::*;
 
 impl App {
     pub fn ensure_agent(&mut self) {
-        if self.agent.is_some() || self.cfg.offline {
+        if self.link.running() || self.cfg.offline {
             return;
         }
         let log = state::dir(&self.cfg.root);
         let _ = std::fs::create_dir_all(&log);
         let (h, rx) = agent::spawn(self.cfg.agent.clone(), self.cfg.agent_env.clone(), self.cfg.root.clone(), Some(log.join("agent.log")));
-        self.agent = Some(h);
-        self.agent_events = Some(rx);
-        self.agent_down = None;
+        self.link.connect(h, rx);
     }
 
     pub fn open_panel(&mut self) {
@@ -56,9 +54,7 @@ impl App {
             return;
         }
         t.opened = true;
-        if let Some(a) = &self.agent {
-            a.send(Cmd::Open { key, known });
-        }
+        self.link.send(Cmd::Open { key, known });
     }
 
     pub fn thread(&mut self, key: &str) -> &mut Thread {
@@ -107,9 +103,7 @@ impl App {
         t.primed |= !out.command;
         t.files.push(out.sent);
         self.keep_session(&key);
-        if let Some(a) = &self.agent {
-            a.send(Cmd::Prompt { key, known, text: out.text, attach: out.attach });
-        }
+        self.link.send(Cmd::Prompt { key, known, text: out.text, attach: out.attach });
     }
 
     /// The text of a question with its context, and the file to attach: the file on screen when
@@ -234,7 +228,7 @@ impl App {
     /// Send the chat input: the chips in it bring their text as context.
     pub(crate) fn send_input(&mut self) {
         let q = self.composer.take_question();
-        if !self.agent_images && self.composer.sends_image() {
+        if !self.link.images() && self.composer.sends_image() {
             self.flash(format!("{} takes no images here: they go as file links", self.agent_label()));
         }
         let scope = self.scope();

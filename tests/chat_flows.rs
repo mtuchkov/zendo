@@ -330,7 +330,7 @@ async fn a_pasted_image_gets_its_name_from_the_name_model() {
     let mut a = app(&root);
     a.open_panel();
     a.focus = Focus::Claude;
-    until(&mut a, |a| a.agent_images).await;
+    until(&mut a, |a| a.link.images()).await;
     let png = root.join("docs/paste.png");
     std::fs::write(&png, [0x89, b'P', b'N', b'G']).unwrap();
     a.attach_pasted_image(png.clone());
@@ -340,9 +340,9 @@ async fn a_pasted_image_gets_its_name_from_the_name_model() {
     assert_eq!(a.composer.input().text(), "⟦Image: red button⟧ what is it");
     assert_eq!(a.composer.chips().iter().map(|c| c.label.as_str()).collect::<Vec<_>>(), ["⟦Image: red button⟧"]);
     assert!(a.threads.values().all(|t| t.items.is_empty()), "no message in a thread");
-    a.agent_images = false;
+    a.link.set_images(false);
     a.attach_pasted_image(png);
-    assert!(a.image_names.is_empty(), "no question without images");
+    assert!(a.link.no_image_waits(), "no question without images");
     assert!(a.composer.input().text().ends_with("⟦Image #1⟧ "), "{}", a.composer.input().text());
     let _ = std::fs::remove_dir_all(&root);
 }

@@ -16,20 +16,20 @@ impl App {
     /// Ask the name model for a name of the pasted image at `path`, where the agent takes images
     /// (CLAUDE-37, CLAUDE-39).
     pub(crate) fn name_image(&mut self, path: PathBuf) {
-        let Some(a) = self.agent.as_ref().filter(|_| self.agent_images) else { return };
+        let Some(a) = self.link.handle().filter(|_| self.link.images()) else { return };
         let key = format!("{IMAGE_PREFIX}{}", path.display());
-        if let Some(model) = self.name_model.clone() {
+        if let Some(model) = self.link.name_model() {
             a.send(Cmd::Model { key: key.clone(), model });
         }
         a.send(Cmd::Prompt { key: key.clone(), known: None, text: IMAGE_PROMPT.into(), attach: vec![Attachment::Image(path.clone())] });
-        self.image_names.insert(key, (path, String::new()));
+        self.link.name_image(key, path);
     }
 
     /// An event of a throwaway session that names an image.
     pub(crate) fn on_image_event(&mut self, e: Event) {
         match e {
-            Event::Text { key, text } => self.image_names.get_mut(&key).into_iter().for_each(|(_, buf)| buf.push_str(&text)),
-            Event::Permission { request, .. } => self.agent.iter().for_each(|a| a.send(Cmd::Answer { request, option: None })),
+            Event::Text { key, text } => self.link.image_text(&key, &text),
+            Event::Permission { request, .. } => self.link.send(Cmd::Answer { request, option: None }),
             Event::TurnEnd { key, .. } => self.image_named(&key, true),
             Event::Error { key: Some(key), .. } => self.image_named(&key, false),
             _ => {}
@@ -39,10 +39,8 @@ impl App {
     /// The naming turn ended: the name labels the chip of the image, while it is in the input
     /// (CLAUDE-38).
     fn image_named(&mut self, key: &str, ok: bool) {
-        let Some((path, buf)) = self.image_names.remove(key) else { return };
-        if let Some(a) = &self.agent {
-            a.send(Cmd::Forget { key: key.to_string() });
-        }
+        let Some((path, buf)) = self.link.take_image(key) else { return };
+        self.link.send(Cmd::Forget { key: key.to_string() });
         let has = |c: &crate::app::Chip| matches!(&c.attach, Some(Attachment::Image(p)) if *p == path);
         if let (true, Some(name), Some(old)) = (ok, image_name(&buf), self.composer.chips().iter().find(|c| has(c)).map(|c| c.label.clone())) {
             self.composer.rename_chip(&old, &format!("Image: {name}"));

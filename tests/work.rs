@@ -30,7 +30,7 @@ async fn until(app: &mut App, done: impl Fn(&App) -> bool) {
     while !done(app) {
         assert!(Instant::now() < end, "timeout");
         app.tick();
-        if let Some(rx) = app.agent_events.as_mut() {
+        if let Some(rx) = app.link.events_mut() {
             if let Ok(Some(e)) = tokio::time::timeout(Duration::from_millis(50), rx.recv()).await {
                 app.on_agent(e);
             }
@@ -88,7 +88,7 @@ async fn recaps_on_request_and_when_idle() {
     git(&root, &["commit", "-q", "-m", "add the event log"]);
     let mut a = app(&root);
     a.ensure_agent();
-    until(&mut a, |a| a.agent_name.is_some()).await;
+    until(&mut a, |a| a.link.ready()).await;
 
     // On request.
     a.recap_now();
@@ -125,7 +125,7 @@ async fn no_auto_recap_while_the_user_is_active() {
     let root = repo("active");
     let mut a = app(&root);
     a.ensure_agent();
-    until(&mut a, |a| a.agent_name.is_some()).await;
+    until(&mut a, |a| a.link.ready()).await;
     a.interact(ENGAGED);
     a.last_input = Instant::now();
     for _ in 0..10 {
@@ -146,7 +146,7 @@ async fn ctrl_r_twice_marks_the_confusing_lines() {
     a.reload();
     a.open_file(root.join(REL));
     a.ensure_agent();
-    until(&mut a, |a| a.agent_name.is_some()).await;
+    until(&mut a, |a| a.link.ready()).await;
     let ctrl_r = KeyEvent::new(KeyCode::Char('r'), KeyModifiers::CONTROL);
     a.on_key(ctrl_r);
     assert!(!a.work.review_waits(REL), "one ctrl-r waits for the second");

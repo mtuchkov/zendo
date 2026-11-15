@@ -84,9 +84,7 @@ impl App {
         self.cli_messages();
         for n in self.cli.tick().into_iter().filter(|n| *n < SESSIONS) {
             let key = session_key(n);
-            if let Some(a) = &self.agent {
-                a.send(Cmd::Forget { key: key.clone() });
-            }
+            self.link.send(Cmd::Forget { key: key.clone() });
             self.threads.remove(&key);
             if self.panel && self.active() == n {
                 self.open_session();

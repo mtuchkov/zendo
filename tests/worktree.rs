@@ -160,7 +160,7 @@ async fn the_worktree_recap_refreshes_every_10_minutes_when_it_changed() {
     write(wt.join("a.md"), "# a\n\nchanged\n");
     let mut a = tree_in(&root, View::WorktreeChanged);
     a.ensure_agent();
-    until(&mut a, |a| a.agent_name.is_some()).await;
+    until(&mut a, |a| a.link.ready()).await;
     let recap = |a: &App| a.state.files.get(".worktrees/1").and_then(|f| f.recap.as_ref()).map(|r| (r.text.clone(), r.of_hash.clone()));
 
     // The first recap.

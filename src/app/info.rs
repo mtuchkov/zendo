@@ -39,7 +39,7 @@ impl App {
     pub fn agent_short(&self) -> String {
         match self.profile() {
             Some(p) => p.name.to_lowercase(),
-            None => self.agent_name.clone().unwrap_or_default(),
+            None => self.link.name().unwrap_or_default().to_string(),
         }
     }
 

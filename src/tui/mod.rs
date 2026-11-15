@@ -76,14 +76,14 @@ pub async fn run(
                 }
             },
             Some(e) = async {
-                match app.agent_events.as_mut() {
+                match app.link.events_mut() {
                     Some(rx) => rx.recv().await,
                     None => std::future::pending().await,
                 }
             } => {
                 app.on_agent(e);
                 // Drain what else arrived so streaming text draws in one frame.
-                while let Some(rx) = app.agent_events.as_mut() {
+                while let Some(rx) = app.link.events_mut() {
                     match rx.try_recv() {
                         Ok(e) => app.on_agent(e),
                         Err(_) => break,

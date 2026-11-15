@@ -15,8 +15,8 @@ impl App {
         }
         match e {
             Event::Ready { agent, can_image, .. } => {
-                self.agent_name = Some(agent);
-                self.agent_images = can_image;
+                self.link.set_name(agent);
+                self.link.set_images(can_image);
             }
             Event::Session { key, id, resumed } => self.on_session(key, id, resumed),
             Event::Replay { key, user, text } => self.on_replay(key, user, text),
@@ -39,9 +39,7 @@ impl App {
             // The agent edits without a question to the user (CLAUDE-33); the tool line shows it.
             Event::Permission { request, choices, .. } => {
                 let allow = choices.iter().find(|c| c.allow && !c.always).or_else(|| choices.iter().find(|c| c.allow));
-                if let Some(a) = &self.agent {
-                    a.send(Cmd::Answer { request, option: allow.map(|c| c.id.clone()) });
-                }
+                self.link.send(Cmd::Answer { request, option: allow.map(|c| c.id.clone()) });
             }
             Event::Blocked { key, title } => self.thread(&key).push(Item::Blocked(title)),
             Event::TurnEnd { key, stop } => self.on_turn_end(key, stop),
@@ -70,9 +68,7 @@ impl App {
                 }
             }
             Event::Permission { request, .. } => {
-                if let Some(a) = &self.agent {
-                    a.send(Cmd::Answer { request, option: None });
-                }
+                self.link.send(Cmd::Answer { request, option: None });
             }
             Event::Error { text, .. } => {
                 if let Some(j) = self.work.job_mut() {
@@ -180,9 +176,7 @@ impl App {
     fn on_dropped(&mut self, e: Event) {
         match e {
             Event::Permission { request, .. } => {
-                if let Some(a) = &self.agent {
-                    a.send(Cmd::Answer { request, option: None });
-                }
+                self.link.send(Cmd::Answer { request, option: None });
             }
             Event::TurnEnd { key, .. } => self.thread(&key).dropped = false,
             _ => {}
@@ -191,15 +185,13 @@ impl App {
 
     fn on_exited(&mut self, text: String) {
         self.work.take_job();
-        self.agent = None;
-        self.agent_events = None;
         for t in self.threads.values_mut() {
             t.busy = None;
             t.dropped = false;
             t.primed = false;
             t.opened = false;
         }
-        self.agent_down = Some(text);
+        self.link.disconnect(text);
         let key = self.key();
         if self.holds(&key) {
             return self.hold_turn_ended(&key);

@@ -44,9 +44,7 @@ impl App {
     /// `esc` while the agent answers: stop it, and put the queued questions back into the input
     /// (CLAUDE-34).
     fn stop_answer(&mut self, key: String) {
-        if let Some(a) = &self.agent {
-            a.send(Cmd::Cancel { key: key.clone() });
-        }
+        self.link.send(Cmd::Cancel { key: key.clone() });
         self.queue_to_input(&key);
     }
 
@@ -62,9 +60,7 @@ impl App {
     }
 
     fn new_thread(&mut self, key: String) {
-        if let Some(a) = &self.agent {
-            a.send(Cmd::Forget { key: key.clone() });
-        }
+        self.link.send(Cmd::Forget { key: key.clone() });
         // A new thread is a new Claude session: the name of the old one goes (NAMES-4).
         if let Some(id) = self.state.take_session(&self.cfg.agent, &key) {
             self.state.names.remove(&id);

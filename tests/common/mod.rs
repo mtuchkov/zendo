@@ -62,7 +62,7 @@ pub async fn until(app: &mut App, done: impl Fn(&App) -> bool) {
     while !done(app) {
         assert!(Instant::now() < end, "timeout");
         app.tick();
-        match app.agent_events.as_mut() {
+        match app.link.events_mut() {
             Some(rx) => {
                 if let Ok(Some(e)) = tokio::time::timeout(Duration::from_millis(50), rx.recv()).await {
                     app.on_agent(e);

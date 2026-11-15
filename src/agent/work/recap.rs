@@ -51,7 +51,7 @@ impl App {
 
     /// The agent runs and has no job in the background.
     fn agent_free(&self) -> bool {
-        self.agent.is_some() && self.agent_name.is_some() && self.work.free()
+        self.link.running() && self.link.ready() && self.work.free()
     }
 
     pub(super) fn agent_idle(&self) -> bool {
@@ -113,9 +113,7 @@ impl App {
         let prompt = self.recap_prompt(&rel, &path, &text);
         let key = format!("{RECAP_PREFIX}{rel}");
         self.work.start(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto, failed: None, meta: None, review: false, name: None });
-        if let Some(a) = &self.agent {
-            a.send(Cmd::Prompt { key, known: None, text: prompt, attach: vec![] });
-        }
+        self.link.send(Cmd::Prompt { key, known: None, text: prompt, attach: vec![] });
     }
 
     /// The recap prompt: the file, and its changes against git HEAD, or else its last commit.
@@ -135,9 +133,7 @@ impl App {
     /// The recap turn ended: keep the text, drop the throwaway session.
     pub fn recap_done(&mut self, key: String) {
         let Some(job) = self.work.take_job() else { return };
-        if let Some(a) = &self.agent {
-            a.send(Cmd::Forget { key });
-        }
+        self.link.send(Cmd::Forget { key });
         if job.meta.is_some() {
             return self.meta_done(job);
         }
