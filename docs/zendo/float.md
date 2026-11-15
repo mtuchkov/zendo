@@ -1,13 +1,13 @@
 ---
-status: "draft"
-approved: "2026-11-13"
+status: "implemented"
+approved: "2026-11-15"
 revision: "4"
 date: "2026-11-14"
 parent: "zendo.md"
 prev: "notes-list.md"
 next: "find.md"
 level: "the new note in a float: how it opens, what it shows, how it closes"
-note: "Agent draft of the decisions of the user on 2026-11-13, approved by the user. Revision 2: the test names and kinds as in the code. Revision 3: FLOAT-16 (the float color of the theme), asked and reviewed by the user on 2026-11-14. Revision 4, draft: FLOAT-16 states that the float stands out of the theme and that its text and code read on it, asked by the user on 2026-11-14; not reviewed."
+note: "Agent draft of the decisions of the user on 2026-11-13, approved by the user. Revision 2: the test names and kinds as in the code. Revision 3: FLOAT-16 (the float color of the theme), asked and reviewed by the user on 2026-11-14. Revision 4: FLOAT-16 states that the float stands out of the theme and that its text and code read on it, asked by the user on 2026-11-14 and approved on 2026-11-15."
 ---
 
 # New note in a float
