@@ -84,7 +84,7 @@ impl App {
         let numbered: String = text.lines().enumerate().map(|(i, l)| format!("{:>4}| {l}\n", i + 1)).collect();
         let prompt = format!("{REVIEW_PROMPT}File: {rel}\n--- the file, with line numbers ---\n{numbered}");
         let key = format!("{RECAP_PREFIX}review {rel}");
-        self.recap_job = Some(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto: false, failed: None, meta: None, review: true });
+        self.recap_job = Some(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto: false, failed: None, meta: None, review: true, name: None });
         if let Some(a) = &self.agent {
             a.send(Cmd::Prompt { key, known: None, text: prompt, attach: vec![] });
         }

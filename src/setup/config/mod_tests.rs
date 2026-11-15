@@ -37,3 +37,18 @@ fn sound_goes_into_the_config_and_back() {
     assert_eq!(UserConfig::load_from(&path).sound, Some(true));
     let _ = std::fs::remove_dir_all(path.parent().unwrap());
 }
+
+// NAMES-12, NAMES-13: the model that names the agent sessions: `haiku` for Claude and `luna` for
+// Codex by default, the one of `[name_models]` in the config, none for another agent or when the
+// config sets an empty name.
+#[test]
+fn the_name_model_comes_from_the_config_with_defaults() {
+    let none = UserConfig::default();
+    assert_eq!(none.name_model(Kind::Claude).as_deref(), Some("haiku"));
+    assert_eq!(none.name_model(Kind::Codex).as_deref(), Some("luna"));
+    assert_eq!(none.name_model(Kind::Other), None);
+    let set: UserConfig = toml::from_str("[name_models]\nclaude = \"sonnet\"\ncodex = \"\"\nother = \"small\"\n").unwrap();
+    assert_eq!(set.name_model(Kind::Claude).as_deref(), Some("sonnet"));
+    assert_eq!(set.name_model(Kind::Codex), None);
+    assert_eq!(set.name_model(Kind::Other).as_deref(), Some("small"));
+}

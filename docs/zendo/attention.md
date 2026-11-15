@@ -1,7 +1,7 @@
 ---
 status: "draft"
-revision: "1"
-date: "2026-11-12"
+revision: "2"
+date: "2026-11-14"
 parent: "zendo.md"
 prev: "terminal/terminal.md"
 next: "project-structure.md"
@@ -30,7 +30,7 @@ screen and the terminal has the focus (from the focus events of the terminal; wi
 A turn that the user sees rings nothing and blinks nothing.
 
 **The blink.** The button fades to the accent color and back each 2 s; a button in the accent
-color fades to the second accent. The buttons on the right edge of the chat and in the bottom line of
+color fades to the second accent. The buttons in the chat and in the bottom line of
 the session view blink. While they are not on the screen, the top line shows each session that
 blinks, left of the sound button. The blink stops when the user sees the session.
 

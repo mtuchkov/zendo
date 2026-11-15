@@ -14,6 +14,15 @@ fn prompt_and_stop_hooks_report_messages() {
     assert!(message_hook("PreToolUse").is_none());
 }
 
+// NAMES-4: the start of a session reports its input, and no state.
+#[test]
+fn the_session_start_hook_reports_and_sets_no_state() {
+    assert!(message_hook("SessionStart").is_some());
+    let s: serde_json::Value = serde_json::from_str(&settings()).unwrap();
+    let commands: Vec<&str> = s["hooks"]["SessionStart"][0]["hooks"].as_array().unwrap().iter().filter_map(|h| h["command"].as_str()).collect();
+    assert!(commands.iter().all(|c| !c.contains("ZENDO_STATE")), "{commands:?}");
+}
+
 // CLIMSG-2, CLIMSG-5: the hook prints nothing, and appends its input as one line.
 #[test]
 fn hooks_print_nothing_and_append_one_line() {

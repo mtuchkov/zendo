@@ -15,6 +15,7 @@ pub const IDLE: Duration = Duration::from_secs(45);
 /// At most this many automatic recaps per hour.
 pub const AUTO_PER_HOUR: usize = 6;
 
+#[derive(Default)]
 pub struct RecapJob {
     pub rel: String,
     pub hash: String,
@@ -26,4 +27,6 @@ pub struct RecapJob {
     pub meta: Option<crate::agent::work::Meta>,
     /// Not a recap: the confusing lines of the file.
     pub review: bool,
+    /// Not a recap: the name of an agent session and its session ID (NAMES-1).
+    pub name: Option<(usize, String)>,
 }

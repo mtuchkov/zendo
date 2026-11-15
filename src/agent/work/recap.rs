@@ -87,7 +87,7 @@ impl App {
         if !self.agent_idle() {
             return;
         }
-        if self.review_tick() || self.meta_tick() {
+        if self.review_tick() || self.meta_tick() || self.name_tick() {
             return;
         }
         let (rel, auto) = if let Some(r) = self.recap_queue.pop_front() {
@@ -109,7 +109,7 @@ impl App {
         let Ok(text) = std::fs::read_to_string(&path) else { return };
         let prompt = self.recap_prompt(&rel, &path, &text);
         let key = format!("{RECAP_PREFIX}{rel}");
-        self.recap_job = Some(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto, failed: None, meta: None, review: false });
+        self.recap_job = Some(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto, failed: None, meta: None, review: false, name: None });
         if let Some(a) = &self.agent {
             a.send(Cmd::Prompt { key, known: None, text: prompt, attach: vec![] });
         }
@@ -137,6 +137,9 @@ impl App {
         }
         if job.meta.is_some() {
             return self.meta_done(job);
+        }
+        if job.name.is_some() {
+            return self.name_done(job);
         }
         if job.review {
             return self.review_done(job);

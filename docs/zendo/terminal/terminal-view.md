@@ -1,7 +1,7 @@
 ---
 status: "draft"
-revision: "2"
-date: "2026-11-13"
+revision: "3"
+date: "2026-11-14"
 parent: "terminal.md"
 prev: "shell-blocks.md"
 next: "terminal-output.md"
@@ -91,7 +91,7 @@ The tests are in `tests/terminal.rs`, with `/bin/sh` as the shell.
 | TERM-39 | State      | While a terminal is on the full screen, the system shall send `ctrl-o` to the shell. | User, 2026-11-12 |
 | TERM-40 | Event      | When the area of a terminal changes, the system shall set the size of the terminal to the size of the new area. | Design |
 | TERM-42 | Event      | When the user leaves a terminal that is on the full screen, or goes to a different terminal or session, the system shall stop the full screen mode of that terminal. | User, 2026-11-12 |
-| TERM-14 | Ubiquitous | The system shall show the terminal buttons under the agent buttons, after a gap with a horizontal line: first `F5`, then a `[>]` button for each open `[>]` terminal. | User, 2026-11-12 |
+| TERM-14 | Ubiquitous | The system shall show the terminal buttons on the right edge of the chat, under the place of the agent buttons there (NAMES-11), after a gap with a horizontal line: first `F5`, then a `[>]` button for each open `[>]` terminal. | User, 2026-11-12; User, 2026-11-14 |
 | TERM-48 | Unwanted   | If the keymap in effect gives the first terminal another key than `F5`, then the system shall name it `[>]`, as the other terminals. | User, 2026-11-13 |
 | TERM-15 | Ubiquitous | The system shall show the terminal buttons in the color of the text of the theme, and mark the session on the screen in the bottom line of the full screen. | User, 2026-11-12 |
 | TERM-16 | State      | While a terminal runs a command, the system shall show a busy mark on its button. | Design |

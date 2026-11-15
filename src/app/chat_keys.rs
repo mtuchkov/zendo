@@ -65,7 +65,10 @@ impl App {
         if let Some(a) = &self.agent {
             a.send(Cmd::Forget { key: key.clone() });
         }
-        self.state.take_session(&self.cfg.agent, &key);
+        // A new thread is a new Claude session: the name of the old one goes (NAMES-4).
+        if let Some(id) = self.state.take_session(&self.cfg.agent, &key) {
+            self.state.names.remove(&id);
+        }
         self.state.save(&self.cfg.root);
         self.threads.remove(&key);
         self.flash("new thread");

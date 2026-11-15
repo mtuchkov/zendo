@@ -1,10 +1,12 @@
 //! Work on files: visits that count, delta bases, and recaps Claude writes when idle.
 
 mod meta;
+mod names;
 mod recap;
 mod review;
 
 pub use meta::*;
+pub use names::pick;
 pub use review::*;
 
 use crate::agent::Cmd;

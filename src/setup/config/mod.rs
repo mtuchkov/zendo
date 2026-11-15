@@ -43,6 +43,10 @@ pub struct UserConfig {
     /// The usage counts in the data folder; default on (docs/zendo/usage.md, USAGE-14).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub usage: Option<bool>,
+    /// The model that names the agent sessions, for each agent: `claude`, `codex` or `other`; an
+    /// empty name: the default model of the agent (docs/zendo/session-names.md, NAMES-12).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub name_models: BTreeMap<String, String>,
     /// The private notes repo, when the user turned it on.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notes: Option<NotesRepo>,
@@ -107,6 +111,18 @@ impl UserConfig {
         problems.extend(read_problem);
         (map, problems)
     }
+    /// The model that names the agent sessions of an agent of `kind`: the one of `[name_models]`,
+    /// else `haiku` for Claude and `luna` for Codex (NAMES-12, NAMES-13).
+    pub fn name_model(&self, kind: Kind) -> Option<String> {
+        let (id, default) = match kind {
+            Kind::Claude => ("claude", Some("haiku")),
+            Kind::Codex => ("codex", Some("luna")),
+            Kind::Other => ("other", None),
+        };
+        let name = self.name_models.get(id).map(String::as_str).or(default)?;
+        (!name.trim().is_empty()).then(|| name.trim().to_string())
+    }
+
     pub fn load() -> Self {
         Self::load_from(&config_path())
     }

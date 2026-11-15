@@ -37,7 +37,8 @@ pub(super) async fn turn(cx: Cx, p: PromptRequest) -> Result<StopReason> {
     propose_edit(&cx, &sid, &path, n).await
 }
 
-/// The tasks of zendo that need no note: fix the structure, metadata, move notes, a recap.
+/// The tasks of zendo that need no note: fix the structure, metadata, a session name, move notes,
+/// a recap.
 async fn scripted(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, text: &str) -> Result<Option<StopReason>> {
     if text.contains("You are fixing the project structure file") {
         return fix_structure(cx, sid, text).await.map(Some);
@@ -52,6 +53,11 @@ async fn scripted(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, t
         }
         out.push_str("END");
         stream(cx, sid, &out).await?;
+        return Ok(Some(StopReason::EndTurn));
+    }
+    if text.starts_with("Name this conversation") {
+        let light = model_of(&sid.0).as_deref() == Some("mock-light");
+        stream(cx, sid, if light { "light, stub, fake" } else { "mock, stub, fake" }).await?;
         return Ok(Some(StopReason::EndTurn));
     }
     if text.contains("You are moving the notes") || text.contains("You are consolidating the notes") {

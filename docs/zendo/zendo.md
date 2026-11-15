@@ -16,6 +16,7 @@ children:
   - "work.md"
   - "claude.md"
   - "sessions.md"
+  - "session-names.md"
   - "handoff.md"
   - "cli-messages.md"
   - "zendo-session.md"

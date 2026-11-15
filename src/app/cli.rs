@@ -100,6 +100,10 @@ impl App {
     fn cli_messages(&mut self) {
         use crate::session::{Message, plain};
         for (n, m) in self.cli.messages() {
+            if let Message::Session { id, clear } = m {
+                self.claude_session_started(n, id, clear);
+                continue;
+            }
             let t = self.thread(&session_key(n));
             match m {
                 Message::Prompt(p) => match t.sent_to_cli.iter().position(|s| *s == plain(&p)) {
@@ -107,6 +111,7 @@ impl App {
                     None => t.push(Item::User(plain(&p))),
                 },
                 Message::Answer(a) => t.push(Item::Agent(a)),
+                Message::Session { .. } => {}
             }
         }
     }

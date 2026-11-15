@@ -4,7 +4,7 @@ revision: "10"
 date: "2026-11-14"
 parent: "zendo.md"
 prev: "claude.md"
-next: "handoff.md"
+next: "session-names.md"
 level: "Claude Code sessions that zendo runs: open, leave, states, up to five at a time"
 note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
