@@ -96,8 +96,10 @@ are a few keys away. Agents read the same file, so they know where a new
 document goes.
 
 ```sh
-zendo doctor          # makes the file from a template when there is none
-zendo doctor --fix    # the agent repairs a file that zendo does not understand
+zendo init                     # makes the file from a template when there is none
+zendo doctor                   # checks the file, and changes nothing
+zendo doctor --fix             # repairs what needs no judgement
+zendo doctor --fix --claude    # the agent repairs what zendo does not understand
 ```
 
 **From notes to a specification.** `ctrl-t` in the chat adds a template. The

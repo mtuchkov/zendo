@@ -10,7 +10,7 @@ note: "Agent draft from the bug report of the user on 2026-11-12: the wheel and 
 
 # Terminal mouse
 
-zendo takes the mouse of the terminal of the user (see [Panes](../panes.md)). A terminal of zendo and
+zendo takes the mouse of the terminal of the user (see [Text selection](../panes/selection.md)). A terminal of zendo and
 a Claude Code session run a program in a terminal that zendo owns, so zendo decides who gets each
 mouse event over that screen: the program or zendo. The rules are the same in the chat pane and on
 the full screen, and the same for a terminal and for a Claude Code session.

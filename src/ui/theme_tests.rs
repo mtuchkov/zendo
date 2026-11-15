@@ -24,3 +24,11 @@ fn mix_gives_the_ends_and_the_middle() {
     assert_eq!(mix(Color::Reset, b, 0.4), Color::Reset, "no RGB: the nearer end");
     assert_eq!(mix(Color::Reset, b, 0.6), b);
 }
+
+// FLOAT-16: each theme has a float color of its own, not the color of the note or of the side panes.
+#[test]
+fn each_theme_has_a_float_color_of_its_own() {
+    for t in THEMES {
+        assert!(t.float != t.bg && t.float != t.panel, "{}", t.name);
+    }
+}

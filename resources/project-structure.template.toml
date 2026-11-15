@@ -1,12 +1,12 @@
 # Project structure of {{NAME}}: what lives where. Folders, and files only when they matter to the
 # whole project. People read `about`; zendo shows the `main` entries as the default file tree, in
-# reading order; agents follow the `claude` rules. `zendo doctor` made this file from the zendo
+# reading order; agents follow the `claude` rules. `zendo init` made this file from the zendo
 # template and kept only the entries whose paths are in the repository: change it as you need.
 
 [meta]
 status = "draft"
 date = "{{DATE}}"
-note = "Made by zendo doctor from its template."
+note = "Made by zendo init from its template."
 
 [project]
 name = "{{NAME}}"

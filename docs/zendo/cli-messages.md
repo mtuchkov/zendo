@@ -4,7 +4,7 @@ revision: "1"
 date: "2026-11-13"
 parent: "zendo.md"
 prev: "handoff.md"
-next: "chat.md"
+next: "zendo-session.md"
 level: "the messages of a running Claude Code session in the chat of its agent session: where they come from, what shows, when they go"
 note: "Agent draft from the decision of the user on 2026-11-13 in chat. Not reviewed by the user as a document. The requirement IDs are proposals until the user reviews this document."
 ---

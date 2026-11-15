@@ -6,7 +6,7 @@ date: "2026-11-14"
 parent: "files.md"
 prev: "files-worktree.md"
 level: "the recap of the changes of a worktree at the bottom of the worktree views, and when it is written again"
-note: "Agent draft from the requests of the user on 2026-11-14, split from files-worktree.md. Approved by the user on 2026-11-14. Implemented in zendo 0.60.0. Depends on Work (../work.md, draft)."
+note: "Agent draft from the requests of the user on 2026-11-14, split from files-worktree.md. Approved by the user on 2026-11-14. Implemented in zendo 0.62.0. Depends on Work (../work.md, draft)."
 ---
 
 # File tree: worktree recap

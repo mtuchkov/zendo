@@ -66,3 +66,9 @@ fn the_help_shows_the_details_of_the_version_only_for_a_build_with_changes() {
     assert_eq!(help_version_for(false, home), format!("zendo {}", env!("CARGO_PKG_VERSION")));
     assert_eq!(help_version_for(true, home), version_line_in(home));
 }
+
+// CMD-8: after an upgrade, the new program runs `zendo doctor --fix`.
+#[test]
+fn an_upgrade_ends_with_doctor_fix() {
+    assert_eq!(AFTER_UPGRADE, ["doctor", "--fix"]);
+}

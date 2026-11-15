@@ -1,6 +1,6 @@
 ---
 status: "draft"
-revision: "8"
+revision: "10"
 date: "2026-11-14"
 parent: "zendo.md"
 prev: "claude.md"
@@ -16,22 +16,22 @@ A *Claude Code session* is a Claude Code process that zendo runs for one of its 
 when the user goes back to zendo: one researches while the user discusses in another. See
 [ADR 0005](../architecture/decisions/0005-sessions-in-own-terminals.md).
 
-**Open and leave.** `ctrl-o` in the chat opens the Claude Code session of the active agent session.
-zendo starts it first if necessary. While the chat answers, `ctrl-o` waits for the end of the turn (see [Hand-off during a turn](handoff.md)). The session view takes the whole screen, with a bottom line of
-zendo. All input goes to Claude Code, except `alt-q` (back to zendo; the same key leaves a terminal
-of [Terminal](terminal/terminal.md)) `F5` to `F10` (another session, or the `F5` terminal), `alt-]` and `alt-[` (`alt-}` on macOS) (the next and the previous
-session), `alt-n` (a new note in a [float](float.md)) and `alt-/` ([find](find.md)). When Claude
+**Open and leave.** `ctrl-o` in the chat opens the Claude Code session of the active agent session,
+and starts it first if necessary. While the chat answers, `ctrl-o` waits for the end of the turn
+([Hand-off during a turn](handoff.md)). The session view takes the whole screen, with a bottom line
+of zendo. All input goes to Claude Code, except `alt-q` (back to zendo), `F5` to `F10`, `alt-]` and
+`alt-[` (`alt-}` on macOS), `alt-n` ([float](float.md)) and `alt-/` ([find](find.md)). When Claude
 Code exits, zendo goes back.
 
-**States.** Each running Claude Code session has one state: *works*, *waits* (for an answer or a
-permission of the user), or *idle* (the turn ended). The session buttons, the chat of the agent
-session and the bottom line of the session view show it. Claude Code itself tells zendo the state. When a turn ends while the user is elsewhere, the bell rings and the
-button blinks (see [Attention](attention.md)).
+**States.** Each running Claude Code session has one state, which Claude Code itself tells zendo:
+*works*, *waits* (for an answer or a permission of the user), or *idle* (the turn ended). The
+session buttons, the chat of the agent session and the bottom line of the session view show it.
+[Attention](attention.md) has the bell and the blinking button.
 
 **One writer for a thread.** While a Claude Code session runs, a question in its chat goes to Claude
-Code, not through ACP; Claude Code queues it while it works. When the Claude Code session ends, zendo
-opens the agent session again, so the chat shows what happened there. While Claude Code runs, the
-chat shows its prompts and answers (see [Claude Code messages in the chat](cli-messages.md)).
+Code, not through ACP; Claude Code queues it while it works. The chat shows its prompts and answers
+([Claude Code messages in the chat](cli-messages.md)). When the session ends, zendo opens the agent
+session again.
 
 **Quit.** A Claude Code session lives while zendo runs; the conversation stays. If sessions run,
 the first quit asks. With Codex these keys are off (CLAUDE-14).
@@ -49,8 +49,7 @@ the first quit asks. With Codex these keys are off (CLAUDE-14).
 
 ### Acceptance tests
 
-The **mock command line** replaces `claude`: it prints a counter each 100 ms, reports a state on a
-key, echoes a line, and exits on `q`. The tests are in `tests/sessions.rs`.
+The **mock command line** replaces `claude`. The tests are in `tests/sessions.rs`.
 
 **`left_sessions_keep_running`** (mock command line; verifies SESSIONS-1, SESSIONS-2, SESSIONS-3)
 
@@ -93,15 +92,12 @@ key, echoes a line, and exits on `q`. The tests are in `tests/sessions.rs`.
 | SESSIONS-18 | Ubiquitous | The system shall not change the settings files of Claude Code of the user, except the zendo section of SESSIONS-22.                                                                        | Design           |
 | SESSIONS-19 | Event      | When the user quits again within 5 s of the question, the system shall stop each Claude Code session and quit.                                     | Design           |
 | SESSIONS-20 | State      | While a Claude Code session runs, the system shall show its state at the end of the chat of its agent session, with a spinner while it works.      | User, 2026-11-12 |
-| SESSIONS-21 | Ubiquitous | The system shall start each Claude Code session and the chat of each agent session with the MCP server `zendo` of its session, whose instructions name the id of that zendo session and the rules of its worktree, and whose tool `session` returns the same id. | User, 2026-11-13 |
-| SESSIONS-22 | Event | When `zendo doctor` runs, the system shall write a section into both files of instructions of the user, `CLAUDE.md` of Claude Code and `AGENTS.md` of Codex, between `<!-- zendo -->` and `<!-- /zendo -->`, that tells a session that zendo runs to follow the instructions of the MCP server `zendo`, and replace only that section. | User, 2026-11-14 |
 
 Test of SESSIONS-20: `chat_shows_the_state_of_its_claude_code_session` in `tests/sessions.rs`.
-Tests of SESSIONS-21: `tests/mcp.rs` and `src/mcp/mod_tests.rs`.
-Tests of SESSIONS-22: `doctor_writes_the_zendo_section_of_the_user` and
-`doctor_makes_the_file_but_no_folder_for_the_user_section` in `src/setup/doctor/project_tests.rs`.
+SESSIONS-21 and SESSIONS-22, on what zendo tells the agent of a session, are in
+[zendo session](zendo-session.md).
 
-Retired in revision 4: SESSIONS-15 (zendo refused `ctrl-o` while the chat answered). [Hand-off during a turn](handoff.md) replaces it. Revision 3 changed SESSIONS-4 and added SESSIONS-20. Revision 6 added SESSIONS-21. Revision 7 changed SESSIONS-21: the instructions of the server carry the id and the worktree rules. Revision 8 added SESSIONS-22 and its exception in SESSIONS-18.
+Retired in revision 4: SESSIONS-15 (zendo refused `ctrl-o` while the chat answered); [Hand-off during a turn](handoff.md) replaces it. Revision 10 moved SESSIONS-21 and SESSIONS-22 to [zendo session](zendo-session.md).
 
 ## Open points
 

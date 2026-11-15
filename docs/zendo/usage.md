@@ -15,7 +15,8 @@ zendo counts how often the user does each action, and in which pane. The counts 
 the user. The user reads them later to decide which key hints zendo shows, and where. zendo itself
 does not read them: the hints do not change while zendo runs.
 
-The keymap, the panes and the key hints are in [Panes and layouts](panes.md).
+The panes are in [Panes and layouts](panes/panes.md), and the keymap and the key hints in
+[Keys, hints and help](panes/keymap.md).
 
 ## What zendo counts
 

@@ -26,22 +26,6 @@ pub fn structure_problem(root: &Path) -> Option<Problem> {
     }
 }
 
-/// Ask on a terminal; `false` when nobody can answer.
-pub(super) fn ask_yes(question: &str) -> bool {
-    use std::io::{IsTerminal, Write};
-    if !std::io::stdin().is_terminal() || !std::io::stdout().is_terminal() {
-        return false;
-    }
-    print!("{question}");
-    let _ = std::io::stdout().flush();
-    let mut line = String::new();
-    if std::io::stdin().read_line(&mut line).is_err() {
-        return false;
-    }
-    let a = line.trim().to_lowercase();
-    a.is_empty() || a == "y" || a == "yes"
-}
-
 pub(super) fn problem_text(p: &Problem) -> String {
     match p {
         Problem::Missing => "The file does not exist yet.".into(),
@@ -59,11 +43,16 @@ pub(super) fn same_file(a: &Path, b: &Path) -> bool {
     canon(a) == canon(b)
 }
 
-/// Fix the structure file: by zendo when no judgement is needed, else by Claude.
-/// Claude may edit only the structure file; zendo refuses everything else.
-pub(super) async fn fix_structure(paths: &Paths, agent_flag: Option<String>, problem: Problem, o: &mut Out) -> bool {
+/// Fix the structure file: by zendo when no judgement is needed, else by Claude when `claude` is
+/// set (STRUCT-2). Claude may edit only the structure file; zendo refuses everything else.
+pub(super) async fn fix_structure(paths: &Paths, agent_flag: Option<String>, problem: Problem, claude: bool, o: &mut Out) -> bool {
     let target = paths.root.join(crate::docs::structure::FILE);
     let before = std::fs::read_to_string(&target).ok();
+    let quick = before.as_deref().and_then(crate::docs::structure::quick_fix);
+    // Nothing that zendo can repair by itself, and no agent: no copy and no change.
+    if quick.is_none() && !claude {
+        return false;
+    }
     o.head(&format!("fix {}", crate::docs::structure::FILE));
 
     // A copy first, outside the repo.
@@ -79,7 +68,7 @@ pub(super) async fn fix_structure(paths: &Paths, agent_flag: Option<String>, pro
 
     // 1. What needs no judgement.
     let mut problem = problem;
-    if let Some((fixed, changed)) = before.as_deref().and_then(crate::docs::structure::quick_fix) {
+    if let Some((fixed, changed)) = quick {
         if std::fs::write(&target, &fixed).is_ok() {
             o.ok("zendo fixed", format!("{} thing{}", changed.len(), if changed.len() == 1 { "" } else { "s" }));
             o.more(changed.join("\n"));
@@ -88,6 +77,9 @@ pub(super) async fn fix_structure(paths: &Paths, agent_flag: Option<String>, pro
             None => return report_fix(paths, before.as_deref(), None, o),
             Some(p) => problem = p,
         }
+    }
+    if !claude {
+        return report_fix(paths, before.as_deref(), None, o);
     }
 
     // 2. Claude, with the instructions from zendo's resources.
@@ -207,7 +199,7 @@ pub(super) fn report_fix(paths: &Paths, before: Option<&str>, answer: Option<&st
         Some(p) => {
             o.fail("structure", "zendo still does not understand it");
             o.more(problem_text(&p));
-            o.hint("Run `zendo doctor --fix` again, or fix it by hand. The format is in resources/project-structure.md in the zendo repo.");
+            o.hint("Run `zendo doctor --fix --claude`, or fix it by hand. The format is in resources/project-structure.md in the zendo repo.");
             false
         }
     }

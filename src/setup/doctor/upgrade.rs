@@ -154,6 +154,9 @@ pub async fn update_available() -> Option<String> {
     Some(head[..7.min(head.len())].to_string())
 }
 
+/// What the new program runs after an upgrade, to bring the state to its version (CMD-8).
+pub(super) const AFTER_UPGRADE: [&str; 2] = ["doctor", "--fix"];
+
 /// Built from your clone: pull it (fast-forward only) and build it again.
 pub(super) async fn upgrade_clone(src: &Path, force: bool, o: &mut Out) -> bool {
     let exe = std::env::current_exe().unwrap_or_else(|_| PathBuf::from("zendo"));
@@ -196,10 +199,10 @@ pub(super) async fn upgrade_clone(src: &Path, force: bool, o: &mut Out) -> bool 
     let _ = std::fs::remove_file(config::data_dir().join("update.json"));
     let new = std::process::Command::new(&exe).arg("--version").output().map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string()).unwrap_or_default();
     o.ok("upgraded", new);
-    std::process::Command::new(&exe).arg("setup").status().is_ok_and(|s| s.success())
+    std::process::Command::new(&exe).args(AFTER_UPGRADE).status().is_ok_and(|s| s.success())
 }
 
-/// `zendo upgrade`: build the latest `main` from GitHub when it is newer, then run setup.
+/// `zendo upgrade`: build the latest `main` from GitHub when it is newer, then run `zendo doctor --fix`.
 pub async fn upgrade(force: bool) -> bool {
     let mut o = Out::new();
     o.head("zendo upgrade");
@@ -256,5 +259,5 @@ pub async fn upgrade(force: bool) -> bool {
     let new = std::process::Command::new(&exe).arg("--version").output().map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string()).unwrap_or_default();
     let _ = std::fs::remove_file(config::data_dir().join("update.json"));
     o.ok("upgraded", format!("zendo {} → {}", env!("CARGO_PKG_VERSION"), new.trim_start_matches("zendo ")));
-    std::process::Command::new(&exe).arg("setup").status().is_ok_and(|s| s.success())
+    std::process::Command::new(&exe).args(AFTER_UPGRADE).status().is_ok_and(|s| s.success())
 }

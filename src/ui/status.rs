@@ -119,7 +119,7 @@ fn status_right(app: &App, claude: bool) -> String {
         return s;
     }
     if app.structure_missing() && !claude {
-        return format!("no {} · run zendo doctor", crate::docs::structure::FILE);
+        return format!("no {} · run zendo init", crate::docs::structure::FILE);
     }
     if claude {
         return if app.agent_name.is_some() { app.agent_short() } else { String::new() };
