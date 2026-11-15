@@ -12,9 +12,10 @@ pub mod cursor_map;
 pub mod chips;
 mod composer;
 mod events;
+mod effect;
 mod files;
-mod files_new;
-mod files_ops;
+mod files_apply;
+mod files_state;
 mod find;
 mod float;
 mod jobs;
@@ -45,7 +46,10 @@ pub mod version;
 pub use at::{AT_ROWS, AtKey, AtPick};
 pub use composer::Composer;
 pub use attention::Attention;
+pub use effect::Effect;
 pub use file_prompt::FilePrompt;
+pub use files_state::Files;
+pub use files_state::tree_keys::{FilterKey, Picked};
 pub use find::{Find, FindItem};
 pub use float::Float;
 pub use jobs::*;
@@ -111,9 +115,8 @@ pub struct App {
     pub cfg: Config,
     /// Commits and pushes the notes repo in the background.
     pub syncer: Option<crate::setup::sync::Syncer>,
-    pub store: Store,
-    pub notes: Vec<Note>,
-    pub current: Option<PathBuf>,
+    /// The documents and the open one, the file tree, the find panel, the questions about a file.
+    pub files: Files,
     pub mode: Mode,
     pub back: Mode,
     /// The pane whose keys the help shows.
@@ -159,8 +162,6 @@ pub struct App {
     pub delta_scroll: usize,
     pub visit: Option<Visit>,
     pub recap_job: Option<RecapJob>,
-    /// The worktree views: the popup before a file action, the recap timer.
-    pub worktree: WorktreeUi,
     pub recap_queue: VecDeque<String>,
     pub reviews: crate::agent::work::Reviews,
     /// Files to get a title or front matter from the agent, after write mode.
@@ -171,8 +172,6 @@ pub struct App {
     pub name_model: Option<String>,
     /// The pasted images that the name model names: by session key, the file and the answer so far.
     pub image_names: HashMap<String, (PathBuf, String)>,
-    /// `m` or `u` held in read mode: the version of `main` or of the disk (FILES-45, FILES-47).
-    pub peek: version::Peek,
     pub auto_recaps: Vec<Instant>,
     #[default(Instant::now())]
     pub last_input: Instant,
@@ -183,28 +182,14 @@ pub struct App {
     pub update_rx: Option<tokio::sync::oneshot::Receiver<Option<String>>>,
     /// Quit, upgrade, and start again.
     pub upgrade_now: bool,
-    pub tree: crate::docs::tree::Tree,
-    /// Why `project-structure.toml` does not parse, if it does not.
-    pub structure_error: Option<String>,
-    pub structure_seen: Option<std::time::SystemTime>,
-    /// Files opened from the tree outside the notes folder.
-    pub extra: Vec<PathBuf>,
     /// The last `alt-o`: the index of its terminal, and the input before it (TERM-28).
     pub(crate) output_pick: Option<(usize, Vec<String>, usize, usize)>,
-    /// `delete`, `f2` or `m` on a file: the question in the status bar.
-    pub file_prompt: Option<FilePrompt>,
     /// The width of the text column from the config, when the repository sets none.
     pub width_default: u16,
     /// `alt-n`: the new note in a float; the screen behind waits in it (FLOAT-1).
     pub float: Option<Float>,
-    /// `alt-/`: the find panel and the recent files (FIND-1).
-    pub find: Find,
     /// `ctrl-shift-s`: the arrow in the note, until the answer ends or `esc`.
     pub say: Option<Say>,
-    /// Notes folder fingerprint (count and newest change), checked every second.
-    pub disk: (usize, Option<std::time::SystemTime>),
-    #[default(Instant::now())]
-    pub disk_checked: Instant,
 
     pub flash: Option<(String, Instant)>,
     /// The counts of the actions of the user; off until the start turns them on (USAGE-1).

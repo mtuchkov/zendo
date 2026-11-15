@@ -21,7 +21,7 @@ pub fn pane_width(app: &App, p: Focus, total: u16) -> u16 {
 /// Wide screen: every open pane side by side.
 pub fn panes(app: &App, width: u16) -> Vec<Focus> {
     let chat = app.panel;
-    let delta = app.delta_open && app.current.is_some() && app.threads.pinned().is_none();
+    let delta = app.delta_open && app.files.current().is_some() && app.threads.pinned().is_none();
     let mut p = Vec::new();
     if app.state.wide() {
         // Wide: note | chat | delta.
@@ -104,9 +104,9 @@ pub(crate) fn draw_top(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, 
         _ => match app.threads.pinned() {
             Some(ALL_KEY) => format!("{} · all notes", app.rel(&app.cfg.notes_dir)),
             // FILES-45, FILES-47: a held key names the version that it shows.
-            _ if app.peek.on.is_some() => {
-                let doc = app.current.as_ref().and_then(|p| app.doc_rel(p)).unwrap_or_default();
-                format!("{} · {doc}", app.peek.on.map_or("", |o| o.name()))
+            _ if app.files.peek().on.is_some() => {
+                let doc = app.files.current().and_then(|p| app.doc_rel(p)).unwrap_or_default();
+                format!("{} · {doc}", app.files.peek().on.map_or("", |o| o.name()))
             }
             // FILES-34: a file of a worktree names its worktree.
             _ => app.note().map(|n| crate::docs::tree::worktree::label(&app.rel(&n.path))).unwrap_or_else(|| app.rel(&app.cfg.notes_dir)),

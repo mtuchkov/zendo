@@ -85,7 +85,7 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
         return draw_selection(f, app, &t);
     }
     f.render_widget(Block::new().style(Style::new().bg(t.bg).fg(t.fg)), area);
-    let ask = u16::from(app.file_prompt.is_some());
+    let ask = u16::from(app.files.prompt().is_some());
     let [top, _, main, rule, status, prompt] = Layout::vertical([
         Constraint::Length(1),
         Constraint::Length(1),

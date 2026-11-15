@@ -33,7 +33,7 @@ impl App {
 impl App {
     /// Recap the note on screen now.
     pub fn recap_now(&mut self) {
-        let Some(path) = self.current.clone() else { return };
+        let Some(path) = self.files.current().cloned() else { return };
         let rel = self.rel(&path);
         if self.recap_job.as_ref().is_some_and(|j| j.rel == rel) || self.recap_queue.contains(&rel) {
             self.flash("the recap is on its way");
@@ -159,7 +159,7 @@ impl App {
         let rel = job.rel.clone();
         self.state.file(&rel).recap = Some(Recap { text, of_hash: job.hash, of_text: job.text, at: Local::now(), auto: job.auto });
         self.state.save(&self.cfg.root);
-        let title = self.notes.iter().find(|n| self.rel(&n.path) == rel).map(|n| n.title.clone()).unwrap_or(rel);
+        let title = self.files.notes().iter().find(|n| self.rel(&n.path) == rel).map(|n| n.title.clone()).unwrap_or(rel);
         self.flash(format!("recap ready: {title}"));
     }
 }

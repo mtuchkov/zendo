@@ -12,10 +12,9 @@ sources:
 
 `App` in `src/app/mod.rs` holds about 116 public fields, and 36 submodules each add an `impl App`
 block. Each function can read and write each field, so the split into modules gives no isolation.
-Three kinds of state share the struct: domain state (the open note, the threads, the agent
-sessions), view state (cursors, scroll positions, the selection), and the frame cache (what the
-last draw left for the mouse and the keys). The frame cache is the worst case: `ui` writes it and
-`app` reads it, so drawing and key handling depend on each other through fields without an owner.
+Domain state, view state and the frame cache (what the last draw left for the mouse and the keys)
+share the struct. The frame cache is the worst case: `ui` writes it and `app` reads it, so drawing
+and key handling depend on each other through fields without an owner.
 
 The split changes no behavior that a user can see. It adds no requirement to a specification.
 
@@ -41,46 +40,45 @@ fields at the cost of mechanical changes, and it needs no new runtime structure.
   effect, and `App` shall apply it. A sub-state shall change its own fields directly.
 - `ui` shall build a new `Frame` in each draw, from the last one, and `App` shall store it. Only
   `ui` shall write the fields of a `Frame`; the app shall read them through methods.
-- WHILE `ui` draws, the app has no frame. A function of the app that `ui` calls in a draw shall not
-  read the stored frame.
+- WHILE `ui` draws, a function of the app that `ui` calls shall not read the stored frame.
 - WHEN the split is complete, no file in `src/ui/` shall assign to a field of `App`.
 
-Six points differ from the note:
+Seven points differ from, or settle, the note:
 
 1. **The frame starts from the last one, not empty.** A draw writes only what it shows: write mode
    does not render the read rows. The keys of the next mode read the values of the last draw that
    had them. An empty frame in each draw changes behavior.
 2. **`ui` corrects view state in a draw, through one method of the sub-state.** The layout is known
-   only in the draw, and the rest of the same draw needs the corrected scroll and cursor. A draw
-   that returns corrections has to keep two copies of these values in step. So `ui` calls a method
-   of the sub-state (`Reader::fit`, `Threads::fit`), which changes its own fields.
+   only in the draw, and the rest of the same draw needs the corrected scroll and cursor. So `ui`
+   calls a method of the sub-state (`Reader::fit`, `Threads::fit`, `Files::fit_tree`).
 3. **The word count is part of the frame.** The draw computes it; the status bar and the split
    read it.
-4. **`peek` is not view state.** It names the version of the document on the screen (FILES-45,
-   FILES-47). It stays on `App` until the step of `Files`.
+4. **`peek` is in `Files`, not in `Reader`.** It names the version of the document on the screen
+   (FILES-45, FILES-47).
 5. **`Chat` is two sub-states** (decision of the user, 2026-11-15). `Composer` holds what goes
-   into the next question: the input, the chips, the attachments, the suggestions, the context.
-   `Threads` holds the threads, the transcript cursor, the pinned thread and the scroll of the
-   chat pane. `ask`, `dispatch` and `open_panel` stay on `App`: they join the composer, the
-   threads, the agent and the editor. So no effect type is needed before `Files`.
-6. **`tab_run` stays on `App`, and the width of the input is part of the frame.** The run of
-   `tab`s moves the focus between panes; the draw computes the width.
+   into the next question; `Threads` holds the threads and how the chat pane shows them. `ask`,
+   `dispatch` and `open_panel` stay on `App`: they join both with the agent and the editor.
+6. **`tab_run` stays on `App`, and the width of the input is part of the frame.**
+7. **`Files` holds the whole group of the note** (decision of the user, 2026-11-15): the documents
+   and the open one, the tree, the find panel, the questions about a file. It does the file
+   actions on disk and returns an `Effect`; `App::apply` moves the thread and the session, scans
+   the tree and sets the focus. The effects are `Flash`, `Deleted`, `Moved`, `MadeFile` and
+   `MadeFolder`. The find panel and the held key stay code of `App`: they change the mode, the
+   focus and the saved state.
 
 The order of work is one commit for each step, without a change of behavior: `Frame`; `Reader` and
 `Pointer`; `Composer` and `Threads`; `Files`, then `Review`; `AgentLink` and `Sessions`.
 
 ## Consequences
 
-- The integration tests in `tests/` reach the fields through the sub-states: `a.frame.read_text()`
-  in place of `a.read_text`. This is most of the diff.
+- The integration tests reach the fields through the sub-states: `a.frame.read_text()` in place
+  of `a.read_text`. This is most of the diff.
 - `ui::draw` takes the last frame and returns the next one. `App::draw` stores it; the event loop
   and the tests call `App::draw`.
 - The float (`src/app/float.rs`) swaps fields of several sub-states with the screen behind it. Each
   sub-state that it touches needs a swap method of its own.
-- Each sub-state with an `Instant::now()` default needs its own `Default`.
 - The effect type can grow into a second `App`. It shall hold cross-state effects only.
-- Some fields (`notes`, `current`, `visit`) are read from several groups. The step of their group
-  decides whether they stay on `App` or get a read-only method.
+- `notes` and `current` are read from many modules: they have read-only methods on `Files`.
 
 ## Verification
 
@@ -88,11 +86,12 @@ The order of work is one commit for each step, without a change of behavior: `Fr
 - `App` has fewer than 30 fields, and no field of the frame cache.
 - No file in `src/ui/` assigns to a field of `App`.
 - Each sub-state has a `*_tests.rs` file that builds it without an `App`.
-- State of the steps: `Frame` (`src/ui/frame.rs`), `Reader`, `Pointer`, `Composer` and `Threads`
-  (`src/app/`) are done, each with a `*_tests.rs` file. `App` has 73 fields. Open: `Files`,
-  `Review`, `AgentLink`, `Sessions`, `Writer`; the public fields of `Transcript`.
+- State of the steps: `Frame` (`src/ui/frame.rs`), `Reader`, `Pointer`, `Composer`, `Threads` and
+  `Files` (`src/app/`) are done, each with a `*_tests.rs` file. `App` has 61 fields. Open:
+  `Review`, `AgentLink`, `Sessions`, `Writer`. Not yet private: the fields of `Transcript`, and the
+  tree, the find panel and the worktree popup of `Files` inside `src/app/`.
 
 ## Decision record
 
-Proposed by the agent from the note of the user, 2026-11-15. The user decided point 5 on
+Proposed by the agent from the note of the user, 2026-11-15. The user decided points 5 and 7 on
 2026-11-15. The rest is not reviewed.

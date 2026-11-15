@@ -46,7 +46,7 @@ impl App {
     }
 
     pub(crate) fn key_notes(&mut self, act: Option<&str>) {
-        let n = self.notes.len();
+        let n = self.files.notes().len();
         match act {
             Some("close") => self.mode = Mode::Read,
             Some("down") if n > 0 => self.notes_sel = (self.notes_sel + 1).min(n - 1),
@@ -54,7 +54,7 @@ impl App {
             Some("top") => self.notes_sel = 0,
             Some("bottom") => self.notes_sel = n.saturating_sub(1),
             Some("open") if n > 0 => {
-                self.current = Some(self.notes[self.notes_sel].path.clone());
+                self.files.show_note(self.notes_sel);
                 self.reader.to_start();
                 self.threads.unpin();
                 self.mode = Mode::Read;
@@ -71,9 +71,9 @@ impl App {
 
     /// Rename the file to match its title, keeping the date.
     pub(crate) fn rename(&mut self, i: usize) {
-        let note = &self.notes[i];
+        let note = &self.files.notes()[i];
         let date = note.created.unwrap_or_else(|| note.modified.date_naive());
-        let target = self.store.dir.join(format!("{}-{}.md", date.format("%Y-%m-%d"), notes::slug(&note.title)));
+        let target = self.files.store().dir.join(format!("{}-{}.md", date.format("%Y-%m-%d"), notes::slug(&note.title)));
         if target == note.path {
             self.flash("the file name already matches the title");
             return;
@@ -85,7 +85,7 @@ impl App {
         let old = note.path.clone();
         match self.move_file(&old, &target) {
             Ok(()) => {
-                self.notes_sel = self.notes.iter().position(|n| n.path == target).unwrap_or(0);
+                self.notes_sel = self.files.notes().iter().position(|n| n.path == target).unwrap_or(0);
                 self.flash(format!("renamed to {}", self.rel(&target)));
             }
             Err(e) => self.flash(format!("rename failed: {e}")),
@@ -99,7 +99,7 @@ impl App {
     }
 
     pub(crate) fn run_search(&mut self) {
-        self.results = if self.query.starts_with('?') { vec![] } else { search::search(&self.notes, &self.query) };
+        self.results = if self.query.starts_with('?') { vec![] } else { search::search(self.files.notes(), &self.query) };
         self.result_sel = 0;
     }
 
@@ -123,7 +123,7 @@ impl App {
                 }
                 if let Some(g) = self.results.get(self.result_sel) {
                     let line = g.snippets.first().map(|s| s.line).unwrap_or(0);
-                    self.current = Some(self.notes[g.note].path.clone());
+                    self.files.show_note(g.note);
                     self.threads.unpin();
                     self.mode = Mode::Read;
                     let rows = crate::ui::source_rows(self, self.frame.text_width());

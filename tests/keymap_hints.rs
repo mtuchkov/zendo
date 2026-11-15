@@ -125,7 +125,7 @@ fn the_screen_without_notes_names_its_keys() {
 fn the_empty_docs_view_names_the_view_key() {
     let (root, mut a) = without_notes("hints-tree");
     a.state.tree = true;
-    a.tree.view = View::Docs;
+    a.files.tree_mut().view = View::Docs;
     a.focus = Focus::Tree;
     let s = screen(&mut a);
     assert!(s.contains("Press V to show all."), "{s}");

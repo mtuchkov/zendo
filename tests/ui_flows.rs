@@ -22,7 +22,7 @@ fn in_tree(root: &std::path::Path, rel: &str) -> zendo::app::App {
     a.toggle_tree();
     draw(&mut a, 140, 30);
     a.focus = Focus::Tree;
-    a.tree.sel = a.tree.rows().iter().position(|r| r.rel.ends_with(rel)).unwrap_or_else(|| panic!("{rel} in the tree"));
+    a.files.tree_mut().sel = a.files.tree().rows().iter().position(|r| r.rel.ends_with(rel)).unwrap_or_else(|| panic!("{rel} in the tree"));
     a
 }
 
@@ -32,7 +32,7 @@ fn m_moves_a_file_to_a_folder() {
     let root = repo("flow-move", &files());
     let mut a = in_tree(&root, "zendo/notes.md");
     key(&mut a, KeyCode::Char('m'));
-    assert!(matches!(a.file_prompt, Some(FilePrompt::Move(..))));
+    assert!(matches!(a.files.prompt(), Some(FilePrompt::Move(..))));
     let screen = draw(&mut a, 140, 30);
     assert!(screen[29].contains("MOVE") && screen[29].contains("docs/zendo"), "the last row: {}", screen[29]);
     (0..10).for_each(|_| key(&mut a, KeyCode::Backspace));
@@ -48,13 +48,13 @@ fn f4_starts_in_the_folder_of_the_selection_and_tab_completes() {
     let root = repo("flow-new", &files());
     let mut a = in_tree(&root, "zendo/notes.md");
     key(&mut a, KeyCode::F(4));
-    assert_eq!(a.file_prompt, Some(FilePrompt::NewFolder("docs/zendo/".into())));
+    assert_eq!(a.files.prompt().cloned(), Some(FilePrompt::NewFolder("docs/zendo/".into())));
     key(&mut a, KeyCode::Esc);
     key(&mut a, KeyCode::F(3));
     (0..11).for_each(|_| key(&mut a, KeyCode::Backspace));
     typ(&mut a, "docs/zen");
     key(&mut a, KeyCode::Tab);
-    assert_eq!(a.file_prompt, Some(FilePrompt::NewFile("docs/zendo/".into())));
+    assert_eq!(a.files.prompt().cloned(), Some(FilePrompt::NewFile("docs/zendo/".into())));
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -66,10 +66,10 @@ fn esc_in_the_filter_keeps_the_match_selected() {
     key(&mut a, KeyCode::Char('/'));
     typ(&mut a, "notes");
     key(&mut a, KeyCode::Down);
-    let picked = a.tree.rows()[a.tree.sel].rel.clone();
+    let picked = a.files.tree().rows()[a.files.tree().sel].rel.clone();
     key(&mut a, KeyCode::Esc);
-    assert!(a.tree.find.is_none());
-    assert_eq!(a.tree.rows()[a.tree.sel].rel, picked);
+    assert!(a.files.tree().find.is_none());
+    assert_eq!(a.files.tree().rows()[a.files.tree().sel].rel, picked);
     let _ = std::fs::remove_dir_all(&root);
 }
 

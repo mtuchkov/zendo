@@ -10,8 +10,8 @@ pub(crate) fn draw_notes(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let rows = note_rows(app, t, inner.width as usize);
     // Linked-from block at the bottom.
     let mut foot: Vec<Line<'static>> = Vec::new();
-    if let Some(sel) = app.notes.get(app.notes_sel) {
-        let from: Vec<&Note> = app.notes.iter().filter(|n| n.links_to(sel)).collect();
+    if let Some(sel) = app.files.notes().get(app.notes_sel) {
+        let from: Vec<&Note> = app.files.notes().iter().filter(|n| n.links_to(sel)).collect();
         if !from.is_empty() {
             foot.push(Line::styled("─".repeat(inner.width as usize), Style::new().fg(t.line)));
             foot.push(Line::styled("  LINKED FROM", dim));
@@ -25,7 +25,7 @@ pub(crate) fn draw_notes(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let start = sel_row.saturating_sub(list_h.saturating_sub(3));
     let mut lines: Vec<Line> = vec![Line::raw("")];
     lines.extend(rows.into_iter().skip(start).take(list_h).map(|(l, _)| l));
-    if app.notes.is_empty() {
+    if app.files.notes().is_empty() {
         let press = app.keys.key(crate::keys::Pane::Notes, "new").map(|k| format!(" Press {k}.")).unwrap_or_default();
         lines.push(Line::styled(format!("  No notes yet.{press}"), dim));
     }
@@ -36,7 +36,7 @@ pub(crate) fn draw_notes(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     }
 
     // Preview.
-    if let Some(n) = app.notes.get(app.notes_sel).cloned() {
+    if let Some(n) = app.files.notes().get(app.notes_sel).cloned() {
         let col = column(Rect { y: right.y + 1, height: right.height.saturating_sub(1), ..right }, app.column_width());
         let (lines, _, _) = read_lines(app, &n, col.width as usize, t);
         f.render_widget(Paragraph::new(lines.into_iter().take(col.height as usize).collect::<Vec<_>>()), col);
@@ -49,7 +49,7 @@ fn note_rows(app: &App, t: &Theme, width: usize) -> Vec<(Line<'static>, Option<u
     let dim = Style::new().fg(t.dim);
     let mut rows: Vec<(Line<'static>, Option<usize>)> = Vec::new();
     let mut group = "";
-    for (i, n) in app.notes.iter().enumerate() {
+    for (i, n) in app.files.notes().iter().enumerate() {
         let d = n.modified.date_naive();
         let days = (today - d).num_days();
         let g = if days == 0 { "TODAY" } else if days < 7 { "THIS WEEK" } else { "OLDER" };
@@ -112,7 +112,7 @@ pub(crate) fn draw_search(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let mut lines: Vec<Line> = Vec::new();
     let mut sel_row = 0;
     for (gi, g) in app.results.iter().enumerate() {
-        let n = &app.notes[g.note];
+        let n = &app.files.notes()[g.note];
         let sel = gi == app.result_sel;
         if sel {
             sel_row = lines.len();

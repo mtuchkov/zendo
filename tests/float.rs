@@ -117,9 +117,9 @@ async fn esc_saves_the_float_and_restores_the_screen() {
     assert_eq!(saved.len(), 1, "{:?}", notes(&root));
     let text = std::fs::read_to_string(root.join("docs/notes").join(&saved[0])).unwrap();
     assert!(text.starts_with("# Tea\n") && text.contains("A line of text."), "{text}");
-    assert_eq!(a.current.as_deref(), Some(root.join(DESIGN).as_path()), "the same file");
+    assert_eq!(a.files.current_path(), Some(root.join(DESIGN).as_path()), "the same file");
     assert_eq!((a.mode, a.focus, a.reader.row(), a.reader.anchor(), a.reader.scroll()), (Mode::Read, Focus::Note, 12, Some((10, 0)), scroll));
-    assert!(a.notes.iter().any(|n| n.title == "Tea"), "the new note is in the notes list");
+    assert!(a.files.notes().iter().any(|n| n.title == "Tea"), "the new note is in the notes list");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -158,7 +158,7 @@ async fn n_opens_the_float() {
     key(&mut a, KeyCode::Esc);
     assert_eq!(a.mode, Mode::Notes, "back in the notes list");
     key(&mut a, KeyCode::Enter);
-    assert!(a.float.is_none() && a.mode == Mode::Read && a.current.is_some(), "a note that is there opens in the note pane");
+    assert!(a.float.is_none() && a.mode == Mode::Read && a.files.current().is_some(), "a note that is there opens in the note pane");
     let _ = std::fs::remove_dir_all(&root);
 }
 

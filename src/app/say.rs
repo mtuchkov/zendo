@@ -98,7 +98,7 @@ impl App {
     /// `ctrl-shift-s` in read mode or write mode: the arrow, the context, and the chat with the
     /// start of the sentence.
     pub(crate) fn start_say(&mut self) {
-        let Some(path) = self.current.clone() else { return self.flash("open a note first") };
+        let Some(path) = self.files.current().cloned() else { return self.flash("open a note first") };
         let (mark, range, picked, lines) = if self.mode == Mode::Write { self.say_in_editor() } else { self.say_in_read() };
         let refs: Vec<&str> = lines.iter().map(String::as_str).collect();
         let rel = self.rel(&path);

@@ -37,7 +37,7 @@ impl App {
         let row = self.frame.read_rows().get(lo).copied().unwrap_or(0);
         let lo = (0..self.frame.read_rows().len()).find(|i| self.frame.read_rows()[*i] == row && text_at(*i)).unwrap_or(lo);
         let hi = self.frame.read_rows().iter().rposition(|r| *r <= b).unwrap_or(lo);
-        let rel = self.current.as_ref().map(|p| self.rel(p)).unwrap_or_default();
+        let rel = self.files.current().map(|p| self.rel(p)).unwrap_or_default();
         let quoted: String = text.lines().map(|l| format!("> {l}\n")).collect();
         format!("Selected text from {rel} (about lines {}–{}):\n{quoted}", lo + 1, hi + 1)
     }

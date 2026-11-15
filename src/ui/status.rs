@@ -136,8 +136,8 @@ fn status_right(app: &App, fr: &Cache, claude: bool) -> String {
             };
             format!("{words} words · {saved}")
         }
-        Mode::Notes | Mode::Search => format!("{} notes · {}", app.notes.len(), app.rel(&app.cfg.notes_dir)),
-        Mode::Find => format!("{} files", app.find.items.len()),
+        Mode::Notes | Mode::Search => format!("{} notes · {}", app.files.notes().len(), app.rel(&app.cfg.notes_dir)),
+        Mode::Find => format!("{} files", app.files.find().items.len()),
         Mode::Theme => THEMES[app.theme].name.to_string(),
         _ if app.note().is_some() && fr.word_limit > 0 => format!("{} / {} words", fr.word_count, fr.word_limit),
         _ => app.note().map(|_| format!("{} words", fr.word_count)).unwrap_or_default(),
@@ -148,7 +148,7 @@ fn status_right(app: &App, fr: &Cache, claude: bool) -> String {
 /// field for a name or a folder, with the folder that `tab` completes to.
 pub(crate) fn draw_file_prompt(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     use crate::app::FilePrompt;
-    let Some(p) = &app.file_prompt else { return };
+    let Some(p) = &app.files.prompt() else { return };
     let name = |rel: &std::path::Path| rel.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let (badge, ask) = match p {
         FilePrompt::Delete(rel) => ("DELETE", format!("delete {}? ", name(rel))),

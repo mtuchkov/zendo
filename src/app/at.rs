@@ -161,7 +161,7 @@ impl Composer {
 impl App {
     /// After a key in the chat input: open, update or close the file suggestions.
     pub(crate) fn update_at(&mut self) {
-        let named: Vec<PathBuf> = self.tree.structure.as_ref().map(|st| st.templates().map(|(t, _)| PathBuf::from(t)).collect()).unwrap_or_default();
+        let named: Vec<PathBuf> = self.files.tree.structure.as_ref().map(|st| st.templates().map(|(t, _)| PathBuf::from(t)).collect()).unwrap_or_default();
         self.composer.update_at(&self.cfg.root, &named);
     }
 
@@ -192,7 +192,7 @@ impl App {
     /// What the agent gets with a template: where it is used, and how to use it.
     fn template_context(&self, rel: &Path) -> String {
         let t = rel.display().to_string();
-        let used: Vec<&str> = self.tree.structure.as_ref().map(|st| st.templates().filter(|(x, _)| *x == t).map(|(_, at)| at).collect()).unwrap_or_default();
+        let used: Vec<&str> = self.files.tree.structure.as_ref().map(|st| st.templates().filter(|(x, _)| *x == t).map(|(_, at)| at).collect()).unwrap_or_default();
         let place = if used.is_empty() { String::new() } else { format!(" project-structure.toml uses it for new documents in: {}.", used.join(", ")) };
         format!("Template: {t}.{place} Write the new document from this template: keep its front matter, its headings and their order, and fill them from what the user gives (notes, files, the chat). Put the new file where project-structure.toml says, and propose it as an edit.")
     }

@@ -57,7 +57,8 @@ impl Float {
     /// Give the app the other state: the float's or the screen's behind it.
     pub fn swap(&mut self, app: &mut App) {
         let b = &mut self.behind;
-        swap_fields!(app, b, editor, editor_path, last_edit, saved_at, mode, back, focus, current);
+        swap_fields!(app, b, editor, editor_path, last_edit, saved_at, mode, back, focus);
+        app.files.swap_current(&mut b.current);
         app.threads.swap_pinned(&mut b.pinned);
         app.reader.swap_view(&mut b.view);
     }

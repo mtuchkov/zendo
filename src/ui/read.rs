@@ -169,7 +169,7 @@ fn no_notes_keys(app: &App) -> String {
 /// The read pane without a note: the open document has no version here (FILES-40, FILES-48), or
 /// there are no notes.
 fn draw_no_version(f: &mut Frame, app: &App, t: &Theme, col: Rect) {
-    let msg = match app.peek.on {
+    let msg = match app.files.peek().on {
         Some(o) => format!("This document does not exist in {}.", o.name()),
         None if app.doc_missing() => "This document does not exist in this session.".to_string(),
         None => return draw_no_notes(f, app, t, col),

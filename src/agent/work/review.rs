@@ -62,7 +62,7 @@ impl App {
 
     /// Ask Claude to review the open file now.
     pub fn review_now(&mut self) {
-        let Some(path) = self.current.clone() else { return };
+        let Some(path) = self.files.current().cloned() else { return };
         if self.cfg.offline {
             return self.flash("offline: start zendo without --offline to use Claude");
         }
@@ -110,7 +110,7 @@ impl App {
 
     /// The user opened another file: the review goes.
     pub fn drop_old_review(&mut self) {
-        let here = self.current.as_deref().map(|p| self.rel(p));
+        let here = self.files.current_path().map(|p| self.rel(p));
         if self.reviews.shown.as_ref().is_some_and(|r| Some(&r.rel) != here.as_ref()) {
             self.reviews.shown = None;
         }

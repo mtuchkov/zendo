@@ -63,33 +63,33 @@ impl App {
     /// The file of a new note: in the notes folder of the checkout of the session; the notes of a
     /// notes repo outside the repo stay there (FILES-49).
     pub fn new_note_path(&self, title: &str) -> PathBuf {
-        notes::Store::new(self.cfg.root.clone(), self.session_path(&self.store.dir)).path_for(title, Local::now().date_naive())
+        notes::Store::new(self.cfg.root.clone(), self.session_path(&self.files.store().dir)).path_for(title, Local::now().date_naive())
     }
 
     /// The open document has no version in the checkout of the session (FILES-40).
     pub fn doc_missing(&self) -> bool {
-        self.peek.on.is_none() && self.current.as_ref().is_some_and(|p| !p.exists())
+        self.files.peek.on.is_none() && self.files.current().is_some_and(|p| !p.exists())
     }
 
     /// After a change of the agent session: the version of the open document in that session
     /// (FILES-39, FILES-41).
     pub(crate) fn follow_session(&mut self) {
-        if let Some(p) = self.current.clone().filter(|p| self.session_path(p) != *p) {
+        if let Some(p) = self.files.current().cloned().filter(|p| self.session_path(p) != *p) {
             self.open_file(p);
         }
     }
 
     /// `m` or `u` in read mode: show the other version, or note one more auto-repeat of the key.
     pub(crate) fn peek_at(&mut self, other: Other) {
-        self.peek.last = Instant::now();
-        if self.peek.on == Some(other) {
-            self.peek.repeated = true;
+        self.files.peek.last = Instant::now();
+        if self.files.peek.on == Some(other) {
+            self.files.peek.repeated = true;
             return;
         }
-        let doc = self.current.as_ref().and_then(|p| self.doc_rel(p));
-        self.peek.note = doc.and_then(|d| self.other_version(other, &d));
-        self.peek.on = Some(other);
-        self.peek.repeated = false;
+        let doc = self.files.current().and_then(|p| self.doc_rel(p));
+        self.files.peek.note = doc.and_then(|d| self.other_version(other, &d));
+        self.files.peek.on = Some(other);
+        self.files.peek.repeated = false;
     }
 
     /// The note of `doc` in the last commit of `main` or in the main checkout on disk (FILES-48).
@@ -108,8 +108,8 @@ impl App {
 
     /// The held key went up, or another key came: the version of the session again.
     pub(crate) fn peek_end(&mut self) {
-        self.peek.on = None;
-        self.peek.note = None;
+        self.files.peek.on = None;
+        self.files.peek.note = None;
     }
 
     /// A key event while `m` or `u` is held: its release or another key ends the hold. True when
@@ -117,7 +117,7 @@ impl App {
     pub(crate) fn peek_key(&mut self, k: &KeyEvent) -> bool {
         let up = k.kind == ratatui::crossterm::event::KeyEventKind::Release;
         let held = matches!(self.keys.local(crate::keys::Pane::Read, k), Some("peek_main" | "peek_disk"));
-        if self.peek.on.is_some() && (up || !held) {
+        if self.files.peek.on.is_some() && (up || !held) {
             self.peek_end();
         }
         up
@@ -125,8 +125,8 @@ impl App {
 
     /// No auto-repeat of the held key came for a while: it is up (FILES-46).
     pub(crate) fn peek_tick(&mut self) {
-        let wait = if self.peek.repeated { NEXT_REPEAT } else { FIRST_REPEAT };
-        if self.peek.on.is_some() && self.peek.last.elapsed() > wait {
+        let wait = if self.files.peek.repeated { NEXT_REPEAT } else { FIRST_REPEAT };
+        if self.files.peek.on.is_some() && self.files.peek.last.elapsed() > wait {
             self.peek_end();
         }
     }

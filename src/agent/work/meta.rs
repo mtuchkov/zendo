@@ -15,14 +15,14 @@ impl App {
         }
         let (front, body) = split_front(&text);
         let title = !body.lines().find(|l| !l.trim().is_empty()).is_some_and(|l| l.starts_with("# "));
-        let note = path.starts_with(&self.store.dir);
+        let note = path.starts_with(&self.files.store().dir);
         let meta = Meta { title, front: front.is_none() && !note };
         (meta.title || meta.front).then_some(meta)
     }
 
     /// After write mode: ask the agent in the background for what the file lacks.
     pub fn ask_for_meta(&mut self) {
-        let Some(path) = self.current.clone().or_else(|| self.editor_path.clone()) else { return };
+        let Some(path) = self.files.current().cloned().or_else(|| self.editor_path.clone()) else { return };
         if self.cfg.offline || self.meta_needs(&path).is_none() {
             return;
         }

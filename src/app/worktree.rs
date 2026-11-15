@@ -27,7 +27,7 @@ pub enum TreeAct {
 }
 
 impl TreeAct {
-    fn name(&self) -> &'static str {
+    pub(crate) fn name(&self) -> &'static str {
         match self {
             TreeAct::File(_, 'd') => "delete",
             TreeAct::File(_, 'r') => "rename",
@@ -47,45 +47,32 @@ impl App {
 
     /// A file action from the tree. In a worktree view, while its agent answers, a popup asks first.
     pub(crate) fn tree_act(&mut self, act: TreeAct) {
-        if self.tree.view.is_worktree() && self.session_works(self.state.session) {
-            self.worktree.confirm = Some(act);
-            return;
-        }
-        self.run_tree_act(act);
-    }
-
-    fn run_tree_act(&mut self, act: TreeAct) {
-        match act {
-            TreeAct::File(rel, what) => self.ask_file(rel, what),
-            TreeAct::New { folder } => self.ask_new(folder),
-        }
+        let works = self.session_works(self.state.session);
+        let asked = self.files.tree_act(act, works);
+        self.apply(asked);
     }
 
     /// The popup is open: `y` goes on with the action; any other key drops it.
     pub(crate) fn key_confirm(&mut self, k: KeyEvent) {
-        let Some(act) = self.worktree.confirm.take() else { return };
-        if matches!(k.code, KeyCode::Char('y' | 'Y')) {
-            self.run_tree_act(act);
-        }
+        let asked = self.files.key_confirm(k);
+        self.apply(asked);
     }
 
     /// The text of the popup.
     pub fn confirm_text(&self) -> Option<String> {
-        let act = self.worktree.confirm.as_ref()?;
-        let n = self.state.session + 1;
-        Some(format!("The agent of session {n} works in this worktree and can change the same files. Go on with the {}? y yes · any other key no", act.name()))
+        self.files.confirm_text(self.state.session)
     }
 
     /// Called on every tick: while a worktree view shows, write the recap of the worktree again when
     /// its changes differ from those of the last recap, at most every 10 minutes. The agent does not
     /// need to be idle (FILES-29); the recap goes in a separate session without tools (FILES-36).
     pub fn worktree_recap_tick(&mut self) {
-        let ready = self.state.tree && self.tree.view.is_worktree() && self.recap_job.is_none() && self.agent_name.is_some() && !self.cfg.offline;
-        let Some(wt) = self.tree.worktree.clone().filter(|_| ready) else { return };
-        if self.worktree.recap_check.is_some_and(|t| t.elapsed() < RECAP_EVERY) {
+        let ready = self.state.tree && self.files.tree.view.is_worktree() && self.recap_job.is_none() && self.agent_name.is_some() && !self.cfg.offline;
+        let Some(wt) = self.files.tree.worktree.clone().filter(|_| ready) else { return };
+        if self.files.worktree.recap_check.is_some_and(|t| t.elapsed() < RECAP_EVERY) {
             return;
         }
-        self.worktree.recap_check = Some(Instant::now());
+        self.files.worktree.recap_check = Some(Instant::now());
         let diff = worktree::diff(&self.cfg.root.join(&wt), DIFF_MAX);
         let rel = wt.display().to_string();
         let hash = state::hash(&diff);

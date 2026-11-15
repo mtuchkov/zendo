@@ -77,12 +77,12 @@ impl App {
     }
 
     pub(crate) fn step_note(&mut self, d: isize) {
-        if self.notes.is_empty() {
+        if self.files.notes().is_empty() {
             return;
         }
         let i = self.note_index().unwrap_or(0) as isize + d;
-        let i = i.clamp(0, self.notes.len() as isize - 1) as usize;
-        self.current = Some(self.notes[i].path.clone());
+        let i = i.clamp(0, self.files.notes().len() as isize - 1) as usize;
+        self.files.show_note(i);
         self.reader.to_start();
         self.threads.unpin();
     }

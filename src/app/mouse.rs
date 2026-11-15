@@ -84,7 +84,7 @@ impl App {
         let row = self.frame.tree_rows().iter().find(|(r, _)| r.contains(ratatui::layout::Position::new(x, y))).map(|(_, i)| *i);
         if let Some(i) = row {
             self.focus = Focus::Tree;
-            self.tree.sel = i;
+            self.files.tree.sel = i;
             self.did_by_mouse(crate::keys::Pane::Tree, "preview");
             self.tree_activate(false);
             return;
@@ -121,7 +121,7 @@ impl App {
         let n = self.pointer.scroll_step(Instant::now());
         let ni = n as isize;
         if self.frame.tree_rows().iter().any(|(r, _)| r.contains(ratatui::layout::Position::new(x, y))) {
-            self.tree.scroll = if up { self.tree.scroll.saturating_sub(n) } else { self.tree.scroll + n };
+            self.files.tree.scroll = if up { self.files.tree.scroll.saturating_sub(n) } else { self.files.tree.scroll + n };
             return;
         }
         match self.region_at(x, y).map(|(r, _)| r) {

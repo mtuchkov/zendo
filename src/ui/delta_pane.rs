@@ -14,7 +14,7 @@ pub(crate) fn draw_delta(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
     let dim = Style::new().fg(t.dim);
     let focused = app.focus == Focus::Delta;
 
-    let name = app.current.as_ref().and_then(|p| p.file_name()).map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    let name = app.files.current().and_then(|p| p.file_name()).map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     f.render_widget(Paragraph::new(Line::styled(name, Style::new().fg(t.fg).add_modifier(Modifier::BOLD))), head);
     let ask = format!("{} ask", app.keys.first(crate::keys::Pane::Delta, "ask"));
     f.render_widget(Paragraph::new(Line::styled(ask.clone(), Style::new().fg(if focused { t.acc } else { t.dim }))), Rect { x: head.right().saturating_sub(ask.width() as u16), width: ask.width() as u16, ..head });

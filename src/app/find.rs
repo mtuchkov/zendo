@@ -46,19 +46,19 @@ impl App {
             self.save();
         }
         self.hold = None;
-        self.find.back = Some((self.mode, self.focus, self.cli.view.take()));
-        self.find.query.clear();
-        (self.find.files, self.find.docs) = (Vec::new(), Vec::new());
+        self.files.find.back = Some((self.mode, self.focus, self.cli.view.take()));
+        self.files.find.query.clear();
+        (self.files.find.files, self.files.find.docs) = (Vec::new(), Vec::new());
         self.mode = Mode::Find;
         self.run_find();
     }
 
     /// `esc`: the screen as it was under the panel (FIND-12).
     fn close_find(&mut self) {
-        let (mode, focus, view) = self.find.back.take().unwrap_or((Mode::Read, self.focus, None));
+        let (mode, focus, view) = self.files.find.back.take().unwrap_or((Mode::Read, self.focus, None));
         (self.mode, self.focus, self.cli.view) = (mode, focus, view);
-        self.find.items.clear();
-        self.find.preview = None;
+        self.files.find.items.clear();
+        self.files.find.preview = None;
     }
 
     /// A key in the find panel: these keys are fixed, not in the keymap.
@@ -73,15 +73,15 @@ impl App {
             KeyCode::Up | KeyCode::BackTab => self.find_move(false),
             KeyCode::Char('k') if ctrl => self.find_move(false),
             KeyCode::Backspace => {
-                self.find.query.pop();
+                self.files.find.query.pop();
                 self.run_find();
             }
             KeyCode::Char('u') if ctrl => {
-                self.find.query.clear();
+                self.files.find.query.clear();
                 self.run_find();
             }
             KeyCode::Char(c) if plain => {
-                self.find.query.push(c);
+                self.files.find.query.push(c);
                 self.run_find();
             }
             _ => {}
@@ -89,22 +89,22 @@ impl App {
     }
 
     fn find_move(&mut self, down: bool) {
-        let last = self.find.items.len().saturating_sub(1);
-        self.find.sel = if down { (self.find.sel + 1).min(last) } else { self.find.sel.saturating_sub(1) };
+        let last = self.files.find.items.len().saturating_sub(1);
+        self.files.find.sel = if down { (self.files.find.sel + 1).min(last) } else { self.files.find.sel.saturating_sub(1) };
         self.load_preview();
     }
 
     /// `enter`: open the selected file in the note pane at the line of the match (FIND-11); after
     /// `?`, ask the agent about all notes (FIND-14).
     fn find_enter(&mut self) {
-        if let Some(q) = self.find.query.strip_prefix('?').map(|q| q.trim().to_string()) {
+        if let Some(q) = self.files.find.query.strip_prefix('?').map(|q| q.trim().to_string()) {
             self.close_find();
             self.mode = Mode::Read;
             self.threads.pin(ALL_KEY);
             self.open_panel();
             return self.ask(q, ALL_KEY.into());
         }
-        let Some(item) = self.find.items.get(self.find.sel).cloned() else { return };
+        let Some(item) = self.files.find.items.get(self.files.find.sel).cloned() else { return };
         self.close_find();
         self.cli.view = None;
         self.open_file(item.path);
@@ -119,24 +119,24 @@ impl App {
     /// The list for the query: the recent files, the notes with a tag, or the files by path and
     /// then by text (FIND-2, FIND-9, FIND-14).
     pub(crate) fn run_find(&mut self) {
-        let q = self.find.query.trim().to_string();
-        self.find.items = match q.chars().next() {
+        let q = self.files.find.query.trim().to_string();
+        self.files.find.items = match q.chars().next() {
             None => self.recent_items(),
             Some('?') => Vec::new(),
-            Some('#') => items_of(&self.notes, search::search(&self.notes, &q)),
+            Some('#') => items_of(self.files.notes(), search::search(self.files.notes(), &q)),
             Some(_) => self.query_items(&q),
         };
-        self.find.sel = 0;
+        self.files.find.sel = 0;
         self.load_preview();
     }
 
     fn load_preview(&mut self) {
-        self.find.preview = self.find.items.get(self.find.sel).and_then(|i| notes::load(&i.path).ok());
+        self.files.find.preview = self.files.find.items.get(self.files.find.sel).and_then(|i| notes::load(&i.path).ok());
     }
 
     /// The recent files that are on disk, without the open file (FIND-2, FIND-7).
     fn recent_items(&self) -> Vec<FindItem> {
-        let open = self.current.as_ref();
+        let open = self.files.current();
         let item = |o: &Opened| {
             let path = self.cfg.root.join(&o.path);
             let title = notes::load(&path).ok()?.title;
@@ -148,20 +148,20 @@ impl App {
     /// The text files whose path has every word, recent first; then the markdown files whose text
     /// has the query (FIND-9, FIND-16).
     fn query_items(&mut self, q: &str) -> Vec<FindItem> {
-        if self.find.files.is_empty() {
+        if self.files.find.files.is_empty() {
             let root = self.cfg.root.clone();
-            self.find.files = crate::app::at::repo_files(&root);
+            self.files.find.files = crate::app::at::repo_files(&root);
             // FIND-18: the notes of the notes repo, by their absolute path (`root.join` keeps it).
             if let Some(dir) = self.repo_notes_outside() {
                 let md = crate::app::at::repo_files(&dir).into_iter().filter(|f| f.extension().is_some_and(|x| x == "md"));
-                self.find.files.extend(md.map(|f| dir.join(f)));
+                self.files.find.files.extend(md.map(|f| dir.join(f)));
             }
-            self.find.docs = self.find.files.iter().filter(|f| !code::is_code(f)).filter_map(|f| notes::load(&root.join(f)).ok()).collect();
+            self.files.find.docs = self.files.find.files.iter().filter(|f| !code::is_code(f)).filter_map(|f| notes::load(&root.join(f)).ok()).collect();
         }
         let notes_dir = self.repo_notes_outside();
         let words: Vec<String> = q.to_lowercase().split_whitespace().map(str::to_string).collect();
         let rank = |rel: &str| self.state.recent.iter().position(|o| o.path == rel).unwrap_or(RECENT);
-        let mut by_path: Vec<&PathBuf> = self.find.files.iter().filter(|f| has_words(&shown_path(f, notes_dir.as_deref()), &words)).collect();
+        let mut by_path: Vec<&PathBuf> = self.files.find.files.iter().filter(|f| has_words(&shown_path(f, notes_dir.as_deref()), &words)).collect();
         by_path.sort_by_key(|f| (rank(&f.display().to_string()), f.to_path_buf()));
         let root = &self.cfg.root;
         let mut items: Vec<FindItem> = by_path
@@ -171,7 +171,7 @@ impl App {
             .take(BY_PATH)
             .filter_map(|path| Some(FindItem { title: notes::load(&path).ok()?.title, path, at: None, snippets: Vec::new() }))
             .collect();
-        let text = items_of(&self.find.docs, search::search(&self.find.docs, q));
+        let text = items_of(&self.files.find.docs, search::search(&self.files.find.docs, q));
         items.extend(text.into_iter().filter(|t| !items.iter().any(|i| i.path == t.path)).collect::<Vec<_>>());
         items
     }
@@ -180,9 +180,9 @@ impl App {
     /// the preview of the tree or a session on the full screen shows (FIND-6).
     pub(crate) fn track_recent(&mut self) {
         let shows = matches!(self.mode, Mode::Read | Mode::Write) && self.float.is_none() && self.focus != Focus::Tree && self.cli.view.is_none();
-        let Some(path) = self.current.clone().filter(|_| shows) else { return };
-        if self.find.seen.as_ref() != Some(&path) {
-            self.find.seen = Some(path.clone());
+        let Some(path) = self.files.current().cloned().filter(|_| shows) else { return };
+        if self.files.find.seen.as_ref() != Some(&path) {
+            self.files.find.seen = Some(path.clone());
             self.add_recent(&path);
         }
     }

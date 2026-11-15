@@ -76,10 +76,10 @@ impl App {
             self.did(Pane::Global, "help");
             return self.open_help(self.help_pane_now());
         }
-        if self.worktree.confirm.is_some() {
+        if self.files.worktree.confirm.is_some() {
             return self.key_confirm(k);
         }
-        if self.file_prompt.is_some() {
+        if self.files.prompt().is_some() {
             return self.key_file_prompt(k);
         }
         if !matches!(self.mode, Mode::Read | Mode::Write) {
@@ -106,7 +106,7 @@ impl App {
         if self.composer.slash().open && self.key_pane() == Pane::Chat && self.composer.key_slash(k) {
             return;
         }
-        if self.tree.find.is_some() && self.key_pane() == Pane::Tree {
+        if self.files.tree.find.is_some() && self.key_pane() == Pane::Tree {
             return self.key_tree_find(k);
         }
         let pane = self.key_pane();

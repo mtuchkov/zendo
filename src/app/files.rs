@@ -3,22 +3,7 @@ use super::*;
 
 impl App {
     pub fn reload(&mut self) {
-        if let Ok(mut n) = self.store.load_all() {
-            // The open document stays, also while it has no version in the session (FILES-40).
-            let cur = self.current.clone();
-            self.extra.retain(|p| p.exists() || cur.as_ref() == Some(p));
-            for p in &self.extra {
-                if !n.iter().any(|x| &x.path == p)
-                    && let Ok(note) = notes::load(p) {
-                        n.push(note);
-                    }
-            }
-            n.sort_by_key(|b| std::cmp::Reverse(b.modified));
-            self.notes = n;
-        }
-        if self.current.as_ref().is_some_and(|p| !p.exists() && !self.extra.contains(p)) {
-            self.current = self.notes.first().map(|n| n.path.clone());
-        }
+        self.files.reload();
     }
 
     pub fn start_write(&mut self, new: bool) {
@@ -60,12 +45,7 @@ impl App {
                 self.editor.dirty = false;
                 self.saved_at = Some(Local::now());
                 self.editor_path = Some(path.clone());
-                // A note in a worktree is not in the notes of the store (FILES-49).
-                if !path.starts_with(&self.store.dir) && !self.extra.contains(&path) {
-                    self.extra.push(path.clone());
-                }
-                self.current = Some(path);
-                self.reload();
+                self.files.saved(path);
                 self.mark_edited();
             }
             Err(e) => self.flash(format!("not saved: {e}")),
@@ -83,43 +63,14 @@ impl App {
 
     /// Pick up changes made outside zendo: Claude Code, git pull, another editor.
     pub(crate) fn check_disk(&mut self) {
-        if self.disk_checked.elapsed() < Duration::from_secs(1) {
-            return;
-        }
-        self.disk_checked = Instant::now();
-        let st = std::fs::metadata(self.cfg.root.join(crate::docs::structure::FILE)).and_then(|m| m.modified()).ok();
-        if st != self.structure_seen {
+        let Some(structure) = self.files.disk_due(&self.cfg.root) else { return };
+        if structure {
             self.load_structure();
-            self.tree.scanned = None;
+            self.files.tree.scanned = None;
         }
-        // The open document came into being in the checkout of the session (FILES-44).
-        if self.current.as_ref().is_some_and(|p| p.exists()) && self.peek.on.is_none() && self.note().is_none() {
-            self.reload();
-        }
-        let Ok(dir) = std::fs::read_dir(&self.store.dir) else { return };
-        let mut n = 0;
-        let mut newest = None;
-        for e in dir.flatten() {
-            if e.path().extension().is_some_and(|x| x == "md") {
-                n += 1;
-                let m = e.metadata().and_then(|m| m.modified()).ok();
-                if m > newest {
-                    newest = m;
-                }
-            }
-        }
-        if let Some(m) = self.current.as_ref().and_then(|p| std::fs::metadata(p).ok()).and_then(|m| m.modified().ok())
-            && Some(m) > newest {
-                newest = Some(m);
-            }
-        let now = (n, newest);
-        if now != self.disk {
-            let first = self.disk.1.is_none() && self.disk.0 == 0;
-            self.disk = now;
-            if !first {
-                self.reload_after_agent();
-                self.mark_tree();
-            }
+        if self.files.disk_changed() {
+            self.reload_after_agent();
+            self.mark_tree();
         }
     }
 
@@ -142,7 +93,7 @@ impl App {
         }
         self.usage.tick(Instant::now());
         self.check_disk();
-        if self.state.tree && self.tree.stale() {
+        if self.state.tree && self.files.tree.stale() {
             self.scan_tree();
             self.mark_tree();
         }
@@ -177,11 +128,7 @@ impl App {
             self.mode = Mode::Read;
         }
         let path = self.session_path(&path);
-        self.current = Some(path.clone());
-        if !self.notes.iter().any(|n| n.path == path) && !self.extra.contains(&path) {
-            self.extra.push(path);
-            self.reload();
-        }
+        self.files.open(path);
         self.reader.to_top();
         self.delta_scroll = 0;
         self.threads.unpin();

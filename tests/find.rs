@@ -33,7 +33,7 @@ fn open(a: &mut App, root: &Path, rel: &str) {
 
 /// The paths of the list, relative to the repository.
 fn listed(a: &App, root: &Path) -> Vec<String> {
-    a.find.items.iter().map(|i| i.path.strip_prefix(root).unwrap().display().to_string()).collect()
+    a.files.find().items.iter().map(|i| i.path.strip_prefix(root).unwrap().display().to_string()).collect()
 }
 
 fn find_app(name: &str) -> (PathBuf, App) {
@@ -65,7 +65,7 @@ async fn alt_slash_opens_find_from_every_pane() {
         } else {
             alt(&mut a, '/');
         }
-        assert_eq!((a.mode, a.find.query.as_str()), (Mode::Find, ""), "{name}");
+        assert_eq!((a.mode, a.files.find().query.as_str()), (Mode::Find, ""), "{name}");
         assert!(!std::fs::read_to_string(root.join(A)).unwrap().contains('/'), "{name}: no `/` typed");
         a.cli.stop_all();
     }
@@ -82,9 +82,9 @@ async fn an_empty_query_lists_the_recent_files() {
     }
     alt(&mut a, '/');
     assert_eq!(listed(&a, &root), vec![B, A]);
-    assert_eq!(a.find.sel, 0);
+    assert_eq!(a.files.find().sel, 0);
     key(&mut a, KeyCode::Enter);
-    assert_eq!((a.mode, a.current.clone()), (Mode::Read, Some(root.join(B))), "alt-/ enter goes back to the file before");
+    assert_eq!((a.mode, a.files.current().cloned()), (Mode::Read, Some(root.join(B))), "alt-/ enter goes back to the file before");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -167,7 +167,7 @@ async fn a_rename_keeps_the_recent_place() {
     open(&mut a, &root, A);
     open(&mut a, &root, B);
     open(&mut a, &root, C);
-    a.file_prompt = Some(FilePrompt::Rename(PathBuf::from(A), "a.md".into()));
+    a.files.ask(FilePrompt::Rename(PathBuf::from(A), "a.md".into()));
     for _ in 0.."a.md".len() {
         key(&mut a, KeyCode::Backspace);
     }
@@ -217,7 +217,7 @@ async fn the_preview_shows_the_match_and_enter_opens_at_it() {
     let screen = draw(&mut a, 140, 40).join("\n");
     assert!(screen.contains("The coffee machine is eventually consistent."), "the line of the match:\n{screen}");
     key(&mut a, KeyCode::Enter);
-    assert_eq!((a.mode, a.current.clone()), (Mode::Read, Some(root.join("docs/design.md"))));
+    assert_eq!((a.mode, a.files.current().cloned()), (Mode::Read, Some(root.join("docs/design.md"))));
     draw(&mut a, 140, 40);
     assert!(a.frame.read_text()[a.reader.row()].contains("coffee"), "the cursor on the match: {}", a.frame.read_text()[a.reader.row()]);
     let _ = std::fs::remove_dir_all(&root);
@@ -236,7 +236,7 @@ async fn esc_changes_nothing() {
     alt(&mut a, '/');
     key(&mut a, KeyCode::Down);
     key(&mut a, KeyCode::Esc);
-    assert_eq!((a.mode, a.focus, a.current.clone(), (a.editor.row, a.editor.col)), (Mode::Write, Focus::Note, Some(root.join(B)), cursor));
+    assert_eq!((a.mode, a.focus, a.files.current().cloned(), (a.editor.row, a.editor.col)), (Mode::Write, Focus::Note, Some(root.join(B)), cursor));
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -312,7 +312,7 @@ async fn a_query_finds_the_notes_of_the_notes_repo() {
         notes_repo: Some(zendo::setup::config::NotesRepo { path: notes.clone(), machine: "m".into(), sync_seconds: 15 }),
     })
     .unwrap();
-    let got = |a: &App| a.find.items.iter().map(|i| i.path.clone()).collect::<Vec<_>>();
+    let got = |a: &App| a.files.find().items.iter().map(|i| i.path.clone()).collect::<Vec<_>>();
     alt(&mut a, '/');
     typ(&mut a, "spotify");
     assert_eq!(got(&a), vec![notes.join("2026-11-13-spotify.md")], "by path");

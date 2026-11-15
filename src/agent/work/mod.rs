@@ -23,7 +23,7 @@ pub const RECAP_PREFIX: &str = "(recap) ";
 impl App {
     /// The text of the note on screen, with unsaved edits.
     pub fn note_text(&self) -> Option<String> {
-        if self.mode == Mode::Write && self.editor_path == self.current {
+        if self.mode == Mode::Write && self.editor_path.as_ref() == self.files.current() {
             return Some(format!("{}\n", self.editor.text().trim_end()));
         }
         self.note().map(|n| n.body.clone())
@@ -53,7 +53,7 @@ impl App {
     /// Start a visit for the note on screen; end the visit of the note we left.
     pub fn sync_visit(&mut self) {
         let here = match self.mode {
-            Mode::Read | Mode::Write | Mode::Theme | Mode::Help => self.current.clone(),
+            Mode::Read | Mode::Write | Mode::Theme | Mode::Help => self.files.current().cloned(),
             _ => None,
         };
         if self.visit.as_ref().map(|v| &v.path) == here.as_ref() {
@@ -86,7 +86,7 @@ impl App {
     /// Δ marks for the tree: files whose text differs from the last visit that counted.
     pub fn mark_tree(&mut self) {
         let root = self.cfg.root.clone();
-        self.tree.changed = self
+        self.files.tree_mut().changed = self
             .state
             .files
             .iter()
@@ -115,7 +115,7 @@ impl App {
 
     /// The text the delta starts from, and a label for it.
     pub fn delta_base(&self) -> (String, String) {
-        let Some(path) = &self.current else { return ("no note".into(), String::new()) };
+        let Some(path) = self.files.current() else { return ("no note".into(), String::new()) };
         let rel = self.rel(path);
         if self.delta_base == Base::LastVisit
             && let Some(s) = self.state.files.get(&rel).and_then(|f| f.seen.as_ref()) {
@@ -157,7 +157,7 @@ impl App {
     pub fn ask_about_delta(&mut self) {
         let Some(new) = self.note_text() else { return };
         let (label, old) = self.delta_base();
-        let rel = self.current.as_ref().map(|p| self.rel(p)).unwrap_or_default();
+        let rel = self.files.current().map(|p| self.rel(p)).unwrap_or_default();
         let d = delta::unified(&old, &new, &rel);
         if d.trim().is_empty() {
             self.flash("no changes to ask about");

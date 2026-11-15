@@ -11,7 +11,7 @@ pub(crate) fn draw_find(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let col = Rect { x: area.x + (area.width - w) / 2, y: area.y + 1, width: w, height: area.height.saturating_sub(1) };
     let boxr = Rect { height: 3, ..col };
     f.render_widget(Block::new().style(Style::new().bg(t.panel)), boxr);
-    let q = app.find.query.clone();
+    let q = app.files.find().query.clone();
     let hint = match q.chars().next() {
         None => "recent files",
         Some('?') => "enter asks Claude",
@@ -37,8 +37,8 @@ pub(crate) fn draw_find(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
 /// selection.
 fn list_lines(app: &App, t: &Theme, w: u16) -> Vec<(Line<'static>, bool)> {
     let mut lines = Vec::new();
-    for (i, item) in app.find.items.iter().enumerate() {
-        let sel = i == app.find.sel;
+    for (i, item) in app.files.find().items.iter().enumerate() {
+        let sel = i == app.files.find().sel;
         lines.push((item_row(app, t, item, sel, w as usize), sel));
         for s in &item.snippets {
             lines.push((Line::styled(format!("      {}", s.text), Style::new().fg(t.dim)), false));
@@ -76,7 +76,7 @@ fn when_label(at: chrono::DateTime<Local>) -> String {
 fn draw_list(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     let lines = list_lines(app, t, area.width);
     if lines.is_empty() {
-        let empty = if app.find.query.is_empty() { "No recent files yet." } else { "Nothing found." };
+        let empty = if app.files.find().query.is_empty() { "No recent files yet." } else { "Nothing found." };
         f.render_widget(Paragraph::new(Line::styled(format!("    {empty}"), Style::new().fg(t.dim))), area);
         return;
     }
@@ -88,14 +88,14 @@ fn draw_list(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
 /// The selected file as read mode shows it; a match in the text near the top, marked (FIND-3,
 /// FIND-10).
 fn draw_preview(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
-    let Some(note) = app.find.preview.as_ref() else { return };
+    let Some(note) = app.files.find().preview.as_ref() else { return };
     let inner = Rect { x: area.x + 2, width: area.width.saturating_sub(4).min(app.column_width()), ..area };
     let (mut lines, rows, _) = read_lines(app, note, inner.width as usize, t);
-    let line = app.find.items.get(app.find.sel).and_then(|i| i.snippets.first()).map(|s| s.line);
+    let line = app.files.find().items.get(app.files.find().sel).and_then(|i| i.snippets.first()).map(|s| s.line);
     let row = line.and_then(|l| rows.get(l).copied());
     if let Some(r) = row.filter(|r| *r < lines.len()) {
         let mark = delta::mix(t.bg, t.acc2, 0.42);
-        lines[r] = match match_cols(&lines[r], &app.find.query) {
+        lines[r] = match match_cols(&lines[r], &app.files.find().query) {
             Some((a, b)) => paint(lines[r].clone(), a, b, mark),
             None => tint(lines[r].clone(), cursor_line(t), inner.width as usize),
         };
