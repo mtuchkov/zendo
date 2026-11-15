@@ -32,6 +32,7 @@ mod tab;
 mod thread;
 mod transcript;
 mod tree;
+mod worktree;
 mod write;
 pub mod write_rows;
 
@@ -47,6 +48,7 @@ pub use slash::Slash;
 pub use tab::{TAB_PAUSE, TabRun};
 pub use thread::*;
 pub use transcript::{CHAT_MARK, Transcript};
+pub use worktree::{RECAP_EVERY, TreeAct, WorktreeUi};
 
 use crate::agent::{self, AgentHandle, Attachment, Cmd, Event};
 use crate::text::editor::Editor;
@@ -173,6 +175,8 @@ pub struct App {
     pub delta_scroll: usize,
     pub visit: Option<Visit>,
     pub recap_job: Option<RecapJob>,
+    /// The worktree views: the popup before a file action, the recap timer.
+    pub worktree: WorktreeUi,
     pub recap_queue: VecDeque<String>,
     pub reviews: crate::agent::work::Reviews,
     /// Files to get a title or front matter from the agent, after write mode.

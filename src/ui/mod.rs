@@ -113,6 +113,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     draw_top(f, app, &t, top);
     draw_status(f, app, &t, status);
     draw_file_prompt(f, app, &t, prompt);
+    draw_confirm(f, app, &t, area);
 
     draw_selection(f, app, &t);
 }

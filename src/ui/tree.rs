@@ -8,7 +8,7 @@ pub(crate) fn draw_tree(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let inner = Rect { x: area.x + 1, y: area.y, width: area.width.saturating_sub(2), height: area.height };
     let w = inner.width as usize;
     let dim = Style::new().fg(t.dim);
-    let foot = tree_foot(app, t, w);
+    let foot = if app.tree.view.is_worktree() { worktree_foot(app, t, w) } else { tree_foot(app, t, w) };
     let foot_h = if foot.is_empty() { 0 } else { foot.len() as u16 + 1 };
     let [head, _, body, foot_area] = Layout::vertical([Constraint::Length(1), Constraint::Length(1), Constraint::Min(1), Constraint::Length(foot_h)]).areas(inner);
     if foot_h > 0 {
@@ -29,6 +29,12 @@ pub(crate) fn draw_tree(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
             View::Text => "No text files.".to_string(),
             View::Docs => format!("No .md files under a docs folder.{}", app.keys.key(crate::keys::Pane::Tree, "view").map(|k| format!(" Press {k} to show all.")).unwrap_or_default()),
             View::Structure => "No main materials. Mark entries with main = true in project-structure.toml.".to_string(),
+            // FILES-31: the agent makes its worktree when it changes code the first time.
+            View::Worktree | View::WorktreeChanged if app.tree.worktree.is_none() => {
+                format!("Agent session {} has no worktree yet: .worktrees/{} comes when its agent changes code.", app.state.session + 1, app.state.session + 1)
+            }
+            View::Worktree => "No text files in the worktree.".to_string(),
+            View::WorktreeChanged => "No changes against main.".to_string(),
         };
         f.render_widget(Paragraph::new(markdown::wrap(vec![Span::styled(msg, dim)], w.saturating_sub(1), " ", " ")), body);
         return;
@@ -75,6 +81,24 @@ fn tree_foot(app: &App, t: &Theme, w: usize) -> Vec<Line<'static>> {
     foot
 }
 
+/// The footer of a worktree view: the recap of the whole diff of the worktree (FILES-28).
+fn worktree_foot(app: &App, t: &Theme, w: usize) -> Vec<Line<'static>> {
+    let dim = Style::new().fg(t.dim);
+    let Some(wt) = app.tree.worktree.as_ref().map(|p| p.display().to_string()) else { return Vec::new() };
+    let recap = app.state.files.get(&wt).and_then(|f| f.recap.as_ref());
+    let writing = app.recap_job.as_ref().is_some_and(|j| j.rel == wt);
+    let head = match recap {
+        Some(r) => format!("RECAP · {}{}", r.at.format("%H:%M"), if writing { " · writing a new one" } else { "" }),
+        None if writing => "RECAP · writing it".to_string(),
+        None => "RECAP · comes when the worktree has changes".to_string(),
+    };
+    let mut foot = vec![Line::styled(format!(" {head}"), dim.add_modifier(Modifier::BOLD))];
+    let text = recap.map(|r| r.text.as_str()).unwrap_or_default();
+    let body = text.lines().flat_map(|l| markdown::wrap(vec![Span::styled(l.trim().to_string(), Style::new().fg(t.fg))], w.saturating_sub(2), " ", "   "));
+    foot.extend(body.take(10));
+    foot
+}
+
 /// The head line: the project and the view, or the file name filter while it is on.
 fn tree_head(f: &mut Frame, app: &App, t: &Theme, head: Rect) {
     let dim = Style::new().fg(t.dim);
@@ -113,13 +137,15 @@ fn tree_line(app: &App, t: &Theme, row: &Row, is_current: bool, w: usize) -> Lin
         Kind::File => ("    ", Style::new().fg(t.fg)),
     };
     // Markdown is the default: its extension shows only in the text view, where files of every kind are.
-    let all = app.tree.view == View::Text;
+    let all = app.tree.view == View::Text || app.tree.view.is_worktree();
     let name = match row.kind {
         _ if row.section => row.name.clone(),
         Kind::Dir { .. } => format!("{}/", row.name),
         Kind::File if all => row.name.clone(),
         Kind::File => row.name.trim_end_matches(".md").to_string(),
     };
+    // FILES-35: a file that the worktree deleted is struck through.
+    let name_style = if app.tree.deleted.contains(&row.rel) { Style::new().fg(t.dim).add_modifier(Modifier::CROSSED_OUT) } else { name_style };
     let changed = row.kind == Kind::File && app.tree.changed.contains(&row.rel);
     let mark = if changed { " Δ" } else { "" };
     let room = w.saturating_sub(indent.width() + 5 + mark.width());

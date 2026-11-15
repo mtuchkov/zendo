@@ -69,6 +69,9 @@ impl App {
             self.did(Pane::Global, "help");
             return self.open_help(self.help_pane_now());
         }
+        if self.worktree.confirm.is_some() {
+            return self.key_confirm(k);
+        }
         if self.file_prompt.is_some() {
             return self.key_file_prompt(k);
         }

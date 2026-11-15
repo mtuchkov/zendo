@@ -74,6 +74,8 @@ impl App {
         let Some(row) = rows.get(self.tree.sel).cloned() else { return };
         match row.kind {
             crate::docs::tree::Kind::Dir { .. } => self.tree.toggle(&row.rel),
+            // FILES-35: a file that the worktree deleted does not open.
+            crate::docs::tree::Kind::File if self.tree.deleted.contains(&row.rel) => self.flash("deleted in the worktree: it does not open"),
             crate::docs::tree::Kind::File => {
                 self.open_file(self.cfg.root.join(&row.rel));
                 if focus_note {
@@ -118,11 +120,11 @@ impl App {
                 self.tree.find = Some(String::new());
                 self.tree.sel = 0;
             }
-            Some("delete") => self.ask_file(self.tree_file(), 'd'),
-            Some("rename") => self.ask_file(self.tree_file(), 'r'),
-            Some("move") => self.ask_file(self.tree_file(), 'm'),
-            Some("new_file") => self.ask_new(false),
-            Some("new_folder") => self.ask_new(true),
+            Some("delete") => self.tree_act(TreeAct::File(self.tree_file(), 'd')),
+            Some("rename") => self.tree_act(TreeAct::File(self.tree_file(), 'r')),
+            Some("move") => self.tree_act(TreeAct::File(self.tree_file(), 'm')),
+            Some("new_file") => self.tree_act(TreeAct::New { folder: false }),
+            Some("new_folder") => self.tree_act(TreeAct::New { folder: true }),
             Some("add_to_chat") => self.attach_tree_file(),
             Some("layout") => self.toggle_layout(),
             Some("delta") => self.toggle_delta(),
@@ -146,12 +148,12 @@ impl App {
                 }
             }
             // The keys of the files work on the selected match too.
-            KeyCode::F(2) => self.ask_file(self.tree_file(), 'r'),
-            KeyCode::Delete => self.ask_file(self.tree_file(), 'd'),
+            KeyCode::F(2) => self.tree_act(TreeAct::File(self.tree_file(), 'r')),
+            KeyCode::Delete => self.tree_act(TreeAct::File(self.tree_file(), 'd')),
             KeyCode::Enter => {
                 let picked = self.tree.rows().get(self.tree.sel).map(|r| r.rel.clone());
                 self.tree.find = None;
-                if let Some(rel) = picked {
+                if let Some(rel) = picked.filter(|r| !self.tree.deleted.contains(r)) {
                     self.open_file(self.cfg.root.join(&rel));
                     self.tree.reveal(&rel);
                     self.focus = Focus::Note;

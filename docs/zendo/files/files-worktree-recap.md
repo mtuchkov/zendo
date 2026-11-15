@@ -1,12 +1,12 @@
 ---
-status: "approved"
+status: "implemented"
 approved: "2026-11-14"
 revision: "1"
 date: "2026-11-14"
 parent: "files.md"
 prev: "files-worktree.md"
 level: "the recap of the changes of a worktree at the bottom of the worktree views, and when it is written again"
-note: "Agent draft from the requests of the user on 2026-11-14, split from files-worktree.md. Approved by the user on 2026-11-14. Depends on Work (../work.md, draft)."
+note: "Agent draft from the requests of the user on 2026-11-14, split from files-worktree.md. Approved by the user on 2026-11-14. Implemented in zendo 0.60.0. Depends on Work (../work.md, draft)."
 ---
 
 # File tree: worktree recap
@@ -33,7 +33,7 @@ worktree changes while the agent works.
 
 ### Acceptance tests
 
-The test is not written yet.
+The test is in `tests/worktree.rs`.
 
 **`the_worktree_recap_refreshes_every_10_minutes_when_it_changed`** (mock agent, with a test
 clock; verifies FILES-28, FILES-29)
@@ -49,3 +49,6 @@ clock; verifies FILES-28, FILES-29)
 | ID       | Pattern    | Requirement | Source |
 | -------- | ---------- | ----------- | ------ |
 | FILES-36 | Ubiquitous | The system shall write the recap of the worktree in a separate Claude session without tools, from the changes that zendo sends, and shall not show it in the chat. | WORK-3 |
+
+Tests that verify detailed requirements: `the_worktree_recap_refreshes_every_10_minutes_when_it_changed`
+(FILES-36).

@@ -62,6 +62,11 @@ async fn scripted(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, t
         stream(cx, sid, &format!("SUMMARY: The mock agent read the file.\nLINE {line}: \"soon\" says no time.\nEND")).await?;
         return Ok(Some(StopReason::EndTurn));
     }
+    if text.contains("Recap the changes of the worktree") {
+        let n = text.lines().filter(|l| l.starts_with("diff --git ") || l.starts_with("--- new file ")).count();
+        stream(cx, sid, &format!("- The worktree changes {n} file{}.", if n == 1 { "" } else { "s" })).await?;
+        return Ok(Some(StopReason::EndTurn));
+    }
     if text.contains("Write a recap") {
         let title = text.lines().find_map(|l| l.strip_prefix("# ")).unwrap_or("this note").trim().to_string();
         let commit = text.lines().skip_while(|l| !l.starts_with("--- no changes against git HEAD")).nth(1);

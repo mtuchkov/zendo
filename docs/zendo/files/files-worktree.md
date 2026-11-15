@@ -1,5 +1,5 @@
 ---
-status: "approved"
+status: "implemented"
 approved: "2026-11-14"
 revision: "1"
 date: "2026-11-14"
@@ -7,7 +7,7 @@ parent: "files.md"
 prev: "files-code.md"
 next: "files-worktree-recap.md"
 level: "the two views of the worktree of the agent session: what they list, how they follow the session, what opening a file does"
-note: "Agent draft from the requests of the user on 2026-11-14. Approved by the user on 2026-11-14. The recap is in files-worktree-recap.md (split by the user, 2026-11-14). Depends on Sessions (../sessions.md, draft)."
+note: "Agent draft from the requests of the user on 2026-11-14. Approved by the user on 2026-11-14. Implemented in zendo 0.60.0. The recap is in files-worktree-recap.md (split by the user, 2026-11-14). Depends on Sessions (../sessions.md, draft)."
 ---
 
 # File tree: worktree views
@@ -20,7 +20,8 @@ so the user does not see what the agent session in the chat does. Two more views
 
 - **worktree**: every text file of the worktree of the active agent session, as the text view
   shows the main checkout;
-- **worktree changed**: only the files of that worktree that differ from `main`.
+- **worktree changed** (`worktree Δ` in the head of the tree): only the files of that worktree that
+  differ from `main`.
 
 At the bottom, both views show a recap of the changes of the worktree; see
 [Worktree recap](files-worktree-recap.md).
@@ -53,7 +54,7 @@ the same files, so a popup asks the user to confirm each action first.
 
 ### Acceptance tests
 
-Neither test is written yet.
+The tests are in `tests/worktree.rs`.
 
 **`the_worktree_view_lists_the_files_of_the_session_worktree`** (unit test; verifies FILES-26)
 
@@ -78,6 +79,13 @@ Neither test is written yet.
 | FILES-34 | Event      | When the user opens a file from a worktree view, the system shall open the file of the worktree like a note, and name the worktree in the head of the note. | Design |
 | FILES-35 | Ubiquitous | The system shall show a deleted file in the worktree changed view as a struck row that does not open. | Design |
 | FILES-37 | State      | While the agent of the session of the worktree answers, the system shall ask the user in a popup to confirm a rename, a move, a delete or a new file or folder in a worktree view, and do it only after the confirmation. | User, 2026-11-14 |
+
+Tests that verify detailed requirements, in `tests/worktree.rs`:
+`the_worktree_views_follow_the_agent_session` (FILES-31, FILES-32),
+`the_changed_view_lists_what_differs_from_main` (FILES-33, FILES-35),
+`a_file_of_the_worktree_opens_with_the_worktree_in_its_head` (FILES-34),
+`file_actions_in_a_worktree_ask_first_while_the_agent_works` (FILES-37), and
+`the_worktree_views_follow_folders_only_with_a_worktree` in `src/docs/tree/mod_tests.rs` (FILES-31).
 
 Not used: FILES-30 (a proposal for the `v` cycle), because FILES-4 holds the cycle (User,
 2026-11-14). Identifiers that were not used are never reused.

@@ -36,6 +36,9 @@ impl App {
         self.cli.pane = None;
         self.state.session = n % SESSIONS;
         self.state.save(&self.cfg.root);
+        if self.state.tree {
+            self.scan_tree();
+        }
         self.at = None;
         self.slash.open = false;
         self.open_panel();

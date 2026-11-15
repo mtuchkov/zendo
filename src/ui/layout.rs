@@ -103,7 +103,8 @@ pub(crate) fn draw_top(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
         },
         _ => match app.pinned.as_deref() {
             Some(ALL_KEY) => format!("{} · all notes", app.rel(&app.cfg.notes_dir)),
-            _ => app.note().map(|n| app.rel(&n.path)).unwrap_or_else(|| app.rel(&app.cfg.notes_dir)),
+            // FILES-34: a file of a worktree names its worktree.
+            _ => app.note().map(|n| crate::docs::tree::worktree::label(&app.rel(&n.path))).unwrap_or_else(|| app.rel(&app.cfg.notes_dir)),
         },
     };
     f.render_widget(Paragraph::new(Line::from(vec![Span::raw("  "), Span::raw(left.clone())])).style(Style::new().fg(t.dim)), area);

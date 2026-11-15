@@ -7,6 +7,8 @@ impl App {
         if self.cfg.root.join(".git").exists() {
             // FILES-25: the notes of the notes repo live outside the repository.
             self.tree.notes = self.repo_notes_outside();
+            // FILES-32: the worktree views show the worktree of the active agent session.
+            self.tree.worktree = crate::docs::tree::worktree::of(&self.cfg.root, self.state.session);
             self.tree.scan(&self.cfg.root);
         } else {
             let under = self.cfg.notes_dir.clone();

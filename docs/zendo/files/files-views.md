@@ -1,12 +1,12 @@
 ---
-status: "approved"
+status: "implemented"
 approved: "2026-11-14"
 revision: "2"
 date: "2026-11-14"
 parent: "files.md"
 next: "files-actions.md"
 level: "the views of the file tree, folding, the marks, the bottom of the tree"
-note: "Split from files.md revision 2 (user, 2026-11-14). Revision 2 changes FILES-4: the `v` cycle has the two worktree views after folders (user, 2026-11-14); the code does not implement it yet."
+note: "Split from files.md revision 2 (user, 2026-11-14). Revision 2 changes FILES-4: the `v` cycle has the two worktree views after folders (user, 2026-11-14); implemented in zendo 0.60.0."
 ---
 
 # File tree: views
@@ -49,5 +49,6 @@ Two more views show the worktree of the active agent session: worktree and workt
 | FILES-24 | Ubiquitous | The system shall show each file extension in the text view in the color that the theme gives its kind of file. | User, 2026-11-12 |
 
 Tests that verify detailed requirements: `rows_join_single_folders_and_collapse` (FILES-5, FILES-6),
-`the_folders_view_shows_empty_folders` (FILES-17), `the_text_view_shows_every_text_file` (FILES-20),
+`the_folders_view_shows_empty_folders` (FILES-17),
+`the_worktree_views_follow_folders_only_with_a_worktree` (FILES-4), `the_text_view_shows_every_text_file` (FILES-20),
 and `tests/tree_text.rs` (FILES-20, FILES-24).
