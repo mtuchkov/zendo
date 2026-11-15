@@ -95,8 +95,8 @@ impl App {
         }
     }
 
-    /// The prompts and answers of the Claude Code sessions go to the chats of their agent sessions;
-    /// a question that the chat sent shows once (CLIMSG-1, CLIMSG-4).
+    /// The prompts, the steps and the answers of the Claude Code sessions go to the chats of their
+    /// agent sessions; a question that the chat sent shows once (CLIMSG-1, CLIMSG-4, CLIMSG-8).
     fn cli_messages(&mut self) {
         use crate::session::{Message, plain};
         for (n, m) in self.cli.messages() {
@@ -110,7 +110,12 @@ impl App {
                     Some(i) => drop(t.sent_to_cli.remove(i)),
                     None => t.push(Item::User(plain(&p))),
                 },
-                Message::Answer(a) => t.push(Item::Agent(a)),
+                Message::Answer(a) | Message::Text(a) => t.push(Item::Agent(a)),
+                // The tool calls between two texts are one item, as the tools of the agent (CLIMSG-9).
+                Message::Tool { id, title, kind } => match t.items.last_mut() {
+                    Some(Item::Tools { uses, .. }) => uses.push(ToolUse { id, title, kind }),
+                    _ => t.push(Item::Tools { uses: vec![ToolUse { id, title, kind }], started: Instant::now(), took: None }),
+                },
                 Message::Session { .. } => {}
             }
         }

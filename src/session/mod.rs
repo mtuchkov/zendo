@@ -8,6 +8,7 @@
 mod hooks;
 mod marks;
 mod messages;
+mod transcript;
 pub mod output;
 pub mod keys;
 pub mod mouse;
