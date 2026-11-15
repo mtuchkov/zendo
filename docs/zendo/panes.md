@@ -12,7 +12,7 @@ note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. 
 
 zendo has four panes: the file tree, the note, the chat with Claude and the delta. The note is the
 main pane. The other panes open and close on the request of the user. Each pane has its own
-document for what it shows: [Notes](notes.md), [File tree](files.md), [Claude](claude.md),
+document for what it shows: [Notes](notes.md), [File tree](files/files.md), [Claude](claude.md),
 [Work, delta and recaps](work.md).
 
 The user has two layout presets and no other layout settings. In wide screen, the open panes stand

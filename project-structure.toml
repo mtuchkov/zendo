@@ -90,6 +90,10 @@ path = "docs/zendo/terminal"
 about = "The terminals of zendo: terminal.md is the parent; its children are the shell blocks, the terminal view, and the output of a command for the agent."
 
 [[entry]]
+path = "docs/zendo/files"
+about = "The file tree of zendo: files.md is the parent; its children are the views, the actions on a file, the code files, the views of the worktree of an agent session, and its recap."
+
+[[entry]]
 path = "docs/architecture/decisions"
 label = "Decisions"
 about = "Architecture decision records, one file for each decision."
