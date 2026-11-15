@@ -213,13 +213,16 @@ async fn the_sound_button_turns_the_bell_off_and_saves_it() {
     let branch = find(&buf, "main").expect("the branch");
     assert_eq!(at.1, branch.1, "on the line of the branch");
     assert!(at.0 < branch.0, "left of the branch");
+    let (blue, gray) = (a.theme().ext.doc, a.theme().dim);
+    assert_eq!(buf[at].fg, blue, "blue while the sound is on");
     assert!(!buf[at].modifier.contains(Modifier::CROSSED_OUT));
     click(&mut a, at);
     assert!(!a.attention.sound);
     let saved = std::fs::read_to_string(root.join("config.toml")).unwrap();
     assert!(saved.contains("sound = false"), "{saved}");
     let buf = frame(&mut a, 160, 40);
-    assert!(buf[at].modifier.contains(Modifier::CROSSED_OUT), "struck through while silent");
+    assert_eq!(buf[at].fg, gray, "gray while silent: Apple Terminal shows no strike-through");
+    assert!(!buf[at].modifier.contains(Modifier::CROSSED_OUT));
     a.on_agent(Event::TurnEnd { key: session_key(3), stop: "end_turn".into() });
     assert_eq!(a.attention.bells, 0, "no bell while silent");
     assert!(a.blink(3).is_some(), "but the button blinks");

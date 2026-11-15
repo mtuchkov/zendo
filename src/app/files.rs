@@ -114,6 +114,7 @@ impl App {
     }
 
     pub fn tick(&mut self) {
+        self.music_tick();
         if let Some(rx) = self.update_rx.as_mut() {
             match rx.try_recv() {
                 Ok(found) => {

@@ -90,7 +90,8 @@ impl App {
         if self.sees(n) {
             return;
         }
-        if self.attention.sound {
+        // While the music plays, the call is a chime in the music (LOFI-13).
+        if self.attention.sound && !self.music.chime() {
             self.attention.bells += 1;
         }
         self.attention.start(n);
@@ -115,9 +116,10 @@ impl App {
         seen.into_iter().for_each(|n| self.attention.stop(n));
     }
 
-    /// The terminal got or lost the focus (ATTN-11).
+    /// The terminal got or lost the focus (ATTN-11); the music pauses without it (LOFI-15).
     pub fn on_focus(&mut self, focused: bool) {
         self.attention.focused = focused;
+        self.music.focus(focused);
     }
 
     /// The sound button: turn the bell off or on, and save it in the config (ATTN-8).

@@ -58,6 +58,7 @@ pub(super) async fn checks(paths: &Paths, agent_flag: Option<String>, live: bool
     let env = config::agent_env(&cfg);
     check_repo(paths, &cfg, quiet_outside_repo, o);
     check_settings(&cfg, o);
+    check_music(&cfg, o);
     check_structure(paths, o);
     let (cmd, source) = check_config(&cfg, agent_flag, o);
     check_network(o);
@@ -72,6 +73,15 @@ pub(super) async fn checks(paths: &Paths, agent_flag: Option<String>, live: bool
         drop(h);
     }
     !o.failed
+}
+
+/// The output of the lofi music: a missing one is no failure, zendo works without it (LOFI-3).
+fn check_music(cfg: &UserConfig, o: &mut Out) {
+    let start = if cfg.music == Some(false) { "off at the start" } else { "on at the start" };
+    match crate::music::probe() {
+        Ok(out) => o.ok("music", format!("{start}, through {out}")),
+        Err(why) => o.warn("music", format!("not available: {why}")),
+    }
 }
 
 fn check_repo(paths: &Paths, cfg: &UserConfig, quiet_outside_repo: bool, o: &mut Out) {

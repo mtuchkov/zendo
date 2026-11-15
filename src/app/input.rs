@@ -35,15 +35,18 @@ impl App {
         self.sel = None;
     }
 
-    /// The views that take a key before the panes: the float, the waiting view, a session on the
+    /// The views that take a key before the panes: the music question, the float, the waiting view, a session on the
     /// full screen, a terminal in the chat pane. True when one of them took it.
     fn key_to_view(&mut self, k: KeyEvent) -> bool {
         // The float and find open over every pane and view, also a session on the full screen
         // (FLOAT-14, FIND-15).
         let global = if self.mode == Mode::Help { None } else { self.keys.local(crate::keys::Pane::Global, &k) };
         match (self.cli.view, self.pane_terminal()) {
+            // The question of the first start takes every key until it has an answer (LOFI-12).
+            _ if self.music.asking => self.key_music_question(k),
             _ if self.float.is_some() => self.key_float(k),
             _ if global == Some("new_note") => drop(self.global_key("new_note", crate::keys::Pane::Global)),
+            _ if global == Some("music") => drop(self.global_key("music", crate::keys::Pane::Global)),
             _ if global == Some("find") && self.mode != Mode::Find => drop(self.global_key("find", crate::keys::Pane::Global)),
             _ if self.mode == Mode::Find => return false,
             _ if self.hold.is_some() => self.key_hold(k),
@@ -144,6 +147,7 @@ impl App {
             }
             "toggle_tree" => self.toggle_tree(),
             "new_note" => self.open_float(),
+            "music" => self.toggle_music(),
             "find" => self.open_find(),
             "next_session" => self.step_in_chat(true),
             "prev_session" => self.step_in_chat(false),

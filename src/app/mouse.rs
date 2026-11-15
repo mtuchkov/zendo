@@ -82,6 +82,12 @@ impl App {
     fn click(&mut self, x: u16, y: u16) {
         self.sel = None;
         let hit = |r: &Rect| r.contains(ratatui::layout::Position::new(x, y));
+        if self.music.asking {
+            return self.click_music_question(x, y);
+        }
+        if self.music.button.is_some_and(|r| hit(&r)) {
+            return self.toggle_music();
+        }
         if self.attention.button.is_some_and(|r| hit(&r)) {
             return self.toggle_sound();
         }

@@ -44,6 +44,7 @@ edge_left = ["ctrl-left"]  # move the edge of the pane in focus
 edge_right = ["ctrl-right"]  # move the edge of the pane in focus
 
 # zendo
+music = ["alt-m"]  # lofi music on or off
 help = ["alt-?", "f1"]  # the keys of this pane
 quit = ["ctrl-q"]  # quit; ctrl-c copies
 

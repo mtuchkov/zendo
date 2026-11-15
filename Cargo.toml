@@ -1,6 +1,6 @@
 [package]
 name = "zendo"
-version = "0.65.0"
+version = "0.66.0"
 edition = "2024"
 rust-version = "1.89"
 license = "Apache-2.0"
@@ -24,6 +24,10 @@ toml_edit = "0.25.19"
 unicode-width = "0.2.3"
 portable-pty = "0.9.0"
 vt100 = "0.18.1"
+
+# The lofi music plays through CoreAudio on macOS; Linux uses a system player (ADR 0006).
+[target.'cfg(target_os = "macos")'.dependencies]
+cpal = "0.18.2"
 
 [dev-dependencies]
 syn = { version = "2", features = ["full", "visit"] }

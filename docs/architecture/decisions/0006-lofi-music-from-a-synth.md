@@ -1,6 +1,7 @@
 ---
-status: "draft"
-date: "2026-11-13"
+status: "approved"
+approved: "2026-11-14"
+date: "2026-11-14"
 sources:
   - "../../zendo/lofi.md"
   - "../../zendo/site.md"
@@ -28,21 +29,33 @@ noise, so there is no file and no owner. zendo needs the same music in a termina
 | Only a file of the user | No music code beyond playback. | No music for most users. |
 | A web radio | Endless music. | Needs the network (breaks LOFI-2). Unknown owners (breaks LOFI-1). |
 
-For the audio output:
+For the audio output (LOFI-14: no package that the user installs for the music):
 
 | Option | Benefit | Cost or constraint |
 | ------ | ------- | ------------------ |
-| `rodio` (MIT or Apache-2.0) | A mixer and a `Source` trait for the synth; it decodes MP3 and OGG for the CC0 file of the user (LOFI-9). Built on `cpal`. | More dependencies than `cpal` alone. |
-| `cpal` (Apache-2.0) | The lowest layer: one audio callback, few dependencies. | zendo must mix and decode files itself. |
+| `cpal` on both platforms | One code path. | On Linux it needs the ALSA headers to build; `install.sh` builds zendo and cannot install them without `sudo` and a question. |
+| `cpal` on macOS, a system player on Linux | Nothing to install on either platform: CoreAudio is in macOS; `paplay`, `aplay` or `pw-cat` comes with PipeWire, PulseAudio or ALSA. | Two output paths. A pipe to a child process adds some latency, which a background music does not feel. |
+| `rodio` | A mixer and file decoders. | zendo plays no files (LOFI-1), so the decoders are weight; the same ALSA problem as `cpal`. |
 
 ## Decision
 
-Proposal, not yet approved by the user: zendo makes the music with its own synth, and plays it, or a
-CC0 file of the user, through `rodio`.
+zendo makes the music with its own synth. On macOS it plays
+the samples through `cpal` (CoreAudio), a dependency only for `target_os = "macos"`. On Linux it
+writes 16-bit stereo samples at 48 kHz to the stdin of the first player that it finds: `paplay`
+(it also plays through PipeWire), `aplay`, `pw-cat`, each with a latency of 100 ms, so that a stop
+or a chime comes at once. Over SSH, or without an output, the music is not available (LOFI-3).
+
+The output opens on its own thread, so the screen does not wait for it. The thread reports whether
+it plays; when the output dies, as a sound server that restarts, the music becomes not available
+and the bell of ATTN-1 rings again. While the music is off or paused, the output rests.
 
 The music module shall render samples in the audio thread from a seeded random generator, so that
 it needs no scheduler and no other thread waits for it. The rest of zendo shall see only commands
-(start, stop) and one state (plays, stopped, not available).
+(start, stop, chime) and one state (plays, stopped, not available, which includes "still opening").
+
+The chime of a turn (LOFI-13) is a voice of the synth: a soft bell (sine with a quiet partial at 2.76
+times the frequency, attack 5 ms, decay 1.8 s, level 0.12, room send 0.5) on the ninth or the fifth
+of the current chord, two octaves above the root, on the next eighth note.
 
 The synth shall follow the first implementation on the landing page:
 
@@ -65,11 +78,13 @@ every 16 bars. The user removed both on 2026-11-13 (LOFI-6, LOFI-7).
 
 ## Consequences
 
-- New dependencies: `rodio`, and through it `cpal` and a decoder for MP3 and OGG.
-- On Linux, `cpal` needs the ALSA headers to build. The installer builds zendo, so it must install
-  them or build zendo without music. `zendo doctor` reports when music is not available.
-- The room is a convolution with a 2.6 s impulse. If it costs too much in the audio thread, a cheaper
-  reverb takes its place; the sound may change a little.
+- A new dependency on macOS only: `cpal`. Linux builds as before; `install.sh` does not change.
+- On Linux the music needs one of `paplay`, `aplay`, `pw-cat`. `zendo doctor` reports which one it
+  uses, or that the music is not available.
+- The room is not a convolution with a 2.6 s impulse, as on the landing page: that costs too much in
+  the audio thread. A Freeverb-style reverb takes its place: for each channel 8 damped combs and 4
+  all-passes, a decay of 1.8 s, the right channel 0.52 ms longer. Ten seconds of music render in
+  about 0.1 s in a release build.
 - The landing page and zendo keep two copies of the synth: JavaScript and Rust. A change of the music
   changes both, and this record.
 
@@ -77,10 +92,12 @@ every 16 bars. The user removed both on 2026-11-13 (LOFI-6, LOFI-7).
 
 - `lofi renders without gaps` (LOFI-2, LOFI-7): the synth with a fixed seed renders eight minutes
   without an audio device; no second is silent and no sample clips.
-- `lofi without audio` (LOFI-3) and `lofi toggles` (LOFI-8): mock-agent tests in `cargo test`.
+- `lofi without audio` (LOFI-3), `lofi toggles` (LOFI-8, LOFI-10), `lofi asks at the first start`
+  (LOFI-11, LOFI-12) and `lofi chime in the key` (LOFI-13): tests with a mock audio output.
 - A listen by the user, next to the landing page, before this record becomes `approved`.
 
 ## Decision record
 
-Draft by the agent on 2026-11-13, at the request of the user. Not reviewed. The user approves or
-rejects it when zendo gets the music.
+Draft by the agent on 2026-11-13, at the request of the user. Revised on 2026-11-14 with the answers
+of the user: no file of the user, `cpal` only on macOS, a system player on Linux, the chime in the
+synth. Approved by the user on 2026-11-14.

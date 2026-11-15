@@ -40,6 +40,10 @@ pub struct UserConfig {
     /// default on. The sound button of zendo changes it (docs/zendo/attention.md).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sound: Option<bool>,
+    /// The lofi music at the start; default on. Without it, zendo asks once at the start; the
+    /// music button changes it (docs/zendo/lofi.md, LOFI-11, LOFI-12).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub music: Option<bool>,
     /// The usage counts in the data folder; default on (docs/zendo/usage.md, USAGE-14).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub usage: Option<bool>,
@@ -137,7 +141,7 @@ impl UserConfig {
         Self::read_from(&config_path())
     }
 
-    fn read_from(path: &Path) -> Result<Option<Self>, String> {
+    pub fn read_from(path: &Path) -> Result<Option<Self>, String> {
         match std::fs::read_to_string(path) {
             Err(_) => Ok(None),
             Ok(s) => toml::from_str(&s).map(Some).map_err(|e| e.to_string()),

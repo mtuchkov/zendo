@@ -28,6 +28,7 @@ pub const ACTIONS: &[Action] = &[
     a(Global, View, "narrower", "a narrower text column"),
     a(Global, View, "edge_left", "move the edge of the pane in focus"),
     a(Global, View, "edge_right", "move the edge of the pane in focus"),
+    a(Global, App, "music", "lofi music on or off"),
     a(Global, App, "help", "the keys of this pane"),
     a(Global, App, "quit", "quit"),
     // read

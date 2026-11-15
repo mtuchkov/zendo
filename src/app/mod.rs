@@ -23,6 +23,7 @@ mod info;
 mod input;
 mod modes;
 mod mouse;
+mod music;
 mod new;
 mod read;
 mod say;
@@ -270,6 +271,8 @@ pub struct App {
     pub hold: Option<Hold>,
     /// The bell and the blinking buttons when a turn ends, and the sound button (ATTN-1 to ATTN-11).
     pub attention: Attention,
+    /// The lofi music, its button, and the question at the first start (LOFI-8 to LOFI-15).
+    pub music: crate::music::Music,
     /// Panels on screen in the last frame, for the mouse.
     pub regions: Vec<(Region, Rect)>,
     pub sel: Option<Selection>,

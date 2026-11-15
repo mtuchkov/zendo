@@ -123,16 +123,24 @@ pub(crate) fn draw_top(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
 
 /// The sound button in the top line (ATTN-7).
 pub const SOUND: &str = "[sound]";
+/// The music button in the top line (LOFI-10).
+pub const MUSIC: &str = "[music]";
+
+/// A button of the top line: blue while on, gray while off. Not struck through: Apple Terminal does
+/// not show it (ATTN-7, LOFI-10).
+fn switch(t: &Theme, on: bool) -> Style {
+    Style::new().fg(if on { t.ext.doc } else { t.dim })
+}
 
 /// The right of the top line: the sessions that blink while their buttons are not on the screen
-/// (ATTN-10), the sound button, struck through while the sound is off (ATTN-7), and the branch.
-/// Returns its width.
+/// (ATTN-10), the music button (LOFI-10), the sound button (ATTN-7), and the branch. Returns its
+/// width.
 fn draw_top_right(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) -> u16 {
     let chips: Vec<usize> = if app.session_buttons.is_empty() { app.attention.blinks().collect() } else { Vec::new() };
     let chip = |n: usize| Style::new().fg(t.bg).bg(pulse_bg(app, t, n, if n >= crate::app::SESSIONS { t.fg } else { t.acc2 }));
     let mut pieces: Vec<(String, Style)> = chips.iter().map(|n| (format!(" {} ", titled(app, *n)), chip(*n))).collect();
-    let silent = if app.attention.sound { Modifier::empty() } else { Modifier::CROSSED_OUT };
-    pieces.push((SOUND.into(), Style::new().fg(t.dim).add_modifier(silent)));
+    pieces.push((MUSIC.into(), switch(t, app.music.state() == crate::music::State::Plays)));
+    pieces.push((SOUND.into(), switch(t, app.attention.sound)));
     pieces.extend(app.branch.clone().filter(|b| !b.is_empty()).map(|b| (b, Style::new().fg(t.dim))));
     let width = (pieces.iter().map(|(s, _)| s.width() + 2).sum::<usize>() - 2) as u16;
     let mut x = area.right().saturating_sub(width + 2);
@@ -142,7 +150,8 @@ fn draw_top_right(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) -> u16 {
         f.render_widget(Paragraph::new(Span::styled(text, style)), r);
         match chips.get(i) {
             Some(n) => app.session_buttons.push((r, *n)),
-            None if i == chips.len() => app.attention.button = Some(r),
+            None if i == chips.len() => app.music.button = Some(r),
+            None if i == chips.len() + 1 => app.attention.button = Some(r),
             None => {}
         }
     }

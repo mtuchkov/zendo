@@ -1,12 +1,13 @@
 ---
-status: "draft"
-revision: "2"
+status: "approved"
+approved: "2026-11-14"
+revision: "3"
 date: "2026-11-14"
 parent: "zendo.md"
 prev: "terminal/terminal.md"
 next: "project-structure.md"
 level: "how zendo calls the user back when a turn of an agent or a command of a terminal ends: the bell, the blinking button, the sound button"
-note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. It answers the open point on the bell in sessions.md."
+note: "From the requests of the user on 2026-11-12 and 2026-11-14. Approved by the user on 2026-11-14. It answers the open point on the bell in sessions.md."
 ---
 
 # Attention
@@ -47,7 +48,7 @@ terminal bell, and the terminal decides what the user hears.
 | ATTN-1 | Event    | When a turn ends while the user does not see its session, the system shall play its sound once, where the sound is on. | User, 2026-11-12 |
 | ATTN-2 | Event    | When a turn ends while the user does not see its session, the system shall blink the button of that session. | User, 2026-11-12 |
 | ATTN-3 | State    | While a button blinks, the system shall change its background color smoothly from its color to the accent color and back, with a period of 2 s and at least 20 shades in each period. | User, 2026-11-12 |
-| ATTN-7 | Ubiquitous | The system shall show the sound button `[sound]` left of the name of the git branch in the top line, struck through while the sound is off. | User, 2026-11-12 |
+| ATTN-7 | Ubiquitous | The system shall show the sound button `[sound]` left of the name of the git branch in the top line: in the blue of the theme while the sound is on, in the gray of the theme while it is off. | User, 2026-11-12; User, 2026-11-14 |
 | ATTN-8 | Event    | When the user clicks the sound button, the system shall turn the sound off or on and save the setting `sound` in `~/.zendo/config.toml`. | User, 2026-11-12 |
 
 ### Acceptance tests
@@ -103,7 +104,7 @@ The tests are in `tests/attention.rs`, with the mock command line of [Sessions](
 | ATTN-9  | Optional   | Where `~/.zendo/config.toml` has `sound = false`, the system shall start with the sound off; without the setting, with the sound on. | User, 2026-11-12 |
 | ATTN-10 | State      | While the session buttons are not on the screen, the system shall show each session that blinks in the top line, left of the sound button, and open it on a click. | Design |
 | ATTN-11 | Ubiquitous | The system shall take the focus from the focus events of the terminal, and take a terminal without focus events as one that has the focus. | Design |
-| ATTN-12 | Optional   | Where zendo runs on macOS and not over SSH, the system shall play the sound of ATTN-1 itself, with a system sound; elsewhere, or if the player does not start, the system shall ring the terminal bell. | User, 2026-11-14 |
+| ATTN-12 | Optional   | Where zendo runs on macOS and not over SSH, the system shall play the sound of ATTN-1 itself, with a system sound; elsewhere, or if the player does not start, the system shall ring the terminal bell. While the [music](lofi.md) plays, its chime takes the place of this sound (LOFI-13). | User, 2026-11-14 |
 
 Tests: `a_blinking_session_shows_in_the_top_line_while_the_chat_is_closed` (ATTN-10),
 `the_config_sets_the_sound` (ATTN-9), `sound_goes_into_the_config_and_back` (ATTN-8, ATTN-9), and the

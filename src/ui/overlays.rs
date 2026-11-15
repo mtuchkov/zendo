@@ -116,3 +116,30 @@ pub(crate) fn draw_confirm(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     let block = Block::bordered().title(" the agent works ").border_style(Style::new().fg(t.acc2)).style(Style::new().bg(t.panel));
     f.render_widget(Paragraph::new(lines).block(block), r);
 }
+
+/// The question of the first start, over the screen while the music plays: keep the lofi music on
+/// at each start, or turn it off (LOFI-12). Its two answers take a click.
+pub(crate) fn draw_music_question(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
+    app.music.answers = None;
+    if !app.music.asking {
+        return;
+    }
+    let w = 58.min(area.width);
+    let text = "zendo plays calm lofi music that it makes itself. Keep it on at each start? The [music] button and alt-m stop and start it any time.";
+    let mut lines = markdown::wrap(vec![Span::styled(text, Style::new().fg(t.fg))], w.saturating_sub(4) as usize, "  ", "  ");
+    let (keep, off) = ("[ keep on · y ]", "[ turn off · n ]");
+    lines.push(Line::raw(""));
+    lines.push(Line::from(vec![Span::raw("  "), Span::styled(keep, Style::new().fg(t.ext.doc)), Span::raw("   "), Span::styled(off, Style::new().fg(t.dim))]));
+    let rows = lines.len() as u16;
+    let h = (rows + 2).min(area.height);
+    let r = Rect { x: area.x + (area.width - w) / 2, y: area.y + (area.height - h) / 2, width: w, height: h };
+    f.render_widget(Clear, r);
+    let block = Block::bordered().title(" lofi music ").border_style(Style::new().fg(t.ext.doc)).style(Style::new().bg(t.panel));
+    f.render_widget(Paragraph::new(lines).block(block), r);
+    // On a screen too small for the whole float, the answers take keys only: no rect points at a
+    // line that is not drawn.
+    let fits = h == rows + 2 && w as usize >= keep.width() + off.width() + 7;
+    let (y, x) = (r.bottom().saturating_sub(2), r.x + 3);
+    let button = |x: u16, s: &str| Rect { x, y, width: s.width() as u16, height: 1 };
+    app.music.answers = fits.then(|| (button(x, keep), button(x + keep.width() as u16 + 3, off)));
+}

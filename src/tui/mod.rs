@@ -42,6 +42,8 @@ pub async fn run(
     let mut pulse = tokio::time::interval(Duration::from_millis(100));
     pulse.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let printed = app.cli.notify.clone();
+    // The lofi music opens its output here, not in App::new, so tests play nothing (LOFI-11).
+    app.start_music(crate::music::Output::System);
     loop {
         term.draw(|f| ui::draw(f, app))?;
         cursor_shape(app);
