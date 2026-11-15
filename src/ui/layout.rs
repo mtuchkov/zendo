@@ -103,6 +103,11 @@ pub(crate) fn draw_top(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
         },
         _ => match app.pinned.as_deref() {
             Some(ALL_KEY) => format!("{} · all notes", app.rel(&app.cfg.notes_dir)),
+            // FILES-45, FILES-47: a held key names the version that it shows.
+            _ if app.peek.on.is_some() => {
+                let doc = app.current.as_ref().and_then(|p| app.doc_rel(p)).unwrap_or_default();
+                format!("{} · {doc}", app.peek.on.map_or("", |o| o.name()))
+            }
             // FILES-34: a file of a worktree names its worktree.
             _ => app.note().map(|n| crate::docs::tree::worktree::label(&app.rel(&n.path))).unwrap_or_else(|| app.rel(&app.cfg.notes_dir)),
         },

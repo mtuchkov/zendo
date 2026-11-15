@@ -4,7 +4,9 @@ use super::*;
 impl App {
     pub fn reload(&mut self) {
         if let Ok(mut n) = self.store.load_all() {
-            self.extra.retain(|p| p.exists());
+            // The open document stays, also while it has no version in the session (FILES-40).
+            let cur = self.current.clone();
+            self.extra.retain(|p| p.exists() || cur.as_ref() == Some(p));
             for p in &self.extra {
                 if !n.iter().any(|x| &x.path == p)
                     && let Ok(note) = notes::load(p) {
@@ -14,7 +16,7 @@ impl App {
             n.sort_by_key(|b| std::cmp::Reverse(b.modified));
             self.notes = n;
         }
-        if self.current.as_ref().is_some_and(|p| !p.exists()) {
+        if self.current.as_ref().is_some_and(|p| !p.exists() && !self.extra.contains(p)) {
             self.current = self.notes.first().map(|n| n.path.clone());
         }
     }
@@ -86,6 +88,10 @@ impl App {
             self.load_structure();
             self.tree.scanned = None;
         }
+        // The open document came into being in the checkout of the session (FILES-44).
+        if self.current.as_ref().is_some_and(|p| p.exists()) && self.peek.on.is_none() && self.note().is_none() {
+            self.reload();
+        }
         let Ok(dir) = std::fs::read_dir(&self.store.dir) else { return };
         let mut n = 0;
         let mut newest = None;
@@ -114,6 +120,7 @@ impl App {
     }
 
     pub fn tick(&mut self) {
+        self.peek_tick();
         if let Some(rx) = self.update_rx.as_mut() {
             match rx.try_recv() {
                 Ok(found) => {
@@ -158,17 +165,18 @@ impl App {
         self.quit = true;
     }
 
-    /// Open any markdown file of the repo.
+    /// Open any file of the repo, in the version of the active agent session (FILES-42).
     pub fn open_file(&mut self, path: PathBuf) {
         if self.mode == Mode::Write {
             self.save();
             self.mode = Mode::Read;
         }
+        let path = self.session_path(&path);
+        self.current = Some(path.clone());
         if !self.notes.iter().any(|n| n.path == path) && !self.extra.contains(&path) {
-            self.extra.push(path.clone());
+            self.extra.push(path);
             self.reload();
         }
-        self.current = Some(path);
         self.scroll = 0;
         self.read_cursor = 0;
         self.read_anchor = None;

@@ -22,8 +22,12 @@ impl App {
         self.focus = self.visible[(i + 1) % self.visible.len()];
     }
 
-    /// What any key ends: a run of `alt-o` or `tab`, a mouse selection.
-    fn key_comes(&mut self, k: &KeyEvent) {
+    /// What any key ends: `m` or `u` held in read mode, a run of `alt-o` or `tab`, a mouse
+    /// selection. True when the key went up: then it is done (FILES-45, FILES-47).
+    fn key_comes(&mut self, k: &KeyEvent) -> bool {
+        if self.peek_key(k) {
+            return true;
+        }
         self.track_recent();
         self.last_input = Instant::now();
         self.tab_run.key();
@@ -33,6 +37,7 @@ impl App {
         }
         // Any key ends a mouse selection; the text is already copied.
         self.sel = None;
+        false
     }
 
     /// The views that take a key before the panes: the float, the waiting view, a session on the
@@ -56,8 +61,7 @@ impl App {
 
     pub fn on_key(&mut self, k: KeyEvent) {
         use crate::keys::Pane;
-        self.key_comes(&k);
-        if self.key_to_view(k) {
+        if self.key_comes(&k) || self.key_to_view(k) {
             return;
         }
         if self.mode == Mode::Help {

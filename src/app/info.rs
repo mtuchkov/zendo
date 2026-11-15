@@ -95,6 +95,9 @@ impl App {
     }
 
     pub fn note(&self) -> Option<&Note> {
+        if self.peek.on.is_some() {
+            return self.peek.note.as_ref();
+        }
         let p = self.current.as_ref()?;
         self.notes.iter().find(|n| &n.path == p)
     }
