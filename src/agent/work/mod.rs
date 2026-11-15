@@ -8,7 +8,7 @@ mod review;
 
 pub use image_names::{IMAGE_PREFIX, image_name};
 pub use meta::*;
-pub use names::pick;
+pub use names::{Asked, pick};
 pub use review::*;
 
 use crate::agent::Cmd;

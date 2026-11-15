@@ -49,11 +49,13 @@ impl App {
         self.flash("writing a recap");
     }
 
+    /// The agent runs and has no job in the background.
+    fn agent_free(&self) -> bool {
+        self.agent.is_some() && self.agent_name.is_some() && self.recap_job.is_none()
+    }
+
     pub(super) fn agent_idle(&self) -> bool {
-        self.agent.is_some()
-            && self.agent_name.is_some()
-            && self.recap_job.is_none()
-            && self.threads.iter().all(|(_, t)| t.busy.is_none())
+        self.agent_free() && self.threads.iter().all(|(_, t)| t.busy.is_none())
     }
 
     /// The next file for an automatic recap: worked on in the last week, changed since its recap.
@@ -82,12 +84,14 @@ impl App {
         cands.pop().map(|(_, r)| r)
     }
 
-    /// Called on every tick: start a requested recap, or an automatic one when all is idle.
+    /// Called on every tick: start a requested recap, or an automatic one when all is idle. A
+    /// question for a name does not wait for the turns of the chat (NAMES-1).
     pub fn recap_tick(&mut self) {
-        if !self.agent_idle() {
+        if !self.agent_free() {
             return;
         }
-        if self.review_tick() || self.meta_tick() || self.name_tick() {
+        let idle = self.agent_idle();
+        if (idle && (self.review_tick() || self.meta_tick())) || self.name_tick() || !idle {
             return;
         }
         let (rel, auto) = if let Some(r) = self.recap_queue.pop_front() {

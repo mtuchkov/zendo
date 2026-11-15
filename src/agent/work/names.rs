@@ -1,11 +1,16 @@
-//! The names of the agent sessions (docs/zendo/session-names.md): after the second answer of a
-//! Claude session, the agent names the conversation in a throwaway session, so the question for
-//! the name is not in the thread (NAMES-9). A name belongs to a session ID (NAMES-3).
+//! The names of the agent sessions (docs/zendo/session-names/session-names.md): from the first
+//! agent message of a Claude session, also while the turn runs, the agent names the conversation in
+//! a throwaway session, so the question for the name is not in the thread (NAMES-1, NAMES-9). Later
+//! it checks whether the name still fits (NAMES-14). A name belongs to a session ID (NAMES-3).
 use super::*;
 use crate::app::{Item, SESSIONS, session_key};
 
-/// The answers of a Claude session before it gets a name (NAMES-1).
-const ANSWERS: usize = 2;
+/// More characters of the conversation before the next question for a name (NAMES-10, NAMES-14).
+const STEP_CHARS: usize = 200;
+/// More time of a running turn before the next question for a name (NAMES-10, NAMES-14).
+const STEP_TIME: Duration = Duration::from_secs(30);
+/// The kept names after which the thresholds stop doubling.
+const MOST_KEEPS: u32 = 8;
 /// The longest name: one word of at most this many letters.
 const LONGEST: usize = 12;
 /// The messages of the conversation in the question for a name, and the length of each.
@@ -14,7 +19,24 @@ const MESSAGE_CHARS: usize = 600;
 
 pub const NAME_PROMPT: &str = "Name this conversation between a user and a coding agent with one short lowercase \
 word that tells its topic, such as a module, a feature or a problem. Do not use these names: {{TAKEN}}.\n\
+If the conversation does not tell its topic yet, answer `-` alone.\n\
 Answer with three such words on one line, the best first, and nothing else.\n\n--- conversation ---\n{{MESSAGES}}";
+
+pub const RENAME_PROMPT: &str = "Does this name still fit? A conversation between a user and a coding agent has \
+the name `{{NAME}}`. If that word still tells its topic, answer `=` alone. Otherwise name its topic now with \
+one short lowercase word, such as a module, a feature or a problem. Do not use these names: {{TAKEN}}.\n\
+Answer with `=`, or with three such words on one line, the best first, and nothing else.\n\n\
+--- conversation ---\n{{MESSAGES}}";
+
+/// The last question for the name of a Claude session (NAMES-10, NAMES-14).
+#[derive(Clone, Copy, Debug)]
+pub struct Asked {
+    /// The size of the conversation then: see `told`.
+    pub size: usize,
+    pub at: Instant,
+    /// The answers that kept the name; each doubles the thresholds.
+    pub keeps: u32,
+}
 
 impl App {
     /// The session ID of the Claude session of agent session `n`.
@@ -32,25 +54,31 @@ impl App {
         (0..SESSIONS).filter(|m| *m != n).filter_map(|m| self.session_name(m)).collect()
     }
 
-    /// The first agent session to name: its Claude session has no name, enough answers, and more
-    /// answers than when zendo last asked (NAMES-1, NAMES-10). Its number, session ID, answers and
+    /// The first agent session to ask about its name: its conversation has a question and an agent
+    /// message, and it is due (NAMES-1, NAMES-10, NAMES-14). Its number, session ID, size and
     /// messages.
     fn to_name(&self) -> Option<(usize, String, usize, String)> {
+        let now = Instant::now();
         (0..SESSIONS).find_map(|n| {
-            let id = self.claude_session(n).filter(|id| !self.state.names.contains_key(id))?;
-            let t = self.threads.get(&session_key(n)).filter(|t| t.busy.is_none())?;
+            let id = self.claude_session(n)?;
+            let t = self.threads.get(&session_key(n))?;
             let items = t.items.get(t.name_from..)?;
-            let answers = answered(items);
-            let asked = self.names_asked.get(&id).copied().unwrap_or(0);
-            (answers >= ANSWERS && answers > asked).then(|| (n, id, answers, conversation(items)))
+            let size = told(items, t.busy.is_some())?;
+            due(size, t.busy, self.names_asked.get(&id), now).then(|| (n, id, size, conversation(items)))
         })
     }
 
-    /// Ask the agent for the name of an agent session, if one needs it. True when it asked.
+    /// Ask the agent for the name of an agent session, or whether its name still fits, if one is
+    /// due. True when it asked.
     pub(super) fn name_tick(&mut self) -> bool {
-        let Some((n, id, answers, messages)) = self.to_name() else { return false };
-        self.names_asked.insert(id.clone(), answers);
-        let prompt = NAME_PROMPT.replace("{{TAKEN}}", &self.taken_names(n).join(", ")).replace("{{MESSAGES}}", &messages);
+        let Some((n, id, size, messages)) = self.to_name() else { return false };
+        let keeps = self.names_asked.get(&id).map_or(0, |a| a.keeps);
+        self.names_asked.insert(id.clone(), Asked { size, at: Instant::now(), keeps });
+        let prompt = match self.session_name(n) {
+            Some(name) => RENAME_PROMPT.replace("{{NAME}}", &name),
+            None => NAME_PROMPT.to_string(),
+        };
+        let prompt = prompt.replace("{{TAKEN}}", &self.taken_names(n).join(", ")).replace("{{MESSAGES}}", &messages);
         self.recap_job = Some(RecapJob { name: Some((n, id)), ..RecapJob::default() });
         let key = format!("{RECAP_PREFIX}name {}", n + 1);
         if let Some(a) = &self.agent {
@@ -63,15 +91,26 @@ impl App {
     }
 
     /// The name turn ended: the first free word of the answer names the session, while its Claude
-    /// session is the same (NAMES-2, NAMES-10).
+    /// session is the same; an answer without a new word keeps the name and doubles the thresholds
+    /// (NAMES-2, NAMES-10, NAMES-14).
     pub(super) fn name_done(&mut self, job: RecapJob) {
         let Some((n, id)) = job.name else { return };
         if self.claude_session(n).as_ref() != Some(&id) {
             return;
         }
-        if let Some(name) = pick(&job.buf, &self.taken_names(n)) {
-            self.state.names.insert(id, name);
-            self.state.save(&self.cfg.root);
+        let old = self.state.names.get(&id).cloned();
+        let new = pick(&job.buf, &self.taken_names(n)).filter(|w| Some(w) != old.as_ref());
+        match (new, old) {
+            (Some(name), _) => {
+                self.state.names.insert(id, name);
+                self.state.save(&self.cfg.root);
+            }
+            (None, Some(_)) => {
+                if let Some(a) = self.names_asked.get_mut(&id) {
+                    a.keeps = (a.keeps + 1).min(MOST_KEEPS);
+                }
+            }
+            (None, None) => {}
         }
     }
 
@@ -98,19 +137,40 @@ impl App {
     }
 }
 
-/// The turns of the items that have an answer.
-fn answered(items: &[Item]) -> usize {
-    items.split(|i| matches!(i, Item::User(_))).skip(1).filter(|turn| turn.iter().any(|i| matches!(i, Item::Agent(_)))).count()
+/// The size of the conversation in characters, when it has a question of the user and a complete
+/// agent message: one that a later item follows, or any one after the turn (NAMES-1).
+fn told(items: &[Item], busy: bool) -> Option<usize> {
+    let asked = items.iter().any(|i| matches!(i, Item::User(_)));
+    let complete = |(k, i): (usize, &Item)| matches!(i, Item::Agent(s) if !s.trim().is_empty()) && (!busy || k + 1 < items.len());
+    (asked && items.iter().enumerate().any(complete)).then(|| items.iter().filter_map(content).map(|(_, s)| s.chars().count()).sum())
 }
 
-/// The first messages of the conversation, for the question for a name.
-fn conversation(items: &[Item]) -> String {
-    let text = |i: &Item| match i {
-        Item::User(s) => Some(format!("user: {}", s.chars().take(MESSAGE_CHARS).collect::<String>())),
-        Item::Agent(s) => Some(format!("agent: {}", s.chars().take(MESSAGE_CHARS).collect::<String>())),
+/// True when the next question for a name is due: the first one at once, the next ones after more
+/// characters or more time of a running turn with something new, doubled by each kept name
+/// (NAMES-10, NAMES-14).
+fn due(size: usize, busy: Option<Instant>, last: Option<&Asked>, now: Instant) -> bool {
+    let Some(last) = last else { return true };
+    let scale = 1usize << last.keeps.min(MOST_KEEPS);
+    let ran = busy.is_some_and(|start| now.saturating_duration_since(start.max(last.at)) >= STEP_TIME * scale as u32);
+    size >= last.size + STEP_CHARS * scale || (ran && size > last.size)
+}
+
+/// The kind and the text of an item for the question for a name: a message, or the titles of the
+/// tool calls.
+fn content(i: &Item) -> Option<(&'static str, String)> {
+    match i {
+        Item::User(s) => Some(("user", s.clone())),
+        Item::Agent(s) => Some(("agent", s.clone())),
+        Item::Tools { uses, .. } => Some(("tools", uses.iter().map(|u| u.title.as_str()).collect::<Vec<_>>().join("; "))),
         _ => None,
-    };
-    items.iter().filter_map(text).take(MESSAGES).collect::<Vec<_>>().join("\n\n")
+    }
+}
+
+/// The first message of the conversation and the last ones, for the question for a name.
+fn conversation(items: &[Item]) -> String {
+    let all: Vec<String> = items.iter().filter_map(content).map(|(k, s)| format!("{k}: {}", s.chars().take(MESSAGE_CHARS).collect::<String>())).collect();
+    let last = all.len().saturating_sub(MESSAGES - 1).max(1);
+    all.iter().take(1).chain(all.iter().skip(last)).cloned().collect::<Vec<_>>().join("\n\n")
 }
 
 /// The first word of the last line of the answer that can be a name and is free (NAMES-2).
