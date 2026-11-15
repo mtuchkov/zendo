@@ -39,6 +39,10 @@ not open.
 and Claude (FILES-3). The same path can exist in the main checkout, so the head of the note names
 the worktree.
 
+**Actions on files.** In both views, the user can rename, move, delete and make files as in the
+other views ([Actions](files-actions.md)). While the agent of the session answers, it can change
+the same files, so a popup asks the user to confirm each action first.
+
 ## Architecturally significant requirements
 
 | ID       | Pattern    | Requirement | Source |
@@ -73,11 +77,10 @@ Neither test is written yet.
 | FILES-33 | Event      | When a file or the branch of the worktree changes, the system shall show the change in both worktree views without a restart. | Design |
 | FILES-34 | Event      | When the user opens a file from a worktree view, the system shall open the file of the worktree like a note, and name the worktree in the head of the note. | Design |
 | FILES-35 | Ubiquitous | The system shall show a deleted file in the worktree changed view as a struck row that does not open. | Design |
-| FILES-37 | State      | While a worktree view shows, the system shall not rename, move, delete or make files from the tree. | Design |
+| FILES-37 | State      | While the agent of the session of the worktree answers, the system shall ask the user in a popup to confirm a rename, a move, a delete or a new file or folder in a worktree view, and do it only after the confirmation. | User, 2026-11-14 |
 
 ## Open points
 
 | Open question | Affects | Answered by |
 | ------------- | ------- | ----------- |
 | FILES-4 (approved) names five views in the `v` cycle. Does FILES-30 replace its cycle, or does FILES-4 get a new revision? | FILES-4, FILES-30 | User |
-| May the user rename, move, delete and make files in the worktree of an agent that works (this draft: no)? | FILES-37 | User |
