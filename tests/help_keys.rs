@@ -14,7 +14,7 @@ async fn f1_shows_the_keys_of_the_pane_from_everywhere() {
     let bar = |a: &mut zendo::app::App| draw(a, 160, 30).into_iter().rev().find(|r| r.contains("   ")).unwrap_or_default();
     for (setup, pane) in [(0, Pane::Read), (1, Pane::Write), (2, Pane::Chat), (3, Pane::Notes), (4, Pane::Global)] {
         a.mode = Mode::Read;
-        a.panel = false;
+        a.threads.hide();
         a.focus = Focus::Note;
         match setup {
             1 => key(&mut a, KeyCode::Char('i')),
@@ -29,7 +29,7 @@ async fn f1_shows_the_keys_of_the_pane_from_everywhere() {
         let b = bar(&mut a);
         assert!(b.contains("alt-? keys"), "{pane:?}: {b}");
         key(&mut a, KeyCode::F(1));
-        assert_eq!((a.mode, a.help_pane), (Mode::Help, pane), "{pane:?}");
+        assert_eq!((a.mode, a.key_help.pane()), (Mode::Help, pane), "{pane:?}");
         key(&mut a, KeyCode::Esc);
         assert_ne!(a.mode, Mode::Help, "any key closes the help");
         if a.mode == Mode::Write {

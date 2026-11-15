@@ -19,7 +19,9 @@ mod files_state;
 mod find;
 mod float;
 mod jobs;
+mod key_help;
 mod link;
+mod lists;
 mod hold;
 mod file_prompt;
 mod info;
@@ -39,6 +41,7 @@ mod thread;
 mod threads;
 mod transcript;
 mod tree;
+mod update;
 mod work;
 mod worktree;
 mod write;
@@ -56,7 +59,10 @@ pub use files_state::tree_keys::{FilterKey, Picked};
 pub use find::{Find, FindItem};
 pub use float::Float;
 pub use jobs::*;
+pub use key_help::KeyHelp;
 pub use link::AgentLink;
+pub use lists::Lists;
+pub use update::Update;
 pub use hold::{CONTINUE, HOLD_AGAIN, Hold};
 pub use say::{SAY_HERE, Say};
 pub use slash::Slash;
@@ -118,30 +124,26 @@ pub struct Config {
 #[derive(smart_default::SmartDefault)]
 pub struct App {
     pub cfg: Config,
-    /// Commits and pushes the notes repo in the background.
-    pub syncer: Option<crate::setup::sync::Syncer>,
     /// The documents and the open one, the file tree, the find panel, the questions about a file.
     pub files: Files,
     pub mode: Mode,
     pub back: Mode,
-    /// The pane whose keys the help shows.
-    pub help_pane: crate::keys::Pane,
     pub theme: usize,
     pub theme_before: usize,
     pub state: State,
-    pub branch: Option<String>,
 
     /// The view of the note: the read cursor, the selection, and the scroll.
+    /// The notes list and the search: the selection, the query, the matches.
+    pub lists: Lists,
+    /// The check for a newer zendo, and the upgrade at the quit.
+    pub update: Update,
+    /// The help of the keys: its pane, the keymap file, the problems of the keymap.
+    pub key_help: KeyHelp,
     pub reader: Reader,
     /// Write mode: the draft in the editor, the float, the mark of "say it here".
     pub writer: Writer,
 
-    pub notes_sel: usize,
-    pub query: String,
-    pub results: Vec<Group>,
-    pub result_sel: usize,
 
-    pub panel: bool,
     pub focus: Focus,
     /// What goes into the next question: the chat input, its chips, the suggestions, the context.
     pub composer: Composer,
@@ -149,25 +151,13 @@ pub struct App {
     pub threads: Threads,
     /// The keymap of every pane, and what is wrong in `[keys]` of the config.
     pub keys: crate::keys::Keymap,
-    pub key_problems: Vec<String>,
-    /// The keymap file that the config names, for the help (PANES-31).
-    pub keymap_file: Option<String>,
 
     /// The connection to the agent, and the questions for the names of sessions and images.
     pub link: AgentLink,
     /// The delta, the visit that counts, and the recaps and reviews of the agent.
     pub work: Work,
-    #[default(Instant::now())]
-    pub last_input: Instant,
     /// The run of `tab`s (CLAUDE-36).
     pub tab_run: TabRun,
-    /// A newer commit on main (short sha), found on start.
-    pub update: Option<String>,
-    pub update_rx: Option<tokio::sync::oneshot::Receiver<Option<String>>>,
-    /// Quit, upgrade, and start again.
-    pub upgrade_now: bool,
-    /// The last `alt-o`: the index of its terminal, and the input before it (TERM-28).
-    pub(crate) output_pick: Option<(usize, Vec<String>, usize, usize)>,
     /// The width of the text column from the config, when the repository sets none.
     pub width_default: u16,
 

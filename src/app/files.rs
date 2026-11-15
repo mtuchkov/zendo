@@ -72,19 +72,9 @@ impl App {
     pub fn tick(&mut self) {
         self.music_tick();
         self.peek_tick();
-        if let Some(rx) = self.update_rx.as_mut() {
-            match rx.try_recv() {
-                Ok(found) => {
-                    self.update_rx = None;
-                    if let Some(sha) = found {
-                        let how = self.keys.key(crate::keys::Pane::Read, "upgrade").map(|k| format!(" · {k} upgrades now")).unwrap_or_default();
-                        self.flash(format!("a newer zendo is on GitHub ({sha}){how}"));
-                        self.update = Some(sha);
-                    }
-                }
-                Err(tokio::sync::oneshot::error::TryRecvError::Closed) => self.update_rx = None,
-                Err(_) => {}
-            }
+        if let Some(sha) = self.update.poll() {
+            let how = self.keys.key(crate::keys::Pane::Read, "upgrade").map(|k| format!(" · {k} upgrades now")).unwrap_or_default();
+            self.flash(format!("a newer zendo is on GitHub ({sha}){how}"));
         }
         self.usage.tick(Instant::now());
         self.check_disk();
@@ -112,7 +102,7 @@ impl App {
         if self.mode == Mode::Write {
             self.save();
         }
-        self.upgrade_now = true;
+        self.update.upgrade();
         self.quit = true;
     }
 

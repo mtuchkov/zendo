@@ -24,7 +24,7 @@ fn app_with(name: &str, music: Option<bool>, output: Output) -> (std::path::Path
     a.music = Music::from_config(&UserConfig::load_from(&config));
     a.music.config = config.clone();
     a.start_music(output);
-    a.branch = Some("main".into());
+    a.files.set_branch(Some("main".into()));
     (root, a)
 }
 

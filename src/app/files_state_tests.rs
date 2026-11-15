@@ -1,5 +1,7 @@
 //! The files without an app (ADR 0008).
 use super::*;
+use crate::docs::structure;
+use crate::docs::tree::View;
 use crate::app::{FilterKey, TreeAct};
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 

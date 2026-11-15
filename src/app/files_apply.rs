@@ -22,7 +22,7 @@ impl App {
 
     /// The selected note of the notes list, from the repository root.
     pub(crate) fn notes_file(&self) -> Option<PathBuf> {
-        let n = self.files.notes().get(self.notes_sel)?;
+        let n = self.files.notes().get(self.lists.note())?;
         Some(n.path.strip_prefix(&self.cfg.root).unwrap_or(&n.path).to_path_buf())
     }
 
@@ -49,7 +49,7 @@ impl App {
         self.state.save(&self.cfg.root);
         self.threads.remove(&key);
         self.scan_tree();
-        self.notes_sel = self.notes_sel.min(self.files.notes().len().saturating_sub(1));
+        self.lists.keep_note_in(self.files.notes().len());
         self.flash(format!("deleted {key}"));
     }
 
@@ -71,7 +71,9 @@ impl App {
         self.files.tree.find = None;
         let new_rel = target.strip_prefix(&self.cfg.root).unwrap_or(target).to_path_buf();
         self.files.tree.reveal(&new_rel);
-        self.notes_sel = self.files.notes().iter().position(|n| n.path == target).unwrap_or(self.notes_sel);
+        if let Some(i) = self.files.notes().iter().position(|n| n.path == target) {
+            self.lists.select_note(i);
+        }
         self.flash(format!("{done} to {}", self.rel(target)));
     }
 

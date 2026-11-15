@@ -91,7 +91,7 @@ impl App {
         self.attach(Attachment::of(self.cfg.root.join(rel)));
         let back = self.focus;
         self.open_panel();
-        if self.panel {
+        if self.threads.shown() {
             self.focus = back;
         }
     }

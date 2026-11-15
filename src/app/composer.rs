@@ -28,6 +28,8 @@ pub struct Composer {
     default: Option<String>,
     /// What the context is, for the input placeholder: "the changes", "the selection".
     about: &'static str,
+    /// The last `alt-o`: the index of its terminal, and the input before it (TERM-28).
+    pick: Option<(usize, Vec<String>, usize, usize)>,
 }
 
 impl Default for Composer {
@@ -43,6 +45,7 @@ impl Default for Composer {
             context: None,
             default: None,
             about: "",
+            pick: None,
         }
     }
 }
@@ -89,6 +92,25 @@ impl Composer {
     pub fn close_picks(&mut self) {
         self.at = None;
         self.slash.open = false;
+    }
+
+    /// Another key came: the next `alt-o` starts with the first terminal again.
+    pub fn drop_pick(&mut self) {
+        self.pick = None;
+    }
+
+    /// `alt-o` with `n` terminals that have a result: the index of the terminal to take. A second
+    /// `alt-o` puts the input back as it was before the first, and takes the next terminal.
+    pub fn next_pick(&mut self, n: usize) -> usize {
+        let next = match self.pick.take() {
+            Some((i, lines, row, col)) => {
+                (self.input.lines, self.input.row, self.input.col) = (lines, row, col);
+                (i + 1) % n
+            }
+            None => 0,
+        };
+        self.pick = Some((next, self.input.lines.clone(), self.input.row, self.input.col));
+        next
     }
 
     pub fn has_context(&self) -> bool {

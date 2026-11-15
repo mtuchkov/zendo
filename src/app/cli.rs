@@ -86,7 +86,7 @@ impl App {
             let key = session_key(n);
             self.link.send(Cmd::Forget { key: key.clone() });
             self.threads.remove(&key);
-            if self.panel && self.active() == n {
+            if self.threads.shown() && self.active() == n {
                 self.open_session();
             }
             self.flash(format!("Claude Code session {} ended", n + 1));

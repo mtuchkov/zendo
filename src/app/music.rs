@@ -51,7 +51,7 @@ impl App {
 
     /// A click while the question is open: on one of its answers.
     pub(super) fn click_music_question(&mut self, x: u16, y: u16) {
-        let Some((keep, off)) = self.music.answers else { return };
+        let Some((keep, off)) = self.frame.music_answers() else { return };
         let hit = |r: Rect| r.contains(ratatui::layout::Position::new(x, y));
         if hit(keep) || hit(off) {
             self.answer_music(hit(keep));

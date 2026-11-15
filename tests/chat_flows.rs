@@ -185,7 +185,7 @@ async fn five_agent_sessions_with_f6_to_f10_and_alt_bracket() {
     ask(&mut a, "first session").await;
     key(&mut a, KeyCode::F(8));
     assert_eq!((a.state.session, a.key()), (2, "(chat 3)".to_string()));
-    assert!(a.panel && a.threads.get("(chat 3)").is_none_or(|t| !t.items.iter().any(|i| matches!(i, Item::User(_)))), "its own thread");
+    assert!(a.threads.shown() && a.threads.get("(chat 3)").is_none_or(|t| !t.items.iter().any(|i| matches!(i, Item::User(_)))), "its own thread");
     let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(160, 30)).unwrap();
     term.draw(|f| a.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();

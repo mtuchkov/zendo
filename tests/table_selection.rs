@@ -122,6 +122,6 @@ async fn alt_and_a_drag_put_the_selection_into_the_chat() {
     assert!(chip.label.contains("Before the"), "{}", chip.label);
     let ctx = chip.context.clone().unwrap_or_default();
     assert!(ctx.contains(NOTE) && ctx.contains("> Before the"), "{ctx}");
-    assert!(a.panel && a.focus == zendo::app::Focus::Claude, "the focus goes to the input");
+    assert!(a.threads.shown() && a.focus == zendo::app::Focus::Claude, "the focus goes to the input");
     let _ = std::fs::remove_dir_all(&root);
 }

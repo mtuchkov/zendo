@@ -63,7 +63,7 @@ impl App {
         };
         let label = self.composer.add_chip(chips::selection_label(&text), Some(ctx), None, true);
         self.open_panel();
-        if self.panel {
+        if self.threads.shown() {
             self.focus = Focus::Claude;
             self.threads.transcript_mut().on = false;
         }
@@ -92,7 +92,7 @@ impl App {
         self.reader.unselect();
         let back = self.focus;
         self.open_panel();
-        if self.panel {
+        if self.threads.shown() {
             self.focus = back;
             self.flash(format!("{label} is in the chat"));
         }
@@ -120,7 +120,7 @@ impl App {
         let label = self.composer.add_chip(chips::selection_label(&text), Some(ctx), None, true);
         let back = self.focus;
         self.open_panel();
-        if self.panel {
+        if self.threads.shown() {
             self.focus = back;
             self.flash(format!("{} is in the chat", label.trim_matches([chips::OPEN, chips::CLOSE])));
         }

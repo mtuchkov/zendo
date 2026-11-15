@@ -73,7 +73,7 @@ async fn the_upgrade_message_names_its_key() {
     let (root, mut a) = with_notes("hints-upgrade");
     let (tx, rx) = tokio::sync::oneshot::channel();
     tx.send(Some("abc1234".to_string())).unwrap();
-    a.update_rx = Some(rx);
+    a.update.watch(rx);
     a.tick();
     let f = flash(&a);
     assert!(f.contains("^u upgrades now") && !f.contains("U upgrades"), "{f}");

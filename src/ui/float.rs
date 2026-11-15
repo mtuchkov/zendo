@@ -71,7 +71,7 @@ fn draw_float_top(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     };
     let esc = app.keys.first(crate::keys::Pane::Write, "done");
     let mut right = vec![Span::styled("[ ", Style::new().fg(t.dim)), Span::styled(esc, Style::new().fg(t.bg).bg(t.fg)), Span::styled(" close ]", Style::new().fg(t.dim))];
-    if let Some(b) = app.branch.as_ref().filter(|b| !b.is_empty()) {
+    if let Some(b) = app.files.branch().filter(|b| !b.is_empty()) {
         right.insert(0, Span::styled(format!("{b}  "), Style::new().fg(t.dim)));
     }
     let rw: u16 = right.iter().map(|s| s.content.width() as u16).sum();

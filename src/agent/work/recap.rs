@@ -97,7 +97,7 @@ impl App {
         let (rel, auto) = if let Some(r) = self.work.next_recap() {
             (r, false)
         } else {
-            if !self.work.auto_allowed(self.last_input.elapsed()) {
+            if !self.work.auto_allowed() {
                 return;
             }
             match self.next_auto() {

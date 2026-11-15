@@ -29,7 +29,7 @@ impl App {
         match act {
             "back" if self.writer.say().is_some() => self.writer.end_say(),
             "back" if self.reader.anchor().is_some() => self.reader.unselect(),
-            "back" if self.panel => self.panel = false,
+            "back" if self.threads.shown() => self.threads.hide(),
             "back" if self.work.delta_open() => self.work.close_delta(),
             "quit" => self.quit = true,
             "write" => self.start_write(false),

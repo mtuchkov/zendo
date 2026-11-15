@@ -35,20 +35,20 @@ pub(crate) fn draw_themes(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
 /// groups (PANES-30); under them the keymap file and the version (PANES-31).
 pub(crate) fn draw_help(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     use crate::keys::Pane;
-    let mut groups = help_section(app, t, app.help_pane);
+    let mut groups = help_section(app, t, app.key_help.pane());
     // Where the user writes, the keys while text is selected (PANES-39).
-    if matches!(app.help_pane, Pane::Write | Pane::Chat) {
+    if matches!(app.key_help.pane(), Pane::Write | Pane::Chat) {
         let mut sel = help_section(app, t, Pane::Selected);
         sel[0].insert(0, Line::raw(""));
         groups.append(&mut sel);
     }
-    if app.help_pane != Pane::Global {
+    if app.key_help.pane() != Pane::Global {
         let mut global = help_section(app, t, Pane::Global);
         global[0].insert(0, Line::raw(""));
         groups.append(&mut global);
     }
     let dim = Style::new().fg(t.dim);
-    let keymap = match &app.keymap_file {
+    let keymap = match app.key_help.file() {
         Some(path) => format!("  keymap: {path}"),
         None => "  keymap: none · start one: zendo keymap > ~/.zendo/keymap.toml".to_string(),
     };
@@ -119,8 +119,8 @@ pub(crate) fn draw_confirm(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
 
 /// The question of the first start, over the screen while the music plays: keep the lofi music on
 /// at each start, or turn it off (LOFI-12). Its two answers take a click.
-pub(crate) fn draw_music_question(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
-    app.music.answers = None;
+pub(crate) fn draw_music_question(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
+    fr.music_answers = None;
     if !app.music.asking {
         return;
     }
@@ -141,5 +141,5 @@ pub(crate) fn draw_music_question(f: &mut Frame, app: &mut App, t: &Theme, area:
     let fits = h == rows + 2 && w as usize >= keep.width() + off.width() + 7;
     let (y, x) = (r.bottom().saturating_sub(2), r.x + 3);
     let button = |x: u16, s: &str| Rect { x, y, width: s.width() as u16, height: 1 };
-    app.music.answers = fits.then(|| (button(x, keep), button(x + keep.width() as u16 + 3, off)));
+    fr.music_answers = fits.then(|| (button(x, keep), button(x + keep.width() as u16 + 3, off)));
 }

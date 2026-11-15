@@ -9,7 +9,7 @@ impl App {
     /// terminal that does not run a command; without a block, the `F5` terminal shows (TERM-1,
     /// TERM-4, TERM-11, TERM-21).
     pub(crate) fn terminal_key(&mut self, run: bool) {
-        let on_block = self.panel && self.focus == Focus::Claude && self.threads.transcript().on;
+        let on_block = self.threads.shown() && self.focus == Focus::Claude && self.threads.transcript().on;
         match self.threads.transcript().block().filter(|_| on_block).map(str::to_string) {
             Some(command) => self.put_into_terminal(&command, run),
             None => self.open_terminal(0),
@@ -41,7 +41,8 @@ impl App {
         if self.mode != Mode::Write {
             self.mode = Mode::Read;
         }
-        (self.panel, self.focus) = (true, Focus::Claude);
+        self.threads.show();
+        self.focus = Focus::Claude;
         self.cli.pane = Some(shell(i));
         self.cli.touch(shell(i));
     }
@@ -50,18 +51,11 @@ impl App {
     /// `alt-o` again takes the next terminal instead (TERM-24, TERM-28, TERM-31).
     pub(crate) fn insert_output(&mut self) {
         let order = self.cli.results();
-        let pick = self.output_pick.take();
         if order.is_empty() {
+            self.composer.drop_pick();
             return self.flash("no terminal has the result of a command yet");
         }
-        let next = match pick {
-            Some((i, lines, row, col)) => {
-                (self.composer.input_mut().lines, self.composer.input_mut().row, self.composer.input_mut().col) = (lines, row, col);
-                (i + 1) % order.len()
-            }
-            None => 0,
-        };
-        self.output_pick = Some((next, self.composer.input_mut().lines.clone(), self.composer.input_mut().row, self.composer.input_mut().col));
+        let next = self.composer.next_pick(order.len());
         let Some(o) = self.cli.result(order[next]) else { return };
         let name = crate::ui::cli::name(self, order[next]);
         self.composer.input_mut().type_str(&output_text(&name, &o));
@@ -69,7 +63,7 @@ impl App {
 
     /// The terminal in the chat pane has the keys: the chat pane is on the screen and has the focus.
     pub(crate) fn pane_terminal(&self) -> Option<usize> {
-        let shown = self.panel && self.focus == Focus::Claude && matches!(self.mode, Mode::Read | Mode::Write);
+        let shown = self.threads.shown() && self.focus == Focus::Claude && matches!(self.mode, Mode::Read | Mode::Write);
         self.cli.pane.filter(|_| shown && self.cli.view.is_none())
     }
 

@@ -15,7 +15,7 @@ impl App {
             }
             Some("back") => {
                 if self.composer.input_mut().is_empty() {
-                    self.panel = false;
+                    self.threads.hide();
                     self.threads.unpin();
                     self.composer.clear_chips();
                 }

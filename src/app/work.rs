@@ -6,7 +6,7 @@ use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
-#[derive(Default)]
+#[derive(smart_default::SmartDefault)]
 pub struct Work {
     delta_open: bool,
     delta_base: Base,
@@ -19,6 +19,9 @@ pub struct Work {
     reviews: Reviews,
     /// The times of the automatic recaps of the last hour.
     auto: Vec<Instant>,
+    /// The time of the last key or click: recaps wait until the user is idle.
+    #[default(Instant::now())]
+    last_input: Instant,
 }
 
 impl Work {
@@ -138,10 +141,20 @@ impl Work {
         self.queue.pop_front()
     }
 
-    /// An automatic recap can start: the user is idle for `since_input`, and the hour has room.
-    pub fn auto_allowed(&mut self, since_input: Duration) -> bool {
+    /// A key or a click came now.
+    pub fn input_now(&mut self) {
+        self.last_input = Instant::now();
+    }
+
+    /// The last key or click came at `at`.
+    pub fn input_at(&mut self, at: Instant) {
+        self.last_input = at;
+    }
+
+    /// An automatic recap can start: the user is idle long enough, and the hour has room.
+    pub fn auto_allowed(&mut self) -> bool {
         self.auto.retain(|t| t.elapsed() < Duration::from_secs(3600));
-        since_input >= IDLE && self.auto.len() < AUTO_PER_HOUR
+        self.last_input.elapsed() >= IDLE && self.auto.len() < AUTO_PER_HOUR
     }
 
     /// An automatic recap starts now.

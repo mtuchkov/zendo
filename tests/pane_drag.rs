@@ -19,7 +19,7 @@ fn dragging_the_chat_edge_left_widens_the_chat() {
     for off in [-1i32, 0, 1] {
         let root = repo(&format!("pane-drag{off}"), &[("docs/notes/n.md", "# N\n"), ("docs/zendo/zendo.md", "# Zendo\n")]);
         let mut a = app(&root);
-        a.panel = true;
+        a.threads.show();
         draw(&mut a, 120, 30);
         let (before, edge) = (chat_width(&a), a.frame.pane_rects()[1].1.x);
         let x = (edge as i32 + off) as u16;

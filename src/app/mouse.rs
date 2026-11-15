@@ -13,7 +13,7 @@ impl App {
             return;
         }
         if !matches!(m.kind, MouseEventKind::Moved) {
-            self.last_input = Instant::now();
+            self.work.input_now();
             self.tab_run.end();
         }
         // The float takes the mouse: only what happens over it counts.
@@ -67,10 +67,10 @@ impl App {
         if self.music.asking {
             return self.click_music_question(x, y);
         }
-        if self.music.button.is_some_and(|r| hit(&r)) {
+        if self.frame.music_button().is_some_and(|r| hit(&r)) {
             return self.toggle_music();
         }
-        if self.attention.button.is_some_and(|r| hit(&r)) {
+        if self.frame.sound_button().is_some_and(|r| hit(&r)) {
             return self.toggle_sound();
         }
         if let Some(n) = self.frame.session_buttons().iter().find(|(r, _)| hit(r)).map(|(_, n)| *n) {

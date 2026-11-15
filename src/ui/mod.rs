@@ -72,8 +72,8 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     let t = *app.theme();
     let area = f.area();
     app.cli.resize(area.height.saturating_sub(1), area.width);
-    app.attention.button = None;
-    app.music.button = None;
+    fr.sound_button = None;
+    fr.music_button = None;
     if app.hold.is_some() {
         fr.regions.clear();
         draw_hold(f, app, &t, area);
@@ -125,7 +125,7 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     draw_status(f, app, fr, &t, status);
     draw_file_prompt(f, app, &t, prompt);
     draw_confirm(f, app, &t, area);
-    draw_music_question(f, app, &t, area);
+    draw_music_question(f, app, fr, &t, area);
 
     draw_selection(f, app, &t);
 }
@@ -150,9 +150,7 @@ fn draw_selection(f: &mut Frame, app: &mut App, t: &Theme) {
 fn draw_panes(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, main: Rect) {
     let panes = panes(app, main.width);
     fr.visible = panes.clone();
-    if !panes.contains(&app.focus) {
-        app.focus = panes[0];
-    }
+    app.keep_focus_in(&panes);
     let cons: Vec<Constraint> = panes
         .iter()
         .map(|p| match p {

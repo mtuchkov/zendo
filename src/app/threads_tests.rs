@@ -56,5 +56,9 @@ fn the_pinned_thread_swaps_with_the_one_of_the_float() {
     t.swap_pinned(&mut other);
     t.unpin();
     assert_eq!(t.pinned(), None);
-    assert!(!t.details());
+    assert!(!t.details() && !t.shown());
+    t.show();
+    assert!(t.shown());
+    t.hide();
+    assert!(!t.shown());
 }

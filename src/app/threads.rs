@@ -13,9 +13,24 @@ pub struct Threads {
     /// The rows between the end of the thread and the bottom of the view.
     scroll: usize,
     details: bool,
+    /// The chat pane is open.
+    shown: bool,
 }
 
 impl Threads {
+    /// The chat pane is open.
+    pub fn shown(&self) -> bool {
+        self.shown
+    }
+
+    pub fn show(&mut self) {
+        self.shown = true;
+    }
+
+    pub fn hide(&mut self) {
+        self.shown = false;
+    }
+
     pub fn get(&self, key: &str) -> Option<&Thread> {
         self.map.get(key)
     }

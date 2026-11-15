@@ -212,12 +212,12 @@ async fn main() -> Result<()> {
     app.usage.write();
     zendo::tui::terminal_off();
     ratatui::restore();
-    if let Some(s) = app.syncer.take()
+    if let Some(s) = app.files.take_syncer()
         && let Some(label) = s.finish().label() {
             eprintln!("zendo: {label}");
         }
     result?;
-    if app.upgrade_now {
+    if app.update.upgrade_now() {
         upgrade_and_restart(exe).await;
     }
     Ok(())
@@ -258,16 +258,16 @@ async fn open_app(cfg: Config) -> Result<App> {
         0
     };
     let mut app = App::new(cfg)?;
-    app.syncer = syncer;
+    app.files.set_syncer(syncer);
     app.usage = zendo::usage::Usage::for_process(zendo::setup::config::UserConfig::load().usage.unwrap_or(true));
     app.keys.legacy = !zendo::tui::kitty();
-    if !app.key_problems.is_empty() {
-        app.flash(format!("[keys] {} problem(s) · zendo doctor", app.key_problems.len()));
+    if !app.key_help.problems().is_empty() {
+        app.flash(format!("[keys] {} problem(s) · zendo doctor", app.key_help.problems().len()));
     }
     if old_notes > 0 {
         app.flash(format!("{old_notes} note(s) in docs/notes are not in your notes repo · zendo notes move"));
     }
-    app.update_rx = Some(update_rx);
+    app.update.watch(update_rx);
     if let Some(l) = live {
         app.link.connect(l.handle, l.events);
         app.link.set_name(l.name);

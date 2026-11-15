@@ -23,6 +23,9 @@ pub struct Frame {
     pub(super) word_count: usize,
     pub(super) over_limit: Option<usize>,
     pub(super) input_width: usize,
+    pub(super) sound_button: Option<Rect>,
+    pub(super) music_button: Option<Rect>,
+    pub(super) music_answers: Option<(Rect, Rect)>,
 }
 
 impl Frame {
@@ -89,6 +92,21 @@ impl Frame {
     /// The width of the chat input, for up and down moves in it.
     pub fn input_width(&self) -> usize {
         self.input_width
+    }
+
+    /// The sound button, for the mouse.
+    pub fn sound_button(&self) -> Option<Rect> {
+        self.sound_button
+    }
+
+    /// The music button, for the mouse.
+    pub fn music_button(&self) -> Option<Rect> {
+        self.music_button
+    }
+
+    /// The two answers of the music question: keep on, turn off.
+    pub fn music_answers(&self) -> Option<(Rect, Rect)> {
+        self.music_answers
     }
 
     /// The word limit of the document on the screen.

@@ -2,7 +2,7 @@
 use super::*;
 
 pub(crate) fn draw_status(f: &mut Frame, app: &App, fr: &Cache, t: &Theme, area: Rect) {
-    let claude = app.panel && app.focus == Focus::Claude && matches!(app.mode, Mode::Read | Mode::Write);
+    let claude = app.threads.shown() && app.focus == Focus::Claude && matches!(app.mode, Mode::Read | Mode::Write);
     let (badge, color, mut keys) = status_keys(app, fr, t, claude);
     // The key of the help, in every pane and mode, first: it is always on the screen.
     // An action without a key has no hint (PANES-29).

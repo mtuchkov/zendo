@@ -10,7 +10,7 @@ pub(crate) fn draw_notes(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let rows = note_rows(app, t, inner.width as usize);
     // Linked-from block at the bottom.
     let mut foot: Vec<Line<'static>> = Vec::new();
-    if let Some(sel) = app.files.notes().get(app.notes_sel) {
+    if let Some(sel) = app.files.notes().get(app.lists.note()) {
         let from: Vec<&Note> = app.files.notes().iter().filter(|n| n.links_to(sel)).collect();
         if !from.is_empty() {
             foot.push(Line::styled("─".repeat(inner.width as usize), Style::new().fg(t.line)));
@@ -21,7 +21,7 @@ pub(crate) fn draw_notes(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
         }
     }
     let list_h = (inner.height as usize).saturating_sub(foot.len() + 1);
-    let sel_row = rows.iter().position(|(_, i)| *i == Some(app.notes_sel)).unwrap_or(0);
+    let sel_row = rows.iter().position(|(_, i)| *i == Some(app.lists.note())).unwrap_or(0);
     let start = sel_row.saturating_sub(list_h.saturating_sub(3));
     let mut lines: Vec<Line> = vec![Line::raw("")];
     lines.extend(rows.into_iter().skip(start).take(list_h).map(|(l, _)| l));
@@ -36,7 +36,7 @@ pub(crate) fn draw_notes(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     }
 
     // Preview.
-    if let Some(n) = app.files.notes().get(app.notes_sel).cloned() {
+    if let Some(n) = app.files.notes().get(app.lists.note()).cloned() {
         let col = column(Rect { y: right.y + 1, height: right.height.saturating_sub(1), ..right }, app.column_width());
         let (lines, _, _) = read_lines(app, &n, col.width as usize, t);
         f.render_widget(Paragraph::new(lines.into_iter().take(col.height as usize).collect::<Vec<_>>()), col);
@@ -61,7 +61,7 @@ fn note_rows(app: &App, t: &Theme, width: usize) -> Vec<(Line<'static>, Option<u
             group = g;
         }
         let when = if days == 0 { n.modified.format("%H:%M").to_string() } else if days < 7 { n.modified.format("%a").to_string() } else if d.year() == today.year() { n.modified.format("%-d %b").to_string() } else { n.modified.format("%b %Y").to_string() };
-        let sel = i == app.notes_sel;
+        let sel = i == app.lists.note();
         let marker = if sel { "▸ " } else { "  " };
         // Δ: changed since your last visit that counted.
         let changed = app.state.files.get(&app.rel(&n.path)).and_then(|f| f.seen.as_ref()).is_some_and(|s| s.hash != crate::setup::state::hash(&n.body));
@@ -94,15 +94,15 @@ pub(crate) fn draw_search(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let dim = Style::new().fg(t.dim);
     let boxr = Rect { height: 3, ..col };
     f.render_widget(Block::new().style(Style::new().bg(t.panel)), boxr);
-    let count = if app.query.starts_with('?') {
+    let count = if app.lists.query().starts_with('?') {
         "enter asks Claude".to_string()
-    } else if app.query.trim().is_empty() {
+    } else if app.lists.query().trim().is_empty() {
         String::new()
     } else {
-        let m: usize = app.results.iter().map(|g| g.count).sum();
-        format!("{m} matches · {} notes", app.results.len())
+        let m: usize = app.lists.results().iter().map(|g| g.count).sum();
+        format!("{m} matches · {} notes", app.lists.results().len())
     };
-    let q = app.query.to_string();
+    let q = app.lists.query().to_string();
     let pad = (w as usize).saturating_sub(q.width() + count.width() + 8);
     let line = Line::from(vec![Span::styled("  / ", Style::new().fg(t.acc)), Span::raw(q.clone()), Span::raw(" ".repeat(pad)), Span::styled(count, dim)]);
     f.render_widget(Paragraph::new(line), Rect { y: boxr.y + 1, height: 1, ..boxr });
@@ -111,9 +111,9 @@ pub(crate) fn draw_search(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let list = Rect { y: col.y + 4, height: col.height.saturating_sub(4), ..col };
     let mut lines: Vec<Line> = Vec::new();
     let mut sel_row = 0;
-    for (gi, g) in app.results.iter().enumerate() {
+    for (gi, g) in app.lists.results().iter().enumerate() {
         let n = &app.files.notes()[g.note];
-        let sel = gi == app.result_sel;
+        let sel = gi == app.lists.result();
         if sel {
             sel_row = lines.len();
         }
@@ -144,10 +144,10 @@ pub(crate) fn draw_search(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
         }
         lines.push(Line::raw(""));
     }
-    if app.query.starts_with('?') {
-        lines.push(Line::styled(format!("    Ask Claude across all notes: {}", app.query[1..].trim()), Style::new().fg(t.fg)));
-    } else if app.query.trim().is_empty() || app.results.is_empty() {
-        if !app.query.trim().is_empty() {
+    if app.lists.query().starts_with('?') {
+        lines.push(Line::styled(format!("    Ask Claude across all notes: {}", app.lists.query()[1..].trim()), Style::new().fg(t.fg)));
+    } else if app.lists.query().trim().is_empty() || app.lists.results().is_empty() {
+        if !app.lists.query().trim().is_empty() {
             lines.push(Line::styled("    Nothing found.", Style::new().fg(t.fg)));
             lines.push(Line::raw(""));
         }

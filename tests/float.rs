@@ -63,7 +63,7 @@ async fn the_float_hides_the_panes_and_the_hints() {
     let root = repo("float-hides", &files());
     let mut a = app(&root);
     a.open_file(root.join(NOTE));
-    a.branch = Some("master".into());
+    a.files.set_branch(Some("master".into()));
     key(&mut a, KeyCode::Char('c'));
     let before = draw(&mut a, 120, 40);
     let hint = a.keys.first(zendo::keys::Pane::Chat, "send");
@@ -238,7 +238,7 @@ async fn pane_keys_do_nothing_in_the_float() {
     alt(&mut a, ']');
     alt(&mut a, 'n');
     assert!(a.writer.float().is_some() && a.mode == Mode::Write, "still in the float");
-    assert_eq!((a.panel, a.state.tree, a.work.delta_open(), a.cli.pane), (false, false, false, None), "no pane opened");
+    assert_eq!((a.threads.shown(), a.state.tree, a.work.delta_open(), a.cli.pane), (false, false, false, None), "no pane opened");
     assert_eq!(a.writer.editor().text(), "# Tea", "the same note");
     key(&mut a, KeyCode::Tab);
     assert_eq!(a.focus, Focus::Note, "tab does not move the focus");

@@ -209,7 +209,7 @@ async fn a_blinking_button_fades_to_the_accent_and_back() {
 #[tokio::test(flavor = "multi_thread")]
 async fn the_sound_button_turns_the_bell_off_and_saves_it() {
     let (root, mut a) = app_here("attn-sound");
-    a.branch = Some("main".into());
+    a.files.set_branch(Some("main".into()));
     chat_on(&mut a, 0);
     let buf = frame(&mut a, 160, 40);
     let at = find(&buf, "[sound]").expect("the sound button");
@@ -252,7 +252,7 @@ async fn the_sound_button_changes_only_its_line() {
 async fn a_blinking_session_shows_in_the_top_line_while_the_chat_is_closed() {
     let (root, mut a) = app_here("attn-top");
     chat_on(&mut a, 0);
-    a.panel = false;
+    a.threads.hide();
     a.on_agent(Event::TurnEnd { key: session_key(1), stop: "end_turn".into() });
     assert!(a.blink(1).is_some());
     let buf = frame(&mut a, 160, 40);
@@ -260,7 +260,7 @@ async fn a_blinking_session_shows_in_the_top_line_while_the_chat_is_closed() {
     let chip = find(&buf, " F7 ").expect("the F7 chip in the top line");
     assert_eq!(chip.1, sound.1);
     click(&mut a, (chip.0 + 1, chip.1));
-    assert!(a.panel && a.state.session == 1, "the click opens the chat of session 2");
+    assert!(a.threads.shown() && a.state.session == 1, "the click opens the chat of session 2");
     idle(&mut a, 300);
     assert_eq!(a.blink(1), None);
     done(&root, &mut a);

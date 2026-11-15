@@ -11,8 +11,6 @@ pub struct Attention {
     pub sound: bool,
     /// The config file that the sound button writes.
     pub config: PathBuf,
-    /// The sound button in the last frame, for the mouse.
-    pub button: Option<Rect>,
     /// The terminal has the focus; without focus events, always (ATTN-11).
     pub focused: bool,
     /// The bells to ring after the next frame.
@@ -27,7 +25,7 @@ pub struct Attention {
 impl Default for Attention {
     fn default() -> Self {
         let config = crate::setup::config::config_path();
-        Attention { sound: true, config, button: None, focused: true, bells: 0, blink: vec![None; SESSIONS + TERMINALS], clock: None }
+        Attention { sound: true, config, focused: true, bells: 0, blink: vec![None; SESSIONS + TERMINALS], clock: None }
     }
 }
 
@@ -74,7 +72,7 @@ impl App {
     /// The user sees session slot `n`: it is on the screen, or the chat of its agent session is,
     /// and the terminal has the focus (ATTN-11).
     pub fn sees(&self, n: usize) -> bool {
-        let chat = self.panel && matches!(self.mode, Mode::Read | Mode::Write | Mode::Help);
+        let chat = self.threads.shown() && matches!(self.mode, Mode::Read | Mode::Write | Mode::Help);
         let shown = match self.cli.view {
             Some(v) => v == n,
             None => chat && self.cli.pane.map_or(n == self.state.session, |p| p == n),

@@ -70,10 +70,13 @@ fn a_recap_waits_in_the_queue_or_in_the_job() {
 #[test]
 fn automatic_recaps_wait_for_an_idle_user_and_have_a_limit() {
     let mut w = Work::default();
-    assert!(!w.auto_allowed(IDLE - Duration::from_secs(1)));
-    assert!(w.auto_allowed(IDLE));
+    assert!(!w.auto_allowed(), "a key came now");
+    w.input_at(Instant::now() - IDLE - Duration::from_secs(1));
+    assert!(w.auto_allowed());
     (0..AUTO_PER_HOUR).for_each(|_| w.count_auto());
-    assert!(!w.auto_allowed(IDLE * 10), "the hour is full");
+    assert!(!w.auto_allowed(), "the hour is full");
+    w.input_now();
+    assert!(!w.auto_allowed());
 }
 
 // ADR 0008: the second press of the review key within the chord asks; one review of a file waits

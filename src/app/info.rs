@@ -77,7 +77,7 @@ impl App {
         let rel = self.rel(&path);
         let ctx = SPLIT_PROMPT.replace("{{FILE}}", &rel).replace("{{WORDS}}", &self.frame.word_count().to_string()).replace("{{LIMIT}}", &self.frame.word_limit().to_string());
         self.open_panel();
-        if !self.panel {
+        if !self.threads.shown() {
             return;
         }
         self.composer.set_context(ctx);
@@ -87,7 +87,7 @@ impl App {
 
     /// What the notes sync wants the user to know, if anything.
     pub fn sync_label(&self) -> Option<String> {
-        self.syncer.as_ref().and_then(|s| s.state().label())
+        self.files.sync_label()
     }
 
     pub fn theme(&self) -> &Theme {

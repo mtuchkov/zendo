@@ -20,7 +20,7 @@ pub fn pane_width(app: &App, p: Focus, total: u16) -> u16 {
 /// Standard: one main pane (delta replaces the note while reading) and the chat.
 /// Wide screen: every open pane side by side.
 pub fn panes(app: &App, width: u16) -> Vec<Focus> {
-    let chat = app.panel;
+    let chat = app.threads.shown();
     let delta = app.work.delta_open() && app.files.current().is_some() && app.threads.pinned().is_none();
     let mut p = Vec::new();
     if app.state.wide() {
@@ -116,7 +116,7 @@ pub(crate) fn draw_top(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, 
     let right = draw_top_right(f, app, fr, t, area);
 
     // A newer zendo shows as a quiet hint with its key.
-    if let Some(v) = app.update.as_ref().filter(|_| matches!(app.mode, Mode::Read | Mode::Write)) {
+    if let Some(v) = app.update.latest().filter(|_| matches!(app.mode, Mode::Read | Mode::Write)) {
         let hint = format!("zendo {v} is out · {} to upgrade", app.keys.first(crate::keys::Pane::Read, "upgrade"));
         let w = hint.width() as u16;
         let x = area.right().saturating_sub(right + 5 + w);
@@ -146,7 +146,7 @@ fn draw_top_right(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area:
     let mut pieces: Vec<(String, Style)> = chips.iter().map(|n| (format!(" {} ", titled(app, *n)), chip(*n))).collect();
     pieces.push((MUSIC.into(), switch(t, app.music.state() == crate::music::State::Plays)));
     pieces.push((SOUND.into(), switch(t, app.attention.sound)));
-    pieces.extend(app.branch.clone().filter(|b| !b.is_empty()).map(|b| (b, Style::new().fg(t.dim))));
+    pieces.extend(app.files.branch().filter(|b| !b.is_empty()).map(str::to_string).map(|b| (b, Style::new().fg(t.dim))));
     let width = (pieces.iter().map(|(s, _)| s.width() + 2).sum::<usize>() - 2) as u16;
     let mut x = area.right().saturating_sub(width + 2);
     for (i, (text, style)) in pieces.into_iter().enumerate() {
@@ -155,8 +155,8 @@ fn draw_top_right(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area:
         f.render_widget(Paragraph::new(Span::styled(text, style)), r);
         match chips.get(i) {
             Some(n) => fr.session_buttons.push((r, *n)),
-            None if i == chips.len() => app.music.button = Some(r),
-            None if i == chips.len() + 1 => app.attention.button = Some(r),
+            None if i == chips.len() => fr.music_button = Some(r),
+            None if i == chips.len() + 1 => fr.sound_button = Some(r),
             None => {}
         }
     }

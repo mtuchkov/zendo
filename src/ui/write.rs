@@ -59,7 +59,7 @@ pub(crate) fn draw_write(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
         let row = if say.line == app.writer.editor().row { vrow } else if title == Some(say.line) { 0 } else { head + r.rows.get(say.line).copied().unwrap_or(0) };
         say_arrow(f, app, t, area, col, row);
     }
-    if !(app.panel && app.focus == Focus::Claude) {
+    if !(app.threads.shown() && app.focus == Focus::Claude) {
         f.set_cursor_position((col.x + vx.min(wide.width as usize) as u16, col.y + (vrow - app.reader.scroll()) as u16));
     }
 }

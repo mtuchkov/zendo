@@ -105,7 +105,7 @@ async fn recaps_on_request_and_when_idle() {
     a.interact(ENGAGED);
     std::fs::write(root.join(REL), "# Event log\n\n- a\n- WHEN x, the log shall y.\n").unwrap();
     a.reload();
-    a.last_input = Instant::now() - Duration::from_secs(120);
+    a.work.input_at(Instant::now() - Duration::from_secs(120));
     until(&mut a, |a| a.state.files[REL].recap.as_ref().is_some_and(|r| r.auto)).await;
     let r = a.state.files[REL].recap.clone().unwrap();
     assert!(r.text.contains("Changes against git HEAD"), "{}", r.text);
@@ -127,7 +127,7 @@ async fn no_auto_recap_while_the_user_is_active() {
     a.ensure_agent();
     until(&mut a, |a| a.link.ready()).await;
     a.interact(ENGAGED);
-    a.last_input = Instant::now();
+    a.work.input_at(Instant::now());
     for _ in 0..10 {
         a.tick();
         tokio::time::sleep(Duration::from_millis(30)).await;

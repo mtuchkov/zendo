@@ -11,7 +11,7 @@ use zendo::session::Command;
 
 /// Ask in the chat of agent session `n` and wait until the turn ends.
 async fn ask(a: &mut App, n: usize, q: &str) {
-    if a.state.session != n || !a.panel {
+    if a.state.session != n || !a.threads.shown() {
         a.switch_session(n);
     }
     a.focus = Focus::Claude;

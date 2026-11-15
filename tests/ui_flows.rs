@@ -320,16 +320,16 @@ async fn ctrl_shift_c_opens_the_chat_in_write_mode() {
     draw(&mut a, 140, 30);
     ctrl_shift(&mut a, 'c');
     let screen = draw(&mut a, 140, 30);
-    assert!(a.panel, "the chat is open");
+    assert!(a.threads.shown(), "the chat is open");
     assert_eq!(a.focus, Focus::Claude);
     assert!(screen.iter().any(|r| r.contains("The first paragraph")), "the text stays: {screen:#?}");
     assert!(screen.iter().rev().any(|r| r.contains("AGENT")), "the chat pane: {screen:#?}");
     key(&mut a, KeyCode::Esc);
     assert_eq!(a.focus, Focus::Note, "esc goes back to the text");
     assert_eq!(a.mode, zendo::app::Mode::Write, "still writing");
-    assert!(!a.panel, "esc with an empty input closes the chat");
+    assert!(!a.threads.shown(), "esc with an empty input closes the chat");
     ctrl(&mut a, 'g');
-    assert!(a.panel && a.focus == Focus::Claude, "ctrl-g opens it in any terminal");
+    assert!(a.threads.shown() && a.focus == Focus::Claude, "ctrl-g opens it in any terminal");
     let _ = std::fs::remove_dir_all(&root);
 }
 

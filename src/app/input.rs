@@ -6,6 +6,13 @@ impl App {
         self.work.switch_base();
     }
 
+    /// The draw: the focus stays on a pane that is on the screen, left to right in `panes`.
+    pub(crate) fn keep_focus_in(&mut self, panes: &[Focus]) {
+        if !panes.contains(&self.focus) {
+            self.focus = panes[0];
+        }
+    }
+
     pub fn toggle_layout(&mut self) {
         self.state.layout = if self.state.wide() { "standard".into() } else { "wide".into() };
         self.state.save(&self.cfg.root);
@@ -28,11 +35,11 @@ impl App {
             return true;
         }
         self.track_recent();
-        self.last_input = Instant::now();
+        self.work.input_now();
         self.tab_run.key();
         // Only `alt-o` right after `alt-o` takes the next terminal (TERM-28).
         if self.keys.local(crate::keys::Pane::Chat, k) != Some("insert_output") {
-            self.output_pick = None;
+            self.composer.drop_pick();
         }
         // Any key ends a mouse selection; the text is already copied.
         self.pointer.clear();
@@ -182,7 +189,7 @@ impl App {
     }
 
     pub fn open_help(&mut self, pane: crate::keys::Pane) {
-        self.help_pane = pane;
+        self.key_help.show(pane);
         self.back = self.mode;
         self.mode = Mode::Help;
     }
@@ -190,9 +197,9 @@ impl App {
     /// The pane that gets the keys.
     pub fn key_pane(&self) -> crate::keys::Pane {
         use crate::keys::Pane;
-        if self.panel && self.focus == Focus::Claude && self.threads.transcript().on {
+        if self.threads.shown() && self.focus == Focus::Claude && self.threads.transcript().on {
             Pane::Transcript
-        } else if self.panel && self.focus == Focus::Claude {
+        } else if self.threads.shown() && self.focus == Focus::Claude {
             Pane::Chat
         } else if self.work.delta_open() && self.focus == Focus::Delta {
             Pane::Delta

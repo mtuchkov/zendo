@@ -41,7 +41,7 @@ impl App {
     }
 
     pub fn open_notes(&mut self) {
-        self.notes_sel = self.note_index().unwrap_or(0);
+        self.lists.select_note(self.note_index().unwrap_or(0));
         self.mode = Mode::Notes;
     }
 
@@ -49,12 +49,12 @@ impl App {
         let n = self.files.notes().len();
         match act {
             Some("close") => self.mode = Mode::Read,
-            Some("down") if n > 0 => self.notes_sel = (self.notes_sel + 1).min(n - 1),
-            Some("up") => self.notes_sel = self.notes_sel.saturating_sub(1),
-            Some("top") => self.notes_sel = 0,
-            Some("bottom") => self.notes_sel = n.saturating_sub(1),
+            Some("down") => self.lists.note_down(n),
+            Some("up") => self.lists.note_up(),
+            Some("top") => self.lists.select_note(0),
+            Some("bottom") => self.lists.note_bottom(n),
             Some("open") if n > 0 => {
-                self.files.show_note(self.notes_sel);
+                self.files.show_note(self.lists.note());
                 self.reader.to_start();
                 self.threads.unpin();
                 self.mode = Mode::Read;
@@ -62,7 +62,7 @@ impl App {
             Some("new") => self.open_float(),
             Some("search") => self.open_search(""),
             Some("tags") => self.open_search("#"),
-            Some("rename") if n > 0 => self.rename(self.notes_sel),
+            Some("rename") if n > 0 => self.rename(self.lists.note()),
             Some("rename_file") => self.ask_file(self.notes_file(), 'r'),
             Some("delete") => self.ask_file(self.notes_file(), 'd'),
             _ => {}
@@ -85,7 +85,7 @@ impl App {
         let old = note.path.clone();
         match self.move_file(&old, &target) {
             Ok(()) => {
-                self.notes_sel = self.files.notes().iter().position(|n| n.path == target).unwrap_or(0);
+                self.lists.select_note(self.files.notes().iter().position(|n| n.path == target).unwrap_or(0));
                 self.flash(format!("renamed to {}", self.rel(&target)));
             }
             Err(e) => self.flash(format!("rename failed: {e}")),
@@ -93,27 +93,25 @@ impl App {
     }
 
     pub fn open_search(&mut self, q: &str) {
-        self.query = q.to_string();
+        self.lists.edit_query(|query| *query = q.to_string());
         self.run_search();
         self.mode = Mode::Search;
     }
 
     pub(crate) fn run_search(&mut self) {
-        self.results = if self.query.starts_with('?') { vec![] } else { search::search(self.files.notes(), &self.query) };
-        self.result_sel = 0;
+        self.lists.search(self.files.notes());
     }
 
     pub(crate) fn key_search(&mut self, k: KeyEvent) {
         let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
-        let n = self.results.len();
         match k.code {
             KeyCode::Esc => self.mode = Mode::Read,
-            KeyCode::Down | KeyCode::Tab if n > 0 => self.result_sel = (self.result_sel + 1).min(n - 1),
-            KeyCode::Char('j') if ctrl && n > 0 => self.result_sel = (self.result_sel + 1).min(n - 1),
-            KeyCode::Up | KeyCode::BackTab => self.result_sel = self.result_sel.saturating_sub(1),
-            KeyCode::Char('k') if ctrl => self.result_sel = self.result_sel.saturating_sub(1),
+            KeyCode::Down | KeyCode::Tab => self.lists.result_down(),
+            KeyCode::Char('j') if ctrl => self.lists.result_down(),
+            KeyCode::Up | KeyCode::BackTab => self.lists.result_up(),
+            KeyCode::Char('k') if ctrl => self.lists.result_up(),
             KeyCode::Enter => {
-                if let Some(q) = self.query.strip_prefix('?') {
+                if let Some(q) = self.lists.query().strip_prefix('?') {
                     let q = q.trim().to_string();
                     self.mode = Mode::Read;
                     self.threads.pin(ALL_KEY);
@@ -121,9 +119,8 @@ impl App {
                     self.ask(q, ALL_KEY.into());
                     return;
                 }
-                if let Some(g) = self.results.get(self.result_sel) {
-                    let line = g.snippets.first().map(|s| s.line).unwrap_or(0);
-                    self.files.show_note(g.note);
+                if let Some((note, line)) = self.lists.picked().map(|g| (g.note, g.snippets.first().map(|s| s.line).unwrap_or(0))) {
+                    self.files.show_note(note);
                     self.threads.unpin();
                     self.mode = Mode::Read;
                     let rows = crate::ui::source_rows(self, self.frame.text_width());
@@ -132,15 +129,17 @@ impl App {
                 }
             }
             KeyCode::Backspace => {
-                self.query.pop();
+                self.lists.edit_query(|q| {
+                    q.pop();
+                });
                 self.run_search();
             }
             KeyCode::Char('u') if ctrl => {
-                self.query.clear();
+                self.lists.edit_query(String::clear);
                 self.run_search();
             }
             KeyCode::Char(c) if !ctrl => {
-                self.query.push(c);
+                self.lists.edit_query(|q| q.push(c));
                 self.run_search();
             }
             _ => {}

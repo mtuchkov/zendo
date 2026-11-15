@@ -21,7 +21,7 @@ impl App {
         if self.mode != Mode::Write {
             self.mode = Mode::Read;
         }
-        self.panel = true;
+        self.threads.show();
         self.focus = Focus::Claude;
         self.threads.transcript_mut().on = false;
         self.threads.to_end();
@@ -201,21 +201,21 @@ impl App {
         self.tab_run.end();
         if let Some(n) = self.cli.view.or_else(|| self.pane_terminal()) {
             self.paste_cli(n, &s);
-        } else if self.panel && self.focus == Focus::Claude {
+        } else if self.threads.shown() && self.focus == Focus::Claude {
             self.paste_into_chat(&s);
         } else if self.mode == Mode::Write {
             self.writer.editor_mut().type_str(&s);
             self.writer.touch();
         } else if self.mode == Mode::Search {
-            self.query.push_str(s.lines().next().unwrap_or(""));
+            self.lists.edit_query(|q| q.push_str(s.lines().next().unwrap_or("")));
             self.run_search();
         }
     }
 
     /// `c` and `[ chat ]`: open the chat, or close it when it is open.
     pub fn toggle_chat(&mut self) {
-        if self.panel {
-            self.panel = false;
+        if self.threads.shown() {
+            self.threads.hide();
             self.threads.unpin();
             if self.focus == Focus::Claude {
                 self.focus = Focus::Note;

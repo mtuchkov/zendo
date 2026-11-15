@@ -103,3 +103,20 @@ fn a_backslash_before_the_cursor_is_seen() {
     c.input_mut().type_str("one\\");
     assert!(c.ends_with_backslash());
 }
+
+// ADR 0008, TERM-28: `alt-o` again puts the input back and takes the next terminal; another key
+// starts with the first terminal again.
+#[test]
+fn a_second_pick_puts_the_input_back_and_takes_the_next_terminal() {
+    let mut c = Composer::default();
+    c.input_mut().type_str("see ");
+    assert_eq!(c.next_pick(3), 0);
+    c.input_mut().type_str("output of 1");
+    assert_eq!(c.next_pick(3), 1);
+    assert_eq!(c.input().text(), "see ", "the output of the first terminal is gone");
+    assert_eq!((c.next_pick(3), c.next_pick(3)), (2, 0));
+    c.drop_pick();
+    c.input_mut().type_str("more");
+    assert_eq!(c.next_pick(3), 0);
+    assert_eq!(c.input().text(), "see more");
+}

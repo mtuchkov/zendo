@@ -109,14 +109,9 @@ pub struct Music {
     pub focused: bool,
     /// The config file that the button and the question write.
     pub config: PathBuf,
-    /// The music button in the last frame, for the mouse.
-    pub button: Option<Rect>,
-    /// The two answers of the question in the last frame: keep on, turn off.
-    pub answers: Option<(Rect, Rect)>,
     control: Arc<Control>,
 }
 
-use ratatui::layout::Rect;
 
 impl Default for Music {
     fn default() -> Self {
@@ -124,7 +119,7 @@ impl Default for Music {
         let control = Arc::new(Control::default());
         // Not started: no output yet.
         control.report(false);
-        Music { on: true, asked: true, ask_pending: false, asking: false, focused: true, config, button: None, answers: None, control }
+        Music { on: true, asked: true, ask_pending: false, asking: false, focused: true, config, control }
     }
 }
 
