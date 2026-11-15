@@ -43,8 +43,8 @@ impl App {
         let global = if self.mode == Mode::Help { None } else { self.keys.local(crate::keys::Pane::Global, &k) };
         match (self.cli.view, self.pane_terminal()) {
             _ if self.float.is_some() => self.key_float(k),
-            _ if global == Some("new_note") => self.open_float(),
-            _ if global == Some("find") && self.mode != Mode::Find => self.open_find(),
+            _ if global == Some("new_note") => drop(self.global_key("new_note", crate::keys::Pane::Global)),
+            _ if global == Some("find") && self.mode != Mode::Find => drop(self.global_key("find", crate::keys::Pane::Global)),
             _ if self.mode == Mode::Find => return false,
             _ if self.hold.is_some() => self.key_hold(k),
             (Some(n), _) => self.key_cli(n, k),
@@ -66,6 +66,7 @@ impl App {
         }
         // f1 shows the keys of the pane or the mode, from everywhere.
         if self.keys.local(Pane::Global, &k) == Some("help") {
+            self.did(Pane::Global, "help");
             return self.open_help(self.help_pane_now());
         }
         if self.file_prompt.is_some() {
@@ -73,12 +74,14 @@ impl App {
         }
         if !matches!(self.mode, Mode::Read | Mode::Write) {
             if self.keys.local(Pane::Global, &k) == Some("quit") {
+                self.did(Pane::Global, "quit");
                 self.quit = true;
                 return;
             }
             return match self.mode {
                 Mode::Notes => {
                     let act = self.keys.local(Pane::Notes, &k);
+                    self.did_some(Pane::Notes, act);
                     self.key_notes(act)
                 }
                 Mode::Search => self.key_search(k),
@@ -107,6 +110,7 @@ impl App {
         {
             return;
         }
+        self.did_some(pane, local);
         match pane {
             Pane::Chat => self.key_panel(k, local),
             Pane::Transcript => self.key_transcript(local),
@@ -118,8 +122,16 @@ impl App {
     }
 
     /// A key of no pane: quit, the tree, the text width, help, the next pane, the pane edges. True
-    /// when it did something.
+    /// when it did something; then the action counts (USAGE-1).
     pub(super) fn global_key(&mut self, act: &str, pane: crate::keys::Pane) -> bool {
+        let ran = self.run_global(act, pane);
+        if ran {
+            self.did(crate::keys::Pane::Global, act);
+        }
+        ran
+    }
+
+    fn run_global(&mut self, act: &str, pane: crate::keys::Pane) -> bool {
         match act {
             "quit" => {
                 if self.mode == Mode::Write {

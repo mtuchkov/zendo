@@ -114,12 +114,15 @@ impl App {
         }
         let global = self.keys.local(Pane::Global, &k);
         if global == Some("help") {
+            self.did(Pane::Global, "help");
             return self.open_help(Pane::Write);
         }
         if self.selection_key(Pane::Write, &k) {
             return;
         }
         let local = self.keys.local(Pane::Write, &k);
+        // The keys that do nothing in the float run no action (FLOAT-10).
+        self.did_some(Pane::Write, local.filter(|a| !matches!(*a, "chat" | "delta" | "toggle_tree" | "add_to_chat")));
         match (local, global) {
             (Some("done"), _) => self.close_float(),
             (Some("chat" | "delta" | "toggle_tree" | "add_to_chat"), _) => {}

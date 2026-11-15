@@ -33,14 +33,16 @@ impl App {
     /// terminal; no other key goes anywhere (HANDOFF-4, HANDOFF-9, HANDOFF-10).
     pub(crate) fn key_hold(&mut self, k: KeyEvent) {
         if self.keys.local(Pane::Chat, &k) == Some("handoff") {
+            self.did(Pane::Chat, "handoff");
             return self.hold_again();
         }
         if self.keys.local(Pane::Session, &k) == Some("leave") {
+            self.did(Pane::Session, "leave");
             self.hold = None;
             return;
         }
         let global = self.keys.local(Pane::Global, &k);
-        if global.is_some_and(|a| matches!(a, "next_session" | "prev_session" | "terminal") || a.starts_with("session_")) {
+        if global.is_some_and(|a| a != "terminal_run" && count::session_action(a)) {
             self.hold = None;
             self.on_key(k);
         }

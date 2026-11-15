@@ -194,6 +194,7 @@ impl App {
         if pane == Pane::Write && act == "cut" {
             self.last_edit = Instant::now();
         }
+        self.did(Pane::Selected, act);
         true
     }
 }

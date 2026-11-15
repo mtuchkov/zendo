@@ -47,6 +47,7 @@ impl App {
     /// SESSIONS-11).
     pub(crate) fn key_cli(&mut self, n: usize, k: KeyEvent) {
         if self.keys.local(Pane::Session, &k) == Some("leave") {
+            self.did(Pane::Session, "leave");
             // A terminal on the full screen leaves the chat pane too (TERM-22, TERM-42).
             if self.cli.pane == Some(n) {
                 self.cli.pane = None;
@@ -54,13 +55,15 @@ impl App {
             self.cli.view = None;
             return;
         }
-        if let Some(a @ ("next_session" | "prev_session")) = self.keys.local(Pane::Global, &k) {
+        let global = self.keys.local(Pane::Global, &k).filter(|a| *a != "terminal_run" && count::session_action(a));
+        self.did_some(Pane::Global, global);
+        if let Some(a @ ("next_session" | "prev_session")) = global {
             return self.step_full_screen(a == "next_session");
         }
-        if self.keys.local(Pane::Global, &k) == Some("terminal") {
+        if global == Some("terminal") {
             return self.open_terminal(0);
         }
-        let session = self.keys.local(Pane::Global, &k).and_then(|a| a.strip_prefix("session_")).and_then(|s| s.parse::<usize>().ok());
+        let session = global.and_then(|a| a.strip_prefix("session_")).and_then(|s| s.parse::<usize>().ok());
         if let Some(m) = session.and_then(|m| m.checked_sub(1)) {
             self.cli.view = self.cli.running(m).then_some(m);
             return self.switch_session(m);

@@ -40,6 +40,9 @@ pub struct UserConfig {
     /// default on. The sound button of zendo changes it (docs/zendo/attention.md).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sound: Option<bool>,
+    /// The usage counts in the data folder; default on (docs/zendo/usage.md, USAGE-14).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub usage: Option<bool>,
     /// The private notes repo, when the user turned it on.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notes: Option<NotesRepo>,

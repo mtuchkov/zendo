@@ -78,18 +78,17 @@ impl App {
     pub(crate) fn key_pane_terminal(&mut self, n: usize, k: KeyEvent) {
         use crate::keys::Pane;
         if self.keys.local(Pane::Session, &k) == Some("leave") {
+            self.did(Pane::Session, "leave");
             self.cli.pane = None;
             return;
         }
         if self.keys.local(Pane::Chat, &k) == Some("handoff") {
+            self.did(Pane::Chat, "handoff");
             self.cli.view = Some(n);
             return;
         }
         match self.keys.local(Pane::Global, &k) {
-            Some("next_session") => self.step_in_chat(true),
-            Some("prev_session") => self.step_in_chat(false),
-            Some(a @ ("terminal" | "terminal_run")) => self.terminal_key(a == "terminal_run"),
-            Some(a) if a.starts_with("session_") => self.switch_session(a[8..].parse::<usize>().map_or(0, |m| m - 1)),
+            Some(a) if count::session_action(a) => drop(self.global_key(a, Pane::Chat)),
             _ => {
                 let app_cursor = self.cli.with_screen(n, |s| s.application_cursor()).unwrap_or(false);
                 self.cli.write(n, &crate::session::keys::encode(&k, app_cursor));

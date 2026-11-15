@@ -162,6 +162,17 @@ sound = false
 The terminal decides what you hear: turn on its audible bell if it is silent. In tmux, set
 `focus-events on` so that zendo knows when you look at it.
 
+## Usage counts
+
+zendo counts how often you do each action of the keymap, by pane and by key or mouse, to show which
+key hints help. The counts stay on your disk, in `~/.local/share/zendo/usage/`, one file for each
+run; zendo sends them nowhere and writes no text, file name or path. To turn the counting off, set
+in `~/.zendo/config.toml`:
+
+```toml
+usage = false
+```
+
 ## Code highlighting
 
 Code blocks and the front matter show in colors. `sh`, `rust`, `java`, `python`, `go`, `yaml` and `json`

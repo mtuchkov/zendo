@@ -70,8 +70,10 @@ impl App {
             return;
         }
         s.done = true;
+        let (region, to_chat) = (s.region, s.chat);
         self.copy_pending = true;
-        if s.region != Region::Panel {
+        self.count_selection(region, to_chat);
+        if region != Region::Panel {
             self.interact(2);
         }
     }
@@ -84,15 +86,18 @@ impl App {
             return self.toggle_sound();
         }
         if let Some(n) = self.session_buttons.iter().find(|(r, _)| hit(r)).map(|(_, n)| *n) {
+            self.count_session_button(n);
             return if n < SESSIONS { self.switch_session(n) } else { self.open_terminal(n - SESSIONS) };
         }
         if let Some(cmd) = self.play_buttons.iter().find(|(r, _)| hit(r)).map(|(_, c)| c.clone()) {
+            self.did_by_mouse(crate::keys::Pane::Global, "terminal");
             return self.put_into_terminal(&cmd, false);
         }
         let row = self.tree_rows.iter().find(|(r, _)| r.contains(ratatui::layout::Position::new(x, y))).map(|(_, i)| *i);
         if let Some(i) = row {
             self.focus = Focus::Tree;
             self.tree.sel = i;
+            self.did_by_mouse(crate::keys::Pane::Tree, "preview");
             self.tree_activate(false);
             return;
         }

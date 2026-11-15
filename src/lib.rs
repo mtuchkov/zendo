@@ -8,3 +8,4 @@ pub mod setup;
 pub mod text;
 pub mod tui;
 pub mod ui;
+pub mod usage;

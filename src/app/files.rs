@@ -128,6 +128,7 @@ impl App {
                 Err(_) => {}
             }
         }
+        self.usage.tick(Instant::now());
         self.check_disk();
         if self.state.tree && self.tree.stale() {
             self.scan_tree();

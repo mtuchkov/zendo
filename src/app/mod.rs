@@ -4,6 +4,7 @@ mod at;
 mod attention;
 mod chat;
 mod chat_keys;
+mod count;
 mod cli;
 mod terminal;
 mod terminal_mouse;
@@ -252,6 +253,8 @@ pub struct App {
     pub disk_checked: Instant,
 
     pub flash: Option<(String, Instant)>,
+    /// The counts of the actions of the user; off until the start turns them on (USAGE-1).
+    pub usage: crate::usage::Usage,
     pub quit: bool,
     /// The Claude Code sessions of the agent sessions, in terminals that zendo owns.
     pub cli: crate::session::Sessions,

@@ -199,6 +199,7 @@ async fn main() -> Result<()> {
         app.save();
     }
     app.end_visit();
+    app.usage.write();
     zendo::tui::terminal_off();
     ratatui::restore();
     if let Some(s) = app.syncer.take()
@@ -248,6 +249,7 @@ async fn open_app(cfg: Config) -> Result<App> {
     };
     let mut app = App::new(cfg)?;
     app.syncer = syncer;
+    app.usage = zendo::usage::Usage::for_process(zendo::setup::config::UserConfig::load().usage.unwrap_or(true));
     app.keys.legacy = !zendo::tui::kitty();
     if !app.key_problems.is_empty() {
         app.flash(format!("[keys] {} problem(s) · zendo doctor", app.key_problems.len()));

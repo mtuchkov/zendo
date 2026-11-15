@@ -4,6 +4,7 @@ revision: "1"
 date: "2026-11-13"
 parent: "zendo.md"
 prev: "site.md"
+next: "usage.md"
 level: "what the user hears when zendo plays lofi music, and the decisions of the user"
 note: "Agent draft from the requests of the user on 2026-11-13. zendo does not play music yet: the landing page does. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. The notes of the first implementation are in ADR 0006."
 ---
