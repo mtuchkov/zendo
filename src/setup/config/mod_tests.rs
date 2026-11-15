@@ -52,3 +52,33 @@ fn the_name_model_comes_from_the_config_with_defaults() {
     assert_eq!(set.name_model(Kind::Codex), None);
     assert_eq!(set.name_model(Kind::Other).as_deref(), Some("small"));
 }
+
+// CMD-17: `a broken config stays as the user wrote it`: a change of a setting fails on a config
+// that does not parse and leaves the file as it is; a good config keeps its other settings; without
+// a file, the change makes one.
+#[test]
+fn a_broken_config_stays_as_the_user_wrote_it() {
+    let dir = std::env::temp_dir().join(format!("zendo-broken-config-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("config.toml");
+    let broken = "agent = \"my-agent\"\nwidth = \"wide\"\n";
+    std::fs::write(&path, broken).unwrap();
+    let err = UserConfig::update(&path, |c| c.sound = Some(false)).unwrap_err();
+    assert!(err.contains("config.toml"), "{err}");
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), broken);
+    assert!(UserConfig::for_change(&path).is_err());
+    // A file that is not UTF-8, as a comment saved in Latin-1, is not a missing file.
+    let latin1: &[u8] = b"agent = \"my-agent\" # caf\xE9\n";
+    std::fs::write(&path, latin1).unwrap();
+    assert!(UserConfig::update(&path, |c| c.sound = Some(false)).is_err());
+    assert_eq!(std::fs::read(&path).unwrap(), latin1);
+    std::fs::write(&path, "agent = \"my-agent\"\nwidth = 80\n").unwrap();
+    UserConfig::update(&path, |c| c.sound = Some(false)).unwrap();
+    let c = UserConfig::load_from(&path);
+    assert_eq!((c.agent.as_deref(), c.width, c.sound), (Some("my-agent"), Some(80), Some(false)));
+    std::fs::remove_file(&path).unwrap();
+    UserConfig::update(&path, |c| c.music = Some(true)).unwrap();
+    assert_eq!(UserConfig::load_from(&path).music, Some(true));
+    let _ = std::fs::remove_dir_all(&dir);
+}

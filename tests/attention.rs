@@ -232,6 +232,20 @@ async fn the_sound_button_turns_the_bell_off_and_saves_it() {
     done(&root, &mut a);
 }
 
+// ATTN-8, CMD-17: the sound button does not write over a config that does not parse; it says
+// that the setting is not saved.
+#[tokio::test(flavor = "multi_thread")]
+async fn the_sound_button_keeps_a_broken_config() {
+    let (root, mut a) = app_here("attn-broken-config");
+    let broken = "agent = \"my-agent\"\nwidth = \"wide\"\n";
+    std::fs::write(root.join("config.toml"), broken).unwrap();
+    a.toggle_sound();
+    assert_eq!(std::fs::read_to_string(root.join("config.toml")).unwrap(), broken);
+    let flash = a.flash.as_ref().map(|f| f.0.clone()).unwrap_or_default();
+    assert!(flash.contains("not saved"), "{flash}");
+    done(&root, &mut a);
+}
+
 // ATTN-10: while the chat is closed, a blinking session shows in the top line; a click opens it.
 #[tokio::test(flavor = "multi_thread")]
 async fn a_blinking_session_shows_in_the_top_line_while_the_chat_is_closed() {

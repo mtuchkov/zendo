@@ -3,8 +3,16 @@ use super::*;
 
 pub async fn setup(paths: &Paths, agent_flag: Option<String>, notes_repo: Option<String>) -> bool {
     let mut o = Out::new();
-    let mut cfg = UserConfig::load();
     o.head("zendo setup");
+    // A config that does not parse stays as the user wrote it: setup stops with the error (CMD-17).
+    let mut cfg = match UserConfig::for_change(&config::config_path()) {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            o.fail("config", e);
+            o.hint("Fix the file, or move it away, then run `zendo setup` again.");
+            return false;
+        }
+    };
     let Some(turned_on) = set_notes_repo(&mut cfg, notes_repo.as_deref(), &mut o) else { return false };
 
     // 1. Node and npm.
@@ -62,7 +70,14 @@ pub async fn setup(paths: &Paths, agent_flag: Option<String>, notes_repo: Option
 /// `zendo doctor --fix`: install the pinned adapter of the agent of the user when it is not there
 /// (CMD-15). The config changes only when the install does.
 pub(super) async fn fix_adapter(o: &mut Out) -> bool {
-    let mut cfg = UserConfig::load();
+    // A config that does not parse stays as the user wrote it (CMD-17).
+    let mut cfg = match UserConfig::for_change(&config::config_path()) {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            o.fail("config", e);
+            return false;
+        }
+    };
     // A command of the user in the config is not a profile: zendo installs nothing for it.
     let Some(profile) = cfg.agent.as_deref().map_or(Some(&config::CLAUDE), config::Profile::by_id) else { return true };
     let env = config::agent_env(&cfg);

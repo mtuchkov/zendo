@@ -50,6 +50,7 @@ adapter. `zendo upgrade` and the update suggestion use GitHub. Nothing else uses
 | CMD-2 | Unwanted   | If a check fails, then the command shall show what failed and the fix, and exit with an error.                        | User, 2026-11-11 |
 | CMD-3 | Ubiquitous | The installer shall never wait for input.                                                                             | Design           |
 | CMD-4 | State      | While zendo starts, the system shall look for a newer version in the background, and shall not make the start slower. | User, 2026-11-11 |
+| CMD-17 | Unwanted  | If `~/.zendo/config.toml` does not parse, then no command and no button of zendo shall write it: `zendo setup` and `zendo doctor --fix` shall stop with the error, and a button shall say that its setting is not saved. | User, 2026-11-15 |
 
 CMD-14, that `zendo doctor` writes no file, is in [Doctor](doctor.md).
 
@@ -69,6 +70,12 @@ CMD-1). See [zendo](../zendo.md).
 - Given a machine without zendo, and SSH that needs a password.
 - When the user pipes the installer into `sh`.
 - Then the installer finishes, or fails with a fix, and asks nothing.
+
+**`a_broken_config_stays_as_the_user_wrote_it`** (unit test; verifies CMD-17)
+
+- Given a `config.toml` that does not parse.
+- When a change of a setting goes to it, as by `zendo setup` or the sound button.
+- Then the change fails with the parse error, and the file stays byte for byte as it was.
 
 **`update_check_does_not_block_the_start`** (unit test, not written yet; verifies CMD-4)
 

@@ -60,16 +60,13 @@ impl App {
         }
     }
 
-    /// Save the setting in the config; a config that does not parse stays as the user wrote it.
+    /// Save the setting in the config; a config that does not parse stays as the user wrote it
+    /// (CMD-17).
     fn save_music(&mut self, word: &str) {
-        let path = self.music.config.clone();
-        let saved = UserConfig::read_from(&path).map(Option::unwrap_or_default).and_then(|mut user| {
-            user.music = Some(self.music.on);
-            user.save_to(&path).map_err(|e| e.to_string())
-        });
-        match saved {
+        let on = self.music.on;
+        match UserConfig::update(&self.music.config, |user| user.music = Some(on)) {
             Ok(()) => self.flash(word.to_string()),
-            Err(e) => self.flash(format!("{word}; not saved in {}: {e}", path.display())),
+            Err(e) => self.flash(format!("{word}; not saved: {e}")),
         }
     }
 }

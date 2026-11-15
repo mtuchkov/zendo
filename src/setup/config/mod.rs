@@ -131,7 +131,9 @@ impl UserConfig {
         Self::load_from(&config_path())
     }
 
-    /// The config in `path`; the defaults when there is no file or it does not parse.
+    /// The config in `path` to read settings from; the defaults when there is no file or it does not
+    /// parse. Do not save it: that would write over the file of the user (CMD-17). To change the
+    /// file, use `for_change` or `update`.
     pub fn load_from(path: &Path) -> Self {
         Self::read_from(path).ok().flatten().unwrap_or_default()
     }
@@ -142,10 +144,27 @@ impl UserConfig {
     }
 
     pub fn read_from(path: &Path) -> Result<Option<Self>, String> {
+        // Only a missing file is no config: a file that zendo cannot read, as one that is not
+        // UTF-8, is an error, so that no save writes over it (CMD-17).
         match std::fs::read_to_string(path) {
-            Err(_) => Ok(None),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(e.to_string()),
             Ok(s) => toml::from_str(&s).map(Some).map_err(|e| e.to_string()),
         }
+    }
+
+    /// The config in `path` to change and save: the defaults when there is no file; an error when
+    /// the file does not parse, so that no save writes over it (CMD-17).
+    pub fn for_change(path: &Path) -> Result<Self, String> {
+        Self::read_from(path).map(Option::unwrap_or_default).map_err(|e| format!("{} cannot be read or parsed: {e}", path.display()))
+    }
+
+    /// Change the config in `path` with `change` and save it; a file that does not parse stays as
+    /// it is (CMD-17).
+    pub fn update(path: &Path, change: impl FnOnce(&mut Self)) -> Result<(), String> {
+        let mut cfg = Self::for_change(path)?;
+        change(&mut cfg);
+        cfg.save_to(path).map_err(|e| format!("cannot write {}: {e}", path.display()))
     }
 
     pub fn save(&self) -> std::io::Result<()> {

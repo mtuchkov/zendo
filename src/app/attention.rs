@@ -125,13 +125,12 @@ impl App {
     /// The sound button: turn the bell off or on, and save it in the config (ATTN-8).
     pub fn toggle_sound(&mut self) {
         self.attention.sound = !self.attention.sound;
-        let path = self.attention.config.clone();
-        let mut user = UserConfig::load_from(&path);
-        user.sound = Some(self.attention.sound);
-        let word = if self.attention.sound { "on" } else { "off" };
-        match user.save_to(&path) {
+        let sound = self.attention.sound;
+        let word = if sound { "on" } else { "off" };
+        // A config that does not parse stays as the user wrote it (CMD-17).
+        match UserConfig::update(&self.attention.config, |user| user.sound = Some(sound)) {
             Ok(()) => self.flash(format!("sound {word}")),
-            Err(e) => self.flash(format!("sound {word}; could not save it in {}: {e}", path.display())),
+            Err(e) => self.flash(format!("sound {word}; not saved: {e}")),
         }
     }
 }
