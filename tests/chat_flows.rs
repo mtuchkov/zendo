@@ -275,3 +275,47 @@ async fn the_first_tab_goes_to_the_sister_pane_of_the_chat() {
     tabs(&mut a, &["chat", "note", "transcript"]);
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// CLAUDE-17: an image pasted from the clipboard is the chip `Image #n`, n the lowest number that no
+// chip in the input has.
+#[tokio::test]
+async fn pasted_images_are_numbered_chips() {
+    let root = repo("chat-image-chips", &files());
+    let mut a = app(&root);
+    a.open_panel();
+    a.focus = Focus::Claude;
+    let png = |n: &str| root.join(format!("docs/{n}.png"));
+    a.attach_pasted_image(png("paste-1"));
+    a.attach_pasted_image(png("paste-2"));
+    assert_eq!(a.input.text(), "⟦Image #1⟧ ⟦Image #2⟧ ");
+    a.chips.retain(|c| c.label != "⟦Image #1⟧");
+    a.attach_pasted_image(png("paste-3"));
+    assert!(a.input.text().ends_with("⟦Image #1⟧ "), "the free number: {}", a.input.text());
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// CLAUDE-37, CLAUDE-38, CLAUDE-39: the chip of a pasted image says `Image #n` until the name model
+// names the image, then `Image: <name>`; the mock agent names an image `red button`. An agent without images gets no
+// question for a name.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_pasted_image_gets_its_name_from_the_name_model() {
+    let root = repo("chat-image-name", &files());
+    let mut a = app(&root);
+    a.open_panel();
+    a.focus = Focus::Claude;
+    until(&mut a, |a| a.agent_images).await;
+    let png = root.join("docs/paste.png");
+    std::fs::write(&png, [0x89, b'P', b'N', b'G']).unwrap();
+    a.attach_pasted_image(png.clone());
+    assert_eq!(a.input.text(), "⟦Image #1⟧ ", "the number until the name comes");
+    typ(&mut a, "what is it");
+    until(&mut a, |a| a.input.text().contains("red button")).await;
+    assert_eq!(a.input.text(), "⟦Image: red button⟧ what is it");
+    assert_eq!(a.chips.iter().map(|c| c.label.as_str()).collect::<Vec<_>>(), ["⟦Image: red button⟧"]);
+    assert!(a.threads.values().all(|t| t.items.is_empty()), "no message in a thread");
+    a.agent_images = false;
+    a.attach_pasted_image(png);
+    assert!(a.image_names.is_empty(), "no question without images");
+    assert!(a.input.text().ends_with("⟦Image #1⟧ "), "{}", a.input.text());
+    let _ = std::fs::remove_dir_all(&root);
+}

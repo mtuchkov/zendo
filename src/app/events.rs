@@ -7,6 +7,9 @@ impl App {
         if event_key(&e).as_deref().is_some_and(|k| k.starts_with(RECAP_PREFIX)) {
             return self.on_recap_event(e);
         }
+        if event_key(&e).as_deref().is_some_and(|k| k.starts_with(crate::agent::work::IMAGE_PREFIX)) {
+            return self.on_image_event(e);
+        }
         match e {
             Event::Ready { agent, can_image, .. } => {
                 self.agent_name = Some(agent);

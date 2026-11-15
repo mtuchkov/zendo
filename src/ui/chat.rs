@@ -7,14 +7,13 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     // sessions are in the first row, or on the right edge above the ones of the terminals.
     let width = area.width.saturating_sub(5 + BUTTON_W + 1);
     let side = Rect { x: area.right().saturating_sub(BUTTON_W + 1), width: BUTTON_W, ..area };
-    draw_terminals(f, app, t, side);
     let row = app.cli.pane.is_none().then(|| agent_row(app, width as usize)).flatten();
     let rows = match row {
         Some(labels) => draw_agent_row(f, app, t, labels, Rect { x: area.x + 3, width, height: 1, ..area }),
         None => draw_agent_column(f, app, t, side),
     };
+    draw_terminals(f, app, t, side, rows == 0);
     let inner = Rect { x: area.x + 3, y: area.y + rows, width, height: area.height.saturating_sub(rows) };
-    draw_terminals(f, app, t, Rect { x: area.right().saturating_sub(BUTTON_W + 1), width: BUTTON_W, ..area });
     // A terminal shows in place of the thread and the input (TERM-37, TERM-40).
     let body = Rect { y: inner.y + 2, height: inner.height.saturating_sub(2), ..inner };
     app.cli.resize_pane(body.height, body.width);
@@ -266,16 +265,18 @@ fn draw_agent_column(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) -> u16
     0
 }
 
-/// Under the place of the agent buttons on the right edge, after a line, the buttons of the
-/// terminals in the color of the text: `F5`, then each `[>]` (TERM-14, TERM-15).
-fn draw_terminals(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
+/// The buttons of the terminals on the right edge, in the color of the text: `F5`, then each `[>]`.
+/// Under the agent buttons when they are on the right edge, after a line; else from the top of the
+/// edge (TERM-14, TERM-15).
+fn draw_terminals(f: &mut Frame, app: &mut App, t: &Theme, area: Rect, under_agents: bool) {
     let w = area.width as usize;
     let rule = area.y + 2 + 2 * crate::app::SESSIONS as u16;
-    if rule < area.bottom() {
+    if under_agents && rule < area.bottom() {
         f.render_widget(Paragraph::new("─".repeat(w)).style(Style::new().fg(t.dim)), Rect { y: rule, height: 1, ..area });
     }
+    let top = if under_agents { rule + 2 } else { area.y + 2 };
     let terms = (0..crate::session::TERMINALS).filter(|i| *i == 0 || app.cli.running(crate::session::shell(*i)));
-    for (y, n) in terms.enumerate().map(|(k, i)| (rule + 2 + 2 * k as u16, crate::session::shell(i))).filter(|(y, _)| *y < area.bottom()) {
+    for (y, n) in terms.enumerate().map(|(k, i)| (top + 2 * k as u16, crate::session::shell(i))).filter(|(y, _)| *y < area.bottom()) {
         let r = Rect { y, height: 1, ..area };
         let bg = pulse_bg(app, t, n, t.fg);
         let label = button_label(app, n);

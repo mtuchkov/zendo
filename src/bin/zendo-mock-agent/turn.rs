@@ -14,6 +14,11 @@ pub(super) async fn turn(cx: Cx, p: PromptRequest) -> Result<StopReason> {
         stream(&cx, &sid, &format!("ran the command: {text}")).await?;
         return Ok(StopReason::EndTurn);
     }
+    if text.starts_with("Name this image") {
+        let image = p.prompt.iter().any(|b| matches!(b, ContentBlock::Image(_)));
+        stream(&cx, &sid, if image { "Red Button" } else { "no image" }).await?;
+        return Ok(StopReason::EndTurn);
+    }
     if let Some(stop) = scripted(&cx, &sid, &text).await? {
         return Ok(stop);
     }
