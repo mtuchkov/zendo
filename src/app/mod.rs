@@ -181,8 +181,8 @@ pub struct App {
     pub reviews: crate::agent::work::Reviews,
     /// Files to get a title or front matter from the agent, after write mode.
     pub meta_queue: VecDeque<String>,
-    /// For each session ID without a name: the answers when zendo last asked for one (NAMES-10).
-    pub names_asked: HashMap<String, usize>,
+    /// For each session ID: the last question for its name (NAMES-10, NAMES-14).
+    pub names_asked: HashMap<String, crate::agent::work::Asked>,
     /// The model that names the agent sessions; none: the default model of the agent (NAMES-12).
     pub name_model: Option<String>,
     /// The pasted images that the name model names: by session key, the file and the answer so far.

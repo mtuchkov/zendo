@@ -19,7 +19,7 @@ document is a sibling of it, under [zendo](zendo.md).
 `alt-]` goes to the next one, after the last through the terminals of [Terminal](terminal/terminal.md),
 then to the first; `alt-[` (`alt-}` on macOS) goes back. Buttons in one row above the header of the
 chat, or on its right edge, show the sessions, each with its key and its name
-([Session names](session-names.md)): the active one in the accent color, the others in the second
+([Session names](session-names/session-names.md)): the active one in the accent color, the others in the second
 accent, as the badges of the modes; a click chooses one.
 
 **Session IDs and resume.** Each thread is a Claude Code session, so the user can continue it in

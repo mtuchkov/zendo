@@ -1,5 +1,5 @@
 //! The model of a session: zendo names the agent sessions with a light model (docs/zendo/
-//! session-names.md, NAMES-12), through the config options that the agent gives for a session.
+//! session-names/session-names.md, NAMES-12), through the config options that the agent gives for a session.
 
 use agent_client_protocol::v1::schema::{SessionConfigKind, SessionConfigOption, SessionConfigOptionCategory, SessionConfigSelectOption, SessionConfigSelectOptions};
 

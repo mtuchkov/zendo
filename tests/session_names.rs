@@ -1,5 +1,6 @@
-//! The names of the agent sessions (docs/zendo/session-names.md), with the mock agent, which names
-//! each conversation `mock`, `stub` or `fake`, and the mock command line `zendo-mock-cli`.
+//! The names of the agent sessions (docs/zendo/session-names/session-names.md), with the mock agent,
+//! which names each conversation `mock`, `stub` or `fake`, keeps the name at the first check and
+//! then renames it `renamed`, and the mock command line `zendo-mock-cli`.
 
 mod common;
 use common::*;
@@ -20,10 +21,9 @@ async fn ask(a: &mut App, n: usize, q: &str) {
     until(a, |a| a.threads.get(&key).is_some_and(|t| t.busy.is_none() && t.items.iter().any(|i| matches!(i, Item::Agent(_))))).await;
 }
 
-/// Two questions in agent session `n`, and the name that comes after them.
+/// One question in agent session `n`, and the name that comes after its answer.
 async fn named(a: &mut App, n: usize) -> String {
     ask(a, n, "first question").await;
-    ask(a, n, "second question").await;
     until(a, |a| a.session_name(n).is_some()).await;
     a.session_name(n).unwrap()
 }
@@ -43,28 +43,49 @@ fn done(root: &std::path::Path, a: &mut App) {
     let _ = std::fs::remove_dir_all(root);
 }
 
-// NAMES-1, NAMES-5, NAMES-6, NAMES-9, CLAUDE-32: the second answer names the session; the name
-// stands after the key in the row of buttons above the header of the chat; the terminal has none.
+// NAMES-1, NAMES-5, NAMES-6, NAMES-9, CLAUDE-32: the first agent message names the session while
+// the turn still runs; the name stands after the key in the row of buttons above the header of the
+// chat; the terminal has none. The mock agent writes one message and then works for seconds on a
+// "slow" question.
 #[tokio::test(flavor = "multi_thread")]
-async fn the_second_answer_names_the_session() {
-    let root = repo("names-second", &[("README.txt", "no notes\n")]);
+async fn the_first_agent_message_names_the_session() {
+    let root = repo("names-first", &[("README.txt", "no notes\n")]);
     let mut a = app(&root);
-    ask(&mut a, 0, "first question").await;
-    for _ in 0..10 {
-        a.tick();
-    }
-    assert_eq!(a.session_name(0), None, "one answer gives no name");
+    a.switch_session(0);
+    a.focus = Focus::Claude;
     assert!(!buttons(&mut a, 220).contains("F6 mock"));
-    ask(&mut a, 0, "second question").await;
+    typ(&mut a, "a slow question");
+    key(&mut a, KeyCode::Enter);
     until(&mut a, |a| a.session_name(0).is_some()).await;
     assert_eq!(a.session_name(0).as_deref(), Some("mock"));
+    let t = &a.threads[&session_key(0)];
+    assert!(t.busy.is_some(), "the turn still runs");
+    assert!(t.items.iter().any(|i| matches!(i, Item::Agent(_))), "after the first agent message");
     let screen = draw(&mut a, 220, 30);
     let row = screen.iter().position(|r| r.contains("F6 mock")).unwrap_or_else(|| panic!("{screen:#?}"));
     assert!(screen[row].contains("F7") && screen[row].contains("F10"), "one row: {}", screen[row]);
     assert!(screen[row + 1].contains("CLAUDE") || screen[row + 1].contains("AGENT"), "above the header: {screen:#?}");
     assert!(screen.iter().any(|r| r.trim_end().ends_with("F5")), "the F5 button has no name: {screen:#?}");
     let users: Vec<&Item> = a.threads[&session_key(0)].items.iter().filter(|i| matches!(i, Item::User(_))).collect();
-    assert_eq!(users.len(), 2, "the question for the name is not in the thread: {users:?}");
+    assert_eq!(users.len(), 1, "the question for the name is not in the thread: {users:?}");
+    done(&root, &mut a);
+}
+
+// NAMES-14, NAMES-3: after 200 more characters zendo asks whether the name still fits; the mock
+// agent keeps it once, which doubles the thresholds, and renames it at the next check. The unit
+// test `due_after_the_thresholds_doubled_by_each_kept_name` checks the doubled thresholds.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_changed_topic_renames_the_session() {
+    let root = repo("names-rename", &[("README.txt", "no notes\n")]);
+    let mut a = app(&root);
+    assert_eq!(named(&mut a, 0).await, "mock");
+    let id = a.threads[&session_key(0)].session.clone().unwrap();
+    ask(&mut a, 0, &"more about the topic ".repeat(10)).await;
+    until(&mut a, |a| a.names_asked.get(&id).is_some_and(|c| c.keeps == 1) && a.recap_job.is_none()).await;
+    assert_eq!(a.session_name(0).as_deref(), Some("mock"), "the first check keeps the name");
+    ask(&mut a, 0, &"a new topic ".repeat(30)).await;
+    until(&mut a, |a| a.session_name(0).as_deref() == Some("renamed")).await;
+    assert!(buttons(&mut a, 220).contains("F6 renamed"));
     done(&root, &mut a);
 }
 

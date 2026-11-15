@@ -44,7 +44,7 @@ pub struct UserConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub usage: Option<bool>,
     /// The model that names the agent sessions, for each agent: `claude`, `codex` or `other`; an
-    /// empty name: the default model of the agent (docs/zendo/session-names.md, NAMES-12).
+    /// empty name: the default model of the agent (docs/zendo/session-names/session-names.md, NAMES-12).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub name_models: BTreeMap<String, String>,
     /// The private notes repo, when the user turned it on.
