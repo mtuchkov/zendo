@@ -1,19 +1,19 @@
 ---
-status: "implemented"
-approved: "2026-11-13"
-revision: "1"
+status: "approved"
+approved: "2026-11-14"
+revision: "2"
 date: "2026-11-14"
 parent: "files.md"
 next: "files-actions.md"
 level: "the views of the file tree, folding, the marks, the bottom of the tree"
-note: "Split from files.md revision 2 (user, 2026-11-14). No requirement changed."
+note: "Split from files.md revision 2 (user, 2026-11-14). Revision 2 changes FILES-4: the `v` cycle has the two worktree views after folders (user, 2026-11-14); the code does not implement it yet."
 ---
 
 # File tree: views
 
 Parent: [File tree](files.md).
 
-The file tree has five views:
+The file tree has five views of the repository:
 
 - **structure**: the main materials of [project-structure.toml](../project-structure.md), in the
   order of that file;
@@ -24,19 +24,20 @@ The file tree has five views:
   a file that is not markdown opens is in [Code files](files-code.md);
 - **folders**: every folder, also an empty one or one without markdown, and every markdown file.
 
-`v` shows the next view. `j` and `k` move; `+` and `-`, `l` and `h`, or a click on `[+]` and `[-]`
+`v` shows the next view, after folders the two worktree views. `j` and `k` move; `+` and `-`, `l` and `h`, or a click on `[+]` and `[-]`
 open and close a folder. zendo keeps the view and the open folders for the repository.
 
 At the bottom, the tree shows what the selected item is (`about`) and the start of its rules for
 Claude.
 
-The views of the worktree of an agent session are in [Worktree views](files-worktree.md).
+Two more views show the worktree of the active agent session: worktree and worktree changed; see
+[Worktree views](files-worktree.md).
 
 ## Detailed requirements
 
 | ID       | Pattern    | Requirement | Source |
 | -------- | ---------- | ----------- | ------ |
-| FILES-4 | Event | When the user presses `v` in the tree, the system shall show the next view: structure, docs, all, text, folders. | User, 2026-11-12 |
+| FILES-4 | Event | When the user presses `v` in the tree, the system shall show the next view: structure, docs, all, text, folders, worktree, worktree changed. | User, 2026-11-12; User, 2026-11-14 |
 | FILES-5 | Event | When the user clicks `[+]` or `[-]`, or presses its key, the system shall open or close the folder. | User, 2026-11-11 |
 | FILES-6 | Ubiquitous | The system shall show a folder that holds only one folder as one row, for example `svc/orders/docs`. | Design |
 | FILES-7 | Ubiquitous | The system shall mark with `Δ` the files that changed since the last visit that counted. | Design |

@@ -24,14 +24,15 @@ folder at the top, or the docs view when the repository has no main materials. T
 left of the screen and opens and closes with `ctrl-shift-b` or `alt-b` in every pane, or `e` in read
 mode.
 
-The tree has five views: structure, docs, all, text and folders. `v` shows the next view. `enter`
+The tree has five views of the repository: structure, docs, all, text and folders, and two views of
+the worktree of the active agent session. `v` shows the next view. `enter`
 opens the selected file in the note pane, where it works like a note.
 
 The children of this document hold the details:
 
 | Document                              | What it specifies                                                        |
 | ------------------------------------- | ------------------------------------------------------------------------ |
-| [Views](files-views.md)               | The five views, folding, the marks, the bottom of the tree               |
+| [Views](files-views.md)               | The views, folding, the marks, the bottom of the tree                    |
 | [Actions](files-actions.md)           | The filter, rename, move, delete, new file and folder, add to the chat   |
 | [Code files](files-code.md)           | How a file that is not markdown shows in the note pane                   |
 | [Worktree views](files-worktree.md)   | Draft: the worktree of the agent session and its changed files           |

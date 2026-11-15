@@ -24,7 +24,7 @@ so the user does not see what the agent session in the chat does. Two more views
 At the bottom, both views show a recap of the changes of the worktree; see
 [Worktree recap](files-worktree-recap.md).
 
-`v` shows the two views after the folders view. Both views follow the chat: when the user chooses
+`v` shows the two views after the folders view (FILES-4 in [Views](files-views.md)). Both views follow the chat: when the user chooses
 another agent session, the tree shows the worktree of that session. A session has no worktree until
 its agent changes code the first time; then `v` skips the two views.
 
@@ -71,7 +71,6 @@ Neither test is written yet.
 
 | ID       | Pattern    | Requirement | Source |
 | -------- | ---------- | ----------- | ------ |
-| FILES-30 | Event      | When the user presses `v` in the folders view, the system shall show the worktree view, then the worktree changed view, then the structure view. | Design |
 | FILES-31 | Unwanted   | If the active agent session has no worktree, then the system shall skip both worktree views on `v`, and shall show one line that says so in a worktree view that is open. | Design |
 | FILES-32 | Event      | When the user chooses another agent session, the system shall show the worktree of that session in both worktree views. | User, 2026-11-14 |
 | FILES-33 | Event      | When a file or the branch of the worktree changes, the system shall show the change in both worktree views without a restart. | Design |
@@ -79,8 +78,5 @@ Neither test is written yet.
 | FILES-35 | Ubiquitous | The system shall show a deleted file in the worktree changed view as a struck row that does not open. | Design |
 | FILES-37 | State      | While the agent of the session of the worktree answers, the system shall ask the user in a popup to confirm a rename, a move, a delete or a new file or folder in a worktree view, and do it only after the confirmation. | User, 2026-11-14 |
 
-## Open points
-
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| FILES-4 (approved) names five views in the `v` cycle. Does FILES-30 replace its cycle, or does FILES-4 get a new revision? | FILES-4, FILES-30 | User |
+Not used: FILES-30 (a proposal for the `v` cycle), because FILES-4 holds the cycle (User,
+2026-11-14). Identifiers that were not used are never reused.
