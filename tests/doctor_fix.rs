@@ -22,6 +22,9 @@ fn doctor(root: &Path, home: &Path, args: &[&str]) -> (bool, String) {
         .env("ZENDO_NO_UPDATE_CHECK", "1")
         .env_remove("XDG_CONFIG_HOME")
         .env_remove("XDG_DATA_HOME")
+        // The zendo section of the user (SESSIONS-22) goes under `home`, never to the real folders.
+        .env_remove("CLAUDE_CONFIG_DIR")
+        .env_remove("CODEX_HOME")
         .output()
         .unwrap();
     (out.status.success(), String::from_utf8_lossy(&out.stdout).into_owned())

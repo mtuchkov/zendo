@@ -1,6 +1,6 @@
 //! What `zendo doctor` sets up in a repository: `project-structure.toml` from the zendo template,
-//! the zendo section in the instructions for agents, and the zendo lines in `.gitignore`. Each
-//! zendo part sits between its marks, so that doctor can replace it safely.
+//! the zendo section in the instructions for agents, of the project and of the user, and the zendo
+//! lines in `.gitignore`. Each zendo part sits between its marks, so that doctor can replace it safely.
 use super::*;
 use crate::docs::structure::FILE;
 
@@ -8,6 +8,8 @@ use crate::docs::structure::FILE;
 pub const TEMPLATE: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/project-structure.template.toml"));
 /// The section about the project structure in `CLAUDE.md` or `AGENTS.md`.
 pub const AGENTS_SECTION: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/agents-section.md"));
+/// The section for zendo sessions in the instructions of the user (SESSIONS-22).
+pub const USER_SECTION: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/user-agents-section.md"));
 pub const SECTION_MARKS: (&str, &str) = ("<!-- zendo -->", "<!-- /zendo -->");
 pub const IGNORE_MARKS: (&str, &str) = ("# >>> zendo: kept by zendo doctor", "# <<< zendo");
 const IGNORED: &str = ".zendo/";
@@ -82,6 +84,24 @@ fn agents_section(root: &Path, agent: &str, o: &mut Out) {
         if put(&root.join(f), &with_section(&old, AGENTS_SECTION, SECTION_MARKS)) {
             o.ok("agents", format!("{f}: the zendo section tells agents to follow {FILE}"));
             o.hint(format!("zendo doctor keeps the text between {} and {}; write your own text outside it.", SECTION_MARKS.0, SECTION_MARKS.1));
+        }
+    }
+}
+
+/// The files of instructions of the user: `CLAUDE.md` of Claude Code and `AGENTS.md` of Codex.
+pub(super) fn user_files() -> [PathBuf; 2] {
+    let home = PathBuf::from(std::env::var_os("HOME").unwrap_or_default());
+    let dir = |var: &str, name: &str| std::env::var_os(var).filter(|v| !v.is_empty()).map(PathBuf::from).unwrap_or_else(|| home.join(name));
+    [dir("CLAUDE_CONFIG_DIR", ".claude").join("CLAUDE.md"), dir("CODEX_HOME", ".codex").join("AGENTS.md")]
+}
+
+/// The zendo section in each of `files`, the instructions of the user (SESSIONS-22). A file whose
+/// folder is not there stays away: the user does not have that agent.
+pub(super) fn user_section(files: &[PathBuf], o: &mut Out) {
+    for f in files.iter().filter(|f| f.parent().is_some_and(Path::is_dir)) {
+        let old = std::fs::read_to_string(f).unwrap_or_default();
+        if put(f, &with_section(&old, USER_SECTION, SECTION_MARKS)) {
+            o.ok("agents", format!("{}: the zendo section tells a session that zendo runs to follow the MCP server `zendo`", f.display()));
         }
     }
 }

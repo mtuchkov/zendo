@@ -15,22 +15,6 @@ The project structure is the set of top-level folders, the folders of `docs/`, a
   in `cargo test`: unknown keys, paths, templates, and unique labels. The `.githooks/pre-commit`
   hook runs this test when a commit changes `project-structure.toml` or deletes or renames a file.
 
-## Sessions and worktrees
-
-Several zendo sessions can work in one repository at the same time. zendo gives each Claude Code
-session its MCP server `zendo`; its tool `session` returns the id of the zendo session
-(SESSIONS-21).
-
-- WHEN the agent changes code (`src/`, `tests/`, configs, scripts, and related docs), the agent
-  shall work only in the worktree of its zendo session, `.worktrees/<zendo session id>`, on a branch
-  of its own.
-- WHEN the worktree of its zendo session does not exist, the agent shall create it with
-  `git worktree add .worktrees/<zendo session id> -b <branch>`.
-- The agent shall not create, use or remove any other worktree.
-- The agent shall not run `git stash`, `git checkout -- <file>`, `git restore` or `git reset` in the
-  main checkout: they change the files of the other sessions.
-- The agent shall merge its branch into `main` only after the user approves it.
-
 ## Documentation and requirement authority
 
 - The agent shall use standard technical english for project documentation and easy approach to requirements syntax: “The system shall…”, “When…, the system shall…”,

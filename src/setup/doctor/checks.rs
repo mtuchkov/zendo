@@ -7,6 +7,7 @@ pub async fn doctor(paths: &Paths, agent_flag: Option<String>, live: bool, fix: 
     let mut ok = checks(paths, agent_flag.clone(), live, false, &mut o).await;
     let (agent, _) = config::resolve_agent(agent_flag.clone(), &UserConfig::load());
     setup_project(paths, &agent, &mut o);
+    user_section(&user_files(), &mut o);
     println!();
     if let Some(problem) = structure_problem(&paths.root) {
         let what = if matches!(problem, Problem::Missing) { "Create it from project-structure.md" } else { "Fix it" };

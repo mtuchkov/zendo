@@ -1,7 +1,7 @@
 ---
 status: "draft"
-revision: "6"
-date: "2026-11-13"
+revision: "8"
+date: "2026-11-14"
 parent: "zendo.md"
 prev: "claude.md"
 next: "handoff.md"
@@ -90,15 +90,18 @@ key, echoes a line, and exits on `q`. The tests are in `tests/sessions.rs`.
 | SESSIONS-14 | Ubiquitous | The system shall show the state of each running Claude Code session on its session button and in the bottom line of the session view.             | Design           |
 | SESSIONS-16 | Event      | When the terminal changes size, the system shall give the new size to each Claude Code session.                                                    | Design           |
 | SESSIONS-17 | Unwanted   | If Claude Code does not report a state, then the system shall show *works* while the session prints and *idle* otherwise.                          | Design           |
-| SESSIONS-18 | Ubiquitous | The system shall not change the settings files of Claude Code of the user.                                                                          | Design           |
+| SESSIONS-18 | Ubiquitous | The system shall not change the settings files of Claude Code of the user, except the zendo section of SESSIONS-22.                                                                        | Design           |
 | SESSIONS-19 | Event      | When the user quits again within 5 s of the question, the system shall stop each Claude Code session and quit.                                     | Design           |
 | SESSIONS-20 | State      | While a Claude Code session runs, the system shall show its state at the end of the chat of its agent session, with a spinner while it works.      | User, 2026-11-12 |
-| SESSIONS-21 | Ubiquitous | The system shall start each Claude Code session and the chat of each agent session with the MCP server `zendo` of its session, whose tool `session` returns the id of that zendo session. | User, 2026-11-13 |
+| SESSIONS-21 | Ubiquitous | The system shall start each Claude Code session and the chat of each agent session with the MCP server `zendo` of its session, whose instructions name the id of that zendo session and the rules of its worktree, and whose tool `session` returns the same id. | User, 2026-11-13 |
+| SESSIONS-22 | Event | When `zendo doctor` runs, the system shall write a section into both files of instructions of the user, `CLAUDE.md` of Claude Code and `AGENTS.md` of Codex, between `<!-- zendo -->` and `<!-- /zendo -->`, that tells a session that zendo runs to follow the instructions of the MCP server `zendo`, and replace only that section. | User, 2026-11-14 |
 
 Test of SESSIONS-20: `chat_shows_the_state_of_its_claude_code_session` in `tests/sessions.rs`.
 Tests of SESSIONS-21: `tests/mcp.rs` and `src/mcp/mod_tests.rs`.
+Tests of SESSIONS-22: `doctor_writes_the_zendo_section_of_the_user` and
+`doctor_makes_the_file_but_no_folder_for_the_user_section` in `src/setup/doctor/project_tests.rs`.
 
-Retired in revision 4: SESSIONS-15 (zendo refused `ctrl-o` while the chat answered). [Hand-off during a turn](handoff.md) replaces it. Revision 3 changed SESSIONS-4 and added SESSIONS-20. Revision 6 added SESSIONS-21.
+Retired in revision 4: SESSIONS-15 (zendo refused `ctrl-o` while the chat answered). [Hand-off during a turn](handoff.md) replaces it. Revision 3 changed SESSIONS-4 and added SESSIONS-20. Revision 6 added SESSIONS-21. Revision 7 changed SESSIONS-21: the instructions of the server carry the id and the worktree rules. Revision 8 added SESSIONS-22 and its exception in SESSIONS-18.
 
 ## Open points
 

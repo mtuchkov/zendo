@@ -24,6 +24,26 @@ fn initialize_names_zendo_and_the_session_tool() {
     assert!(r[0]["result"]["instructions"].as_str().unwrap().contains("`session`"));
 }
 
+// SESSIONS-21: the instructions name the id of the zendo session and carry the rules of its
+// worktree, so the agent knows them without a call of the tool.
+#[test]
+fn instructions_carry_the_session_id_and_the_worktree_rules() {
+    let r = talk(2, &[call(1, "initialize", json!({ "protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } }))]);
+    let text = r[0]["result"]["instructions"].as_str().unwrap();
+    assert!(text.contains("zendo session 2"), "{text}");
+    assert!(text.contains("`.worktrees/2`"), "{text}");
+    assert!(text.contains("git worktree add .worktrees/2 -b"), "{text}");
+    assert!(text.contains("`git stash`"), "{text}");
+    assert!(text.contains("approves"), "{text}");
+    assert!(!text.contains("<id>") && !text.contains("{{ID}}"), "{text}");
+    // The instructions are in XML tags: the session with its id, its worktree, and the rules.
+    assert!(text.starts_with("<zendo_session id=\"2\">") && text.trim_end().ends_with("</zendo_session>"), "{text}");
+    assert!(text.contains("<worktree>.worktrees/2</worktree>"), "{text}");
+    assert_eq!(text.matches("<rule>").count(), 5, "{text}");
+    assert_eq!(text.matches("<rule>").count(), text.matches("</rule>").count(), "{text}");
+    assert!(text.contains("<rules>") && text.contains("</rules>"), "{text}");
+}
+
 // SESSIONS-21: the tool `session` returns the id of the zendo session.
 #[test]
 fn the_session_tool_returns_the_zendo_session_id() {

@@ -2,7 +2,7 @@
 //!
 //! zendo starts Claude Code, in a terminal and in the chat, with this server. It speaks JSON-RPC,
 //! one message on each line of stdin and stdout, and has one tool, `session`, that returns the id
-//! of the zendo session. What the id means for the work, the instructions of the project say.
+//! of the zendo session. Its instructions name the id and the rules of the worktree of the session.
 
 use crate::app::{SESSIONS, session_key};
 use agent_client_protocol::v1::schema::{McpServer, McpServerStdio};
@@ -14,9 +14,13 @@ use std::path::Path;
 const PROTOCOL: &str = "2025-06-18";
 const KNOWN: [&str; 3] = ["2024-11-05", "2025-03-26", PROTOCOL];
 
-const INSTRUCTIONS: &str = "zendo runs this session. Before the first change of a file, call the \
-tool `session` for the id of your zendo session, and follow the rules of the project (AGENTS.md, \
-CLAUDE.md) for that id.";
+/// The rules of a zendo session, in XML tags; `{{ID}}` stands for its id.
+const INSTRUCTIONS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/mcp-instructions.md"));
+
+/// The instructions of the server of zendo session `session`.
+fn instructions(session: usize) -> String {
+    INSTRUCTIONS.replace("{{ID}}", &session.to_string())
+}
 
 /// The arguments of `zendo` that start the server of `session`.
 pub fn args(session: usize) -> Vec<String> {
@@ -60,7 +64,7 @@ fn answer(msg: &Value, session: usize) -> Option<Value> {
             "protocolVersion": params["protocolVersion"].as_str().filter(|v| KNOWN.contains(v)).unwrap_or(PROTOCOL),
             "capabilities": { "tools": {} },
             "serverInfo": { "name": "zendo", "version": env!("CARGO_PKG_VERSION") },
-            "instructions": INSTRUCTIONS,
+            "instructions": instructions(session),
         }),
         "ping" => json!({}),
         "tools/list" => json!({ "tools": [{
