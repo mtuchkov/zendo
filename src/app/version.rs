@@ -60,6 +60,12 @@ impl App {
         }
     }
 
+    /// The file of a new note: in the notes folder of the checkout of the session; the notes of a
+    /// notes repo outside the repo stay there (FILES-49).
+    pub fn new_note_path(&self, title: &str) -> PathBuf {
+        notes::Store::new(self.cfg.root.clone(), self.session_path(&self.store.dir)).path_for(title, Local::now().date_naive())
+    }
+
     /// The open document has no version in the checkout of the session (FILES-40).
     pub fn doc_missing(&self) -> bool {
         self.peek.on.is_none() && self.current.as_ref().is_some_and(|p| !p.exists())

@@ -52,7 +52,7 @@ impl App {
             None if empty => return,
             None => {
                 let title = notes::title_of(&body).unwrap_or_else(|| text.lines().next().unwrap_or("note").to_string());
-                self.store.path_for(&title, Local::now().date_naive())
+                self.new_note_path(&title)
             }
         };
         match notes::save(&path, &body) {
@@ -60,6 +60,10 @@ impl App {
                 self.editor.dirty = false;
                 self.saved_at = Some(Local::now());
                 self.editor_path = Some(path.clone());
+                // A note in a worktree is not in the notes of the store (FILES-49).
+                if !path.starts_with(&self.store.dir) && !self.extra.contains(&path) {
+                    self.extra.push(path.clone());
+                }
                 self.current = Some(path);
                 self.reload();
                 self.mark_edited();

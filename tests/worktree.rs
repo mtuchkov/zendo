@@ -331,3 +331,59 @@ async fn holding_m_and_u_shows_main_and_the_disk_until_the_key_goes_up() {
     assert!(screen(&mut a).contains("This document does not exist in main."));
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// FILES-49
+#[tokio::test]
+async fn a_new_note_is_saved_in_the_checkout_of_the_session() {
+    let root = two_worktrees("new-note");
+    let mut a = app(&root);
+    a.switch_session(0);
+    a.start_write(true);
+    for c in "idea\n\nwritten in one".chars() {
+        key(&mut a, if c == '\n' { KeyCode::Enter } else { KeyCode::Char(c) });
+    }
+    a.save();
+    let saved = a.current.clone().unwrap();
+    assert!(saved.starts_with(root.join(".worktrees/1/docs/notes")) && saved.exists(), "{}", saved.display());
+    assert!(!root.join("docs/notes").exists(), "nothing in the main checkout");
+    a.mode = zendo::app::Mode::Read;
+    assert!(screen(&mut a).contains("written in one"));
+    a.switch_session(2);
+    a.start_write(true);
+    for c in "other".chars() {
+        key(&mut a, KeyCode::Char(c));
+    }
+    a.save();
+    assert!(a.current.clone().unwrap().starts_with(root.join("docs/notes")), "no worktree: the main checkout");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FILES-49, NOTESREP-1: with the notes in a notes repo outside the repository, a new note goes
+// there, also while the agent session has a worktree.
+#[tokio::test]
+async fn a_new_note_of_a_notes_repo_stays_in_the_notes_repo() {
+    let root = two_worktrees("notes-repo");
+    let notes = std::env::temp_dir().join(format!("zendo-worktree-notes-repo-dir-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&notes);
+    std::fs::create_dir_all(&notes).unwrap();
+    let mut a = App::new(zendo::app::Config {
+        root: root.clone(),
+        notes_dir: notes.clone(),
+        agent: env!("CARGO_BIN_EXE_zendo-mock-agent").to_string(),
+        agent_env: Default::default(),
+        offline: false,
+        notes_repo: None,
+    })
+    .unwrap();
+    a.switch_session(0);
+    a.start_write(true);
+    for c in "kept".chars() {
+        key(&mut a, KeyCode::Char(c));
+    }
+    a.save();
+    let saved = a.current.clone().unwrap();
+    assert!(saved.starts_with(&notes) && saved.exists(), "{}", saved.display());
+    assert!(!root.join(".worktrees/1/docs").exists(), "nothing in the worktree");
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&notes);
+}

@@ -97,7 +97,7 @@ pub(crate) fn draw_top(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
             Some(p) => app.rel(p),
             None => {
                 let title = crate::docs::notes::title_of(&app.editor.text()).unwrap_or_default();
-                let p = app.store.path_for(if title.is_empty() { "note" } else { &title }, Local::now().date_naive());
+                let p = app.new_note_path(if title.is_empty() { "note" } else { &title });
                 format!("new note → {}", app.rel(&p))
             }
         },
