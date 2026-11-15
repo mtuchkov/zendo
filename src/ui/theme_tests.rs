@@ -62,3 +62,14 @@ fn the_float_is_sand_under_dark_ink() {
         assert!(contrast(f.line, f.bg) >= 1.5, "{}: the border shows", t.name);
     }
 }
+
+// FLOAT-2, FLOAT-16: code in the float stands on a panel of its own, and the float has a name of
+// its own, so the render cache does not give it text in the colors of its theme.
+#[test]
+fn the_float_has_a_code_panel_and_a_name_of_its_own() {
+    for t in THEMES {
+        let f = t.on_float();
+        assert_ne!(f.panel, f.bg, "{}: code stands out", t.name);
+        assert_ne!(f.name, t.name, "{}: the render cache keeps them apart", t.name);
+    }
+}

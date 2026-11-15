@@ -282,3 +282,32 @@ async fn the_float_has_the_float_color_of_the_theme() {
     a.cli.stop_all();
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// FLOAT-2, FLOAT-16: the rows of the note in the float, not only the cursor row, have the ink of the
+// float, and inline code stands on the code panel of the float.
+#[tokio::test]
+async fn the_rows_of_the_float_have_its_ink() {
+    let root = repo("float-ink", &files());
+    let mut a = app(&root);
+    a.open_file(root.join(NOTE));
+    alt(&mut a, 'n');
+    typ(&mut a, "Tea");
+    key(&mut a, KeyCode::Enter);
+    typ(&mut a, "Leaf `cup`");
+    key(&mut a, KeyCode::Enter);
+    key(&mut a, KeyCode::Enter);
+    typ(&mut a, "pot");
+    let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 40)).unwrap();
+    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
+    let buf = term.backend().buffer().clone();
+    let ink = a.theme().on_float();
+    let r = a.float.as_ref().unwrap().rect;
+    let cells = |y: u16| (r.left()..r.right()).map(move |x| (x, y));
+    let leaf = (r.top() + 2..r.bottom()).flat_map(cells).find(|&p| buf[p].symbol() == "L").unwrap();
+    assert_eq!(buf[leaf].fg, ink.fg, "a row off the cursor has the ink of the float");
+    let cup = cells(leaf.1).skip_while(|&p| p != leaf).find(|&p| buf[p].symbol() == "c").unwrap();
+    assert_eq!(buf[cup].bg, ink.panel, "inline code stands on the code panel of the float");
+    assert_ne!(buf[cup].bg, buf[leaf].bg, "inline code stands out of the text");
+    a.cli.stop_all();
+    let _ = std::fs::remove_dir_all(&root);
+}

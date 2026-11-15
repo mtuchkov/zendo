@@ -131,7 +131,8 @@ const INK: Theme = Theme {
     name: "Sand",
     blurb: "the float",
     bg: SAND,
-    panel: SAND,
+    // The background of code: a darker sand.
+    panel: hex(0xC7C0B0),
     float: SAND,
     fg: hex(0x26231D),
     dim: hex(0x5F584C),
@@ -146,9 +147,10 @@ const INK: Theme = Theme {
 
 impl Theme {
     /// The colors of the float: its background the float color of the theme, its text the ink
-    /// that reads on it (FLOAT-16).
+    /// that reads on it (FLOAT-16). The name is the name of the ink, not of the theme: the render
+    /// cache tells themes apart by name and panel.
     pub fn on_float(&self) -> Theme {
-        Theme { name: self.name, blurb: self.blurb, bg: self.float, panel: self.float, float: self.float, ..INK }
+        Theme { bg: self.float, float: self.float, ..INK }
     }
 }
 
