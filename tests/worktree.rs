@@ -199,3 +199,191 @@ fn the_last_commit_of_a_worktree_file_comes_from_the_worktree() {
     assert!(commit.contains("agent changes a"), "{commit:?}");
     assert!(a.last_commit("a.md").is_some_and(|c| c.contains("start")), "a file of the main checkout as before");
 }
+
+// ----- The document of the session (docs/zendo/files/files-worktree-note.md) ------------------
+
+/// `repo(name)`, where `a.md` says `body main` on `main`, `body one` in `.worktrees/1` and `body two`
+/// in the worktree `.worktrees/2`. Agent session 3 has no worktree.
+fn two_worktrees(name: &str) -> PathBuf {
+    let root = repo(name);
+    write(root.join("a.md"), "# a\n\nbody main\n");
+    git(&root, &["commit", "-q", "-am", "main body"]);
+    git(&root, &["worktree", "add", "-q", ".worktrees/2", "-b", "agent2"]);
+    write(root.join(".worktrees/1/a.md"), "# a\n\nbody one\n");
+    write(root.join(".worktrees/2/a.md"), "# a\n\nbody two\n");
+    root
+}
+
+fn screen(a: &mut App) -> String {
+    draw(a, 120, 30).join("\n")
+}
+
+/// The file that the last question of agent session `n` attached, from the root.
+fn attached(a: &App, n: usize) -> Option<String> {
+    a.threads.get(&zendo::app::session_key(n))?.files.last().cloned().flatten()
+}
+
+/// Ask in the chat of the active session and wait until the agent answers.
+async fn ask(a: &mut App) {
+    a.focus = Focus::Claude;
+    for c in "what is it".chars() {
+        key(a, KeyCode::Char(c));
+    }
+    key(a, KeyCode::Enter);
+    let k = a.key();
+    until(a, |a| a.threads.get(&k).is_some_and(|t| t.busy.is_none() && t.items.iter().any(|i| matches!(i, zendo::app::Item::Agent(_))))).await;
+}
+
+// FILES-38
+#[tokio::test(flavor = "multi_thread")]
+async fn a_question_names_the_document_of_its_session() {
+    let root = two_worktrees("ask");
+    let mut a = app(&root);
+    a.switch_session(0);
+    a.open_file(root.join(".worktrees/1/a.md"));
+    a.switch_session(1);
+    ask(&mut a).await;
+    assert_eq!(attached(&a, 1).as_deref(), Some(".worktrees/2/a.md"));
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FILES-39, FILES-42
+#[tokio::test]
+async fn choosing_a_session_shows_its_version_of_the_document() {
+    let root = two_worktrees("choose");
+    let mut a = app(&root);
+    a.switch_session(0);
+    a.open_file(root.join("a.md"));
+    assert_eq!(a.current.as_deref(), Some(root.join(".worktrees/1/a.md").as_path()), "a file opens in the version of the session");
+    a.focus = Focus::Note;
+    assert!(screen(&mut a).contains("body one"));
+    a.switch_session(1);
+    assert!(screen(&mut a).contains("body two"));
+    a.switch_session(2);
+    assert!(screen(&mut a).contains("body main"), "no worktree: the main checkout");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FILES-40, FILES-41, FILES-44
+#[tokio::test(flavor = "multi_thread")]
+async fn a_missing_document_says_so_and_comes_back() {
+    let root = two_worktrees("missing");
+    write(root.join(".worktrees/1/new.md"), "# new\n\nonly in one\n");
+    let mut a = app(&root);
+    a.switch_session(0);
+    a.open_file(root.join(".worktrees/1/new.md"));
+    a.switch_session(1);
+    a.focus = Focus::Note;
+    let s = screen(&mut a);
+    assert!(s.contains("This document does not exist in this session.") && !s.contains("only in one"), "{s}");
+    ask(&mut a).await;
+    assert_eq!(attached(&a, 1), None, "a question without a note file");
+    a.switch_session(0);
+    assert!(screen(&mut a).contains("only in one"), "back in its session");
+    a.switch_session(1);
+    write(root.join(".worktrees/2/new.md"), "# new\n\nnow in two\n");
+    a.disk_checked = Instant::now() - Duration::from_secs(5);
+    a.tick();
+    assert!(screen(&mut a).contains("now in two"), "it shows as soon as it exists");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FILES-43
+#[tokio::test]
+async fn choosing_a_terminal_keeps_the_document() {
+    let root = two_worktrees("terminal");
+    let mut a = app(&root);
+    a.cli.shell = Some("/bin/sh".into());
+    a.switch_session(1);
+    a.open_file(root.join("a.md"));
+    a.focus = Focus::Note;
+    key(&mut a, KeyCode::F(5));
+    assert!(a.cli.pane.is_some(), "the terminal is in the chat pane");
+    assert_eq!(a.current.as_deref(), Some(root.join(".worktrees/2/a.md").as_path()));
+    a.cli.stop_all();
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FILES-45, FILES-46, FILES-47, FILES-48
+#[tokio::test]
+async fn holding_m_and_u_shows_main_and_the_disk_until_the_key_goes_up() {
+    use ratatui::crossterm::event::{KeyEvent, KeyEventKind, KeyModifiers};
+    let root = two_worktrees("peek");
+    write(root.join("a.md"), "# a\n\nbody on disk\n");
+    write(root.join(".worktrees/1/new.md"), "# new\n\nonly in one\n");
+    let mut a = app(&root);
+    a.switch_session(0);
+    a.open_file(root.join("a.md"));
+    a.focus = Focus::Note;
+    key(&mut a, KeyCode::Char('m'));
+    let s = screen(&mut a);
+    assert!(s.contains("body main") && s.contains("main · a.md"), "m: the last commit of main\n{s}");
+    a.on_key(KeyEvent::new_with_kind(KeyCode::Char('m'), KeyModifiers::NONE, KeyEventKind::Release));
+    assert!(screen(&mut a).contains("body one"), "the key went up: the version of the session");
+    key(&mut a, KeyCode::Char('u'));
+    let s = screen(&mut a);
+    assert!(s.contains("body on disk") && s.contains("disk · a.md"), "u: the main checkout on disk\n{s}");
+    a.peek.last = Instant::now() - Duration::from_secs(5);
+    a.tick();
+    assert!(screen(&mut a).contains("body one"), "the auto-repeat stopped: the key is up");
+    a.open_file(root.join(".worktrees/1/new.md"));
+    key(&mut a, KeyCode::Char('m'));
+    assert!(screen(&mut a).contains("This document does not exist in main."));
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FILES-49
+#[tokio::test]
+async fn a_new_note_is_saved_in_the_checkout_of_the_session() {
+    let root = two_worktrees("new-note");
+    let mut a = app(&root);
+    a.switch_session(0);
+    a.start_write(true);
+    for c in "idea\n\nwritten in one".chars() {
+        key(&mut a, if c == '\n' { KeyCode::Enter } else { KeyCode::Char(c) });
+    }
+    a.save();
+    let saved = a.current.clone().unwrap();
+    assert!(saved.starts_with(root.join(".worktrees/1/docs/notes")) && saved.exists(), "{}", saved.display());
+    assert!(!root.join("docs/notes").exists(), "nothing in the main checkout");
+    a.mode = zendo::app::Mode::Read;
+    assert!(screen(&mut a).contains("written in one"));
+    a.switch_session(2);
+    a.start_write(true);
+    for c in "other".chars() {
+        key(&mut a, KeyCode::Char(c));
+    }
+    a.save();
+    assert!(a.current.clone().unwrap().starts_with(root.join("docs/notes")), "no worktree: the main checkout");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FILES-49, NOTESREP-1: with the notes in a notes repo outside the repository, a new note goes
+// there, also while the agent session has a worktree.
+#[tokio::test]
+async fn a_new_note_of_a_notes_repo_stays_in_the_notes_repo() {
+    let root = two_worktrees("notes-repo");
+    let notes = std::env::temp_dir().join(format!("zendo-worktree-notes-repo-dir-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&notes);
+    std::fs::create_dir_all(&notes).unwrap();
+    let mut a = App::new(zendo::app::Config {
+        root: root.clone(),
+        notes_dir: notes.clone(),
+        agent: env!("CARGO_BIN_EXE_zendo-mock-agent").to_string(),
+        agent_env: Default::default(),
+        offline: false,
+        notes_repo: None,
+    })
+    .unwrap();
+    a.switch_session(0);
+    a.start_write(true);
+    for c in "kept".chars() {
+        key(&mut a, KeyCode::Char(c));
+    }
+    a.save();
+    let saved = a.current.clone().unwrap();
+    assert!(saved.starts_with(&notes) && saved.exists(), "{}", saved.display());
+    assert!(!root.join(".worktrees/1/docs").exists(), "nothing in the worktree");
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&notes);
+}

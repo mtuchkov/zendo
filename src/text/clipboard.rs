@@ -87,7 +87,8 @@ pub fn dropped_files(s: &str) -> Option<Vec<std::path::PathBuf>> {
     if ok(&one) {
         return Some(vec![one]);
     }
-    // Words as a shell splits them: quotes and backslashes.
+    // Words as a shell splits them: quotes, backslashes, and ASCII blanks only, so that a narrow
+    // no-break space of a macOS file name stays in the name.
     let mut words = Vec::new();
     let mut cur = String::new();
     let (mut quote, mut esc, mut any) = (None::<char>, false, false);
@@ -102,7 +103,7 @@ pub fn dropped_files(s: &str) -> Option<Vec<std::path::PathBuf>> {
         } else if c == '\'' || c == '"' {
             quote = Some(c);
             any = true;
-        } else if c.is_whitespace() {
+        } else if c.is_ascii_whitespace() {
             if !cur.is_empty() || any {
                 words.push(std::mem::take(&mut cur));
             }
@@ -123,7 +124,7 @@ pub fn paste_image() -> Option<std::path::PathBuf> {
     use std::process::{Command, Stdio};
     let dir = crate::setup::config::data_dir().join("pastes");
     std::fs::create_dir_all(&dir).ok()?;
-    let file = dir.join(format!("paste-{}.png", chrono::Local::now().format("%Y%m%d-%H%M%S")));
+    let file = dir.join(format!("paste-{}.png", chrono::Local::now().format("%Y%m%d-%H%M%S-%3f")));
     let run = |cmd: &str, args: &[&str]| Command::new(cmd).args(args).stdin(Stdio::null()).stderr(Stdio::null()).output().ok().filter(|o| o.status.success()).map(|o| o.stdout);
     let saved = |bytes: Vec<u8>| (!bytes.is_empty() && std::fs::write(&file, bytes).is_ok()).then(|| file.clone());
     if cfg!(target_os = "macos") {

@@ -7,6 +7,12 @@ impl App {
         if event_key(&e).as_deref().is_some_and(|k| k.starts_with(RECAP_PREFIX)) {
             return self.on_recap_event(e);
         }
+        if event_key(&e).is_some_and(|k| self.threads.get(&k).is_some_and(|t| t.dropped)) {
+            return self.on_dropped(e);
+        }
+        if event_key(&e).as_deref().is_some_and(|k| k.starts_with(crate::agent::work::IMAGE_PREFIX)) {
+            return self.on_image_event(e);
+        }
         match e {
             Event::Ready { agent, can_image, .. } => {
                 self.agent_name = Some(agent);
@@ -79,12 +85,25 @@ impl App {
     }
 
     fn on_session(&mut self, key: String, id: String, resumed: bool) {
-        self.state.set_session(&self.cfg.agent, &key, id.clone());
-        self.state.save(&self.cfg.root);
         let t = self.thread(&key);
         t.session = Some(id);
+        // A session without a question has no messages to resume: it is kept with its first one
+        // (CLAUDE-40).
+        let asked = t.busy.is_some();
         if resumed {
             t.items.insert(0, Item::Info("resumed the earlier thread".into()));
+        }
+        if asked {
+            self.keep_session(&key);
+        }
+    }
+
+    /// Keep the session ID of the thread `key` in the repository (CLAUDE-5).
+    pub(crate) fn keep_session(&mut self, key: &str) {
+        let Some(id) = self.threads.get(key).and_then(|t| t.session.clone()) else { return };
+        if self.state.session(&self.cfg.agent, key).as_ref() != Some(&id) {
+            self.state.set_session(&self.cfg.agent, key, id);
+            self.state.save(&self.cfg.root);
         }
     }
 
@@ -156,12 +175,27 @@ impl App {
         }
     }
 
+    /// A late message of a turn that the chat ended (HANDOFF-6): it does not show, the agent may not
+    /// edit, and the end of the turn makes the thread take messages again.
+    fn on_dropped(&mut self, e: Event) {
+        match e {
+            Event::Permission { request, .. } => {
+                if let Some(a) = &self.agent {
+                    a.send(Cmd::Answer { request, option: None });
+                }
+            }
+            Event::TurnEnd { key, .. } => self.thread(&key).dropped = false,
+            _ => {}
+        }
+    }
+
     fn on_exited(&mut self, text: String) {
         self.recap_job = None;
         self.agent = None;
         self.agent_events = None;
         for t in self.threads.values_mut() {
             t.busy = None;
+            t.dropped = false;
             t.primed = false;
             t.opened = false;
         }

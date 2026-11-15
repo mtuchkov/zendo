@@ -5,7 +5,7 @@ mod common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::time::{Duration, Instant};
-use zendo::app::{App, Focus, session_key};
+use zendo::app::{App, Focus, Item, session_key};
 use zendo::session::Command;
 
 fn mock() -> Command {
@@ -35,6 +35,17 @@ fn answering(a: &App) -> bool {
 fn args(a: &App) -> String {
     let text: String = a.cli.text(0).lines().collect();
     text.split_once("mock cli:").map(|(_, rest)| rest.split("tick ").next().unwrap_or(rest).to_string()).unwrap_or_default()
+}
+
+/// Give the app the agent events that wait, for one second: the late messages of a turn.
+async fn late_events(a: &mut App) {
+    let end = Instant::now() + Duration::from_secs(1);
+    while Instant::now() < end {
+        let Some(rx) = a.agent_events.as_mut() else { return };
+        if let Ok(Some(e)) = tokio::time::timeout(Duration::from_millis(50), rx.recv()).await {
+            a.on_agent(e);
+        }
+    }
 }
 
 fn screen(a: &mut App) -> String {
@@ -83,7 +94,8 @@ async fn ctrl_o_again_stops_the_turn_and_continues_in_claude_code() {
     done(&root, &mut a);
 }
 
-// HANDOFF-6: if the stopped turn does not end within 5 s, Claude Code starts anyway, and zendo says so.
+// HANDOFF-6: if the stopped turn does not end within 5 s, the turn ends in the chat, Claude Code
+// starts anyway, and zendo says so; the late messages of the turn do not show.
 #[tokio::test(flavor = "multi_thread")]
 async fn claude_code_starts_if_the_turn_does_not_stop() {
     let (root, mut a) = asking("handoff-late").await;
@@ -98,6 +110,13 @@ async fn claude_code_starts_if_the_turn_does_not_stop() {
     }
     assert!(from.elapsed() >= Duration::from_millis(4500), "zendo waited for the turn");
     assert!(a.flash.as_ref().is_some_and(|(s, _)| s.contains("did not stop")), "{:?}", a.flash);
+    assert!(!answering(&a), "the turn ended in the chat: its timer stops");
+    let items = |a: &App| a.threads[&session_key(0)].items.clone();
+    let stopped = items(&a).iter().rposition(|i| matches!(i, Item::Info(s) if s == "stopped"));
+    assert!(stopped.is_some(), "the chat says that the turn stopped: {:?}", items(&a));
+    late_events(&mut a).await;
+    assert!(!answering(&a), "a late message of the turn does not start the timer again");
+    assert_eq!(items(&a).len(), stopped.unwrap() + 1, "the late messages do not show: {:?}", items(&a));
     let s = screen(&mut a);
     assert!(s.contains("did not stop"), "the bottom line says so:\n{s}");
     let end = Instant::now() + Duration::from_secs(5);

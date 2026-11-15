@@ -14,6 +14,11 @@ pub(super) async fn turn(cx: Cx, p: PromptRequest) -> Result<StopReason> {
         stream(&cx, &sid, &format!("ran the command: {text}")).await?;
         return Ok(StopReason::EndTurn);
     }
+    if text.starts_with("Name this image") {
+        let image = p.prompt.iter().any(|b| matches!(b, ContentBlock::Image(_)));
+        stream(&cx, &sid, if image { "Red Button" } else { "no image" }).await?;
+        return Ok(StopReason::EndTurn);
+    }
     if let Some(stop) = scripted(&cx, &sid, &text).await? {
         return Ok(stop);
     }
@@ -28,6 +33,9 @@ pub(super) async fn turn(cx: Cx, p: PromptRequest) -> Result<StopReason> {
     }
     if question.to_lowercase().contains("shell") {
         return ask_shell(&cx, &sid, n).await;
+    }
+    if question.contains("slow") {
+        return slow(&cx, &sid, n).await;
     }
     answer(&cx, &sid, &p, &question).await?;
     let Some(path) = file else {
@@ -53,6 +61,12 @@ async fn scripted(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, t
         }
         out.push_str("END");
         stream(cx, sid, &out).await?;
+        return Ok(Some(StopReason::EndTurn));
+    }
+    if text.starts_with("Does this name still fit") {
+        // The first check keeps the name, the next ones rename it (NAMES-14).
+        let kept = RENAMES.fetch_add(1, Ordering::Relaxed) == 0;
+        stream(cx, sid, if kept { "=" } else { "renamed, other, third" }).await?;
         return Ok(Some(StopReason::EndTurn));
     }
     if text.starts_with("Name this conversation") {
@@ -86,6 +100,21 @@ async fn scripted(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, t
     }
     Ok(None)
 }
+
+/// A slow question: one message, a tool call, and seconds of work before the end of the turn.
+async fn slow(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, n: u64) -> Result<StopReason> {
+    stream(cx, sid, "I start with the parser of the project. ").await?;
+    cx.send_notification(SessionNotification::new(
+        sid.clone(),
+        SessionUpdate::ToolCall(ToolCall::new(format!("slow-{n}"), "Read src/parser.rs").kind(ToolKind::Read).status(ToolCallStatus::InProgress)),
+    ))?;
+    tokio::time::sleep(Duration::from_secs(8)).await;
+    stream(cx, sid, "Done.").await?;
+    Ok(StopReason::EndTurn)
+}
+
+/// The checks of a name so far.
+static RENAMES: AtomicU64 = AtomicU64::new(0);
 
 /// A question about the shell: the mock asks to run a command, and zendo must reject it.
 async fn ask_shell(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, n: u64) -> Result<StopReason> {

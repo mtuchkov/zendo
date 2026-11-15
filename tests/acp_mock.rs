@@ -117,3 +117,20 @@ async fn images_and_files_go_with_the_prompt() {
     assert!(streamed.contains("an image (image/png"), "{streamed}");
     assert!(streamed.contains(&format!("a file link (file://{})", md.display())), "{streamed}");
 }
+
+// Each line of the agent log starts with its local time, so a stuck turn can be dated.
+#[tokio::test]
+async fn each_line_of_the_agent_log_has_its_time() {
+    let dir = tmpdir("log-time");
+    let log = dir.join("agent.log");
+    let (_h, mut rx) = agent::spawn(mock(), Default::default(), dir.clone(), Some(log.clone()));
+    assert!(matches!(next(&mut rx).await, Event::Ready { .. }));
+    let text = std::fs::read_to_string(&log).unwrap();
+    assert!(!text.is_empty());
+    for line in text.lines() {
+        let (time, rest) = line.split_once(' ').unwrap_or_default();
+        assert!(chrono::NaiveDateTime::parse_from_str(time, "%Y-%m-%dT%H:%M:%S%.3f").is_ok(), "{line}");
+        assert!(rest.starts_with("Stdin ") || rest.starts_with("Stdout ") || rest.starts_with("Stderr "), "{line}");
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+}

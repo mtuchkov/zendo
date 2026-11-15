@@ -84,6 +84,8 @@ split = ["S"]  # over the word limit: Claude splits it, keeps the altitude
 recap = ["r"]  # recap now
 recap_toggle = ["R"]  # show / hide the recap
 review = ["ctrl-r"]  # twice: Claude marks the confusing lines and sums up the file
+peek_main = ["m"]  # hold: the version of main
+peek_disk = ["u"]  # hold: the version of the main checkout on disk
 
 # panes and view
 chat = ["c", "ctrl-shift-c"]  # chat on / off

@@ -11,7 +11,7 @@ note: "Agent draft, split from sessions.md on 2026-11-14 to keep it within two p
 
 # zendo session
 
-A *zendo session* is one of the five agent sessions of a repository ([Claude](claude.md)),
+A *zendo session* is one of the five agent sessions of a repository ([Threads](threads.md)),
 with the Claude Code session that zendo runs for it ([Sessions](sessions.md)): one chat thread and
 at most one Claude Code process. Its *id* is the number of the agent session, 1 to 5. The chat and
 the Claude Code session of one agent session have the same id.

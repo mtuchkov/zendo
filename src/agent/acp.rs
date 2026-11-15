@@ -41,7 +41,8 @@ pub(super) async fn run(
         let file = Arc::new(Mutex::new(std::fs::OpenOptions::new().create(true).append(true).open(path).ok()));
         agent = agent.with_debug(move |line, dir| {
             if let Some(f) = file.lock().unwrap().as_mut() {
-                let _ = writeln!(f, "{dir:?} {line}");
+                // The local time of each line dates a stuck turn.
+                let _ = writeln!(f, "{} {dir:?} {line}", chrono::Local::now().format("%Y-%m-%dT%H:%M:%S%.3f"));
             }
         });
     }

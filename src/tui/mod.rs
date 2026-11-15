@@ -6,7 +6,7 @@ mod sound;
 use crate::app::App;
 use crate::ui;
 use anyhow::Result;
-use ratatui::crossterm::event::{self, DisableBracketedPaste, DisableFocusChange, DisableMouseCapture, EnableBracketedPaste, EnableFocusChange, EnableMouseCapture, Event, KeyEventKind};
+use ratatui::crossterm::event::{self, DisableBracketedPaste, DisableFocusChange, DisableMouseCapture, EnableBracketedPaste, EnableFocusChange, EnableMouseCapture, Event};
 use ratatui::crossterm::execute;
 use std::time::Duration;
 use tokio::sync::mpsc;
@@ -101,7 +101,8 @@ pub async fn run(
 
 fn on_input(app: &mut App, e: Event) {
     match e {
-        Event::Key(k) if k.kind != KeyEventKind::Release => app.on_key(k),
+        // A key that goes up ends `m` or `u` held in read mode (FILES-45, FILES-47).
+        Event::Key(k) => app.on_key(k),
         Event::Paste(s) => app.on_paste(s),
         Event::Mouse(m) => app.on_mouse(m),
         Event::FocusGained => app.on_focus(true),
@@ -116,7 +117,7 @@ pub fn terminal_on() {
     use ratatui::crossterm::event::{KeyboardEnhancementFlags, PushKeyboardEnhancementFlags};
     let _ = execute!(std::io::stdout(), EnableBracketedPaste, EnableMouseCapture, EnableFocusChange);
     if ratatui::crossterm::terminal::supports_keyboard_enhancement().unwrap_or(false) {
-        let _ = execute!(std::io::stdout(), PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES));
+        let _ = execute!(std::io::stdout(), PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES | KeyboardEnhancementFlags::REPORT_EVENT_TYPES));
         KITTY.store(true, std::sync::atomic::Ordering::Relaxed);
     }
 }

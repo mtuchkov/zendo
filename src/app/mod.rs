@@ -36,6 +36,7 @@ mod tree;
 mod worktree;
 mod write;
 pub mod write_rows;
+pub mod version;
 
 pub use at::{AT_ROWS, AtPick};
 pub use attention::Attention;
@@ -49,6 +50,7 @@ pub use slash::Slash;
 pub use tab::{TAB_PAUSE, TabRun};
 pub use thread::*;
 pub use transcript::{CHAT_MARK, Transcript};
+pub use modes::Mode;
 pub use worktree::{RECAP_EVERY, TreeAct, WorktreeUi};
 
 use crate::agent::{self, AgentHandle, Attachment, Cmd, Event};
@@ -65,18 +67,6 @@ use ratatui::layout::Rect;
 use std::collections::{HashMap, VecDeque};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub enum Mode {
-    #[default]
-    Read,
-    Write,
-    Notes,
-    Search,
-    Find,
-    Theme,
-    Help,
-}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Focus {
@@ -182,10 +172,14 @@ pub struct App {
     pub reviews: crate::agent::work::Reviews,
     /// Files to get a title or front matter from the agent, after write mode.
     pub meta_queue: VecDeque<String>,
-    /// For each session ID without a name: the answers when zendo last asked for one (NAMES-10).
-    pub names_asked: HashMap<String, usize>,
+    /// For each session ID: the last question for its name (NAMES-10, NAMES-14).
+    pub names_asked: HashMap<String, crate::agent::work::Asked>,
     /// The model that names the agent sessions; none: the default model of the agent (NAMES-12).
     pub name_model: Option<String>,
+    /// The pasted images that the name model names: by session key, the file and the answer so far.
+    pub image_names: HashMap<String, (PathBuf, String)>,
+    /// `m` or `u` held in read mode: the version of `main` or of the disk (FILES-45, FILES-47).
+    pub peek: version::Peek,
     pub auto_recaps: Vec<Instant>,
     #[default(Instant::now())]
     pub last_input: Instant,

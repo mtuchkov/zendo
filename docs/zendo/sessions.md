@@ -3,8 +3,8 @@ status: "draft"
 revision: "11"
 date: "2026-11-14"
 parent: "zendo.md"
-prev: "claude.md"
-next: "session-names.md"
+prev: "threads.md"
+next: "session-names/session-names.md"
 level: "Claude Code sessions that zendo runs: open, leave, states, up to five at a time"
 note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
@@ -12,7 +12,7 @@ note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by 
 # Sessions
 
 A *Claude Code session* is a Claude Code process that zendo runs for one of its five agent sessions
-(`F6` to `F10`, see [Claude](claude.md)), in a terminal of its own inside zendo. It keeps running
+(`F6` to `F10`, see [Threads](threads.md)), in a terminal of its own inside zendo. It keeps running
 when the user goes back to zendo: one researches while the user discusses in another. See
 [ADR 0005](../architecture/decisions/0005-sessions-in-own-terminals.md).
 

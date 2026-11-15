@@ -9,6 +9,7 @@ children:
   - "setup.md"
   - "init.md"
   - "doctor.md"
+  - "keymap-wizard.md"
   - "upgrade.md"
 level: "the commands around zendo and the job of each one: setup, init, doctor, upgrade"
 note: "Agent draft. Revision 2 splits commands.md into this parent and one child for each command, from the requests of the user on 2026-11-14. The user approved CMD-17, CMD-18 and CMD-19 on 2026-11-15; the rest is not reviewed by the user, and its requirement IDs are proposals until the user reviews this document."
@@ -31,6 +32,7 @@ of the user, the zendo section in the instructions of the user) and in each repo
 | [`zendo init`](init.md)              | Prepares this repository. The user runs it one time in each repository. | The state of the repository.                    |
 | [`zendo doctor`](doctor.md)          | Checks every step and reports.                                      | Nothing.                                            |
 | [`zendo doctor --fix`](doctor.md)    | Repairs what the checks found, on the machine and in this repository. | Only what it reports.                             |
+| [`zendo doctor --keys`](keymap-wizard.md) | Opens the wizard that moves the keys that the OS or the terminal takes. | The keymap file of the user, after a confirmation. |
 | [`zendo upgrade`](upgrade.md)        | Builds the newest zendo, then runs `zendo doctor --fix` with it.    | The program, then what `zendo doctor --fix` repairs. |
 | [`zendo --version`](upgrade.md)      | Shows the version and the commit.                                   | Nothing.                                            |
 

@@ -128,3 +128,15 @@ fn table_rows_alternate_backgrounds() {
     let delta = [r0.abs_diff(r1), g0.abs_diff(g1), b0.abs_diff(b1)];
     assert!(delta.iter().all(|d| (4..=24).contains(d)), "the same tone, a small step from the page: {delta:?}");
 }
+
+// NOTE-34, FLOAT-16: the render cache tells apart two themes that differ only in the page color, so
+// the stripes of a table follow the page: the float and its theme share a name and a code panel.
+#[test]
+fn the_cache_tells_apart_themes_with_another_page() {
+    let src = plain("| a | b |\n|---|---|\n| one | 1 |\n| two | 2 |");
+    let t = THEMES[0];
+    let other = crate::ui::theme::Theme { bg: ratatui::style::Color::Rgb(90, 40, 40), ..t };
+    let stripe = |t: &crate::ui::theme::Theme| render(&src, 30, t, false).lines[4].spans.iter().find_map(|s| s.style.bg);
+    assert_eq!(stripe(&t), Some(crate::ui::theme::mix(t.bg, t.fg, TABLE_STRIPE)));
+    assert_eq!(stripe(&other), Some(crate::ui::theme::mix(other.bg, other.fg, TABLE_STRIPE)), "the stripe of the other page");
+}

@@ -50,6 +50,9 @@ pub struct Thread {
     pub sent_to_cli: Vec<String>,
     /// The first item of the Claude session now, after a `/clear` in Claude Code (NAMES-4).
     pub name_from: usize,
+    /// The chat ended a stopped turn that the agent did not end: the late messages of that turn do
+    /// not show (HANDOFF-6).
+    pub dropped: bool,
 }
 
 /// A question as it goes to the agent: the text with its context, and the files.

@@ -2,13 +2,14 @@
 
 use ratatui::style::Color;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Theme {
     pub name: &'static str,
     pub blurb: &'static str,
     pub bg: Color,
     pub panel: Color,
-    /// The background of the float with a new note: sand (FLOAT-16).
+    /// The background of the float with a new note: it stands out of the theme, under the ink of
+    /// `on_float` (FLOAT-16).
     pub float: Color,
     pub fg: Color,
     pub dim: Color,
@@ -62,7 +63,7 @@ pub const THEMES: [Theme; 4] = [
         blurb: "dark, warm",
         bg: hex(0x16171A),
         panel: hex(0x1C1E22),
-        float: hex(0x26221B),
+        float: SAND,
         fg: hex(0xD6D3CB),
         dim: hex(0x8B8D94),
         line: hex(0x2A2D33),
@@ -78,7 +79,7 @@ pub const THEMES: [Theme; 4] = [
         blurb: "light, cool",
         bg: hex(0xF4F5F7),
         panel: hex(0xEAECEF),
-        float: hex(0xEFE6D2),
+        float: UMBER,
         fg: hex(0x22252B),
         dim: hex(0x5E646E),
         line: hex(0xD7DAE0),
@@ -94,7 +95,7 @@ pub const THEMES: [Theme; 4] = [
         blurb: "dark, soft",
         bg: hex(0x141A17),
         panel: hex(0x19211D),
-        float: hex(0x24221A),
+        float: SAND,
         fg: hex(0xC9D1C5),
         dim: hex(0x84907F),
         line: hex(0x26302A),
@@ -110,7 +111,7 @@ pub const THEMES: [Theme; 4] = [
         blurb: "high contrast",
         bg: hex(0x0B0B0C),
         panel: hex(0x131314),
-        float: hex(0x1E1C18),
+        float: SAND,
         fg: hex(0xEDEDED),
         dim: hex(0x9A9A9A),
         line: hex(0x2A2A2A),
@@ -122,6 +123,66 @@ pub const THEMES: [Theme; 4] = [
         ext: Ext { doc: hex(0xEDEDED), code: hex(0xFFFFFF), config: hex(0xBDBDBD), script: hex(0xD4D4D4), web: hex(0xC8C8C8), other: hex(0x9A9A9A) },
     },
 ];
+
+/// The float color of a dark theme: sand.
+const SAND: Color = hex(0xD2CCBF);
+/// The float color of a light theme: umber.
+const UMBER: Color = hex(0x2B2722);
+
+/// The ink on sand: dark, warm colors that read on a light background.
+const ON_SAND: Theme = Theme {
+    name: "Sand",
+    blurb: "the float of a dark theme",
+    bg: SAND,
+    // The background of code: a darker sand.
+    panel: hex(0xC7C0B0),
+    float: SAND,
+    fg: hex(0x26231D),
+    dim: hex(0x5F584C),
+    line: hex(0xA79F8E),
+    sel: hex(0xC3BBAA),
+    acc: hex(0x9A4305),
+    acc2: hex(0x1D6496),
+    add: hex(0x2E6B3A),
+    del: hex(0xA03A27),
+    ext: Ext { doc: hex(0x1D6496), code: hex(0x9A4305), config: hex(0x6B4BA6), script: hex(0x2E6B3A), web: hex(0xA03A27), other: hex(0x5F584C) },
+};
+
+/// The ink on umber: light, warm colors that read on a dark background.
+const ON_UMBER: Theme = Theme {
+    name: "Umber",
+    blurb: "the float of a light theme",
+    bg: UMBER,
+    // The background of code: a lighter umber.
+    panel: hex(0x38332C),
+    float: UMBER,
+    fg: hex(0xE6E0D2),
+    dim: hex(0xA49C8C),
+    line: hex(0x524B40),
+    sel: hex(0x3E3830),
+    acc: hex(0xE2B15B),
+    acc2: hex(0x7FB4CA),
+    add: hex(0x8FBF8F),
+    del: hex(0xE0937F),
+    ext: Ext { doc: hex(0x7FB4CA), code: hex(0xE2B15B), config: hex(0xB89BD6), script: hex(0x8FBF8F), web: hex(0xE0937F), other: hex(0xA49C8C) },
+};
+
+/// A light color: its perceived brightness is above the middle. A color that is not RGB is not.
+const fn light(c: Color) -> bool {
+    match c {
+        Color::Rgb(r, g, b) => 299 * r as u32 + 587 * g as u32 + 114 * b as u32 > 128_000,
+        _ => false,
+    }
+}
+
+impl Theme {
+    /// The colors of the float: its background the float color of the theme, its text the ink
+    /// that reads on it, dark on a light float and light on a dark one (FLOAT-16).
+    pub fn on_float(&self) -> Theme {
+        let ink = if light(self.float) { ON_SAND } else { ON_UMBER };
+        Theme { bg: self.float, float: self.float, ..ink }
+    }
+}
 
 pub fn index_of(name: &str) -> usize {
     THEMES

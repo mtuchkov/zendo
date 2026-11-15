@@ -60,6 +60,8 @@ pub const ACTIONS: &[Action] = &[
     a(Read, Features, "recap", "recap now"),
     a(Read, Features, "recap_toggle", "show / hide the recap"),
     a(Read, Features, "review", "twice: Claude marks the confusing lines and sums up the file"),
+    a(Read, Features, "peek_main", "hold: the version of main"),
+    a(Read, Features, "peek_disk", "hold: the version of the main checkout on disk"),
     a(Read, View, "chat", "chat on / off"),
     a(Read, View, "delta", "delta"),
     a(Read, View, "tree", "file tree"),

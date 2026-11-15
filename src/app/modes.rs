@@ -1,5 +1,18 @@
-//! The delta, the notes list, search and the theme picker.
+//! The modes of the screen; the delta, the notes list, search and the theme picker.
 use super::*;
+
+/// What the screen shows.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Mode {
+    #[default]
+    Read,
+    Write,
+    Notes,
+    Search,
+    Find,
+    Theme,
+    Help,
+}
 
 impl App {
     pub(crate) fn key_delta(&mut self, act: Option<&str>) {

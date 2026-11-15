@@ -1,19 +1,20 @@
 ---
 status: "implemented"
 approved: "2026-11-14"
-revision: "2"
-date: "2026-11-14"
+revision: "3"
+date: "2026-11-15"
 parent: "zendo.md"
 prev: "lofi.md"
 level: "what zendo counts about the actions of the user, where it keeps the counts, and what it never does with them"
-note: "Agent draft of the decisions of the user on 2026-11-14, approved by the user. Revision 2: the test names and kinds as in the code; what the mouse counts."
+note: "Agent draft of the decisions of the user on 2026-11-14, approved by the user. Revision 2: the test names and kinds as in the code; what the mouse counts. Revision 3: USAGE-6 lets the keymap wizard rank its suggestions by the counts (User, 2026-11-15)."
 ---
 
 # Usage counts
 
 zendo counts how often the user does each action, and in which pane. The counts stay on the disk of
 the user. The user reads them later to decide which key hints zendo shows, and where. zendo itself
-does not read them: the hints do not change while zendo runs.
+does not read them: the hints do not change while zendo runs. The one exception is the
+[keymap wizard](cli/keymap-wizard.md), which ranks its key suggestions by them.
 
 The panes are in [Panes and layouts](panes/panes.md), and the keymap and the key hints in
 [Keys, hints and help](panes/keymap.md).
@@ -64,7 +65,7 @@ most the last 15 seconds. `usage = false` in `~/.zendo/config.toml` turns the co
 | USAGE-3 | State      | While zendo runs and the counts changed since the last write, the system shall write the counts to the usage file every 15 seconds.                     | User, 2026-11-14 |
 | USAGE-4 | Ubiquitous | The system shall write the counts of each zendo process to a file of that process only.                                                                 | Design           |
 | USAGE-5 | Unwanted   | If the write of the usage file fails, then the system shall continue with no message and no delay of the screen.                                        | Design           |
-| USAGE-6 | Ubiquitous | The system shall not read the counts to change what it shows or does.                                                                                   | User, 2026-11-14 |
+| USAGE-6 | Ubiquitous | The system shall not read the counts to change what it shows or does, except to rank the suggestions of the keymap wizard (WIZARD-11). | User, 2026-11-14; User, 2026-11-15 |
 
 ### Acceptance tests
 

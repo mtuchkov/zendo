@@ -23,6 +23,9 @@ fn running(name: &str) -> (std::path::PathBuf, App) {
     a.focus = Focus::Claude;
     ctrl(&mut a, 'o');
     wait(&mut a, 10, |a| a.cli.text(0).contains("tick 1"));
+    // The mock writes the input of the "session start" hook before `tick 1`: one more tick reads it
+    // now. Read later, with the first turn, it would open the transcript after the steps of the turn.
+    a.tick();
     (root, a)
 }
 

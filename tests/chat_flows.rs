@@ -98,12 +98,13 @@ async fn slash_commands_come_from_the_agent_and_go_to_it_as_typed() {
 }
 
 // CLAUDE-27, CLAUDE-6: the chat shows the last session when it opens, before the first question.
+// The last session got a question, so its ID is kept (CLAUDE-40).
 #[tokio::test]
 async fn the_chat_shows_the_last_session_when_it_opens() {
     let root = repo("chat-resume", &files());
     let mut a = app(&root);
     a.open_panel();
-    until(&mut a, |a| a.threads.get(CHAT_KEY).is_some_and(|t| t.session.is_some())).await;
+    ask(&mut a, "first").await;
     drop(a);
     let mut b = app(&root);
     b.open_panel();
@@ -273,5 +274,72 @@ async fn the_first_tab_goes_to_the_sister_pane_of_the_chat() {
     tabs(&mut a, &["chat", "transcript"]);
     a.tab_run.at = a.tab_run.at.map(|t| t - zendo::app::TAB_PAUSE);
     tabs(&mut a, &["chat", "note", "transcript"]);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// The session ID that zendo keeps in the repository for the active thread.
+fn kept(a: &App) -> Option<String> {
+    zendo::setup::state::State::load(&a.cfg.root).session(&a.cfg.agent, &a.key())
+}
+
+// CLAUDE-40: a session that the chat opens and that gets no question leaves no session ID, so the
+// next start does not try to resume a thread that has no messages. The first question keeps it.
+#[tokio::test]
+async fn a_session_id_is_kept_only_after_the_first_question() {
+    let root = repo("chat-keep-after-question", &files());
+    let mut a = app(&root);
+    a.open_panel();
+    until(&mut a, |a| a.threads.get(&a.key()).is_some_and(|t| t.session.is_some())).await;
+    assert_eq!(kept(&a), None, "an opened session without a question is not kept");
+    let k = a.key();
+    a.focus = Focus::Claude;
+    typ(&mut a, "hello");
+    key(&mut a, KeyCode::Enter);
+    until(&mut a, |a| a.threads.get(&a.key()).is_some_and(|t| t.busy.is_none() && t.items.iter().any(|i| matches!(i, Item::Agent(_))))).await;
+    assert_eq!(kept(&a), a.threads[&k].session.clone(), "the first question keeps the session ID");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// CLAUDE-17: an image pasted from the clipboard is the chip `Image #n`, n the lowest number that no
+// chip in the input has.
+#[tokio::test]
+async fn pasted_images_are_numbered_chips() {
+    let root = repo("chat-image-chips", &files());
+    let mut a = app(&root);
+    a.open_panel();
+    a.focus = Focus::Claude;
+    let png = |n: &str| root.join(format!("docs/{n}.png"));
+    a.attach_pasted_image(png("paste-1"));
+    a.attach_pasted_image(png("paste-2"));
+    assert_eq!(a.input.text(), "⟦Image #1⟧ ⟦Image #2⟧ ");
+    a.chips.retain(|c| c.label != "⟦Image #1⟧");
+    a.attach_pasted_image(png("paste-3"));
+    assert!(a.input.text().ends_with("⟦Image #1⟧ "), "the free number: {}", a.input.text());
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// CLAUDE-37, CLAUDE-38, CLAUDE-39: the chip of a pasted image says `Image #n` until the name model
+// names the image, then `Image: <name>`; the mock agent names an image `red button`. An agent without images gets no
+// question for a name.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_pasted_image_gets_its_name_from_the_name_model() {
+    let root = repo("chat-image-name", &files());
+    let mut a = app(&root);
+    a.open_panel();
+    a.focus = Focus::Claude;
+    until(&mut a, |a| a.agent_images).await;
+    let png = root.join("docs/paste.png");
+    std::fs::write(&png, [0x89, b'P', b'N', b'G']).unwrap();
+    a.attach_pasted_image(png.clone());
+    assert_eq!(a.input.text(), "⟦Image #1⟧ ", "the number until the name comes");
+    typ(&mut a, "what is it");
+    until(&mut a, |a| a.input.text().contains("red button")).await;
+    assert_eq!(a.input.text(), "⟦Image: red button⟧ what is it");
+    assert_eq!(a.chips.iter().map(|c| c.label.as_str()).collect::<Vec<_>>(), ["⟦Image: red button⟧"]);
+    assert!(a.threads.values().all(|t| t.items.is_empty()), "no message in a thread");
+    a.agent_images = false;
+    a.attach_pasted_image(png);
+    assert!(a.image_names.is_empty(), "no question without images");
+    assert!(a.input.text().ends_with("⟦Image #1⟧ "), "{}", a.input.text());
     let _ = std::fs::remove_dir_all(&root);
 }

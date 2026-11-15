@@ -66,6 +66,8 @@ impl App {
             "tree" => self.toggle_tree(),
             "upgrade" => self.upgrade(),
             "recap" => self.recap_now(),
+            "peek_main" => self.peek_at(version::Other::Main),
+            "peek_disk" => self.peek_at(version::Other::Disk),
             "review" => self.review_key(),
             "recap_toggle" => {
                 self.state.show_recap = !self.state.show_recap;

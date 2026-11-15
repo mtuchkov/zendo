@@ -4,7 +4,7 @@ revision: "1"
 date: "2026-11-14"
 parent: "cli.md"
 prev: "init.md"
-next: "upgrade.md"
+next: "keymap-wizard.md"
 level: "what zendo doctor checks, and what its flags --fix, --claude and --live add"
 note: "Agent draft from the requests of the user on 2026-11-14, split from commands.md. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
