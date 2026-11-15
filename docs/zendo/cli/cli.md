@@ -11,7 +11,7 @@ children:
   - "doctor.md"
   - "upgrade.md"
 level: "the commands around zendo and the job of each one: setup, init, doctor, upgrade"
-note: "Agent draft. Revision 2 splits commands.md into this parent and one child for each command, from the requests of the user on 2026-11-14. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft. Revision 2 splits commands.md into this parent and one child for each command, from the requests of the user on 2026-11-14. The user approved CMD-17, CMD-18 and CMD-19 on 2026-11-15; the rest is not reviewed by the user, and its requirement IDs are proposals until the user reviews this document."
 ---
 
 # Commands
@@ -50,7 +50,9 @@ adapter. `zendo upgrade` and the update suggestion use GitHub. Nothing else uses
 | CMD-2 | Unwanted   | If a check fails, then the command shall show what failed and the fix, and exit with an error.                        | User, 2026-11-11 |
 | CMD-3 | Ubiquitous | The installer shall never wait for input.                                                                             | Design           |
 | CMD-4 | State      | While zendo starts, the system shall look for a newer version in the background, and shall not make the start slower. | User, 2026-11-11 |
-| CMD-17 | Unwanted  | If `~/.zendo/config.toml` does not parse, then no command and no button of zendo shall write it: `zendo setup` and `zendo doctor --fix` shall stop with the error, and a button shall say that its setting is not saved. | User, 2026-11-15 |
+| CMD-17 | Unwanted  | If a line of `~/.zendo/config.toml` has an error, then zendo shall still read every other setting in the file. | User, 2026-11-15 |
+| CMD-18 | Unwanted  | If a line of `~/.zendo/config.toml` has an error, then `zendo doctor` shall show the line number and the error. | User, 2026-11-15 |
+| CMD-19 | Event     | When zendo saves a setting, zendo shall change only the line of that setting, or add one line when the setting is missing, and shall keep every other line as it is. | User, 2026-11-15 |
 
 CMD-14, that `zendo doctor` writes no file, is in [Doctor](doctor.md).
 
@@ -71,11 +73,19 @@ CMD-1). See [zendo](../zendo.md).
 - When the user pipes the installer into `sh`.
 - Then the installer finishes, or fails with a fix, and asks nothing.
 
-**`a_broken_config_stays_as_the_user_wrote_it`** (unit test; verifies CMD-17)
+**`a_line_with_an_error_does_not_hide_the_others`** (unit test; verifies CMD-17, CMD-18)
 
-- Given a `config.toml` that does not parse.
-- When a change of a setting goes to it, as by `zendo setup` or the sound button.
-- Then the change fails with the parse error, and the file stays byte for byte as it was.
+- Given a `config.toml` with `width = "wide"` on line 2, a table header with a typo, and good
+  settings before and after them.
+- When zendo reads the file.
+- Then zendo has every good setting, and the problems name line 2 and the line of the header.
+
+**`a_saved_setting_changes_one_line`** (unit test; verifies CMD-19)
+
+- Given a `config.toml` with comments, a `[notes]` table, and a line with an error.
+- When the sound button saves `sound = false`, once with the line `sound = true` in the file and
+  once without it.
+- Then only that line changes, or one line comes before the first table; every other byte stays.
 
 **`update_check_does_not_block_the_start`** (unit test, not written yet; verifies CMD-4)
 

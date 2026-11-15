@@ -2,9 +2,12 @@
 
 mod paths;
 mod profile;
+mod read;
+mod write;
 
 pub use paths::*;
 pub use profile::*;
+pub use read::Problem;
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -131,46 +134,54 @@ impl UserConfig {
         Self::load_from(&config_path())
     }
 
-    /// The config in `path` to read settings from; the defaults when there is no file or it does not
-    /// parse. Do not save it: that would write over the file of the user (CMD-17). To change the
-    /// file, use `for_change` or `update`.
+    /// The config in `path`: every setting without an error; the defaults when there is no file
+    /// (CMD-17).
     pub fn load_from(path: &Path) -> Self {
-        Self::read_from(path).ok().flatten().unwrap_or_default()
+        Self::read_from(path).0
     }
 
-    /// The config, `None` when there is no file, or what is wrong with the file.
-    pub fn read() -> Result<Option<Self>, String> {
-        Self::read_from(&config_path())
-    }
-
-    pub fn read_from(path: &Path) -> Result<Option<Self>, String> {
-        // Only a missing file is no config: a file that zendo cannot read, as one that is not
-        // UTF-8, is an error, so that no save writes over it (CMD-17).
-        match std::fs::read_to_string(path) {
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
-            Err(e) => Err(e.to_string()),
-            Ok(s) => toml::from_str(&s).map(Some).map_err(|e| e.to_string()),
+    /// The config in `path`, and the lines with an error (CMD-17, CMD-18). A file that zendo cannot
+    /// read is one problem without a line.
+    pub fn read_from(path: &Path) -> (Self, Vec<Problem>) {
+        match std::fs::read(path) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => (Self::default(), Vec::new()),
+            Err(e) => (Self::default(), vec![Problem { line: None, error: e.to_string() }]),
+            Ok(bytes) => read::read_text(&String::from_utf8_lossy(&bytes)),
         }
     }
 
-    /// The config in `path` to change and save: the defaults when there is no file; an error when
-    /// the file does not parse, so that no save writes over it (CMD-17).
-    pub fn for_change(path: &Path) -> Result<Self, String> {
-        Self::read_from(path).map(Option::unwrap_or_default).map_err(|e| format!("{} cannot be read or parsed: {e}", path.display()))
+    /// A copy, to compare with after a change (`save_changes`).
+    pub fn copy(&self) -> Self {
+        write::copy(self)
     }
 
-    /// Change the config in `path` with `change` and save it; a file that does not parse stays as
-    /// it is (CMD-17).
+    /// Change settings in `path` with `change` and save them: only their lines change (CMD-19).
     pub fn update(path: &Path, change: impl FnOnce(&mut Self)) -> Result<(), String> {
-        let mut cfg = Self::for_change(path)?;
+        let mut cfg = Self::load_from(path);
+        let before = cfg.copy();
         change(&mut cfg);
-        cfg.save_to(path).map_err(|e| format!("cannot write {}: {e}", path.display()))
+        cfg.save_changes(path, &before)
     }
 
-    pub fn save(&self) -> std::io::Result<()> {
-        self.save_to(&config_path())
+    /// Save in `path` the settings that differ from `before`: only their lines change, every other
+    /// line stays as it is (CMD-19). Without a file, a new one.
+    pub fn save_changes(&self, path: &Path, before: &Self) -> Result<(), String> {
+        let bytes = match std::fs::read(path) {
+            Ok(bytes) => bytes,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => CONFIG_HEAD.as_bytes().to_vec(),
+            Err(e) => return Err(format!("cannot read {}: {e}", path.display())),
+        };
+        let write = || -> std::io::Result<()> {
+            if let Some(dir) = path.parent() {
+                std::fs::create_dir_all(dir)?;
+            }
+            std::fs::write(path, write::edit_bytes(&bytes, before, self))
+        };
+        write().map_err(|e| format!("cannot write {}: {e}", path.display()))
     }
 
+    /// Write the whole file: only for a new file. To change a file of the user, use `update` or
+    /// `save_changes` (CMD-19).
     pub fn save_to(&self, path: &Path) -> std::io::Result<()> {
         if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir)?;

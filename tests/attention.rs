@@ -232,17 +232,15 @@ async fn the_sound_button_turns_the_bell_off_and_saves_it() {
     done(&root, &mut a);
 }
 
-// ATTN-8, CMD-17: the sound button does not write over a config that does not parse; it says
-// that the setting is not saved.
+// ATTN-8, CMD-19: in a config with a line with an error, the sound button changes only the line
+// of the sound.
 #[tokio::test(flavor = "multi_thread")]
-async fn the_sound_button_keeps_a_broken_config() {
+async fn the_sound_button_changes_only_its_line() {
     let (root, mut a) = app_here("attn-broken-config");
-    let broken = "agent = \"my-agent\"\nwidth = \"wide\"\n";
+    let broken = "agent = \"my-agent\"\nwidth = \"wide\"\nsound = true\n[name_models\n";
     std::fs::write(root.join("config.toml"), broken).unwrap();
     a.toggle_sound();
-    assert_eq!(std::fs::read_to_string(root.join("config.toml")).unwrap(), broken);
-    let flash = a.flash.as_ref().map(|f| f.0.clone()).unwrap_or_default();
-    assert!(flash.contains("not saved"), "{flash}");
+    assert_eq!(std::fs::read_to_string(root.join("config.toml")).unwrap(), broken.replace("sound = true", "sound = false"));
     done(&root, &mut a);
 }
 

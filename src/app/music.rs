@@ -6,12 +6,10 @@ use crate::setup::config::UserConfig;
 
 impl App {
     /// Open the audio output; the music plays where the user wants it (LOFI-11). Without the
-    /// setting in the config, the float asks once, when the output plays (LOFI-12); a config that
-    /// does not parse is no first start.
+    /// setting in the config, the float asks once, when the output plays (LOFI-12).
     pub fn start_music(&mut self, output: Output) {
         self.music.start(output);
-        let broken = UserConfig::read_from(&self.music.config).is_err();
-        self.music.ask_pending = !self.music.asked && !broken;
+        self.music.ask_pending = !self.music.asked;
         self.music_tick();
     }
 
@@ -60,8 +58,7 @@ impl App {
         }
     }
 
-    /// Save the setting in the config; a config that does not parse stays as the user wrote it
-    /// (CMD-17).
+    /// Save the setting in the config: only its line changes (CMD-19).
     fn save_music(&mut self, word: &str) {
         let on = self.music.on;
         match UserConfig::update(&self.music.config, |user| user.music = Some(on)) {

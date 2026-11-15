@@ -169,18 +169,18 @@ fn a_dead_output_rings_the_bell_again() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// LOFI-12: a config that does not parse is not the first start: zendo does not ask, and the button
-// does not write over the file of the user.
+// LOFI-8, CMD-17, CMD-19: a config with a line with an error: zendo asks as at each first start,
+// and the answer adds one line; the line with the error stays.
 #[test]
-fn a_broken_config_is_not_overwritten() {
+fn a_line_with_an_error_stays_when_the_music_is_saved() {
     let (root, mut a) = app_with("lofi-broken", Some(true), Output::Test);
     let config = root.join("config.toml");
     std::fs::write(&config, "width = \"wide\"\nsound = true\n").unwrap();
     a.music = Music::from_config(&UserConfig::load_from(&config));
     a.music.config = config.clone();
     a.start_music(Output::Test);
-    assert!(!a.music.asking, "no question over a broken config");
-    a.toggle_music();
-    assert_eq!(std::fs::read_to_string(&config).unwrap(), "width = \"wide\"\nsound = true\n");
+    assert!(a.music.asking, "no setting `music`: the first start");
+    a.answer_music(false);
+    assert_eq!(std::fs::read_to_string(&config).unwrap(), "width = \"wide\"\nsound = true\nmusic = false\n");
     let _ = std::fs::remove_dir_all(&root);
 }

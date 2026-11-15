@@ -127,7 +127,7 @@ impl App {
         self.attention.sound = !self.attention.sound;
         let sound = self.attention.sound;
         let word = if sound { "on" } else { "off" };
-        // A config that does not parse stays as the user wrote it (CMD-17).
+        // Only the line of the sound changes (CMD-19).
         match UserConfig::update(&self.attention.config, |user| user.sound = Some(sound)) {
             Ok(()) => self.flash(format!("sound {word}")),
             Err(e) => self.flash(format!("sound {word}; not saved: {e}")),

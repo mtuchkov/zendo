@@ -154,10 +154,16 @@ fn check_structure(paths: &Paths, o: &mut Out) {
 fn check_config(cfg: &UserConfig, agent_flag: Option<String>, o: &mut Out) -> (String, Source) {
     // Config and agent command.
     let cpath = config::config_path();
-    if let Err(e) = UserConfig::read() {
-        o.fail("config", format!("cannot read {}: {}", cpath.display(), e.lines().next().unwrap_or("")));
-        o.more(e);
-        o.hint("Fix the file by hand, or delete it and run `zendo setup` again.");
+    // Each line with an error, with its number; zendo reads every other setting (CMD-17, CMD-18).
+    let (_, problems) = UserConfig::read_from(&cpath);
+    for p in &problems {
+        match p.line {
+            Some(n) => o.warn("config", format!("{} line {n}: {}", cpath.display(), p.error)),
+            None => o.fail("config", format!("cannot read {}: {}", cpath.display(), p.error)),
+        }
+    }
+    if !problems.is_empty() {
+        o.hint("zendo reads every other setting. Fix these lines by hand.");
     } else if cpath.exists() {
         let keys: Vec<String> = cfg.env.iter().map(|(k, v)| format!("{k}={v}")).collect();
         o.ok("config", format!("{}{}", cpath.display(), if keys.is_empty() { String::new() } else { format!(" · {}", keys.join(" ")) }));
