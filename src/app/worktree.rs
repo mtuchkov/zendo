@@ -67,7 +67,7 @@ impl App {
     /// its changes differ from those of the last recap, at most every 10 minutes. The agent does not
     /// need to be idle (FILES-29); the recap goes in a separate session without tools (FILES-36).
     pub fn worktree_recap_tick(&mut self) {
-        let ready = self.state.tree && self.files.tree.view.is_worktree() && self.recap_job.is_none() && self.agent_name.is_some() && !self.cfg.offline;
+        let ready = self.state.tree && self.files.tree.view.is_worktree() && self.work.free() && self.agent_name.is_some() && !self.cfg.offline;
         let Some(wt) = self.files.tree.worktree.clone().filter(|_| ready) else { return };
         if self.files.worktree.recap_check.is_some_and(|t| t.elapsed() < RECAP_EVERY) {
             return;
@@ -80,6 +80,6 @@ impl App {
         let Some(a) = self.agent.as_ref().filter(|_| !fresh && !diff.trim().is_empty()) else { return };
         let text = format!("{PROMPT}Worktree: {rel}\n--- the changes against the merge base with main ---\n{diff}\n");
         a.send(Cmd::Prompt { key: format!("{RECAP_PREFIX}{rel}"), known: None, text, attach: vec![] });
-        self.recap_job = Some(RecapJob { rel, hash, text: String::new(), buf: String::new(), auto: true, failed: None, meta: None, review: false, name: None });
+        self.work.start(RecapJob { rel, hash, text: String::new(), buf: String::new(), auto: true, failed: None, meta: None, review: false, name: None });
     }
 }

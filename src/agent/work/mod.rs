@@ -12,7 +12,7 @@ pub use names::{Asked, pick};
 pub use review::*;
 
 use crate::agent::Cmd;
-use crate::app::{App, Base, Focus, IDLE, AUTO_PER_HOUR, ENGAGED, Mode, RecapJob, Visit};
+use crate::app::{App, Base, ENGAGED, Focus, Mode, RecapJob};
 use crate::docs::delta;
 use crate::setup::state::{self, Recap, Snapshot};
 use chrono::Local;
@@ -34,20 +34,16 @@ impl App {
     /// Count scrolls and clicks on the note on screen.
     pub fn interact(&mut self, n: u32) {
         self.sync_visit();
-        if let Some(v) = self.visit.as_mut() {
-            v.interactions += n;
-        }
+        self.work.interact(n);
     }
 
     pub fn mark_edited(&mut self) {
         self.sync_visit();
-        if let Some(v) = self.visit.as_mut() {
-            v.edited = true;
-        }
+        self.work.mark_edited();
     }
 
     pub fn visit_counts(&self) -> bool {
-        self.visit.as_ref().is_some_and(|v| v.edited || v.interactions >= ENGAGED)
+        self.work.visit_counts()
     }
 
     /// Start a visit for the note on screen; end the visit of the note we left.
@@ -56,16 +52,16 @@ impl App {
             Mode::Read | Mode::Write | Mode::Theme | Mode::Help => self.files.current().cloned(),
             _ => None,
         };
-        if self.visit.as_ref().map(|v| &v.path) == here.as_ref() {
+        if self.work.visit().map(|v| &v.path) == here.as_ref() {
             return;
         }
         self.end_visit();
-        self.visit = here.map(|path| Visit { path, interactions: 0, edited: false });
+        self.work.start_visit(here);
     }
 
     /// A visit that counted moves the delta base to the text you just worked on.
     pub fn end_visit(&mut self) {
-        let Some(v) = self.visit.take() else { return };
+        let Some(v) = self.work.take_visit() else { return };
         if !(v.edited || v.interactions >= ENGAGED) {
             return;
         }
@@ -117,11 +113,11 @@ impl App {
     pub fn delta_base(&self) -> (String, String) {
         let Some(path) = self.files.current() else { return ("no note".into(), String::new()) };
         let rel = self.rel(path);
-        if self.delta_base == Base::LastVisit
+        if self.work.base() == Base::LastVisit
             && let Some(s) = self.state.files.get(&rel).and_then(|f| f.seen.as_ref()) {
                 return (format!("since your last visit · {}", s.at.format("%a %-d %b %H:%M")), s.text.clone());
             }
-        let label = if self.delta_base == Base::LastVisit { "vs git HEAD (no visit saved yet)" } else { "vs git HEAD" };
+        let label = if self.work.base() == Base::LastVisit { "vs git HEAD (no visit saved yet)" } else { "vs git HEAD" };
         match self.git_head(&rel) {
             Some(t) => (label.into(), t),
             None => (format!("{label} · new file"), String::new()),
@@ -129,16 +125,14 @@ impl App {
     }
 
     pub fn toggle_delta(&mut self) {
-        self.delta_open = !self.delta_open;
-        self.delta_scroll = 0;
-        self.focus = if self.delta_open { Focus::Delta } else { Focus::Note };
+        self.focus = if self.work.toggle_delta() { Focus::Delta } else { Focus::Note };
         self.make_room_for_delta();
     }
 
     /// The delta is open but the panes do not all fit beside the file tree: the tree closes.
     pub fn make_room_for_delta(&mut self) {
         let width: u16 = self.frame.pane_rects().iter().map(|(_, r)| r.width).sum();
-        if !self.delta_open || !self.state.tree || width == 0 {
+        if !self.work.delta_open() || !self.state.tree || width == 0 {
             return;
         }
         let wanted = crate::ui::panes(self, u16::MAX);

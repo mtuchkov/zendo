@@ -65,7 +65,7 @@ impl App {
     fn on_recap_event(&mut self, e: Event) {
         match e {
             Event::Text { text, .. } => {
-                if let Some(j) = self.recap_job.as_mut() {
+                if let Some(j) = self.work.job_mut() {
                     j.buf.push_str(&text);
                 }
             }
@@ -75,7 +75,7 @@ impl App {
                 }
             }
             Event::Error { text, .. } => {
-                if let Some(j) = self.recap_job.as_mut() {
+                if let Some(j) = self.work.job_mut() {
                     j.failed = Some(text);
                 }
             }
@@ -190,7 +190,7 @@ impl App {
     }
 
     fn on_exited(&mut self, text: String) {
-        self.recap_job = None;
+        self.work.take_job();
         self.agent = None;
         self.agent_events = None;
         for t in self.threads.values_mut() {

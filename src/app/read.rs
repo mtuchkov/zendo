@@ -30,7 +30,7 @@ impl App {
             "back" if self.say.is_some() => self.say = None,
             "back" if self.reader.anchor().is_some() => self.reader.unselect(),
             "back" if self.panel => self.panel = false,
-            "back" if self.delta_open => self.delta_open = false,
+            "back" if self.work.delta_open() => self.work.close_delta(),
             "quit" => self.quit = true,
             "write" => self.start_write(false),
             "new" => self.open_float(),

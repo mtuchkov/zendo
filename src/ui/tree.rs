@@ -80,7 +80,7 @@ fn worktree_foot(app: &App, t: &Theme, w: usize) -> Vec<Line<'static>> {
     let dim = Style::new().fg(t.dim);
     let Some(wt) = app.files.tree().worktree.as_ref().map(|p| p.display().to_string()) else { return Vec::new() };
     let recap = app.state.files.get(&wt).and_then(|f| f.recap.as_ref());
-    let writing = app.recap_job.as_ref().is_some_and(|j| j.rel == wt);
+    let writing = app.work.job().is_some_and(|j| j.rel == wt);
     let head = match recap {
         Some(r) => format!("RECAP · {}{}", r.at.format("%H:%M"), if writing { " · writing a new one" } else { "" }),
         None if writing => "RECAP · writing it".to_string(),

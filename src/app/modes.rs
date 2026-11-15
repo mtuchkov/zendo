@@ -19,7 +19,7 @@ impl App {
         let page = self.frame.view_height().saturating_sub(3).max(1);
         match act {
             Some("close") => {
-                self.delta_open = false;
+                self.work.close_delta();
                 self.focus = Focus::Note;
             }
             Some("base") => self.switch_base(),
@@ -27,12 +27,12 @@ impl App {
             Some("recap") => self.recap_now(),
             Some("layout") => self.toggle_layout(),
             Some("write") if self.mode == Mode::Read => self.start_write(false),
-            Some("down") => self.delta_scroll += 1,
-            Some("up") => self.delta_scroll = self.delta_scroll.saturating_sub(1),
-            Some("page_down") => self.delta_scroll += page,
-            Some("page_up") => self.delta_scroll = self.delta_scroll.saturating_sub(page),
-            Some("top") => self.delta_scroll = 0,
-            Some("bottom") => self.delta_scroll = usize::MAX / 2,
+            Some("down") => self.work.scroll_delta(false, 1),
+            Some("up") => self.work.scroll_delta(true, 1),
+            Some("page_down") => self.work.scroll_delta(false, page),
+            Some("page_up") => self.work.scroll_delta(true, page),
+            Some("top") => self.work.delta_top(),
+            Some("bottom") => self.work.delta_bottom(),
             _ => return,
         }
         if matches!(act, Some("down" | "up" | "page_down" | "page_up")) {

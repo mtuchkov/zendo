@@ -238,7 +238,7 @@ async fn pane_keys_do_nothing_in_the_float() {
     alt(&mut a, ']');
     alt(&mut a, 'n');
     assert!(a.float.is_some() && a.mode == Mode::Write, "still in the float");
-    assert_eq!((a.panel, a.state.tree, a.delta_open, a.cli.pane), (false, false, false, None), "no pane opened");
+    assert_eq!((a.panel, a.state.tree, a.work.delta_open(), a.cli.pane), (false, false, false, None), "no pane opened");
     assert_eq!(a.editor.text(), "# Tea", "the same note");
     key(&mut a, KeyCode::Tab);
     assert_eq!(a.focus, Focus::Note, "tab does not move the focus");

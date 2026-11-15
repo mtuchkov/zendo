@@ -60,7 +60,7 @@ pub(crate) fn recap_lines(app: &App, note: &Note, width: usize, t: &Theme) -> Ve
     let rel = app.rel(&note.path);
     let dim = Style::new().fg(t.dim);
     let mut out = Vec::new();
-    let writing = app.recap_job.as_ref().is_some_and(|j| j.rel == rel);
+    let writing = app.work.job().is_some_and(|j| j.rel == rel);
     let recap = app.state.files.get(&rel).and_then(|f| f.recap.as_ref());
     let bar = Span::styled("▎ ", Style::new().fg(t.acc));
     match recap {

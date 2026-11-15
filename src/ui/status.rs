@@ -35,7 +35,7 @@ type Hints = Vec<(String, String)>;
 /// The badge of the pane in focus and its key hints, from the keymap: the first key of each action.
 fn status_keys(app: &App, fr: &Cache, t: &Theme, claude: bool) -> (&'static str, Color, Hints) {
     use crate::keys::Pane;
-    let delta = app.delta_open && app.focus == Focus::Delta && matches!(app.mode, Mode::Read | Mode::Write);
+    let delta = app.work.delta_open() && app.focus == Focus::Delta && matches!(app.mode, Mode::Read | Mode::Write);
     let tree = app.state.tree && app.focus == Focus::Tree && matches!(app.mode, Mode::Read | Mode::Write);
     let hints = |p: Pane, list: &[(&str, &str)]| -> Hints {
         list.iter().filter(|(a, _)| app.agent_can(a)).map(|(a, text)| (app.keys.first(p, a), text.to_string())).collect()

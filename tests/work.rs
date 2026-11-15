@@ -116,7 +116,7 @@ async fn recaps_on_request_and_when_idle() {
         a.tick();
         tokio::time::sleep(Duration::from_millis(30)).await;
     }
-    assert!(a.recap_job.is_none());
+    assert!(a.work.free());
     assert_eq!(a.state.files[REL].recap.as_ref().unwrap().at, at);
 }
 
@@ -132,7 +132,7 @@ async fn no_auto_recap_while_the_user_is_active() {
         a.tick();
         tokio::time::sleep(Duration::from_millis(30)).await;
     }
-    assert!(a.recap_job.is_none());
+    assert!(a.work.free());
 }
 
 // WORK-13: ctrl-r twice asks for a review; the summary shows at the top and the confusing line is
@@ -149,10 +149,10 @@ async fn ctrl_r_twice_marks_the_confusing_lines() {
     until(&mut a, |a| a.agent_name.is_some()).await;
     let ctrl_r = KeyEvent::new(KeyCode::Char('r'), KeyModifiers::CONTROL);
     a.on_key(ctrl_r);
-    assert!(a.reviews.queue.is_empty(), "one ctrl-r waits for the second");
+    assert!(!a.work.review_waits(REL), "one ctrl-r waits for the second");
     a.on_key(ctrl_r);
-    until(&mut a, |a| a.reviews.shown.is_some()).await;
-    let r = a.reviews.shown.clone().unwrap();
+    until(&mut a, |a| a.work.review().is_some()).await;
+    let r = a.work.review().cloned().unwrap();
     assert_eq!(r.lines, vec![(3, "\"soon\" says no time.".to_string())]);
     let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 30)).unwrap();
     term.draw(|f| a.draw(f)).unwrap();
@@ -167,7 +167,7 @@ async fn ctrl_r_twice_marks_the_confusing_lines() {
     std::fs::write(&other, "# Other\n").unwrap();
     a.open_file(other);
     term.draw(|f| a.draw(f)).unwrap();
-    assert!(a.reviews.shown.is_none(), "the review goes when another file opens");
+    assert!(a.work.review().is_none(), "the review goes when another file opens");
     a.open_file(root.join(REL));
     term.draw(|f| a.draw(f)).unwrap();
     let rows: Vec<String> = (0..30).map(|y| (0..120).map(|x| term.backend().buffer()[(x, y)].symbol().to_string()).collect()).collect();

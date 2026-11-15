@@ -81,7 +81,7 @@ async fn a_changed_topic_renames_the_session() {
     assert_eq!(named(&mut a, 0).await, "mock");
     let id = a.threads[&session_key(0)].session.clone().unwrap();
     ask(&mut a, 0, &"more about the topic ".repeat(10)).await;
-    until(&mut a, |a| a.names_asked.get(&id).is_some_and(|c| c.keeps == 1) && a.recap_job.is_none()).await;
+    until(&mut a, |a| a.names_asked.get(&id).is_some_and(|c| c.keeps == 1) && a.work.free()).await;
     assert_eq!(a.session_name(0).as_deref(), Some("mock"), "the first check keeps the name");
     ask(&mut a, 0, &"a new topic ".repeat(30)).await;
     until(&mut a, |a| a.session_name(0).as_deref() == Some("renamed")).await;

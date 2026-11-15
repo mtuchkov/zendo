@@ -21,7 +21,7 @@ pub fn pane_width(app: &App, p: Focus, total: u16) -> u16 {
 /// Wide screen: every open pane side by side.
 pub fn panes(app: &App, width: u16) -> Vec<Focus> {
     let chat = app.panel;
-    let delta = app.delta_open && app.files.current().is_some() && app.threads.pinned().is_none();
+    let delta = app.work.delta_open() && app.files.current().is_some() && app.threads.pinned().is_none();
     let mut p = Vec::new();
     if app.state.wide() {
         // Wide: note | chat | delta.

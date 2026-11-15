@@ -32,7 +32,7 @@ This is a proposal until the user approves it. The second option is chosen: it g
 fields at the cost of mechanical changes, and it needs no new runtime structure.
 
 - The app shall keep its state in sub-states: `Reader`, `Writer`, `Composer`, `Threads`,
-  `AgentLink`, `Sessions`, `Files`, `Review`, `Frame` and `Pointer`. `App` shall hold one field for
+  `AgentLink`, `Sessions`, `Files`, `Work`, `Frame` and `Pointer`. `App` shall hold one field for
   each sub-state, and the state that all of them need: the config, the mode, the focus, the keymap.
 - A sub-state shall have private fields and shall not see `App`. Its methods shall take what they
   need as arguments.
@@ -43,7 +43,7 @@ fields at the cost of mechanical changes, and it needs no new runtime structure.
 - WHILE `ui` draws, a function of the app that `ui` calls shall not read the stored frame.
 - WHEN the split is complete, no file in `src/ui/` shall assign to a field of `App`.
 
-Seven points differ from, or settle, the note:
+Eight points differ from, or settle, the note:
 
 1. **The frame starts from the last one, not empty.** A draw writes only what it shows: write mode
    does not render the read rows. The keys of the next mode read the values of the last draw that
@@ -63,11 +63,12 @@ Seven points differ from, or settle, the note:
    and the open one, the tree, the find panel, the questions about a file. It does the file
    actions on disk and returns an `Effect`; `App::apply` moves the thread and the session, scans
    the tree and sets the focus. The effects are `Flash`, `Deleted`, `Moved`, `MadeFile` and
-   `MadeFolder`. The find panel and the held key stay code of `App`: they change the mode, the
-   focus and the saved state.
+   `MadeFolder`. The find panel and the held key stay code of `App`.
+8. **`Review` of the note is `Work`.** `Review` is already the type of the review of one file. `Work`
+   holds the delta, the visit, and the recaps and reviews of the agent, as `docs/zendo/work.md`.
 
 The order of work is one commit for each step, without a change of behavior: `Frame`; `Reader` and
-`Pointer`; `Composer` and `Threads`; `Files`, then `Review`; `AgentLink` and `Sessions`.
+`Pointer`; `Composer` and `Threads`; `Files`, then `Work`; `AgentLink` and `Sessions`.
 
 ## Consequences
 
@@ -86,9 +87,9 @@ The order of work is one commit for each step, without a change of behavior: `Fr
 - `App` has fewer than 30 fields, and no field of the frame cache.
 - No file in `src/ui/` assigns to a field of `App`.
 - Each sub-state has a `*_tests.rs` file that builds it without an `App`.
-- State of the steps: `Frame` (`src/ui/frame.rs`), `Reader`, `Pointer`, `Composer`, `Threads` and
-  `Files` (`src/app/`) are done, each with a `*_tests.rs` file. `App` has 61 fields. Open:
-  `Review`, `AgentLink`, `Sessions`, `Writer`. Not yet private: the fields of `Transcript`, and the
+- State of the steps: `Frame` (`src/ui/frame.rs`), `Reader`, `Pointer`, `Composer`, `Threads`,
+  `Files` and `Work` (`src/app/`) are done, each with a `*_tests.rs` file. `App` has 54 fields.
+  Open: `AgentLink`, `Sessions`, `Writer`. Not yet private: the fields of `Transcript`, and the
   tree, the find panel and the worktree popup of `Files` inside `src/app/`.
 
 ## Decision record

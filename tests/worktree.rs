@@ -174,7 +174,7 @@ async fn the_worktree_recap_refreshes_every_10_minutes_when_it_changed() {
     write(wt.join("n.txt"), "new\n");
     a.files.worktree_mut().recap_check = Some(Instant::now() - Duration::from_secs(5 * 60));
     a.tick();
-    assert!(a.recap_job.is_none(), "no recap at 5 minutes");
+    assert!(a.work.free(), "no recap at 5 minutes");
     a.files.worktree_mut().recap_check = Some(Instant::now() - Duration::from_secs(10 * 60));
     until(&mut a, |a| recap(a).is_some_and(|(_, h)| h != first)).await;
     assert!(recap(&a).unwrap().0.contains("2 files"), "{:?}", recap(&a));
@@ -182,7 +182,7 @@ async fn the_worktree_recap_refreshes_every_10_minutes_when_it_changed() {
     // No change: no recap.
     a.files.worktree_mut().recap_check = Some(Instant::now() - Duration::from_secs(10 * 60));
     a.tick();
-    assert!(a.recap_job.is_none(), "no recap without a change");
+    assert!(a.work.free(), "no recap without a change");
     assert!(a.threads.values().all(|t| t.items.is_empty()), "the chat has no recap");
 }
 

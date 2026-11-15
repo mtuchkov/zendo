@@ -131,7 +131,7 @@ impl App {
                 self.threads.scroll_by(up, n);
             }
             Some(Region::Delta) => {
-                self.delta_scroll = if up { self.delta_scroll.saturating_sub(n) } else { self.delta_scroll + n };
+                self.work.scroll_delta(up, n);
                 self.interact(1);
             }
             Some(Region::Note) if self.mode == Mode::Write => self.editor.vertical(if up { -ni } else { ni }, self.frame.text_width()),

@@ -79,7 +79,7 @@ impl App {
             None => NAME_PROMPT.to_string(),
         };
         let prompt = prompt.replace("{{TAKEN}}", &self.taken_names(n).join(", ")).replace("{{MESSAGES}}", &messages);
-        self.recap_job = Some(RecapJob { name: Some((n, id)), ..RecapJob::default() });
+        self.work.start(RecapJob { name: Some((n, id)), ..RecapJob::default() });
         let key = format!("{RECAP_PREFIX}name {}", n + 1);
         if let Some(a) = &self.agent {
             if let Some(model) = self.name_model.clone() {

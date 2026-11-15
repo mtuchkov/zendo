@@ -38,6 +38,7 @@ mod thread;
 mod threads;
 mod transcript;
 mod tree;
+mod work;
 mod worktree;
 mod write;
 pub mod write_rows;
@@ -63,6 +64,7 @@ pub use transcript::{CHAT_MARK, Transcript};
 pub use modes::Mode;
 pub use pointer::Pointer;
 pub use reader::Reader;
+pub use work::Work;
 pub use worktree::{RECAP_EVERY, TreeAct, WorktreeUi};
 
 use crate::agent::{self, AgentHandle, Attachment, Cmd, Event};
@@ -157,13 +159,8 @@ pub struct App {
     pub agent_name: Option<String>,
     pub agent_down: Option<String>,
 
-    pub delta_open: bool,
-    pub delta_base: Base,
-    pub delta_scroll: usize,
-    pub visit: Option<Visit>,
-    pub recap_job: Option<RecapJob>,
-    pub recap_queue: VecDeque<String>,
-    pub reviews: crate::agent::work::Reviews,
+    /// The delta, the visit that counts, and the recaps and reviews of the agent.
+    pub work: Work,
     /// Files to get a title or front matter from the agent, after write mode.
     pub meta_queue: VecDeque<String>,
     /// For each session ID: the last question for its name (NAMES-10, NAMES-14).
@@ -172,7 +169,6 @@ pub struct App {
     pub name_model: Option<String>,
     /// The pasted images that the name model names: by session key, the file and the answer so far.
     pub image_names: HashMap<String, (PathBuf, String)>,
-    pub auto_recaps: Vec<Instant>,
     #[default(Instant::now())]
     pub last_input: Instant,
     /// The run of `tab`s (CLAUDE-36).

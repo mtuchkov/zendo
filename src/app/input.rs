@@ -3,8 +3,7 @@ use super::*;
 
 impl App {
     pub fn switch_base(&mut self) {
-        self.delta_base = if self.delta_base == Base::LastVisit { Base::GitHead } else { Base::LastVisit };
-        self.delta_scroll = 0;
+        self.work.switch_base();
     }
 
     pub fn toggle_layout(&mut self) {
@@ -195,7 +194,7 @@ impl App {
             Pane::Transcript
         } else if self.panel && self.focus == Focus::Claude {
             Pane::Chat
-        } else if self.delta_open && self.focus == Focus::Delta {
+        } else if self.work.delta_open() && self.focus == Focus::Delta {
             Pane::Delta
         } else if self.state.tree && self.focus == Focus::Tree {
             Pane::Tree

@@ -95,7 +95,7 @@ fn the_delta_closes_the_tree_when_it_does_not_fit() {
     a.focus = Focus::Note;
     key(&mut a, KeyCode::Char('d'));
     draw(&mut a, 90, 30);
-    assert!(a.delta_open && !a.state.tree, "tree {}", a.state.tree);
+    assert!(a.work.delta_open() && !a.state.tree, "tree {}", a.state.tree);
     assert!(a.frame.visible().contains(&Focus::Delta));
     let _ = std::fs::remove_dir_all(&root);
 }

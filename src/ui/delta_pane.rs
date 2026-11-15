@@ -23,7 +23,7 @@ pub(crate) fn draw_delta(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
     let new = app.note_text().unwrap_or_default();
     let d = delta::compute(&old, &new, 2);
     let stats = format!(" · +{} −{}", d.added, d.removed);
-    let base_btn = format!("{} {}", app.keys.first(crate::keys::Pane::Delta, "base"), if app.delta_base == crate::app::Base::LastVisit { "vs HEAD" } else { "vs last visit" });
+    let base_btn = format!("{} {}", app.keys.first(crate::keys::Pane::Delta, "base"), if app.work.base() == crate::app::Base::LastVisit { "vs HEAD" } else { "vs last visit" });
     let room = w.saturating_sub(base_btn.width() + 1);
     let mut sub_text = format!("{label}{stats}");
     if sub_text.width() > room {
@@ -44,7 +44,7 @@ pub(crate) fn draw_delta(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
     }
     let lines = delta::render(&d, w, t);
     let max = lines.len().saturating_sub(body.height as usize);
-    app.delta_scroll = app.delta_scroll.min(max);
-    let view: Vec<Line> = lines.into_iter().skip(app.delta_scroll).take(body.height as usize).collect();
+    let start = app.work.fit_delta(max);
+    let view: Vec<Line> = lines.into_iter().skip(start).take(body.height as usize).collect();
     f.render_widget(Paragraph::new(view), body);
 }

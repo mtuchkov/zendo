@@ -130,7 +130,7 @@ impl App {
         let path = self.session_path(&path);
         self.files.open(path);
         self.reader.to_top();
-        self.delta_scroll = 0;
+        self.work.delta_top();
         self.threads.unpin();
         if !matches!(self.mode, Mode::Read | Mode::Write) {
             self.mode = Mode::Read;

@@ -6,7 +6,7 @@ pub(crate) fn review_lines(app: &App, note: &Note, width: usize, t: &Theme) -> V
     let rel = app.rel(&note.path);
     let dim = Style::new().fg(t.dim);
     let bar = Span::styled("▎ ", Style::new().fg(t.del));
-    let reading = app.recap_job.as_ref().is_some_and(|j| j.review && j.rel == rel) || app.reviews.queue.contains(&rel);
+    let reading = app.work.job().is_some_and(|j| j.review && j.rel == rel) || app.work.review_waits(&rel);
     let Some(r) = app.review_of(&rel) else {
         return if reading { vec![Line::from(vec![bar, Span::styled("REVIEW · reading the file…", dim.add_modifier(Modifier::BOLD))]), Line::raw("")] } else { Vec::new() };
     };

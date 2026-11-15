@@ -35,7 +35,7 @@ impl App {
     pub fn recap_now(&mut self) {
         let Some(path) = self.files.current().cloned() else { return };
         let rel = self.rel(&path);
-        if self.recap_job.as_ref().is_some_and(|j| j.rel == rel) || self.recap_queue.contains(&rel) {
+        if self.work.recap_waits(&rel) {
             self.flash("the recap is on its way");
             return;
         }
@@ -44,14 +44,14 @@ impl App {
             return;
         }
         self.ensure_agent();
-        self.recap_queue.push_back(rel);
+        self.work.ask_recap(rel);
         self.state.show_recap = true;
         self.flash("writing a recap");
     }
 
     /// The agent runs and has no job in the background.
     fn agent_free(&self) -> bool {
-        self.agent.is_some() && self.agent_name.is_some() && self.recap_job.is_none()
+        self.agent.is_some() && self.agent_name.is_some() && self.work.free()
     }
 
     pub(super) fn agent_idle(&self) -> bool {
@@ -63,7 +63,7 @@ impl App {
     pub(super) fn next_auto(&self) -> Option<String> {
         let week = chrono::Duration::days(7);
         let mut cands: Vec<(chrono::DateTime<Local>, String)> = Vec::new();
-        let here = self.visit.as_ref().filter(|_| self.visit_counts()).map(|v| self.rel(&v.path));
+        let here = self.work.visit().filter(|_| self.visit_counts()).map(|v| self.rel(&v.path));
         let mut rels: Vec<String> = self.state.files.keys().cloned().collect();
         if let Some(h) = &here
             && !rels.contains(h) {
@@ -94,16 +94,15 @@ impl App {
         if (idle && (self.review_tick() || self.meta_tick())) || self.name_tick() || !idle {
             return;
         }
-        let (rel, auto) = if let Some(r) = self.recap_queue.pop_front() {
+        let (rel, auto) = if let Some(r) = self.work.next_recap() {
             (r, false)
         } else {
-            self.auto_recaps.retain(|t| t.elapsed() < Duration::from_secs(3600));
-            if self.last_input.elapsed() < IDLE || self.auto_recaps.len() >= AUTO_PER_HOUR {
+            if !self.work.auto_allowed(self.last_input.elapsed()) {
                 return;
             }
             match self.next_auto() {
                 Some(r) => {
-                    self.auto_recaps.push(Instant::now());
+                    self.work.count_auto();
                     (r, true)
                 }
                 None => return,
@@ -113,7 +112,7 @@ impl App {
         let Ok(text) = std::fs::read_to_string(&path) else { return };
         let prompt = self.recap_prompt(&rel, &path, &text);
         let key = format!("{RECAP_PREFIX}{rel}");
-        self.recap_job = Some(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto, failed: None, meta: None, review: false, name: None });
+        self.work.start(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto, failed: None, meta: None, review: false, name: None });
         if let Some(a) = &self.agent {
             a.send(Cmd::Prompt { key, known: None, text: prompt, attach: vec![] });
         }
@@ -135,7 +134,7 @@ impl App {
 
     /// The recap turn ended: keep the text, drop the throwaway session.
     pub fn recap_done(&mut self, key: String) {
-        let Some(job) = self.recap_job.take() else { return };
+        let Some(job) = self.work.take_job() else { return };
         if let Some(a) = &self.agent {
             a.send(Cmd::Forget { key });
         }
