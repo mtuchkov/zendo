@@ -100,7 +100,7 @@ impl App {
         if let Some(q) = self.find.query.strip_prefix('?').map(|q| q.trim().to_string()) {
             self.close_find();
             self.mode = Mode::Read;
-            self.pinned = Some(ALL_KEY.into());
+            self.threads.pin(ALL_KEY);
             self.open_panel();
             return self.ask(q, ALL_KEY.into());
         }

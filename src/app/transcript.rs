@@ -27,6 +27,16 @@ impl Transcript {
         self.rows.get(r).map_or(0, |l| l.trim_end().chars().count())
     }
 
+    /// The draw: the rows of the thread as plain text.
+    pub fn show_rows(&mut self, rows: Vec<String>) {
+        self.rows = rows;
+    }
+
+    /// The draw: the shell blocks of the thread.
+    pub fn show_blocks(&mut self, blocks: Vec<(usize, usize, String)>) {
+        self.blocks = blocks;
+    }
+
     /// The cursor on the last row with text.
     pub fn to_end(&mut self) {
         self.row = self.rows.iter().rposition(|r| !r.trim().is_empty()).unwrap_or(0);
@@ -143,7 +153,7 @@ impl App {
     pub(crate) fn key_transcript(&mut self, act: Option<&str>) {
         let page = self.frame.view_height().saturating_sub(3).max(1) as isize;
         let Some(act) = act else { return };
-        let t = &mut self.transcript;
+        let t = self.threads.transcript_mut();
         if act.starts_with("select_") && t.anchor.is_none() {
             t.anchor = Some((t.row, t.col));
         }
@@ -166,27 +176,27 @@ impl App {
             "add_to_chat" => self.transcript_to_chat(),
             _ => {}
         }
-        self.transcript.soft_stop(act, before, Instant::now());
+        self.threads.transcript_mut().soft_stop(act, before, Instant::now());
     }
 
     fn copy_transcript(&mut self) {
-        let text = self.transcript.text();
+        let text = self.threads.transcript().text();
         if !text.is_empty() {
             self.pointer.copy(text);
-            self.transcript.anchor = None;
+            self.threads.transcript_mut().anchor = None;
         }
     }
 
     /// `a`: the selected text of the chat goes to the input as a chip of its own color.
     fn transcript_to_chat(&mut self) {
-        let text = self.transcript.text();
+        let text = self.threads.transcript().text();
         if text.is_empty() {
             return self.flash("nothing to add here");
         }
         let quoted: String = text.lines().map(|l| format!("> {l}\n")).collect();
         let ctx = format!("Text from this chat:\n{quoted}");
-        let label = self.add_chip(format!("{CHAT_MARK} {}", chips::selection_label(&text)), Some(ctx), None, true);
-        self.transcript.anchor = None;
+        let label = self.composer.add_chip(format!("{CHAT_MARK} {}", chips::selection_label(&text)), Some(ctx), None, true);
+        self.threads.transcript_mut().anchor = None;
         self.flash(format!("{} is in the chat", label.trim_matches([chips::OPEN, chips::CLOSE])));
     }
 }

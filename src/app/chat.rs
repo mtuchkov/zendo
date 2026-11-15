@@ -25,8 +25,8 @@ impl App {
         }
         self.panel = true;
         self.focus = Focus::Claude;
-        self.transcript.on = false;
-        self.panel_scroll = 0;
+        self.threads.transcript_mut().on = false;
+        self.threads.to_end();
         self.open_session();
     }
 
@@ -40,8 +40,7 @@ impl App {
         if self.state.tree {
             self.scan_tree();
         }
-        self.at = None;
-        self.slash.open = false;
+        self.composer.close_picks();
         self.open_panel();
         let f = self.keys.hint(crate::keys::Pane::Global, &format!("session_{}", self.state.session + 1), "");
         self.flash(format!("agent session {}{}", self.state.session + 1, if f.is_empty() { f } else { format!(" · {f}") }));
@@ -63,7 +62,7 @@ impl App {
     }
 
     pub fn thread(&mut self, key: &str) -> &mut Thread {
-        self.threads.entry(key.to_string()).or_default()
+        self.threads.entry(key)
     }
 
     /// Ask in the one chat thread. `scope` is what the question is about: a file key, the new
@@ -85,13 +84,13 @@ impl App {
         // A slash command goes to the agent as the user typed it.
         let command = question.starts_with('/');
         let (text, file) = if command { (question.clone(), None) } else { self.prompt_text(&question, &scope, &key) };
-        let mut attach = std::mem::take(&mut self.pending_attach);
+        let mut attach = self.composer.take_attach();
         if let Some(p) = &file {
             attach.push(Attachment::File(p.clone()));
         }
         let sent = file.as_ref().map(|p| self.rel(p));
         let out = Outgoing { question, text, attach, sent, command };
-        self.panel_scroll = 0;
+        self.threads.to_end();
         match self.threads.get_mut(&key).filter(|t| t.busy.is_some()) {
             Some(t) => t.queue.push(out),
             None => self.dispatch(key, out),
@@ -140,8 +139,7 @@ impl App {
         } else {
             text.push_str(&format!("The note is not saved yet. Its text:\n{}\n", self.editor.text()));
         }
-        self.ask_default = None;
-        if let Some(c) = self.ask_context.take() {
+        if let Some(c) = self.composer.take_context() {
             text.push_str(&c);
             text.push('\n');
         }
@@ -179,14 +177,14 @@ impl App {
     /// Put an image from the clipboard into the chat input as the chip `Image #n`, with the lowest
     /// number that no chip in the input has (CLAUDE-17).
     pub fn attach_pasted_image(&mut self, path: PathBuf) {
-        let free = |n: &usize| !self.chips.iter().any(|c| c.label == format!("{}Image #{n}{}", chips::OPEN, chips::CLOSE));
+        let free = |n: &usize| !self.composer.chips().iter().any(|c| c.label == format!("{}Image #{n}{}", chips::OPEN, chips::CLOSE));
         let n = (1..).find(free).expect("a free number");
         self.attach_as(format!("Image #{n}"), Attachment::Image(path.clone()));
         self.name_image(path);
     }
 
     fn attach_as(&mut self, label: String, a: Attachment) {
-        let label = self.add_chip(label, None, Some(a), false);
+        let label = self.composer.add_chip(label, None, Some(a), false);
         self.flash(format!("attached {}", label.trim_matches([chips::OPEN, chips::CLOSE])));
     }
 
@@ -198,7 +196,7 @@ impl App {
                     self.attach(Attachment::of(p));
                 }
             }
-            None => self.input.type_str(s),
+            None => self.composer.input_mut().type_str(s),
         }
     }
 
@@ -224,7 +222,7 @@ impl App {
     pub fn toggle_chat(&mut self) {
         if self.panel {
             self.panel = false;
-            self.pinned = None;
+            self.threads.unpin();
             if self.focus == Focus::Claude {
                 self.focus = Focus::Note;
             }
@@ -235,23 +233,9 @@ impl App {
 
     /// Send the chat input: the chips in it bring their text as context.
     pub(crate) fn send_input(&mut self) {
-        let mut q = self.input.take();
-        let chips: Vec<Chip> = std::mem::take(&mut self.chips).into_iter().filter(|c| q.contains(c.label.as_str())).collect();
-        let ctx: Vec<String> = chips.iter().filter_map(|c| c.context.clone()).collect();
-        self.pending_attach = chips.into_iter().filter_map(|c| c.attach).collect();
-        if !self.agent_images && self.pending_attach.iter().any(|a| matches!(a, Attachment::Image(_))) {
+        let q = self.composer.take_question();
+        if !self.agent_images && self.composer.sends_image() {
             self.flash(format!("{} takes no images here: they go as file links", self.agent_label()));
-        }
-        if !ctx.is_empty() {
-            let mut all = self.ask_context.take().into_iter().collect::<Vec<_>>();
-            all.extend(ctx);
-            self.ask_context = Some(all.join("\n"));
-        }
-        // Only chips, or nothing: the default question goes after the chips.
-        let bare = chips::chip_ranges(&q).into_iter().rev().fold(q.clone(), |t, (a, b)| t.chars().take(a).chain(t.chars().skip(b)).collect());
-        if bare.trim().is_empty() && self.ask_context.is_some() {
-            let default = self.ask_default.take().unwrap_or_else(|| DELTA_QUESTION.into());
-            q = format!("{} {default}", q.trim()).trim().to_string();
         }
         let scope = self.scope();
         self.ask(q, scope);

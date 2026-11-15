@@ -21,7 +21,7 @@ pub fn pane_width(app: &App, p: Focus, total: u16) -> u16 {
 /// Wide screen: every open pane side by side.
 pub fn panes(app: &App, width: u16) -> Vec<Focus> {
     let chat = app.panel;
-    let delta = app.delta_open && app.current.is_some() && app.pinned.is_none();
+    let delta = app.delta_open && app.current.is_some() && app.threads.pinned().is_none();
     let mut p = Vec::new();
     if app.state.wide() {
         // Wide: note | chat | delta.
@@ -101,7 +101,7 @@ pub(crate) fn draw_top(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, 
                 format!("new note → {}", app.rel(&p))
             }
         },
-        _ => match app.pinned.as_deref() {
+        _ => match app.threads.pinned() {
             Some(ALL_KEY) => format!("{} · all notes", app.rel(&app.cfg.notes_dir)),
             // FILES-45, FILES-47: a held key names the version that it shows.
             _ if app.peek.on.is_some() => {

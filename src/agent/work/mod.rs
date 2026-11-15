@@ -163,9 +163,8 @@ impl App {
             self.flash("no changes to ask about");
             return;
         }
-        self.ask_context = Some(format!("Changes in this note ({label}):\n{d}"));
-        self.ask_default = Some(crate::app::DELTA_QUESTION.into());
-        self.ask_about = "the changes";
+        self.composer.set_context(format!("Changes in this note ({label}):\n{d}"));
+        self.composer.set_default(crate::app::DELTA_QUESTION.into(), "the changes");
         self.open_panel();
     }
 

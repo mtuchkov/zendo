@@ -22,7 +22,7 @@ impl App {
     }
 
     pub fn start_write(&mut self, new: bool) {
-        self.pinned = None;
+        self.threads.unpin();
         if new {
             self.editor = Editor::new("# ");
             self.editor.move_to_end();
@@ -184,7 +184,7 @@ impl App {
         }
         self.reader.to_top();
         self.delta_scroll = 0;
-        self.pinned = None;
+        self.threads.unpin();
         if !matches!(self.mode, Mode::Read | Mode::Write) {
             self.mode = Mode::Read;
         }

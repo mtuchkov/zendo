@@ -49,7 +49,7 @@ impl App {
         if in_chat && (pane == Pane::Transcript) == from_transcript {
             return self.show_transcript(pane == Pane::Chat);
         }
-        self.transcript.on = false;
+        self.threads.transcript_mut().on = false;
         self.next_pane();
         if self.focus != Focus::Claude {
             return;
@@ -63,9 +63,10 @@ impl App {
     }
 
     fn show_transcript(&mut self, on: bool) {
-        self.transcript.on = on;
+        let t = self.threads.transcript_mut();
+        t.on = on;
         if on {
-            self.transcript.to_end();
+            t.to_end();
         }
     }
 }

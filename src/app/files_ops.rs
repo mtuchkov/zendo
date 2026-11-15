@@ -134,9 +134,7 @@ impl App {
             self.state.save(&self.cfg.root);
         }
         self.rename_recent(&ok, &nk);
-        if let Some(t) = self.threads.remove(&ok) {
-            self.threads.insert(nk, t);
-        }
+        self.threads.rename(&ok, nk);
         if self.current.as_deref() == Some(old) {
             self.current = Some(target.to_path_buf());
         }

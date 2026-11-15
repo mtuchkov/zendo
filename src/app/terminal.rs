@@ -9,8 +9,8 @@ impl App {
     /// terminal that does not run a command; without a block, the `F5` terminal shows (TERM-1,
     /// TERM-4, TERM-11, TERM-21).
     pub(crate) fn terminal_key(&mut self, run: bool) {
-        let on_block = self.panel && self.focus == Focus::Claude && self.transcript.on;
-        match self.transcript.block().filter(|_| on_block).map(str::to_string) {
+        let on_block = self.panel && self.focus == Focus::Claude && self.threads.transcript().on;
+        match self.threads.transcript().block().filter(|_| on_block).map(str::to_string) {
             Some(command) => self.put_into_terminal(&command, run),
             None => self.open_terminal(0),
         }
@@ -56,15 +56,15 @@ impl App {
         }
         let next = match pick {
             Some((i, lines, row, col)) => {
-                (self.input.lines, self.input.row, self.input.col) = (lines, row, col);
+                (self.composer.input_mut().lines, self.composer.input_mut().row, self.composer.input_mut().col) = (lines, row, col);
                 (i + 1) % order.len()
             }
             None => 0,
         };
-        self.output_pick = Some((next, self.input.lines.clone(), self.input.row, self.input.col));
+        self.output_pick = Some((next, self.composer.input_mut().lines.clone(), self.composer.input_mut().row, self.composer.input_mut().col));
         let Some(o) = self.cli.result(order[next]) else { return };
         let name = crate::ui::cli::name(self, order[next]);
-        self.input.type_str(&output_text(&name, &o));
+        self.composer.input_mut().type_str(&output_text(&name, &o));
     }
 
     /// The terminal in the chat pane has the keys: the chat pane is on the screen and has the focus.

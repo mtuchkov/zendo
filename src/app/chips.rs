@@ -39,9 +39,9 @@ pub fn chip_ranges(line: &str) -> Vec<(usize, usize)> {
         .collect()
 }
 
-impl App {
+impl Composer {
     /// Put a chip into the chat input: at the cursor, or at the end. The label is unique.
-    pub(crate) fn add_chip(&mut self, base: String, context: Option<String>, attach: Option<Attachment>, at_end: bool) -> String {
+    pub fn add_chip(&mut self, base: String, context: Option<String>, attach: Option<Attachment>, at_end: bool) -> String {
         let label = self.free_label(&base);
         if at_end {
             self.input.move_to_end();
@@ -63,7 +63,7 @@ impl App {
 
     /// Label the chip `old` with a free label from `base`, in the input and in the chips; the
     /// cursor stays at its place in the text.
-    pub(crate) fn rename_chip(&mut self, old: &str, base: &str) {
+    pub fn rename_chip(&mut self, old: &str, base: &str) {
         let new = self.free_label(base);
         let Some(row) = self.input.lines.iter().position(|l| l.contains(old)) else { return };
         let line = &self.input.lines[row];
@@ -82,7 +82,7 @@ impl App {
     }
 
     /// Left, right, backspace and delete in the chat input: a chip is one unit. True when it was a chip.
-    pub(crate) fn chip_key(&mut self, code: KeyCode) -> bool {
+    pub fn chip_key(&mut self, code: KeyCode) -> bool {
         let range = match code {
             KeyCode::Left | KeyCode::Backspace => self.chip_at(true),
             KeyCode::Right | KeyCode::Delete => self.chip_at(false),

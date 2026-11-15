@@ -22,12 +22,13 @@ pub struct Frame {
     pub(super) word_limit: usize,
     pub(super) word_count: usize,
     pub(super) over_limit: Option<usize>,
+    pub(super) input_width: usize,
 }
 
 impl Frame {
     /// The frame before the first draw: the height of the view and the width of the text.
     pub(crate) fn sized(view_height: usize, text_width: usize, word_limit: usize) -> Self {
-        Self { view_height, text_width, word_limit, ..Self::default() }
+        Self { view_height, text_width, word_limit, input_width: 40, ..Self::default() }
     }
 
     /// The panes, left to right.
@@ -83,6 +84,11 @@ impl Frame {
     /// The width of the text column.
     pub fn text_width(&self) -> usize {
         self.text_width
+    }
+
+    /// The width of the chat input, for up and down moves in it.
+    pub fn input_width(&self) -> usize {
+        self.input_width
     }
 
     /// The word limit of the document on the screen.

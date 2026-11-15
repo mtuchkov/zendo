@@ -50,14 +50,14 @@ async fn alt_a_s_b_work_in_read_and_write_mode() {
         }
         let mode = a.mode;
         alt(&mut a, 'a');
-        assert!(a.chips.last().is_some_and(|c| c.label.contains("The first")), "alt-a, write {write}");
-        a.chips.clear();
-        a.input.take();
+        assert!(a.composer.chips().last().is_some_and(|c| c.label.contains("The first")), "alt-a, write {write}");
+        a.composer.clear_chips();
+        a.composer.input_mut().take();
         a.focus = Focus::Note;
         alt(&mut a, 's');
-        assert!(a.say.is_some() && a.input.text().starts_with("⟦write here :"), "alt-s, write {write}");
+        assert!(a.say.is_some() && a.composer.input().text().starts_with("⟦write here :"), "alt-s, write {write}");
         a.say = None;
-        a.input.take();
+        a.composer.input_mut().take();
         a.focus = Focus::Note;
         let tree = a.state.tree;
         alt(&mut a, 'b');

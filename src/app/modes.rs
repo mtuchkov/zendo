@@ -56,7 +56,7 @@ impl App {
             Some("open") if n > 0 => {
                 self.current = Some(self.notes[self.notes_sel].path.clone());
                 self.reader.to_start();
-                self.pinned = None;
+                self.threads.unpin();
                 self.mode = Mode::Read;
             }
             Some("new") => self.open_float(),
@@ -116,7 +116,7 @@ impl App {
                 if let Some(q) = self.query.strip_prefix('?') {
                     let q = q.trim().to_string();
                     self.mode = Mode::Read;
-                    self.pinned = Some(ALL_KEY.into());
+                    self.threads.pin(ALL_KEY);
                     self.open_panel();
                     self.ask(q, ALL_KEY.into());
                     return;
@@ -124,7 +124,7 @@ impl App {
                 if let Some(g) = self.results.get(self.result_sel) {
                     let line = g.snippets.first().map(|s| s.line).unwrap_or(0);
                     self.current = Some(self.notes[g.note].path.clone());
-                    self.pinned = None;
+                    self.threads.unpin();
                     self.mode = Mode::Read;
                     let rows = crate::ui::source_rows(self, self.frame.text_width());
                     self.reader.jump(rows.get(line).copied().unwrap_or(0));

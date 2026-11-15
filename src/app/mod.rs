@@ -10,6 +10,7 @@ mod terminal;
 mod terminal_mouse;
 pub mod cursor_map;
 pub mod chips;
+mod composer;
 mod events;
 mod files;
 mod files_new;
@@ -33,6 +34,7 @@ mod selection;
 mod slash;
 mod tab;
 mod thread;
+mod threads;
 mod transcript;
 mod tree;
 mod worktree;
@@ -40,7 +42,8 @@ mod write;
 pub mod write_rows;
 pub mod version;
 
-pub use at::{AT_ROWS, AtPick};
+pub use at::{AT_ROWS, AtKey, AtPick};
+pub use composer::Composer;
 pub use attention::Attention;
 pub use file_prompt::FilePrompt;
 pub use find::{Find, FindItem};
@@ -51,6 +54,7 @@ pub use say::{SAY_HERE, Say};
 pub use slash::Slash;
 pub use tab::{TAB_PAUSE, TabRun};
 pub use thread::*;
+pub use threads::Threads;
 pub use transcript::{CHAT_MARK, Transcript};
 pub use modes::Mode;
 pub use pointer::Pointer;
@@ -133,34 +137,22 @@ pub struct App {
     pub result_sel: usize,
 
     pub panel: bool,
-    /// A thread shown regardless of the note, e.g. a question across all notes.
-    pub pinned: Option<String>,
     pub focus: Focus,
-    /// The chat input.
-    pub input: Editor,
-    /// Selections added to the chat: the label in the input, and the text that goes as context.
-    pub chips: Vec<Chip>,
-    /// Files and images for the next prompt.
-    pub pending_attach: Vec<Attachment>,
+    /// What goes into the next question: the chat input, its chips, the suggestions, the context.
+    pub composer: Composer,
+    /// The chat threads, the transcript cursor, the pinned thread, and the scroll of the chat pane.
+    pub threads: Threads,
     /// The agent takes images in a prompt (from its ACP capabilities).
     pub agent_images: bool,
-    pub slash: Slash,
-    /// The cursor in the chat transcript.
-    pub transcript: Transcript,
-    /// Width of the chat input, for up and down moves in it.
-    pub input_width: usize,
     /// The keymap of every pane, and what is wrong in `[keys]` of the config.
     pub keys: crate::keys::Keymap,
     pub key_problems: Vec<String>,
     /// The keymap file that the config names, for the help (PANES-31).
     pub keymap_file: Option<String>,
-    pub threads: HashMap<String, Thread>,
     pub agent: Option<AgentHandle>,
     pub agent_events: Option<tokio::sync::mpsc::UnboundedReceiver<Event>>,
     pub agent_name: Option<String>,
     pub agent_down: Option<String>,
-    pub details: bool,
-    pub panel_scroll: usize,
 
     pub delta_open: bool,
     pub delta_base: Base,
@@ -186,12 +178,6 @@ pub struct App {
     pub last_input: Instant,
     /// The run of `tab`s (CLAUDE-36).
     pub tab_run: TabRun,
-    /// Text attached to the next question, e.g. the delta.
-    pub ask_context: Option<String>,
-    /// The question sent when the input is empty and there is a context.
-    pub ask_default: Option<String>,
-    /// What the context is, for the input placeholder: "the changes", "the selection".
-    pub ask_about: &'static str,
     /// A newer commit on main (short sha), found on start.
     pub update: Option<String>,
     pub update_rx: Option<tokio::sync::oneshot::Receiver<Option<String>>>,
@@ -215,12 +201,6 @@ pub struct App {
     pub find: Find,
     /// `ctrl-shift-s`: the arrow in the note, until the answer ends or `esc`.
     pub say: Option<Say>,
-    /// `@` in the chat input: the file suggestions under it.
-    pub at: Option<AtPick>,
-    /// The files of the repository while the suggestions are open.
-    pub at_files: Option<Vec<PathBuf>>,
-    /// `ctrl-t`: the next suggestions show only templates.
-    pub at_templates: bool,
     /// Notes folder fingerprint (count and newest change), checked every second.
     pub disk: (usize, Option<std::time::SystemTime>),
     #[default(Instant::now())]

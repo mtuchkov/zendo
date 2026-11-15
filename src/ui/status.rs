@@ -59,9 +59,9 @@ fn status_keys(app: &App, fr: &Cache, t: &Theme, claude: bool) -> (&'static str,
         let v = [(Pane::Chat, "handoff", "full screen"), (Pane::Session, "leave", "back"), (Pane::Global, "next_session", "next session")];
         return ("SHELL", t.acc, v.iter().map(|(p, a, text)| (app.keys.first(*p, a), text.to_string())).collect());
     }
-    if claude && app.transcript.on {
+    if claude && app.threads.transcript().on {
         let mut v = hints(Pane::Transcript, &[("down", "move"), ("select_down", "select"), ("copy", "copy"), ("add_to_chat", "to chat"), ("input", "input")]);
-        if app.transcript.block().is_some() {
+        if app.threads.transcript().block().is_some() {
             // The cursor is in a shell block: F5 puts it into a terminal, alt-F5 runs it (TERM-1, TERM-21).
             v.insert(0, (app.keys.first(Pane::Global, "terminal_run"), "run".into()));
             v.insert(0, (app.keys.first(Pane::Global, "terminal"), "to shell".into()));
@@ -71,7 +71,7 @@ fn status_keys(app: &App, fr: &Cache, t: &Theme, claude: bool) -> (&'static str,
     // Text is selected where the user writes: the keys of `[selection]` first (PANES-37).
     let selected = |e: &crate::text::editor::Editor| if e.selection().is_some() { hints(Pane::Selected, &[("copy", "copy"), ("cut", "cut")]) } else { Vec::new() };
     if claude {
-        let mut v = selected(&app.input);
+        let mut v = selected(app.composer.input());
         v.extend(hints(Pane::Chat, &[("send", "send"), ("newline", "new line"), ("new_thread", "new thread"), ("handoff", "Claude Code"), ("back", "back")]));
         v.push((app.keys.first(Pane::Global, "next_session"), "next session".into()));
         return ("CHAT", t.acc, with_next(v));

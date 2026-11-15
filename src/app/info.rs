@@ -80,7 +80,7 @@ impl App {
         if !self.panel {
             return;
         }
-        self.ask_context = Some(ctx);
+        self.composer.set_context(ctx);
         let scope = self.scope();
         self.ask(format!("Split {rel}: {} words, the limit is {}. Keep the altitude.", self.frame.word_count(), self.frame.word_limit()), scope);
     }
@@ -118,8 +118,8 @@ impl App {
 
     /// What a question is about: the file on screen, a new note, or all notes.
     pub fn scope(&self) -> String {
-        if let Some(p) = &self.pinned {
-            return p.clone();
+        if let Some(p) = self.threads.pinned() {
+            return p.to_string();
         }
         if self.mode == Mode::Write && self.editor_path.is_none() {
             return NEW_KEY.into();

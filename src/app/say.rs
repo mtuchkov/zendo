@@ -107,12 +107,10 @@ impl App {
         self.reader.unselect();
         self.open_panel();
         self.say = Some(Say { path, line: mark.0, col: mark.1, key: self.key(), rewrite });
-        self.ask_about = if rewrite { "the selection" } else { "the mark" };
-        self.ask_default = Some((if rewrite { SAY_DIFFERENTLY } else { SAY_HERE }).to_string());
-        self.input.take();
-        self.chips.clear();
+        self.composer.set_default((if rewrite { SAY_DIFFERENTLY } else { SAY_HERE }).to_string(), if rewrite { "the selection" } else { "the mark" });
+        self.composer.clear();
         // The chip brings the place and the task; the user writes the idea after it.
-        self.add_chip(say_label(rewrite, mark.0), Some(format!("{ctx}\nThe idea of the user is the question.")), None, false);
+        self.composer.add_chip(say_label(rewrite, mark.0), Some(format!("{ctx}\nThe idea of the user is the question.")), None, false);
         self.focus = Focus::Claude;
     }
 

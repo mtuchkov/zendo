@@ -46,11 +46,11 @@ fn run(a: &mut App, i: usize, command: &str) {
 fn to_input(a: &mut App) {
     alt(a, 'q');
     a.focus = Focus::Claude;
-    a.transcript.on = false;
+    a.threads.transcript_mut().on = false;
 }
 
 fn input(a: &App) -> String {
-    a.input.lines.join("\n")
+    a.composer.input().lines.join("\n")
 }
 
 fn done(root: &Path, a: &mut App) {

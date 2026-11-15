@@ -23,11 +23,11 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
     let w = inner.width as usize;
     // The input grows with its text, up to a quarter of the panel; then it scrolls.
     let in_w = (inner.width as usize).saturating_sub(4).max(10);
-    app.input_width = in_w;
-    let in_rows = app.input.segments(in_w).len().max(1);
+    fr.input_width = in_w;
+    let in_rows = app.composer.input().segments(in_w).len().max(1);
     let in_h = in_rows.min((inner.height as usize / 4).max(1)) as u16;
-    let slash_h = if app.slash.open { app.slash.hits.len().clamp(1, crate::app::AT_ROWS) } else { 0 };
-    let at_h = app.at.as_ref().map_or(slash_h, |p| p.hits.len().clamp(1, crate::app::AT_ROWS)) as u16;
+    let slash_h = if app.composer.slash().open { app.composer.slash().hits.len().clamp(1, crate::app::AT_ROWS) } else { 0 };
+    let at_h = app.composer.at().map_or(slash_h, |p| p.hits.len().clamp(1, crate::app::AT_ROWS)) as u16;
     let [head, _, body, _, input, picks] = Layout::vertical([
         Constraint::Length(1),
         Constraint::Length(1),
@@ -37,10 +37,10 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
         Constraint::Length(at_h),
     ])
     .areas(inner);
-    if let Some(p) = &app.at {
+    if let Some(p) = app.composer.at() {
         draw_at(f, t, picks, p);
-    } else if app.slash.open {
-        draw_slash(f, t, picks, &app.slash);
+    } else if app.composer.slash().open {
+        draw_slash(f, t, picks, app.composer.slash());
     }
 
     let dim = Style::new().fg(t.dim);
@@ -51,7 +51,7 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
     f.render_widget(Paragraph::new(Line::from(vec![Span::styled(left, dim.add_modifier(Modifier::BOLD)), Span::raw(" ".repeat(pad)), Span::styled(scope, dim)])), head);
 
     let (mut lines, blocks) = panel_lines(app, t, w);
-    app.transcript.blocks = blocks;
+    app.threads.transcript_mut().show_blocks(blocks);
     if let Some(down) = &app.agent_down {
         lines.extend(markdown::wrap(vec![Span::styled(format!("{down}. Run `zendo doctor` in a terminal to see why, then ask again. Log: .zendo/agent.log"), Style::new().fg(t.del))], w, "", ""));
     } else if app.agent_name.is_none() && app.agent.is_some() {
@@ -66,13 +66,10 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
 /// and the cursor row and the selection show.
 fn draw_transcript(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, body: Rect, lines: Vec<Line<'static>>, w: usize) {
     let h = body.height as usize;
-    app.transcript.rows = lines.iter().map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect()).collect();
-    let on = app.transcript.on && app.focus == Focus::Claude;
-    let max = lines.len().saturating_sub(h);
-    let tr = &app.transcript;
-    let bottom = max - app.panel_scroll.min(max);
-    let start = if on { bottom.min(tr.row).max((tr.row + 1).saturating_sub(h)).min(max) } else { bottom };
-    app.panel_scroll = max - start;
+    app.threads.transcript_mut().show_rows(lines.iter().map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect()).collect());
+    let on = app.threads.transcript().on && app.focus == Focus::Claude;
+    let start = app.threads.fit(lines.len(), h, on);
+    let tr = app.threads.transcript();
     let sel = delta::mix(t.bg, t.acc2, 0.42);
     let table = if on { tr.table() } else { None };
     let view: Vec<Line> = lines
@@ -88,7 +85,7 @@ fn draw_transcript(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, body
         .collect();
     f.render_widget(Paragraph::new(view), body);
     let shown = |(a, ..): &&(usize, usize, String)| *a >= start && *a < start + h;
-    let play = app.transcript.blocks.iter().filter(shown).map(|(a, _, c)| (Rect { x: body.x + (w as u16).saturating_sub(2), y: body.y + (a - start) as u16, width: 2, height: 1 }, c.clone())).collect::<Vec<_>>();
+    let play = app.threads.transcript().blocks.iter().filter(shown).map(|(a, _, c)| (Rect { x: body.x + (w as u16).saturating_sub(2), y: body.y + (a - start) as u16, width: 2, height: 1 }, c.clone())).collect::<Vec<_>>();
     fr.play_buttons = play;
     if on && tr.row >= start && tr.row < start + h {
         let x: usize = tr.rows[tr.row].chars().take(tr.col).map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
@@ -101,10 +98,10 @@ fn draw_input(f: &mut Frame, app: &App, t: &Theme, input: Rect, in_h: u16, in_w:
     let key = app.key();
     f.render_widget(Block::new().style(Style::new().bg(t.bg)), input);
     let box_in = Rect { x: input.x + 1, y: input.y + 1, width: input.width.saturating_sub(2), height: in_h };
-    let focused = app.focus == Focus::Claude && !app.transcript.on;
+    let focused = app.focus == Focus::Claude && !app.threads.transcript().on;
     let mark = Span::styled("› ", Style::new().fg(if focused { t.acc } else { t.dim }));
     let text_area = Rect { x: box_in.x + 2, width: box_in.width.saturating_sub(2), ..box_in };
-    if app.input.is_empty() {
+    if app.composer.input().is_empty() {
         let hint = input_hint(app, &key);
         let room = text_area.width as usize;
         let hint = if hint.width() <= room { hint } else { hint.chars().take(room.saturating_sub(1)).collect::<String>() + "…" };
@@ -114,17 +111,17 @@ fn draw_input(f: &mut Frame, app: &App, t: &Theme, input: Rect, in_h: u16, in_w:
         }
         return;
     }
-    let segs = app.input.segments(in_w);
-    let (vrow, vx) = app.input.cursor_visual(&segs, in_w);
+    let segs = app.composer.input().segments(in_w);
+    let (vrow, vx) = app.composer.input().cursor_visual(&segs, in_w);
     let top = vrow.saturating_sub(in_h as usize - 1);
     let chip = chip_styles(t);
-    let hot = app.chip_in_focus();
+    let hot = app.composer.chip_in_focus();
     let lines: Vec<Line> = segs
         .iter()
         .skip(top)
         .take(in_h as usize)
         .map(|sg| {
-            let text: String = app.input.lines[sg.line].chars().skip(sg.start).take(sg.end - sg.start).collect();
+            let text: String = app.composer.input().lines[sg.line].chars().skip(sg.start).take(sg.end - sg.start).collect();
             let hot = hot.filter(|(row, ..)| *row == sg.line).map(|(_, a, b)| (a, b, Style::new().fg(t.bg).bg(t.acc).add_modifier(Modifier::BOLD)));
             Line::from(chip_spans_at(&text, sg.start, Style::new().fg(t.fg), chip, hot))
         })
@@ -144,8 +141,8 @@ fn input_hint(app: &App, key: &str) -> String {
         let send = app.keys.key(crate::keys::Pane::Chat, "send").map(|k| format!("{k} queues the next question"));
         let stop = app.keys.key(crate::keys::Pane::Chat, "back").map(|k| format!("{k} stops"));
         send.into_iter().chain(stop).collect::<Vec<_>>().join(" · ")
-    } else if app.ask_context.is_some() {
-        let about = if app.ask_about.is_empty() { "it" } else { app.ask_about };
+    } else if app.composer.has_context() {
+        let about = if app.composer.about().is_empty() { "it" } else { app.composer.about() };
         format!("ask about {about}{}", app.keys.key(crate::keys::Pane::Chat, "send").map(|k| format!(", or press {k}")).unwrap_or_default())
     } else if app.scope() == ALL_KEY {
         "ask about all notes".to_string()

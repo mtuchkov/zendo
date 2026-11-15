@@ -140,7 +140,7 @@ fn file_actions_in_a_worktree_ask_first_while_the_agent_works() {
     assert!(a.file_prompt.is_none());
 
     // The agent of the session answers: a popup asks first; a key other than y cancels.
-    a.threads.entry("(chat)".into()).or_default().busy = Some(Instant::now());
+    a.threads.entry("(chat)").busy = Some(Instant::now());
     key(&mut a, KeyCode::Delete);
     assert!(a.file_prompt.is_none() && a.worktree.confirm.is_some());
     let screen = draw(&mut a, 120, 30).join("\n");

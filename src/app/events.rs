@@ -56,8 +56,8 @@ impl App {
             }
             Event::Exited { text } => self.on_exited(text),
             Event::Commands { list } => {
-                self.slash.commands = list;
-                self.update_slash();
+                self.composer.set_commands(list);
+                self.composer.update_slash();
             }
         }
     }

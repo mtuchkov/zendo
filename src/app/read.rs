@@ -84,7 +84,7 @@ impl App {
         let i = i.clamp(0, self.notes.len() as isize - 1) as usize;
         self.current = Some(self.notes[i].path.clone());
         self.reader.to_start();
-        self.pinned = None;
+        self.threads.unpin();
     }
 
     /// The cursor to the start of the next word, or of this or the previous word.

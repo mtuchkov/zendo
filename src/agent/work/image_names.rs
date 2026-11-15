@@ -44,8 +44,8 @@ impl App {
             a.send(Cmd::Forget { key: key.to_string() });
         }
         let has = |c: &crate::app::Chip| matches!(&c.attach, Some(Attachment::Image(p)) if *p == path);
-        if let (true, Some(name), Some(old)) = (ok, image_name(&buf), self.chips.iter().find(|c| has(c)).map(|c| c.label.clone())) {
-            self.rename_chip(&old, &format!("Image: {name}"));
+        if let (true, Some(name), Some(old)) = (ok, image_name(&buf), self.composer.chips().iter().find(|c| has(c)).map(|c| c.label.clone())) {
+            self.composer.rename_chip(&old, &format!("Image: {name}"));
         }
     }
 }

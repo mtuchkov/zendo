@@ -61,11 +61,11 @@ impl App {
             Region::Panel if self.cli.pane.is_some() => format!("Text from the terminal:\n{quoted}"),
             Region::Panel => format!("Text from this chat:\n{quoted}"),
         };
-        let label = self.add_chip(chips::selection_label(&text), Some(ctx), None, true);
+        let label = self.composer.add_chip(chips::selection_label(&text), Some(ctx), None, true);
         self.open_panel();
         if self.panel {
             self.focus = Focus::Claude;
-            self.transcript.on = false;
+            self.threads.transcript_mut().on = false;
         }
         self.flash(format!("{} is in the chat", label.trim_matches([chips::OPEN, chips::CLOSE])));
     }
@@ -76,9 +76,8 @@ impl App {
             self.flash("nothing to ask about here");
             return;
         };
-        self.ask_context = Some(ctx);
-        self.ask_default = Some("Look at the selected text: what is unclear, missing or wrong?".into());
-        self.ask_about = "the selection";
+        self.composer.set_context(ctx);
+        self.composer.set_default("Look at the selected text: what is unclear, missing or wrong?".into(), "the selection");
         self.reader.unselect();
         self.open_panel();
     }
@@ -89,7 +88,7 @@ impl App {
             self.flash("nothing to add here");
             return;
         };
-        let label = self.add_chip(chips::selection_label(&self.selection_text()), Some(ctx), None, true);
+        let label = self.composer.add_chip(chips::selection_label(&self.selection_text()), Some(ctx), None, true);
         self.reader.unselect();
         let back = self.focus;
         self.open_panel();
@@ -118,7 +117,7 @@ impl App {
         let rel = self.editor_path.as_ref().map(|p| self.rel(p)).unwrap_or_default();
         let quoted: String = text.lines().map(|l| format!("> {l}\n")).collect();
         let ctx = format!("Selected text from {rel} (about lines {}–{}):\n{quoted}", lo + 1, hi + 1);
-        let label = self.add_chip(chips::selection_label(&text), Some(ctx), None, true);
+        let label = self.composer.add_chip(chips::selection_label(&text), Some(ctx), None, true);
         let back = self.focus;
         self.open_panel();
         if self.panel {
@@ -134,7 +133,7 @@ impl App {
         let Some(act) = self.keys.local(Pane::Selected, k) else { return false };
         let e = match pane {
             Pane::Write => &mut self.editor,
-            Pane::Chat => &mut self.input,
+            Pane::Chat => self.composer.input_mut(),
             _ => return false,
         };
         let Some(text) = e.selected_text().filter(|_| e.selection().is_some()) else { return false };

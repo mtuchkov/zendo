@@ -135,7 +135,7 @@ async fn keys_in_the_waiting_view() {
     ctrl(&mut a, 'o');
     typ(&mut a, "xyz");
     a.on_paste("pasted".into());
-    assert_eq!(a.input.text(), "", "no key and no paste goes to the chat input");
+    assert_eq!(a.composer.input().text(), "", "no key and no paste goes to the chat input");
     assert!(a.hold.is_some());
     a.on_key(KeyEvent::new(KeyCode::Char('q'), KeyModifiers::ALT));
     assert!(a.hold.is_none(), "alt-q leaves the waiting view");
@@ -157,6 +157,6 @@ async fn queued_questions_go_to_the_input() {
     until(&mut a, |a| a.cli.running(0)).await;
     assert!(a.threads[&session_key(0)].queue.is_empty());
     assert!(!answering(&a), "the queued question did not go to the agent");
-    assert_eq!(a.input.text(), "second", "the queued question is in the chat input");
+    assert_eq!(a.composer.input().text(), "second", "the queued question is in the chat input");
     done(&root, &mut a);
 }

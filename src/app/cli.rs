@@ -126,8 +126,7 @@ impl App {
     /// as `@path`, a selection chip as its text after the question.
     pub(crate) fn send_to_cli(&mut self) {
         let n = self.active();
-        let q = self.input.take();
-        let chips: Vec<Chip> = std::mem::take(&mut self.chips).into_iter().filter(|c| q.contains(c.label.as_str())).collect();
+        let (q, chips) = self.composer.take_message();
         let mut text = q.clone();
         let mut after = Vec::new();
         for c in &chips {
@@ -156,7 +155,7 @@ impl App {
         t.sent_to_cli.push(sent);
         t.push(Item::User(q));
         t.push(Item::Info("sent to Claude Code; it queues the message while it works".into()));
-        self.panel_scroll = 0;
+        self.threads.to_end();
     }
 
     /// Other questions of the chat of an agent session whose Claude Code session runs, such as a

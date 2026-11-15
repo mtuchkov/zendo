@@ -55,7 +55,7 @@ impl App {
     }
 
     pub(super) fn agent_idle(&self) -> bool {
-        self.agent_free() && self.threads.iter().all(|(_, t)| t.busy.is_none())
+        self.agent_free() && self.threads.values().all(|t| t.busy.is_none())
     }
 
     /// The next file for an automatic recap: worked on in the last week, changed since its recap.
