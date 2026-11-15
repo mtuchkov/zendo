@@ -24,7 +24,7 @@ pub(crate) fn draw_float(f: &mut Frame, app: &mut App) {
     app.pane_rects.clear();
     f.render_widget(Clear, r);
     // The float has a background of its own (FLOAT-16).
-    let t = Theme { bg: t.float, ..t };
+    let t = t.on_float();
     f.render_widget(Block::bordered().border_style(Style::new().fg(t.line)).style(Style::new().bg(t.bg).fg(t.fg)), r);
     let inner = r.inner(Margin::new(1, 1));
     if inner.height < 3 {

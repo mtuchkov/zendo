@@ -73,9 +73,9 @@ async fn the_float_hides_the_panes_and_the_hints() {
     let top = screen.iter().find(|l| l.contains("new note")).unwrap_or_else(|| panic!("no top line:\n{}", screen.join("\n")));
     assert!(top.contains("docs/notes/new note") && top.contains("master") && top.contains("[ esc close ]"), "{top}");
     assert!(!screen[39].contains(&hint), "no key hints:\n{}", screen.join("\n"));
-    let (dim, fg) = (float_colors(&mut a, 120, 40), a.theme().fg);
+    let (dim, fg, ink) = (float_colors(&mut a, 120, 40), a.theme().fg, a.theme().on_float().fg);
     assert_ne!(dim.0, fg, "the screen behind is dim");
-    assert_eq!(dim.1, fg, "the note in the float is not");
+    assert_eq!(dim.1, ink, "the note in the float is not: it has the ink of the float");
     a.cli.stop_all();
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -276,6 +276,8 @@ async fn the_float_has_the_float_color_of_the_theme() {
     let border = (r.left()..r.right()).flat_map(|x| [(x, r.top()), (x, r.bottom() - 1)]).chain((r.top()..r.bottom()).flat_map(|y| [(r.left(), y), (r.right() - 1, y)]));
     let empty = (r.left()..r.right()).map(|x| (x, r.bottom() - 2));
     assert!(border.chain(empty).all(|p| buf[p].bg == t.float), "the border and the empty rows of the float have the float color");
+    let tea = (r.top()..r.bottom()).flat_map(|y| (r.left()..r.right()).map(move |x| (x, y))).find(|&p| buf[p].symbol() == "T").unwrap();
+    assert_eq!(buf[tea].fg, t.on_float().fg, "the text of the float has the ink of the float");
     assert_eq!(buf[(0, 0)].bg, t.bg, "the screen behind keeps the note color");
     a.cli.stop_all();
     let _ = std::fs::remove_dir_all(&root);
