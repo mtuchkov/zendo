@@ -19,7 +19,7 @@ fn alt(a: &mut App, c: char) {
 }
 
 fn in_float(a: &App) -> bool {
-    a.float.is_some() && a.mode == Mode::Write && a.editor.text() == "# " && a.editor_path.is_none()
+    a.writer.float().is_some() && a.mode == Mode::Write && a.writer.editor().text() == "# " && a.writer.path().is_none()
 }
 
 /// The notes folder after the test: the files in it.
@@ -50,7 +50,7 @@ async fn alt_n_opens_a_float_from_every_pane() {
         draw(&mut a, 160, 40);
         alt(&mut a, 'n');
         assert!(in_float(&a), "{name}: a float with an empty note");
-        assert_eq!((a.editor.row, a.editor.col), (0, 2), "{name}: the cursor after `# `");
+        assert_eq!((a.writer.editor().row, a.writer.editor().col), (0, 2), "{name}: the cursor after `# `");
         a.cli.stop_all();
     }
     let _ = std::fs::remove_dir_all(&root);
@@ -112,7 +112,7 @@ async fn esc_saves_the_float_and_restores_the_screen() {
     key(&mut a, KeyCode::Enter);
     typ(&mut a, "A line of text.");
     key(&mut a, KeyCode::Esc);
-    assert!(a.float.is_none(), "esc closes the float");
+    assert!(a.writer.float().is_none(), "esc closes the float");
     let saved: Vec<String> = notes(&root).into_iter().filter(|n| n.ends_with("-tea.md")).collect();
     assert_eq!(saved.len(), 1, "{:?}", notes(&root));
     let text = std::fs::read_to_string(root.join("docs/notes").join(&saved[0])).unwrap();
@@ -137,7 +137,7 @@ async fn the_float_saves_the_open_file_first() {
     alt(&mut a, 'n');
     assert!(std::fs::read_to_string(root.join(NOTE)).unwrap().contains("Unsaved "), "saved before the float");
     key(&mut a, KeyCode::Esc);
-    assert_eq!((a.mode, a.editor_path.as_deref()), (Mode::Write, Some(root.join(NOTE).as_path())), "write mode again");
+    assert_eq!((a.mode, a.writer.file()), (Mode::Write, Some(root.join(NOTE).as_path())), "write mode again");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -158,7 +158,7 @@ async fn n_opens_the_float() {
     key(&mut a, KeyCode::Esc);
     assert_eq!(a.mode, Mode::Notes, "back in the notes list");
     key(&mut a, KeyCode::Enter);
-    assert!(a.float.is_none() && a.mode == Mode::Read && a.files.current().is_some(), "a note that is there opens in the note pane");
+    assert!(a.writer.float().is_none() && a.mode == Mode::Read && a.files.current().is_some(), "a note that is there opens in the note pane");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -173,7 +173,7 @@ async fn the_top_line_shows_the_path_after_the_first_save() {
     let screen = draw(&mut a, 120, 40).join("\n");
     let date = chrono::Local::now().format("%Y-%m-%d").to_string();
     assert!(screen.contains(&format!("docs/notes/{date}-green-builds.md")), "{screen}");
-    assert!(a.float.is_some(), "the float stays open after a save");
+    assert!(a.writer.float().is_some(), "the float stays open after a save");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -237,9 +237,9 @@ async fn pane_keys_do_nothing_in_the_float() {
     a.on_key(KeyEvent::new(KeyCode::F(5), KeyModifiers::NONE));
     alt(&mut a, ']');
     alt(&mut a, 'n');
-    assert!(a.float.is_some() && a.mode == Mode::Write, "still in the float");
+    assert!(a.writer.float().is_some() && a.mode == Mode::Write, "still in the float");
     assert_eq!((a.panel, a.state.tree, a.work.delta_open(), a.cli.pane), (false, false, false, None), "no pane opened");
-    assert_eq!(a.editor.text(), "# Tea", "the same note");
+    assert_eq!(a.writer.editor().text(), "# Tea", "the same note");
     key(&mut a, KeyCode::Tab);
     assert_eq!(a.focus, Focus::Note, "tab does not move the focus");
     a.cli.stop_all();
@@ -254,7 +254,7 @@ async fn an_empty_float_makes_no_file() {
     let before = notes(&root);
     alt(&mut a, 'n');
     key(&mut a, KeyCode::Esc);
-    assert!(a.float.is_none());
+    assert!(a.writer.float().is_none());
     assert_eq!(notes(&root), before);
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -272,7 +272,7 @@ async fn the_float_has_the_float_color_of_the_theme() {
     term.draw(|f| a.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();
     let t = *a.theme();
-    let r = a.float.as_ref().unwrap().rect;
+    let r = a.writer.float().unwrap().rect;
     let border = (r.left()..r.right()).flat_map(|x| [(x, r.top()), (x, r.bottom() - 1)]).chain((r.top()..r.bottom()).flat_map(|y| [(r.left(), y), (r.right() - 1, y)]));
     let empty = (r.left()..r.right()).map(|x| (x, r.bottom() - 2));
     assert!(border.chain(empty).all(|p| buf[p].bg == t.float), "the border and the empty rows of the float have the float color");
@@ -301,7 +301,7 @@ async fn the_rows_of_the_float_have_its_ink() {
     term.draw(|f| a.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();
     let ink = a.theme().on_float();
-    let r = a.float.as_ref().unwrap().rect;
+    let r = a.writer.float().unwrap().rect;
     let cells = |y: u16| (r.left()..r.right()).map(move |x| (x, y));
     let leaf = (r.top() + 2..r.bottom()).flat_map(cells).find(|&p| buf[p].symbol() == "L").unwrap();
     assert_eq!(buf[leaf].fg, ink.fg, "a row off the cursor has the ink of the float");

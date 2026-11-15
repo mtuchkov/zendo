@@ -22,19 +22,19 @@ impl App {
 
     /// After write mode: ask the agent in the background for what the file lacks.
     pub fn ask_for_meta(&mut self) {
-        let Some(path) = self.files.current().cloned().or_else(|| self.editor_path.clone()) else { return };
+        let Some(path) = self.files.current().cloned().or_else(|| self.writer.path().cloned()) else { return };
         if self.cfg.offline || self.meta_needs(&path).is_none() {
             return;
         }
         let rel = self.rel(&path);
-        if !self.meta_queue.contains(&rel) {
+        if !self.writer.meta_waits(&rel) {
             self.ensure_agent();
-            self.meta_queue.push_back(rel);
+            self.writer.ask_meta(rel);
         }
     }
 
     pub(super) fn meta_tick(&mut self) -> bool {
-        let Some(rel) = self.meta_queue.pop_front() else { return false };
+        let Some(rel) = self.writer.next_meta() else { return false };
         let path = self.cfg.root.join(&rel);
         let Some(meta) = self.meta_needs(&path) else { return true };
         let Ok(text) = std::fs::read_to_string(&path) else { return true };

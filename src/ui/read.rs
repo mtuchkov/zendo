@@ -212,7 +212,7 @@ fn mark_row(app: &App, fr: &Cache, t: &Theme, i: usize, l: Line<'static>, width:
 
 /// The row of the read view where the mark of "say it here" is, in this note.
 fn say_row_read(app: &App, fr: &Cache, note: &Note) -> Option<usize> {
-    let say = app.say.as_ref().filter(|s| s.path == note.path)?;
+    let say = app.writer.say().filter(|s| s.path == note.path)?;
     let src: Vec<&str> = note.body.lines().collect();
     Some(crate::app::cursor_map::source_to_shown(&fr.read_text, &fr.read_rows, &src, (say.line, say.col)).0)
 }

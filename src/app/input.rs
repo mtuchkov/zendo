@@ -48,7 +48,7 @@ impl App {
         match (self.cli.view, self.pane_terminal()) {
             // The question of the first start takes every key until it has an answer (LOFI-12).
             _ if self.music.asking => self.key_music_question(k),
-            _ if self.float.is_some() => self.key_float(k),
+            _ if self.writer.float().is_some() => self.key_float(k),
             _ if global == Some("new_note") => drop(self.global_key("new_note", crate::keys::Pane::Global)),
             _ if global == Some("music") => drop(self.global_key("music", crate::keys::Pane::Global)),
             _ if global == Some("find") && self.mode != Mode::Find => drop(self.global_key("find", crate::keys::Pane::Global)),

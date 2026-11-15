@@ -29,7 +29,7 @@ async fn writing_saves_after_a_pause() {
     assert_eq!(a.keys.action(zendo::keys::Pane::Write, &KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL)), None, "no save key");
     a.tick();
     assert!(!std::fs::read_to_string(root.join(NOTE)).unwrap().contains("New "), "not while typing");
-    a.last_edit = Instant::now() - Duration::from_secs(2);
+    a.writer.edited_at(Instant::now() - Duration::from_secs(2));
     a.tick();
     assert!(std::fs::read_to_string(root.join(NOTE)).unwrap().contains("New "), "saved after a pause");
     let _ = std::fs::remove_dir_all(&root);
@@ -55,8 +55,8 @@ async fn alt_a_s_b_work_in_read_and_write_mode() {
         a.composer.input_mut().take();
         a.focus = Focus::Note;
         alt(&mut a, 's');
-        assert!(a.say.is_some() && a.composer.input().text().starts_with("⟦write here :"), "alt-s, write {write}");
-        a.say = None;
+        assert!(a.writer.say().is_some() && a.composer.input().text().starts_with("⟦write here :"), "alt-s, write {write}");
+        a.writer.end_say();
         a.composer.input_mut().take();
         a.focus = Focus::Note;
         let tree = a.state.tree;

@@ -65,7 +65,7 @@ impl App {
         if self.cfg.offline {
             return self.flash("offline: start zendo without --offline to use Claude");
         }
-        if self.mode == Mode::Write && self.editor.dirty {
+        if self.mode == Mode::Write && self.writer.editor_mut().dirty {
             self.save();
         }
         let rel = self.rel(&path);

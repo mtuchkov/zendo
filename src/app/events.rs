@@ -144,8 +144,8 @@ impl App {
     }
 
     fn on_turn_end(&mut self, key: String, stop: String) {
-        if self.say.as_ref().is_some_and(|s| s.key == key) {
-            self.say = None;
+        if self.writer.say().is_some_and(|s| s.key == key) {
+            self.writer.end_say();
         }
         let held = self.holds(&key);
         let t = self.thread(&key);

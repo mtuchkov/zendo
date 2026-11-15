@@ -65,7 +65,7 @@ pub fn draw(f: &mut Frame, app: &mut App, last: Cache) -> Cache {
 }
 
 fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
-    if app.float.is_some() {
+    if app.writer.float().is_some() {
         return draw_float(f, app, fr);
     }
     app.drop_old_review();

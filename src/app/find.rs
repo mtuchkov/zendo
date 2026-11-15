@@ -179,7 +179,7 @@ impl App {
     /// After a key or a tick: the file in the note pane is the most recent file, unless the float,
     /// the preview of the tree or a session on the full screen shows (FIND-6).
     pub(crate) fn track_recent(&mut self) {
-        let shows = matches!(self.mode, Mode::Read | Mode::Write) && self.float.is_none() && self.focus != Focus::Tree && self.cli.view.is_none();
+        let shows = matches!(self.mode, Mode::Read | Mode::Write) && self.writer.float().is_none() && self.focus != Focus::Tree && self.cli.view.is_none();
         let Some(path) = self.files.current().cloned().filter(|_| shows) else { return };
         if self.files.find.seen.as_ref() != Some(&path) {
             self.files.find.seen = Some(path.clone());

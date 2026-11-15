@@ -93,10 +93,10 @@ pub(crate) fn column(area: Rect, width: u16) -> Rect {
 
 pub(crate) fn draw_top(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) {
     let left = match app.mode {
-        Mode::Write => match &app.editor_path {
+        Mode::Write => match app.writer.path() {
             Some(p) => app.rel(p),
             None => {
-                let title = crate::docs::notes::title_of(&app.editor.text()).unwrap_or_default();
+                let title = crate::docs::notes::title_of(&app.writer.editor().text()).unwrap_or_default();
                 let p = app.new_note_path(if title.is_empty() { "note" } else { &title });
                 format!("new note → {}", app.rel(&p))
             }

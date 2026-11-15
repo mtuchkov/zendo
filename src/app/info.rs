@@ -116,7 +116,7 @@ impl App {
         if let Some(p) = self.threads.pinned() {
             return p.to_string();
         }
-        if self.mode == Mode::Write && self.editor_path.is_none() {
+        if self.mode == Mode::Write && self.writer.path().is_none() {
             return NEW_KEY.into();
         }
         match self.files.current() {

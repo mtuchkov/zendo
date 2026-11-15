@@ -43,6 +43,7 @@ mod work;
 mod worktree;
 mod write;
 pub mod write_rows;
+mod writer;
 pub mod version;
 
 pub use at::{AT_ROWS, AtKey, AtPick};
@@ -67,6 +68,7 @@ pub use modes::Mode;
 pub use pointer::Pointer;
 pub use reader::Reader;
 pub use work::Work;
+pub use writer::{Draft, Writer};
 pub use worktree::{RECAP_EVERY, TreeAct, WorktreeUi};
 
 use crate::agent::{self, Attachment, Cmd, Event};
@@ -80,7 +82,6 @@ use chrono::Local;
 use crate::text::select::{Region, Selection};
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::layout::Rect;
-use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
@@ -132,11 +133,8 @@ pub struct App {
 
     /// The view of the note: the read cursor, the selection, and the scroll.
     pub reader: Reader,
-    pub editor: Editor,
-    pub editor_path: Option<PathBuf>,
-    #[default(Instant::now())]
-    pub last_edit: Instant,
-    pub saved_at: Option<chrono::DateTime<Local>>,
+    /// Write mode: the draft in the editor, the float, the mark of "say it here".
+    pub writer: Writer,
 
     pub notes_sel: usize,
     pub query: String,
@@ -159,8 +157,6 @@ pub struct App {
     pub link: AgentLink,
     /// The delta, the visit that counts, and the recaps and reviews of the agent.
     pub work: Work,
-    /// Files to get a title or front matter from the agent, after write mode.
-    pub meta_queue: VecDeque<String>,
     #[default(Instant::now())]
     pub last_input: Instant,
     /// The run of `tab`s (CLAUDE-36).
@@ -174,10 +170,6 @@ pub struct App {
     pub(crate) output_pick: Option<(usize, Vec<String>, usize, usize)>,
     /// The width of the text column from the config, when the repository sets none.
     pub width_default: u16,
-    /// `alt-n`: the new note in a float; the screen behind waits in it (FLOAT-1).
-    pub float: Option<Float>,
-    /// `ctrl-shift-s`: the arrow in the note, until the answer ends or `esc`.
-    pub say: Option<Say>,
 
     pub flash: Option<(String, Instant)>,
     /// The counts of the actions of the user; off until the start turns them on (USAGE-1).

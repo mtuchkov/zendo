@@ -19,7 +19,6 @@ impl App {
             theme_before: theme,
             state,
             branch,
-            editor: Editor::new(""),
             keys,
             key_problems,
             keymap_file: user.keymap.clone(),

@@ -3,21 +3,21 @@ use super::*;
 use crate::app::write_rows::{self, RowSpan};
 
 pub(crate) fn draw_write(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) {
-    let code = app.editor_path.as_deref().is_some_and(code::is_code);
-    let (gut, col) = if code { code_column(area, app.code_width(), app.editor.lines.len()) } else { (Rect::default(), column(area, app.column_width())) };
+    let code = app.writer.file().is_some_and(code::is_code);
+    let (gut, col) = if code { code_column(area, app.code_width(), app.writer.editor().lines.len()) } else { (Rect::default(), column(area, app.column_width())) };
     let w = col.width as usize;
     fr.text_width = w;
     fr.regions.push((crate::text::select::Region::Note, col));
     let (mut r, head, title) = write_lines(app, t, w);
     let spans = row_spans(app, &r, head, title, w);
-    let cur = write_rows::cursor_span(&spans, (app.editor.row, app.editor.col)).unwrap_or(0);
-    let (vrow, vx) = spans.get(cur).map_or((0, 0), |s| (s.row, s.x_of((app.editor.row, app.editor.col))));
+    let cur = write_rows::cursor_span(&spans, (app.writer.editor().row, app.writer.editor().col)).unwrap_or(0);
+    let (vrow, vx) = spans.get(cur).map_or((0, 0), |s| (s.row, s.x_of((app.writer.editor().row, app.writer.editor().col))));
     // The cursor row shows the source of its own words: the rows around it keep their wrap. Code
     // shows its source on every row.
     if let Some(s) = spans.get(cur).filter(|s| s.row < r.lines.len() && !code) {
         r.lines[s.row] = Line::styled(s.text(), Style::new().fg(t.fg));
     }
-    if let Some(p) = app.editor_path.clone() {
+    if let Some(p) = app.writer.path().cloned() {
         fr.word_limit = app.word_limit_for(&p);
     }
     fr.word_count = r.words.iter().sum();
@@ -33,7 +33,7 @@ pub(crate) fn draw_write(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
     let lit = selected_rows(app, &spans, cur);
     fr.write_rows = spans;
     let rows: Vec<usize> = r.rows.iter().map(|x| x + head).collect();
-    let rel = app.editor_path.as_deref().map(|p| app.rel(p)).unwrap_or_default();
+    let rel = app.writer.file().map(|p| app.rel(p)).unwrap_or_default();
     let marks = confusing_rows(app, &rel, &rows, r.lines.len());
     let sel_bg = delta::mix(t.bg, t.acc2, 0.42);
     let view: Vec<Line> = r
@@ -55,8 +55,8 @@ pub(crate) fn draw_write(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
     if code {
         draw_gutter(f, t, gut, &rows, app.reader.scroll(), Some(vrow));
     }
-    if let Some(say) = app.say.as_ref().filter(|s| app.editor_path.as_ref() == Some(&s.path)) {
-        let row = if say.line == app.editor.row { vrow } else if title == Some(say.line) { 0 } else { head + r.rows.get(say.line).copied().unwrap_or(0) };
+    if let Some(say) = app.writer.say().filter(|s| app.writer.path() == Some(&s.path)) {
+        let row = if say.line == app.writer.editor().row { vrow } else if title == Some(say.line) { 0 } else { head + r.rows.get(say.line).copied().unwrap_or(0) };
         say_arrow(f, app, t, area, col, row);
     }
     if !(app.panel && app.focus == Focus::Claude) {
@@ -68,19 +68,19 @@ pub(crate) fn draw_write(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
 /// the source is in the head: as source while the cursor is on it. Returns the render with the head
 /// in it, the rows of the head, and the source line of the title.
 fn write_lines(app: &App, t: &Theme, w: usize) -> (markdown::Rendered, usize, Option<usize>) {
-    let lines = &app.editor.lines;
-    if let Some(p) = app.editor_path.as_deref().filter(|p| code::is_code(p)) {
+    let lines = &app.writer.editor().lines;
+    if let Some(p) = app.writer.file().filter(|p| code::is_code(p)) {
         return code_lines(app, p, t, w);
     }
     let title = title_line(lines);
-    let on_title = title.is_some_and(|i| i == app.editor.row);
+    let on_title = title.is_some_and(|i| i == app.writer.editor().row);
     let title_rows = match title {
         Some(i) if on_title => markdown::raw_rows(&lines[i], w, t),
         Some(i) => title_rows(lines[i].trim_start_matches('#').trim(), w, t),
         None => Vec::new(),
     };
     // The float has its own head: the title, and the time when it opened (FLOAT-7).
-    let note = app.note().filter(|n| app.float.is_none() && app.editor_path.as_ref() == Some(&n.path)).cloned();
+    let note = app.note().filter(|n| app.writer.float().is_none() && app.writer.path() == Some(&n.path)).cloned();
     let mut out = match &note {
         Some(n) => note_head(app, n, w, t, title_rows),
         None => title_rows,
@@ -88,7 +88,7 @@ fn write_lines(app: &App, t: &Theme, w: usize) -> (markdown::Rendered, usize, Op
     out.extend(float_date(app, t));
     let head = out.len();
     let src: Vec<(String, Mark)> = lines.iter().map(|l| (l.clone(), Mark::None)).collect();
-    let mut r = markdown::render_live(&src, w, t, (!on_title).then_some(app.editor.row));
+    let mut r = markdown::render_live(&src, w, t, (!on_title).then_some(app.writer.editor().row));
     out.append(&mut r.lines);
     r.lines = out;
     (r, head, title)
@@ -103,7 +103,7 @@ fn code_lines(app: &App, p: &std::path::Path, t: &Theme, w: usize) -> (markdown:
         None => title_rows(&name, w, t),
     };
     let head = out.len();
-    let mut r = code::render(&app.editor.lines, &code::lang_of(p), w, t);
+    let mut r = code::render(&app.writer.editor().lines, &code::lang_of(p), w, t);
     out.append(&mut r.lines);
     r.lines = out;
     (r, head, None)
@@ -120,16 +120,16 @@ fn title_line(lines: &[String]) -> Option<usize> {
 /// The rows on the screen as spans of the source: the title rows in the head, then the rows of the
 /// text where they start.
 fn row_spans(app: &App, r: &markdown::Rendered, head: usize, title: Option<usize>, w: usize) -> Vec<RowSpan> {
-    let lines = &app.editor.lines;
+    let lines = &app.writer.editor().lines;
     let shown = |row: usize| -> String { r.lines.get(row).map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect()).unwrap_or_default() };
     let mut starts: Vec<(usize, (usize, usize), usize)> = match title {
-        Some(i) if i == app.editor.row => crate::text::editor::wrap_line(&lines[i], w).into_iter().enumerate().map(|(k, (a, _))| (k, (i, a), 0)).collect(),
+        Some(i) if i == app.writer.editor().row => crate::text::editor::wrap_line(&lines[i], w).into_iter().enumerate().map(|(k, (a, _))| (k, (i, a), 0)).collect(),
         Some(i) => vec![(0, (i, 0), 0)],
         None => Vec::new(),
     };
     for (k, start) in r.starts.iter().enumerate() {
         let Some((l, c)) = *start else { continue };
-        let code = app.editor_path.as_deref().is_some_and(code::is_code);
+        let code = app.writer.file().is_some_and(code::is_code);
         let indent = if c > 0 && !code { shown(head + k).chars().take_while(|ch| *ch == ' ').count() } else { 0 };
         starts.push((head + k, (l, c), indent));
     }
@@ -139,7 +139,7 @@ fn row_spans(app: &App, r: &markdown::Rendered, head: usize, title: Option<usize
 
 /// The selected rows: `(row, from, to)` in columns. The cursor row is exact; the others are whole.
 fn selected_rows(app: &App, spans: &[RowSpan], cur: usize) -> Vec<(usize, usize, usize)> {
-    let Some((a, b)) = app.editor.selection() else { return Vec::new() };
+    let Some((a, b)) = app.writer.editor().selection() else { return Vec::new() };
     spans
         .iter()
         .enumerate()

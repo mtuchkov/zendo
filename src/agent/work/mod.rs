@@ -23,8 +23,8 @@ pub const RECAP_PREFIX: &str = "(recap) ";
 impl App {
     /// The text of the note on screen, with unsaved edits.
     pub fn note_text(&self) -> Option<String> {
-        if self.mode == Mode::Write && self.editor_path.as_ref() == self.files.current() {
-            return Some(format!("{}\n", self.editor.text().trim_end()));
+        if self.mode == Mode::Write && self.writer.path() == self.files.current() {
+            return Some(format!("{}\n", self.writer.editor().text().trim_end()));
         }
         self.note().map(|n| n.body.clone())
     }

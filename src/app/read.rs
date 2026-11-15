@@ -27,7 +27,7 @@ impl App {
 
     fn read_action(&mut self, act: &str, page: isize) {
         match act {
-            "back" if self.say.is_some() => self.say = None,
+            "back" if self.writer.say().is_some() => self.writer.end_say(),
             "back" if self.reader.anchor().is_some() => self.reader.unselect(),
             "back" if self.panel => self.panel = false,
             "back" if self.work.delta_open() => self.work.close_delta(),

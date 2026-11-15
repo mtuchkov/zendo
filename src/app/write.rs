@@ -11,7 +11,7 @@ impl App {
             None => self.write_key(k),
         };
         if edited {
-            self.last_edit = Instant::now();
+            self.writer.touch();
         }
     }
 
@@ -33,7 +33,7 @@ impl App {
             }
             "add_to_chat" => self.add_line_to_chat(),
             "copy" => {
-                if let Some(t) = self.editor.selected_text() {
+                if let Some(t) = self.writer.editor_mut().selected_text() {
                     self.pointer.copy(t);
                 }
             }
@@ -45,23 +45,23 @@ impl App {
     /// The actions that change the text, then the moves.
     fn write_edit(&mut self, a: &str) -> Option<bool> {
         match a {
-            "bold" => self.editor.wrap_marks("**", "**"),
-            "italic" => self.editor.wrap_marks("*", "*"),
-            "underline" => self.editor.wrap_marks("<u>", "</u>"),
+            "bold" => self.writer.editor_mut().wrap_marks("**", "**"),
+            "italic" => self.writer.editor_mut().wrap_marks("*", "*"),
+            "underline" => self.writer.editor_mut().wrap_marks("<u>", "</u>"),
             "cut" => {
-                let t = self.editor.selected_text()?;
+                let t = self.writer.editor_mut().selected_text()?;
                 self.pointer.copy(t);
-                self.editor.delete_selection();
+                self.writer.editor_mut().delete_selection();
             }
             "paste" => match crate::text::select::paste().or_else(|| self.pointer.last_copy()) {
-                Some(t) => self.editor.type_str(&t),
+                Some(t) => self.writer.editor_mut().type_str(&t),
                 None => {
                     self.flash("the clipboard is empty, or zendo cannot read it here");
                     return None;
                 }
             },
-            "delete_word" => self.editor.delete_selection_or(Editor::delete_word_back),
-            "indent" => self.editor.type_str("  "),
+            "delete_word" => self.writer.editor_mut().delete_selection_or(Editor::delete_word_back),
+            "indent" => self.writer.editor_mut().type_str("  "),
             _ => {
                 self.write_move(a);
                 return Some(false);
@@ -72,12 +72,12 @@ impl App {
 
     fn write_move(&mut self, a: &str) {
         if let Some(delta) = [("select_up", -1), ("select_down", 1)].iter().find(|(n, _)| *n == a).map(|(_, d)| *d) {
-            let anchor = self.editor.anchor.unwrap_or((self.editor.row, self.editor.col));
+            let anchor = self.writer.editor_mut().anchor.unwrap_or((self.writer.editor_mut().row, self.writer.editor_mut().col));
             self.write_vertical(delta);
-            self.editor.anchor = Some(anchor);
+            self.writer.editor_mut().anchor = Some(anchor);
             return;
         }
-        let e = &mut self.editor;
+        let e = self.writer.editor_mut();
         if a.starts_with("select_") {
             match a {
                 "select_left" => e.select_with(|e| e.left()),
@@ -107,12 +107,12 @@ impl App {
         let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
         let rows = [(KeyCode::Up, -1), (KeyCode::Down, 1), (KeyCode::PageUp, -page), (KeyCode::PageDown, page)];
         if let Some((_, delta)) = rows.iter().find(|(c, _)| *c == k.code) {
-            self.editor.clear_selection();
+            self.writer.editor_mut().clear_selection();
             self.write_vertical(*delta);
             return false;
         }
-        let prose = !self.editor_path.as_deref().is_some_and(crate::text::code::is_code);
-        let e = &mut self.editor;
+        let prose = !self.writer.file().is_some_and(crate::text::code::is_code);
+        let e = self.writer.editor_mut();
         match k.code {
             KeyCode::Char(c) if !ctrl => {
                 e.type_char(c);

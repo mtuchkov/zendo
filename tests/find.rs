@@ -232,11 +232,11 @@ async fn esc_changes_nothing() {
     draw(&mut a, 140, 40);
     key(&mut a, KeyCode::Char('i'));
     draw(&mut a, 140, 40);
-    let cursor = (a.editor.row, a.editor.col);
+    let cursor = (a.writer.editor().row, a.writer.editor().col);
     alt(&mut a, '/');
     key(&mut a, KeyCode::Down);
     key(&mut a, KeyCode::Esc);
-    assert_eq!((a.mode, a.focus, a.files.current().cloned(), (a.editor.row, a.editor.col)), (Mode::Write, Focus::Note, Some(root.join(B)), cursor));
+    assert_eq!((a.mode, a.focus, a.files.current().cloned(), (a.writer.editor().row, a.writer.editor().col)), (Mode::Write, Focus::Note, Some(root.join(B)), cursor));
     let _ = std::fs::remove_dir_all(&root);
 }
 

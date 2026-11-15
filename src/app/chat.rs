@@ -72,7 +72,7 @@ impl App {
             self.flash("offline: start zendo without --offline to use Claude");
             return;
         }
-        if self.mode == Mode::Write && self.editor.dirty {
+        if self.mode == Mode::Write && self.writer.editor_mut().dirty {
             self.save();
         }
         self.ensure_agent();
@@ -127,11 +127,11 @@ impl App {
             }
             text.push_str(&format!("Note file: {}\n", p.display()));
             if self.mode == Mode::Write
-                && let Some(line) = self.editor.lines.get(self.editor.row).filter(|l| !l.trim().is_empty()) {
+                && let Some(line) = self.writer.editor().lines.get(self.writer.editor().row).filter(|l| !l.trim().is_empty()) {
                     text.push_str(&format!("Current line: {line}\n"));
                 }
         } else {
-            text.push_str(&format!("The note is not saved yet. Its text:\n{}\n", self.editor.text()));
+            text.push_str(&format!("The note is not saved yet. Its text:\n{}\n", self.writer.editor_mut().text()));
         }
         if let Some(c) = self.composer.take_context() {
             text.push_str(&c);
@@ -151,14 +151,14 @@ impl App {
     /// The agent may have written a note. Pick up the change.
     pub fn reload_after_agent(&mut self) {
         self.reload();
-        if self.mode == Mode::Write && !self.editor.dirty
-            && let Some(p) = &self.editor_path
+        if self.mode == Mode::Write && !self.writer.editor_mut().dirty
+            && let Some(p) = self.writer.path()
                 && let Ok(body) = std::fs::read_to_string(p) {
-                    let (row, col) = (self.editor.row, self.editor.col);
-                    self.editor = Editor::new(body.trim_end_matches('\n'));
-                    self.editor.row = row.min(self.editor.lines.len() - 1);
-                    self.editor.col = col;
-                    self.editor.end();
+                    let (row, col) = (self.writer.editor_mut().row, self.writer.editor_mut().col);
+                    *self.writer.editor_mut() = Editor::new(body.trim_end_matches('\n'));
+                    self.writer.editor_mut().row = row.min(self.writer.editor_mut().lines.len() - 1);
+                    self.writer.editor_mut().col = col;
+                    self.writer.editor_mut().end();
                 }
     }
 
@@ -204,8 +204,8 @@ impl App {
         } else if self.panel && self.focus == Focus::Claude {
             self.paste_into_chat(&s);
         } else if self.mode == Mode::Write {
-            self.editor.type_str(&s);
-            self.last_edit = Instant::now();
+            self.writer.editor_mut().type_str(&s);
+            self.writer.touch();
         } else if self.mode == Mode::Search {
             self.query.push_str(s.lines().next().unwrap_or(""));
             self.run_search();

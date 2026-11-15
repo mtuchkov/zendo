@@ -17,7 +17,7 @@ impl App {
             self.tab_run.end();
         }
         // The float takes the mouse: only what happens over it counts.
-        if let Some(fl) = &self.float {
+        if let Some(fl) = self.writer.float() {
             if !fl.rect.contains(ratatui::layout::Position::new(m.column, m.row)) {
                 return;
             }
@@ -134,7 +134,7 @@ impl App {
                 self.work.scroll_delta(up, n);
                 self.interact(1);
             }
-            Some(Region::Note) if self.mode == Mode::Write => self.editor.vertical(if up { -ni } else { ni }, self.frame.text_width()),
+            Some(Region::Note) if self.mode == Mode::Write => self.writer.editor_mut().vertical(if up { -ni } else { ni }, self.frame.text_width()),
             Some(Region::Note) => {
                 self.reader.wheel(up, n);
                 self.interact(1);

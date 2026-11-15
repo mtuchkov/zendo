@@ -9,30 +9,27 @@ impl App {
     pub fn start_write(&mut self, new: bool) {
         self.threads.unpin();
         if new {
-            self.editor = Editor::new("# ");
-            self.editor.move_to_end();
-            self.editor_path = None;
+            self.writer.start_new();
         } else if let Some(n) = self.note() {
             let body = n.body.clone();
             let path = n.path.clone();
-            self.editor = Editor::new(body.trim_end_matches('\n'));
-            self.editor_path = Some(path);
+            self.writer.start_on(body.trim_end_matches('\n'), path);
             self.cursor_to_editor();
             self.reader.keep_screen_row();
         } else {
             return self.start_write(true);
         }
-        self.saved_at = None;
+        self.writer.not_saved();
         self.mode = Mode::Write;
         self.focus = Focus::Note;
     }
 
     /// Save the editor. A new note gets its file name from the title.
     pub fn save(&mut self) {
-        let text = self.editor.text();
+        let text = self.writer.editor_mut().text();
         let body = format!("{}\n", text.trim_end());
         let empty = text.trim().is_empty() || text.trim() == "#";
-        let path = match &self.editor_path {
+        let path = match self.writer.path() {
             Some(p) => p.clone(),
             None if empty => return,
             None => {
@@ -42,9 +39,7 @@ impl App {
         };
         match notes::save(&path, &body) {
             Ok(()) => {
-                self.editor.dirty = false;
-                self.saved_at = Some(Local::now());
-                self.editor_path = Some(path.clone());
+                self.writer.saved(path.clone());
                 self.files.saved(path);
                 self.mark_edited();
             }
@@ -104,7 +99,7 @@ impl App {
         self.cli_tick();
         self.hold_tick();
         self.attention_tick();
-        if self.mode == Mode::Write && self.editor.dirty && self.last_edit.elapsed() > Duration::from_millis(1500) {
+        if self.mode == Mode::Write && self.writer.editor().dirty && self.writer.idle() > Duration::from_millis(1500) {
             self.save();
         }
         if self.flash.as_ref().is_some_and(|(_, t)| t.elapsed() > Duration::from_secs(4)) {

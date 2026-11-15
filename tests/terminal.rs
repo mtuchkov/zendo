@@ -254,13 +254,13 @@ async fn alt_n_opens_the_float_over_a_full_screen_session() {
     ctrl(&mut a, 'o');
     assert_eq!(a.cli.view, Some(shell(0)));
     alt(&mut a, 'n');
-    assert!(a.float.is_some(), "the float is open");
+    assert!(a.writer.float().is_some(), "the float is open");
     let screen = draw(&mut a, 120, 40).join("\n");
     assert!(screen.contains("new note"), "the float is on the screen:\n{screen}");
     typ(&mut a, "x");
-    assert_eq!(a.editor.text(), "# x", "the keys go to the float");
+    assert_eq!(a.writer.editor().text(), "# x", "the keys go to the float");
     key(&mut a, KeyCode::Esc);
-    assert_eq!((a.float.is_none(), a.cli.view), (true, Some(shell(0))), "back on the full screen");
+    assert_eq!((a.writer.float().is_none(), a.cli.view), (true, Some(shell(0))), "back on the full screen");
     done(&root, &mut a);
 }
 

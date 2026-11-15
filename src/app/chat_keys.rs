@@ -7,8 +7,8 @@ impl App {
         let busy = self.threads.get(&key).is_some_and(|t| t.busy.is_some());
         match act {
             Some("back") if busy => self.stop_answer(key),
-            Some("back") if self.say.is_some() => {
-                self.say = None;
+            Some("back") if self.writer.say().is_some() => {
+                self.writer.end_say();
                 self.composer.input_mut().take();
                 self.composer.drop_context();
                 self.focus = Focus::Note;

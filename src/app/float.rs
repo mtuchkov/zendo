@@ -13,12 +13,9 @@ pub struct Float {
     behind: Behind,
 }
 
-/// The fields of the app that the float takes for itself, and gives back.
+/// The state of the app that the float takes for itself, and gives back.
 struct Behind {
-    editor: Editor,
-    editor_path: Option<PathBuf>,
-    last_edit: Instant,
-    saved_at: Option<chrono::DateTime<Local>>,
+    draft: Draft,
     mode: Mode,
     back: Mode,
     focus: Focus,
@@ -35,13 +32,8 @@ macro_rules! swap_fields {
 impl Behind {
     /// Write mode on an empty note, with the cursor after `# `.
     fn new_note() -> Self {
-        let mut editor = Editor::new("# ");
-        editor.move_to_end();
         Self {
-            editor,
-            editor_path: None,
-            last_edit: Instant::now(),
-            saved_at: None,
+            draft: Draft::new_note(),
             mode: Mode::Write,
             back: Mode::Write,
             focus: Focus::Note,
@@ -57,7 +49,8 @@ impl Float {
     /// Give the app the other state: the float's or the screen's behind it.
     pub fn swap(&mut self, app: &mut App) {
         let b = &mut self.behind;
-        swap_fields!(app, b, editor, editor_path, last_edit, saved_at, mode, back, focus);
+        swap_fields!(app, b, mode, back, focus);
+        app.writer.swap_draft(&mut b.draft);
         app.files.swap_current(&mut b.current);
         app.threads.swap_pinned(&mut b.pinned);
         app.reader.swap_view(&mut b.view);
@@ -73,7 +66,7 @@ impl App {
     /// `alt-n`, `n`: a new note in a float over the screen; the open file in write mode is saved
     /// first (FLOAT-1, FLOAT-4, FLOAT-5). Nothing while a float is open (FLOAT-11).
     pub fn open_float(&mut self) {
-        if self.float.is_some() {
+        if self.writer.float().is_some() {
             return;
         }
         if self.mode == Mode::Write {
@@ -82,18 +75,18 @@ impl App {
         let mut fl = Float { opened: Local::now(), rect: Rect::default(), behind: Behind::new_note() };
         fl.swap(self);
         fl.swap_rows(&mut self.frame);
-        self.float = Some(fl);
+        self.writer.set_float(fl);
     }
 
     /// `esc`: save the note, ask for a missing title, and give back the screen as it was. A note
     /// without text makes no file (FLOAT-3, FLOAT-12, FLOAT-13).
     pub fn close_float(&mut self) {
         self.save();
-        if self.editor_path.is_some() {
+        if self.writer.path().is_some() {
             self.ask_for_meta();
         }
-        let made = self.editor_path.clone();
-        let Some(mut fl) = self.float.take() else { return };
+        let made = self.writer.path().cloned();
+        let Some(mut fl) = self.writer.take_float() else { return };
         fl.swap(self);
         fl.swap_rows(&mut self.frame);
         // The new note is a recent file (FIND-6).

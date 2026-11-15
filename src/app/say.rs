@@ -106,7 +106,8 @@ impl App {
         let rewrite = picked.is_some();
         self.reader.unselect();
         self.open_panel();
-        self.say = Some(Say { path, line: mark.0, col: mark.1, key: self.key(), rewrite });
+        let key = self.key();
+        self.writer.start_say(Say { path, line: mark.0, col: mark.1, key, rewrite });
         self.composer.set_default((if rewrite { SAY_DIFFERENTLY } else { SAY_HERE }).to_string(), if rewrite { "the selection" } else { "the mark" });
         self.composer.clear();
         // The chip brings the place and the task; the user writes the idea after it.
@@ -132,7 +133,7 @@ impl App {
 
     /// The same from the editor in write mode.
     fn say_in_editor(&self) -> Place {
-        let e = &self.editor;
+        let e = self.writer.editor();
         match e.selection() {
             Some((a, b)) => (a, (a.0, b.0), e.selected_text(), e.lines.clone()),
             None => ((e.row, e.col), (e.row, e.row), None, e.lines.clone()),

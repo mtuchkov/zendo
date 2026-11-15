@@ -7,7 +7,7 @@ use ratatui::layout::Margin;
 const MARGIN: u16 = 4;
 
 pub(crate) fn draw_float(f: &mut Frame, app: &mut App, fr: &mut Cache) {
-    let Some(mut fl) = app.float.take() else { return };
+    let Some(mut fl) = app.writer.take_float() else { return };
     // The screen behind, as it was: its own state, without the mouse selection of the float.
     let aside = app.pointer.set_aside();
     fl.swap(app);
@@ -21,7 +21,7 @@ pub(crate) fn draw_float(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     dim(f, &t, area);
     let r = float_rect(app, fr, area);
     fl.rect = r;
-    app.float = Some(fl);
+    app.writer.set_float(fl);
     fr.regions.clear();
     fr.pane_rects.clear();
     f.render_widget(Clear, r);
@@ -65,7 +65,7 @@ fn float_rect(app: &App, fr: &Cache, area: Rect) -> Rect {
 /// The top line of the float: the path of the note, or the notes folder and `new note` before the
 /// first save; the branch and the key that closes the float (FLOAT-6).
 fn draw_float_top(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
-    let path = match &app.editor_path {
+    let path = match app.writer.path() {
         Some(p) => app.rel(p),
         None => format!("{}/new note", app.rel(&app.cfg.notes_dir)),
     };
@@ -82,6 +82,6 @@ fn draw_float_top(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
 
 /// The date and the time when the user opened the float, under the title (FLOAT-7).
 pub(crate) fn float_date(app: &App, t: &Theme) -> Vec<Line<'static>> {
-    let Some(fl) = &app.float else { return Vec::new() };
+    let Some(fl) = app.writer.float() else { return Vec::new() };
     vec![Line::styled(fl.opened.format("%a %-d %b · %H:%M").to_string(), Style::new().fg(t.dim)), Line::raw("")]
 }

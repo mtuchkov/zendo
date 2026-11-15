@@ -36,17 +36,17 @@ fn writing(name: &str) -> (std::path::PathBuf, zendo::app::App) {
 #[test]
 fn c_copies_and_x_cuts_the_selection_in_write_mode() {
     let (root, mut a) = writing("sel-write");
-    let line = a.editor.row;
+    let line = a.writer.editor().row;
     shift_right(&mut a, 3);
     key(&mut a, KeyCode::Char('c'));
     assert_eq!(a.pointer.clip(), Some("The"));
-    assert_eq!(a.editor.lines[line], "The first paragraph.", "copy keeps the text");
-    assert!(a.editor.selection().is_none(), "copy ends the selection");
+    assert_eq!(a.writer.editor().lines[line], "The first paragraph.", "copy keeps the text");
+    assert!(a.writer.editor().selection().is_none(), "copy ends the selection");
     key(&mut a, KeyCode::Right);
     shift_right(&mut a, 6);
     key(&mut a, KeyCode::Char('x'));
     assert_eq!(a.pointer.clip(), Some("first "));
-    assert_eq!(a.editor.lines[line], "The paragraph.");
+    assert_eq!(a.writer.editor().lines[line], "The paragraph.");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -54,9 +54,9 @@ fn c_copies_and_x_cuts_the_selection_in_write_mode() {
 #[test]
 fn without_a_selection_c_and_x_are_text() {
     let (root, mut a) = writing("sel-text");
-    let line = a.editor.row;
+    let line = a.writer.editor().row;
     typ(&mut a, "cx");
-    assert_eq!(a.editor.lines[line], "cxThe first paragraph.");
+    assert_eq!(a.writer.editor().lines[line], "cxThe first paragraph.");
     let _ = std::fs::remove_dir_all(&root);
 }
 

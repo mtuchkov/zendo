@@ -50,13 +50,13 @@ impl App {
             return self.flash("nothing to add here");
         }
         let quoted: String = text.lines().map(|l| format!("> {l}\n")).collect();
-        let rel = |a: &Self, p: &Option<std::path::PathBuf>| p.as_ref().map(|p| a.rel(p)).unwrap_or_default();
+        let rel = |a: &Self, p: Option<&std::path::PathBuf>| p.map(|p| a.rel(p)).unwrap_or_default();
         let ctx = match s.region {
             Region::Note if self.mode == Mode::Read => {
                 let row = |y: u16| self.reader.scroll() + y.saturating_sub(s.rect.y) as usize;
                 self.read_context(&text, row(s.anchor.1.min(s.head.1)), row(s.anchor.1.max(s.head.1)))
             }
-            Region::Note => format!("Selected text from {}:\n{quoted}", rel(self, &self.editor_path)),
+            Region::Note => format!("Selected text from {}:\n{quoted}", rel(self, self.writer.path())),
             Region::Delta => format!("Selected text from the delta:\n{quoted}"),
             Region::Panel if self.cli.pane.is_some() => format!("Text from the terminal:\n{quoted}"),
             Region::Panel => format!("Text from this chat:\n{quoted}"),
@@ -108,13 +108,13 @@ impl App {
 
     /// Write mode: the selection, or the line of the cursor, goes to the chat as a chip.
     pub(crate) fn add_line_to_chat(&mut self) {
-        let e = &self.editor;
+        let e = self.writer.editor();
         let ((lo, _), (hi, _)) = e.selection().unwrap_or(((e.row, 0), (e.row, 0)));
         let text = e.selected_text().unwrap_or_else(|| e.lines[e.row].clone());
         if text.trim().is_empty() {
             return self.flash("nothing to add here");
         }
-        let rel = self.editor_path.as_ref().map(|p| self.rel(p)).unwrap_or_default();
+        let rel = self.writer.path().map(|p| self.rel(p)).unwrap_or_default();
         let quoted: String = text.lines().map(|l| format!("> {l}\n")).collect();
         let ctx = format!("Selected text from {rel} (about lines {}–{}):\n{quoted}", lo + 1, hi + 1);
         let label = self.composer.add_chip(chips::selection_label(&text), Some(ctx), None, true);
@@ -132,7 +132,7 @@ impl App {
         use crate::keys::Pane;
         let Some(act) = self.keys.local(Pane::Selected, k) else { return false };
         let e = match pane {
-            Pane::Write => &mut self.editor,
+            Pane::Write => self.writer.editor_mut(),
             Pane::Chat => self.composer.input_mut(),
             _ => return false,
         };
@@ -145,7 +145,7 @@ impl App {
         }
         self.pointer.copy(text);
         if pane == Pane::Write && act == "cut" {
-            self.last_edit = Instant::now();
+            self.writer.touch();
         }
         self.did(Pane::Selected, act);
         true

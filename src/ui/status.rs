@@ -94,7 +94,7 @@ fn status_keys(app: &App, fr: &Cache, t: &Theme, claude: bool) -> (&'static str,
             ("READ", t.acc, v)
         }
         Mode::Write => {
-            let mut v = selected(&app.editor);
+            let mut v = selected(app.writer.editor());
             v.extend(hints(Pane::Write, &[("done", "read"), ("chat", "chat"), ("add_to_chat", "to chat"), ("say", "say here"), ("bold", "bold"), ("italic", "italic"), ("underline", "underline"), ("toggle_tree", "files"), ("delta", "delta")]));
             ("WRITE", t.acc2, v)
         }
@@ -128,7 +128,7 @@ fn status_right(app: &App, fr: &Cache, claude: bool) -> String {
         Mode::Write => {
             // The words of prose, as the word limit counts them.
             let words = fr.word_count;
-            let saved = match (app.editor.dirty, app.saved_at, &app.editor_path) {
+            let saved = match (app.writer.editor().dirty, app.writer.saved_at(), app.writer.path()) {
                 (true, _, _) => "editing".to_string(),
                 (false, Some(at), _) => format!("saved {}", at.format("%H:%M")),
                 (false, None, Some(_)) => "saved".into(),

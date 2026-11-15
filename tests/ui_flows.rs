@@ -151,13 +151,13 @@ async fn say_marks_the_place_until_the_answer_ends() {
     let screen = draw(&mut a, 120, 30);
     let row = screen.iter().find(|r| r.contains("The first paragraph")).unwrap();
     assert!(row.find('→').unwrap() < row.find("The first").unwrap(), "the arrow is left of the line: {row}");
-    let key_of = a.say.as_ref().unwrap().key.clone();
+    let key_of = a.writer.say().unwrap().key.clone();
     a.on_agent(Event::TurnEnd { key: key_of, stop: "end_turn".into() });
-    assert!(a.say.is_none());
+    assert!(a.writer.say().is_none());
     ctrl(&mut a, 'h');
     a.focus = Focus::Note;
     key(&mut a, KeyCode::Esc);
-    assert!(a.say.is_none(), "esc in the note");
+    assert!(a.writer.say().is_none(), "esc in the note");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -173,16 +173,16 @@ fn write_mode_keeps_the_char_and_shows_only_the_cursor_line_as_source() {
     a.reader.place(row, col);
     key(&mut a, KeyCode::Char('i'));
     assert_eq!(a.mode, Mode::Write);
-    let line = &a.editor.lines[a.editor.row];
-    assert_eq!(&line[a.editor.col..a.editor.col + 4], "bold", "{line}");
+    let line = &a.writer.editor().lines[a.writer.editor().row];
+    assert_eq!(&line[a.writer.editor().col..a.writer.editor().col + 4], "bold", "{line}");
     let screen = draw(&mut a, 120, 30);
     assert!(screen.iter().any(|r| r.contains("The second **bold** paragraph.")), "the cursor line is source");
     assert!(screen.iter().any(|r| r.contains("│ one │ two │")), "the table keeps its borders");
-    a.editor.row = a.editor.lines.iter().position(|l| l.starts_with("| one")).unwrap();
+    a.writer.editor_mut().row = a.writer.editor().lines.iter().position(|l| l.starts_with("| one")).unwrap();
     let screen = draw(&mut a, 120, 30);
     assert!(screen.iter().any(|r| r.contains("| one | two |")) && screen.iter().any(|r| r.contains("│ A   │ B   │")), "only the row of the cursor is source");
-    a.editor.row = a.editor.lines.iter().position(|l| l.starts_with("The second")).unwrap();
-    a.editor.col = "The second **".len();
+    a.writer.editor_mut().row = a.writer.editor().lines.iter().position(|l| l.starts_with("The second")).unwrap();
+    a.writer.editor_mut().col = "The second **".len();
     key(&mut a, KeyCode::Esc);
     draw(&mut a, 120, 30);
     assert_eq!(&a.frame.read_text()[a.reader.row()][a.reader.col()..a.reader.col() + 4], "bold");
@@ -198,7 +198,7 @@ fn typing_past_the_column_breaks_the_line() {
     a.reader.to_row(a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap());
     key(&mut a, KeyCode::Char('i'));
     draw(&mut a, 120, 30);
-    a.editor.end();
+    a.writer.editor_mut().end();
     typ(&mut a, " And it goes on with more words, so many that the line is longer than the text column.");
     key(&mut a, KeyCode::Esc);
     let text = std::fs::read_to_string(root.join(NOTE)).unwrap();
@@ -254,7 +254,7 @@ async fn say_and_add_to_chat_work_in_write_mode() {
     let screen = draw(&mut a, 120, 30);
     let row = screen.iter().find(|r| r.contains("The first paragraph")).unwrap();
     assert!(row.find('→').unwrap() < row.find("The first").unwrap(), "the arrow in write mode: {row}");
-    a.say = None;
+    a.writer.end_say();
     a.composer.input_mut().take();
     a.composer.clear_chips();
     ctrl_shift(&mut a, 'a');
