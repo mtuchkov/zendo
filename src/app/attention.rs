@@ -19,12 +19,15 @@ pub struct Attention {
     pub bells: usize,
     /// For each session slot: since when its button blinks.
     blink: Vec<Option<Instant>>,
+    /// The time that the blinks read: the clock when none. A test fixes it, so that the time a
+    /// frame takes does not change the shade of a button.
+    pub clock: Option<Instant>,
 }
 
 impl Default for Attention {
     fn default() -> Self {
         let config = crate::setup::config::config_path();
-        Attention { sound: true, config, button: None, focused: true, bells: 0, blink: vec![None; SESSIONS + TERMINALS] }
+        Attention { sound: true, config, button: None, focused: true, bells: 0, blink: vec![None; SESSIONS + TERMINALS], clock: None }
     }
 }
 
@@ -81,7 +84,8 @@ impl App {
 
     /// The pulse of the button of slot `n`, 0 to 1, while it blinks (ATTN-3).
     pub fn blink(&self, n: usize) -> Option<f32> {
-        self.attention.since(n).map(|t| crate::ui::theme::pulse(t.elapsed()))
+        let now = self.attention.clock.unwrap_or_else(Instant::now);
+        self.attention.since(n).map(|t| crate::ui::theme::pulse(now.saturating_duration_since(t)))
     }
 
     /// The turn or the command of slot `n` ended: the bell and the blink, if the user does not see

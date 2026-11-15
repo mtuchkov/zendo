@@ -187,16 +187,19 @@ async fn a_blinking_button_fades_to_the_accent_and_back() {
     let t = *a.theme();
     let normal = button_bg(&mut a, " F7");
     assert_eq!(normal, t.acc2);
+    // The blink reads a fixed time, not the clock: a slow frame does not shift the shade.
+    let now = Instant::now();
+    a.attention.clock = Some(now);
     let colors: Vec<Color> = (0..=10)
         .map(|i| {
-            a.attention.blink_since(1, Instant::now() - Duration::from_millis(100 * i));
+            a.attention.blink_since(1, now - Duration::from_millis(100 * i));
             button_bg(&mut a, " F7")
         })
         .collect();
     assert_eq!(colors[0], t.acc2, "the blink starts at the normal color");
     assert_eq!(colors[10], t.acc, "after 1 s the button has the accent color");
     assert!(colors.windows(2).all(|w| w[0] != w[1]), "a new shade each 100 ms: {colors:?}");
-    a.attention.blink_since(1, Instant::now() - Duration::from_millis(2000));
+    a.attention.blink_since(1, now - Duration::from_millis(2000));
     assert_eq!(button_bg(&mut a, " F7"), t.acc2, "after 2 s the normal color again");
     done(&root, &mut a);
 }
