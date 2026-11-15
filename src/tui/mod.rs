@@ -1,6 +1,8 @@
 //! The terminal loop: input on its own thread, one draw for all waiting input, the output of the
 //! Claude Code sessions, and the terminal modes.
 
+mod sound;
+
 use crate::app::App;
 use crate::ui;
 use anyhow::Result;
@@ -44,7 +46,7 @@ pub async fn run(
         term.draw(|f| ui::draw(f, app))?;
         cursor_shape(app);
         if std::mem::take(&mut app.attention.bells) > 0 {
-            bell();
+            sound::ring();
         }
         if let Some(text) = app.to_chat.take() {
             app.mouse_to_chat(text);
@@ -125,13 +127,6 @@ pub fn terminal_off() {
     }
     let _ = execute!(std::io::stdout(), DisableBracketedPaste, DisableMouseCapture, DisableFocusChange, SetCursorStyle::DefaultUserShape);
     SHAPE.store(0, std::sync::atomic::Ordering::Relaxed);
-}
-
-/// The terminal bell: the terminal plays its sound (ATTN-1).
-fn bell() {
-    use std::io::Write;
-    let mut out = std::io::stdout();
-    let _ = out.write_all(b"\x07").and_then(|_| out.flush());
 }
 
 /// The terminal has the kitty keyboard protocol: ctrl-shift-s is not ctrl-s.

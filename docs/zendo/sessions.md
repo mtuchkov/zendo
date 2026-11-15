@@ -1,6 +1,6 @@
 ---
 status: "draft"
-revision: "10"
+revision: "11"
 date: "2026-11-14"
 parent: "zendo.md"
 prev: "claude.md"
@@ -25,7 +25,8 @@ Code exits, zendo goes back.
 
 **States.** Each running Claude Code session has one state, which Claude Code itself tells zendo:
 *works*, *waits* (for an answer or a permission of the user), or *idle* (the turn ended). The
-session buttons, the chat of the agent session and the bottom line of the session view show it.
+chat of the agent session and the bottom line of the session view show it. A session button
+shows only `!`, while its session waits.
 [Attention](attention.md) has the bell and the blinking button.
 
 **One writer for a thread.** While a Claude Code session runs, a question in its chat goes to Claude
@@ -86,7 +87,7 @@ The **mock command line** replaces `claude`. The tests are in `tests/sessions.rs
 | SESSIONS-11 | Event      | When the user presses the key of an agent session in the session view, the system shall show its Claude Code session if it runs, else the chat on that agent session. | Design |
 | SESSIONS-12 | Event      | When Claude Code exits while its session view is open, the system shall show the screen from where the user opened the session.                    | Design           |
 | SESSIONS-13 | Event      | When a Claude Code session ends, the system shall open its agent session again, so that the chat shows the messages from Claude Code.               | Design           |
-| SESSIONS-14 | Ubiquitous | The system shall show the state of each running Claude Code session on its session button and in the bottom line of the session view.             | Design           |
+| SESSIONS-14 | Ubiquitous | The system shall show the state of each running Claude Code session in the bottom line of the session view, and shall show `!` on the session button only while the session waits for the user. | Design; User, 2026-11-14 |
 | SESSIONS-16 | Event      | When the terminal changes size, the system shall give the new size to each Claude Code session.                                                    | Design           |
 | SESSIONS-17 | Unwanted   | If Claude Code does not report a state, then the system shall show *works* while the session prints and *idle* otherwise.                          | Design           |
 | SESSIONS-18 | Ubiquitous | The system shall not change the settings files of Claude Code of the user, except the zendo section of SESSIONS-22.                                                                        | Design           |
@@ -97,7 +98,7 @@ Test of SESSIONS-20: `chat_shows_the_state_of_its_claude_code_session` in `tests
 SESSIONS-21 and SESSIONS-22, on what zendo tells the agent of a session, are in
 [zendo session](zendo-session.md).
 
-Retired in revision 4: SESSIONS-15 (zendo refused `ctrl-o` while the chat answered); [Hand-off during a turn](handoff.md) replaces it. Revision 10 moved SESSIONS-21 and SESSIONS-22 to [zendo session](zendo-session.md).
+Retired in revision 4: SESSIONS-15 (zendo refused `ctrl-o` while the chat answered); [Hand-off during a turn](handoff.md) replaces it. Revision 11 changed SESSIONS-14: the buttons have no dots for *works* and *idle*. Revision 10 moved SESSIONS-21 and SESSIONS-22 to [zendo session](zendo-session.md).
 
 ## Open points
 

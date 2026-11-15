@@ -107,10 +107,11 @@ impl App {
         }
     }
 
-    /// `alt-]` and `alt-[` on the full screen: the next or the previous session or terminal that
-    /// runs, on the full screen (TERM-51).
+    /// `alt-]` and `alt-[` on the full screen: the next or the previous agent session or terminal
+    /// that runs. One that runs shows on the full screen; an agent session without Claude Code
+    /// shows its chat, so the step leaves no agent session out (TERM-51).
     pub(crate) fn step_full_screen(&mut self, forward: bool) {
-        let all: Vec<usize> = (0..SESSIONS + TERMINALS).filter(|n| self.cli.running(*n)).collect();
+        let all: Vec<usize> = (0..SESSIONS + TERMINALS).filter(|n| *n < SESSIONS || self.cli.running(*n)).collect();
         let Some(now) = self.cli.view else { return };
         let next = ring_step(&all, now, forward);
         if self.cli.pane == Some(now) {
@@ -120,7 +121,7 @@ impl App {
             Some(i) => self.open_terminal(i),
             None => self.switch_session(next),
         }
-        self.cli.view = Some(next);
+        self.cli.view = self.cli.running(next).then_some(next);
     }
 }
 

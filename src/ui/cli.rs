@@ -134,14 +134,13 @@ fn key_spans(app: &App, t: &Theme, action: &str, text: &str) -> Vec<Span<'static
     vec![Span::styled(format!("   {k}"), Style::new().fg(t.fg)), Span::styled(text.to_string(), Style::new().fg(t.dim))]
 }
 
-/// The text of a session button: its name, and the mark of the state of its program; a terminal
-/// has the mark while it runs a command (TERM-16).
+/// The text of a session button: its name, and `!` while its Claude Code session waits for the
+/// user (SESSIONS-14). A session that works or is idle, and a terminal, have only the name.
 pub(crate) fn button_label(app: &App, n: usize) -> String {
     let key = name(app, n);
     match app.cli.state(n) {
-        Some(crate::session::State::Idle) if n >= crate::app::SESSIONS => key,
-        Some(s) => format!("{key}{}", s.mark()),
-        None => key,
+        Some(crate::session::State::Waits) if n < crate::app::SESSIONS => format!("{key}!"),
+        _ => key,
     }
 }
 

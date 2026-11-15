@@ -125,6 +125,21 @@ async fn chat_shows_the_state_of_its_claude_code_session() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
+// SESSIONS-14: the button of a session that works or is idle has only its name, without a dot.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_button_has_no_dot_while_its_session_works_or_is_idle() {
+    let (root, mut a) = app_with_cli("sessions-no-dot");
+    chat_on(&mut a, 0);
+    ctrl(&mut a, 'o');
+    wait(&mut a, 10, |a| counter(a, 0) >= 1);
+    leave(&mut a);
+    assert!(matches!(a.cli.state(0), Some(State::Works | State::Idle)), "{:?}", a.cli.state(0));
+    let screen = draw(&mut a, 160, 30).join("\n");
+    assert!(screen.contains("F6") && !screen.contains("F6•") && !screen.contains("F6·"), "{screen}");
+    a.cli.stop_all();
+    let _ = std::fs::remove_dir_all(&root);
+}
+
 // SESSIONS-5, SESSIONS-14: a new state shows on the session button within 1 s.
 #[tokio::test(flavor = "multi_thread")]
 async fn state_shows_within_a_second() {

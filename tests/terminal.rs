@@ -151,7 +151,7 @@ async fn five_busy_terminals_take_nothing() {
     done(&root, &mut a);
 }
 
-// TERM-8, TERM-11, TERM-14, TERM-16: the play button on the block; F5 outside a block shows the F5
+// TERM-8, TERM-11, TERM-14: the play button on the block; F5 outside a block shows the F5
 // terminal; the terminal buttons come under F10, after a line.
 #[tokio::test(flavor = "multi_thread")]
 async fn play_button_and_terminal_buttons() {
@@ -171,7 +171,7 @@ async fn play_button_and_terminal_buttons() {
     wait(&mut a, 10, |a| a.cli.busy(0));
     alt_q(&mut a);
     let screen = draw(&mut a, 120, 40).join("\n");
-    assert!(screen.contains("F5•"), "the busy mark:\n{screen}");
+    assert!(screen.contains("F5") && !screen.contains("F5•"), "the button has no dot:\n{screen}");
     done(&root, &mut a);
 }
 
@@ -279,8 +279,8 @@ async fn alt_slash_opens_find_over_a_full_screen_session() {
     done(&root, &mut a);
 }
 
-// TERM-51: on the full screen, alt-] and alt-[ (alt-} on the Mac) show the next or the previous session or terminal
-// that runs, on the full screen; the agent sessions without Claude Code are not in the ring.
+// TERM-51: on the full screen, alt-] and alt-[ (alt-} on the Mac) show the next or the previous terminal that
+// runs on the full screen, and no agent session is left out: one without Claude Code shows its chat.
 #[tokio::test(flavor = "multi_thread")]
 async fn alt_bracket_keeps_the_full_screen() {
     let (root, mut a) = app_with_shell("term-full-ring");
@@ -296,9 +296,11 @@ async fn alt_bracket_keeps_the_full_screen() {
     assert_eq!(a.cli.view, Some(shell(0)), "F5 on the full screen");
     alt(&mut a, ']');
     assert_eq!(a.cli.view, Some(shell(1)), "the [>] terminal on the full screen");
-    alt(&mut a, ']');
-    assert_eq!(a.cli.view, Some(shell(0)), "F5 again: no agent session runs Claude Code");
     alt(&mut a, PREV);
-    assert_eq!(a.cli.view, Some(shell(1)), "back: the [>] terminal on the full screen");
+    assert_eq!(a.cli.view, Some(shell(0)), "back: F5 on the full screen");
+    alt(&mut a, PREV);
+    assert_eq!((a.cli.view, a.cli.pane, a.state.session), (None, None, SESSIONS - 1), "agent session 5 runs no Claude Code: its chat");
+    alt(&mut a, PREV);
+    assert_eq!((a.cli.view, a.cli.pane, a.state.session), (None, None, SESSIONS - 2), "from the chat: the ring of the chat");
     done(&root, &mut a);
 }

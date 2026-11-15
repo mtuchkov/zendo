@@ -1,7 +1,7 @@
 ---
 status: "draft"
-revision: "2"
-date: "2026-11-13"
+revision: "3"
+date: "2026-11-14"
 parent: "terminal.md"
 prev: "shell-blocks.md"
 next: "terminal-output.md"
@@ -48,7 +48,7 @@ differ from agent sessions at once.
 | TERM-38 | Event   | When the user presses `ctrl-o` while the chat pane shows a terminal, the system shall show that terminal on the full screen. | User, 2026-11-12 |
 | TERM-41 | Event   | When the user presses `alt-]`, the system shall show the next item of this sequence: the agent sessions, the `F5` terminal, the `[>]` terminals from the top, and then the first agent session again. | User, 2026-11-12; User, 2026-11-13 |
 | TERM-49 | Event   | Where the system runs on Linux, when the user presses `alt-[`, and where it runs on macOS, when the user presses `alt-}`, the system shall show the previous item of the sequence of TERM-41, and after the first agent session the last item. | User, 2026-11-13 |
-| TERM-51 | State   | While a session or a terminal is on the full screen, when the user presses `alt-]` or the key of TERM-49, the system shall show on the full screen the next or the previous agent session or terminal that runs. | User, 2026-11-13 |
+| TERM-51 | State   | While a session or a terminal is on the full screen, when the user presses `alt-]` or the key of TERM-49, the system shall go to the next or the previous agent session or terminal that runs: it shall show one that runs on the full screen, and for an agent session without a Claude Code session it shall show the chat on that agent session. | User, 2026-11-13; User, 2026-11-14 |
 
 ### Acceptance tests
 
@@ -79,8 +79,9 @@ The tests are in `tests/terminal.rs`, with `/bin/sh` as the shell.
 **`alt_bracket_keeps_the_full_screen`** (terminal check; verifies TERM-51)
 
 - Given the `F5` terminal and one `[>]` terminal that run, and `F5` on the full screen.
-- When the user presses `alt-]` twice, and then the key of TERM-49.
-- Then the full screen shows the `[>]` terminal, then `F5`, then the `[>]` terminal again.
+- When the user presses `alt-]`, and then the key of TERM-49 two times.
+- Then the full screen shows the `[>]` terminal, then `F5` again, and then zendo shows the chat on
+  agent session 5, which has no Claude Code session.
 
 ## Detailed requirements
 
@@ -94,10 +95,11 @@ The tests are in `tests/terminal.rs`, with `/bin/sh` as the shell.
 | TERM-14 | Ubiquitous | The system shall show the terminal buttons under the agent buttons, after a gap with a horizontal line: first `F5`, then a `[>]` button for each open `[>]` terminal. | User, 2026-11-12 |
 | TERM-48 | Unwanted   | If the keymap in effect gives the first terminal another key than `F5`, then the system shall name it `[>]`, as the other terminals. | User, 2026-11-13 |
 | TERM-15 | Ubiquitous | The system shall show the terminal buttons in the color of the text of the theme, and mark the session on the screen in the bottom line of the full screen. | User, 2026-11-12 |
-| TERM-16 | State      | While a terminal runs a command, the system shall show a busy mark on its button. | Design |
 | TERM-19 | Ubiquitous | The system shall take the keys of the terminals from the keymap, with `f5`, `alt-f5`, `alt-q`, `alt-]`, `alt-[` on Linux or `alt-}` on macOS, and `ctrl-o` as the defaults. | PANES-17 |
 
-`play_button_and_terminal_buttons` in [Shell blocks](shell-blocks.md) verifies TERM-14 and TERM-16.
+`play_button_and_terminal_buttons` in [Shell blocks](shell-blocks.md) verifies TERM-14.
+
+Retired in revision 3: TERM-16 (a busy mark on the button of a terminal that runs a command); the user removed the dots from the buttons on 2026-11-14. Revision 3 changed TERM-51: the step leaves no agent session out. Retired identifiers are never reused.
 `other_session_keys_name_the_buttons_1_to_5_and_the_terminal_by_its_mark` in `tests/keymap_hints.rs`
 verifies TERM-48. `the_linux_keymap_gives_alt_brackets_to_the_sessions` and
 `the_mac_keymap_gives_alt_brace_to_the_previous_session` in `tests/keymap_hints.rs` verify TERM-41 and

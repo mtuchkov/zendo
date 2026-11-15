@@ -48,15 +48,6 @@ pub enum State {
 }
 
 impl State {
-    /// The mark on the session button.
-    pub fn mark(self) -> char {
-        match self {
-            State::Works => '•',
-            State::Waits => '!',
-            State::Idle => '·',
-        }
-    }
-
     pub fn word(self) -> &'static str {
         match self {
             State::Works => "works",
