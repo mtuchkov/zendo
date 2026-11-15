@@ -78,6 +78,11 @@ impl App {
     /// Each tick: a stopped turn that did not end within 5 s; Claude Code starts anyway (HANDOFF-6).
     pub(crate) fn hold_tick(&mut self) {
         let Some(h) = self.hold.filter(|h| h.stopped.is_some_and(|t| t.elapsed() > HOLD_AGAIN)) else { return };
+        let t = self.thread(&session_key(h.n));
+        t.busy = None;
+        t.thinking = false;
+        t.dropped = true;
+        t.push(Item::Info("stopped".into()));
         self.hold_turn_ended(&session_key(h.n));
         self.flash("the turn did not stop within 5 s: Claude Code started anyway");
     }

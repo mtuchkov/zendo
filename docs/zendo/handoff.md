@@ -27,7 +27,8 @@ stops the turn. zendo sends no key to a program in this view.
 `stopping the turn…` until the turn ends. Then zendo starts Claude Code with a first prompt that
 tells it to continue the stopped turn, so the user does not type it. Claude Code gets the prompt as
 an argument of the command line, so no key is lost while Claude Code starts. If the turn does not
-end within 5 s after the stop, zendo starts Claude Code anyway and says so.
+end within 5 s after the stop, zendo ends the turn in the chat, starts Claude Code anyway and says
+so. The chat shows `stopped`, its timer stops, and later messages of that turn do not show.
 
 **Leave.** `alt-q` leaves the waiting view. Then zendo does not start Claude Code when the turn ends.
 
@@ -40,7 +41,7 @@ end within 5 s after the stop, zendo starts Claude Code anyway and says so.
 | HANDOFF-3 | Event    | When the turn ends while the session view waits, the system shall start the Claude Code session in the session view.                                                 | User, 2026-11-13 |
 | HANDOFF-4 | Event    | When the user presses `ctrl-o` again within 5 s while the session view waits, the system shall stop the turn.                                                       | User, 2026-11-13 |
 | HANDOFF-5 | Event    | When a turn that the user stopped from the session view ends, the system shall start the Claude Code session with a first prompt to continue the stopped turn.       | User, 2026-11-13 |
-| HANDOFF-6 | Unwanted | If the turn does not end within 5 s after the stop, then the system shall start the Claude Code session, and shall say that the turn did not stop.                   | User, 2026-11-13 |
+| HANDOFF-6 | Unwanted | If the turn does not end within 5 s after the stop, then the system shall end the turn in the chat and not show its later messages, start the Claude Code session, and say that the turn did not stop. | User, 2026-11-13; User, 2026-11-15 |
 
 ### Acceptance tests
 
@@ -65,7 +66,8 @@ The tests are in `tests/handoff.rs`, with the mock agent and the mock command li
 
 - Given a stopped turn that does not end.
 - When 5 s go by.
-- Then Claude Code runs with the prompt to continue, and zendo says that the turn did not stop.
+- Then the chat shows `stopped` and no timer, Claude Code runs with the prompt to continue, zendo
+  says that the turn did not stop, and the later messages of the turn do not show.
 
 ## Detailed requirements
 
