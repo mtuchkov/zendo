@@ -49,15 +49,16 @@ pub fn count_words(text: &str) -> usize {
 const EARS: [&str; 6] = ["WHEN", "WHILE", "IF", "THEN", "WHERE", "SHALL"];
 
 /// Render with a cache: each frame draws the same text again, and a fast scroll draws many frames.
+/// The key holds every color of the theme: the float and its theme differ in colors, not in name.
 pub fn render(src: &[(String, Mark)], width: usize, t: &Theme, skip_title: bool) -> Rendered {
-    cached((src, width, t.name, t.panel, skip_title), || render_text(src, width, t, skip_title, None, false))
+    cached((src, width, *t, skip_title), || render_text(src, width, t, skip_title, None, false))
 }
 
 /// Write mode: the same look and wrap as read mode, with the start of each row in the source. The
 /// line `raw` (the cursor line) shows as source where read mode shows nothing of it, and in a
 /// table. The title is not in it: the head of the note shows it.
 pub fn render_live(src: &[(String, Mark)], width: usize, t: &Theme, raw: Option<usize>) -> Rendered {
-    cached((src, width, t.name, t.panel, raw, "live"), || render_text(src, width, t, true, raw, true))
+    cached((src, width, *t, raw, "live"), || render_text(src, width, t, true, raw, true))
 }
 
 /// The render of a text from the cache, or a new one.
