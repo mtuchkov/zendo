@@ -22,6 +22,10 @@ writes nothing in the repository.
 **Then it checks.** After the writes, setup runs the checks of [Doctor](doctor.md). Outside a
 repository it does not report the repository checks as failures.
 
+**Then the keys.** At its end, setup offers the [keymap wizard](keymap-wizard.md) to a person in a
+terminal. When the installer or an agent runs setup, it asks nothing and ends with an instruction
+for the agent to ask the user to run `zendo doctor --keys` (WIZARD-15, WIZARD-16).
+
 **Certificates.** Company proxies often replace the TLS certificate. When the adapter install fails
 with a certificate error, setup tries again with the certificate store of the system, and keeps that
 setting when it works.

@@ -3,7 +3,7 @@ status: "draft"
 revision: "1"
 date: "2026-11-14"
 parent: "cli.md"
-prev: "doctor.md"
+prev: "keymap-wizard.md"
 level: "what zendo upgrade builds and repairs, the version, and the update suggestion"
 note: "Agent draft from the requests of the user on 2026-11-14, split from commands.md. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
