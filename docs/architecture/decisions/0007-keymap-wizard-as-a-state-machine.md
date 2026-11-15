@@ -1,5 +1,6 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-15"
 date: "2026-11-15"
 sources:
   - "../../zendo/cli/keymap-wizard.md (WIZARD-4, WIZARD-10, WIZARD-13)"
@@ -27,7 +28,7 @@ write mode, a key that the terminal takes. The wizard must also work without the
 
 ## Decision
 
-Proposal of the author, not yet accepted: the third option.
+Accepted: the third option.
 
 The keymap wizard shall keep its steps, the key tests and the writes in a state machine in zendo.
 The agent shall reach the keymap only through wizard tools that zendo gives it: the clashes, the
@@ -53,4 +54,4 @@ rules when the agent is not available.
 
 ## Decision record
 
-Proposed by the agent on 2026-11-15 from the note of the user. Not yet reviewed by the user.
+Proposed by the agent on 2026-11-15 from the note of the user; approved by the user on 2026-11-15 in the chat.

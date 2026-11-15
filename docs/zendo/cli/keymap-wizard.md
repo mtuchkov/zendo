@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-15"
 revision: "2"
 date: "2026-11-15"
 parent: "cli.md"
 prev: "doctor.md"
 next: "upgrade.md"
 level: "the keymap check of doctor, the wizard of --keys that moves clashing keys, and its offer at setup"
-note: "Agent draft from the note of the user `2026-11-15-keymap-wizard.md` and the answers of the user on 2026-11-15. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft from the note of the user `2026-11-15-keymap-wizard.md` and the answers of the user on 2026-11-15, approved by the user on 2026-11-15."
 ---
 
 # Keymap check and wizard
