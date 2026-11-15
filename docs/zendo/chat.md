@@ -1,12 +1,13 @@
 ---
-status: "draft"
-revision: "1"
-date: "2026-11-13"
+status: "approved"
+approved: "2026-11-14"
+revision: "2"
+date: "2026-11-14"
 parent: "zendo.md"
 prev: "zendo-session.md"
 next: "terminal/terminal.md"
 level: "the chat input: lines, chips, attachments and @ file suggestions"
-note: "Agent draft, split from claude.md. Not reviewed by the user."
+note: "Split from claude.md; the user approved the requirements in the chat on 2026-11-14, with CLAUDE-17 for `Image #n` chips and CLAUDE-37 to CLAUDE-39 for image names."
 ---
 
 # Chat

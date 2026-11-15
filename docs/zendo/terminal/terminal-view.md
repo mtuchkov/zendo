@@ -1,12 +1,13 @@
 ---
-status: "draft"
-revision: "3"
+status: "approved"
+approved: "2026-11-14"
+revision: "4"
 date: "2026-11-14"
 parent: "terminal.md"
 prev: "shell-blocks.md"
 next: "terminal-output.md"
 level: "the view of a terminal: the chat pane, the full screen, the keys to leave and to go to another session, the buttons"
-note: "Agent draft from the requests of the user on 2026-11-12, split from terminal.md. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "From the requests of the user on 2026-11-12, split from terminal.md; the user approved the requirements in the chat on 2026-11-14, with TERM-14 for the terminal buttons at the top of the right edge."
 ---
 
 # Terminal view
