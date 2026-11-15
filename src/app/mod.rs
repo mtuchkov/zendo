@@ -202,13 +202,6 @@ pub struct App {
     pub word_limit: usize,
     pub word_count: usize,
     pub over_limit: Option<usize>,
-    /// The rendered rows of the read view (plain text) and the row of each source line, from the last frame.
-    pub read_text: Vec<String>,
-    pub read_rows: Vec<usize>,
-    /// Panes in the last frame, left to right.
-    pub visible: Vec<Focus>,
-    /// Panes in the last frame with their areas, for resizing.
-    pub pane_rects: Vec<(Focus, Rect)>,
     /// A pane edge being dragged: the pane, its fixed edge, and whether it grows to the right.
     pub drag: Option<(Focus, u16, bool)>,
     /// A newer commit on main (short sha), found on start.
@@ -222,14 +215,8 @@ pub struct App {
     pub structure_seen: Option<std::time::SystemTime>,
     /// Files opened from the tree outside the notes folder.
     pub extra: Vec<PathBuf>,
-    /// Tree rows on screen in the last frame, for mouse clicks.
-    pub tree_rows: Vec<(Rect, usize)>,
-    /// The buttons of the agent sessions in the last frame, for mouse clicks.
-    pub session_buttons: Vec<(Rect, usize)>,
     /// The last `alt-o`: the index of its terminal, and the input before it (TERM-28).
     pub(crate) output_pick: Option<(usize, Vec<String>, usize, usize)>,
-    /// The play buttons of the shell blocks in the last frame, and their commands (TERM-10).
-    pub play_buttons: Vec<(Rect, String)>,
     /// `delete`, `f2` or `m` on a file: the question in the status bar.
     pub file_prompt: Option<FilePrompt>,
     /// The width of the text column from the config, when the repository sets none.
@@ -267,8 +254,6 @@ pub struct App {
     pub attention: Attention,
     /// The lofi music, its button, and the question at the first start (LOFI-8 to LOFI-15).
     pub music: crate::music::Music,
-    /// Panels on screen in the last frame, for the mouse.
-    pub regions: Vec<(Region, Rect)>,
     pub sel: Option<Selection>,
     /// Take the mouse selection on the next frame; after the frame, its text for the clipboard, or
     /// for a chip with alt (PANES-44).
@@ -276,11 +261,16 @@ pub struct App {
     pub clip: Option<String>,
     pub to_chat: Option<String>,
 
-    /// Layout facts from the last frame, for keys that move by screen.
-    pub view_height: usize,
-    pub text_width: usize,
-    /// Write mode: the rows on the screen as spans of the source, from the last draw.
-    pub write_rows: Vec<write_rows::RowSpan>,
+    /// What the last draw left for the mouse and the keys; `ui` builds it, the app only reads it.
+    pub frame: crate::ui::frame::Frame,
+}
+
+impl App {
+    /// Draw the screen, and keep what the draw leaves for the mouse and the keys.
+    pub fn draw(&mut self, f: &mut ratatui::Frame) {
+        let last = std::mem::take(&mut self.frame);
+        self.frame = crate::ui::draw(f, self, last);
+    }
 }
 
 pub const ALL_KEY: &str = "(all notes)";

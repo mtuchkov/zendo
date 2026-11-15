@@ -1,7 +1,7 @@
 //! The chat pane: the thread and the input.
 use super::*;
 
-pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
+pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) {
     f.render_widget(Block::new().style(Style::new().bg(t.panel)), area);
     // A thin rule on the left edge separates the panel from the note. The buttons of the agent
     // sessions are in the first row, or on the right edge above the ones of the terminals.
@@ -9,16 +9,16 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let side = Rect { x: area.right().saturating_sub(BUTTON_W + 1), width: BUTTON_W, ..area };
     let row = app.cli.pane.is_none().then(|| agent_row(app, width as usize)).flatten();
     let rows = match row {
-        Some(labels) => draw_agent_row(f, app, t, labels, Rect { x: area.x + 3, width, height: 1, ..area }),
-        None => draw_agent_column(f, app, t, side),
+        Some(labels) => draw_agent_row(f, app, fr, t, labels, Rect { x: area.x + 3, width, height: 1, ..area }),
+        None => draw_agent_column(f, app, fr, t, side),
     };
-    draw_terminals(f, app, t, side, rows == 0);
+    draw_terminals(f, app, fr, t, side, rows == 0);
     let inner = Rect { x: area.x + 3, y: area.y + rows, width, height: area.height.saturating_sub(rows) };
     // A terminal shows in place of the thread and the input (TERM-37, TERM-40).
     let body = Rect { y: inner.y + 2, height: inner.height.saturating_sub(2), ..inner };
     app.cli.resize_pane(body.height, body.width);
     if let Some(n) = app.cli.pane {
-        return draw_pane_terminal(f, app, t, n, Rect { height: 1, ..inner }, body);
+        return draw_pane_terminal(f, app, fr, t, n, Rect { height: 1, ..inner }, body);
     }
     let w = inner.width as usize;
     // The input grows with its text, up to a quarter of the panel; then it scrolls.
@@ -57,14 +57,14 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     } else if app.agent_name.is_none() && app.agent.is_some() {
         lines.push(Line::styled(format!("starting {} {}", short_agent(&app.cfg.agent), SPIN[(app.last_edit.elapsed().as_millis() / 300) as usize % 4]), dim));
     }
-    app.regions.push((crate::text::select::Region::Panel, body));
-    draw_transcript(f, app, t, body, lines, w);
+    fr.regions.push((crate::text::select::Region::Panel, body));
+    draw_transcript(f, app, fr, t, body, lines, w);
     draw_input(f, app, t, input, in_h, in_w);
 }
 
 /// The thread, from the bottom up. While the transcript has the keys, the view follows its cursor,
 /// and the cursor row and the selection show.
-fn draw_transcript(f: &mut Frame, app: &mut App, t: &Theme, body: Rect, lines: Vec<Line<'static>>, w: usize) {
+fn draw_transcript(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, body: Rect, lines: Vec<Line<'static>>, w: usize) {
     let h = body.height as usize;
     app.transcript.rows = lines.iter().map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect()).collect();
     let on = app.transcript.on && app.focus == Focus::Claude;
@@ -89,7 +89,7 @@ fn draw_transcript(f: &mut Frame, app: &mut App, t: &Theme, body: Rect, lines: V
     f.render_widget(Paragraph::new(view), body);
     let shown = |(a, ..): &&(usize, usize, String)| *a >= start && *a < start + h;
     let play = app.transcript.blocks.iter().filter(shown).map(|(a, _, c)| (Rect { x: body.x + (w as u16).saturating_sub(2), y: body.y + (a - start) as u16, width: 2, height: 1 }, c.clone())).collect::<Vec<_>>();
-    app.play_buttons = play;
+    fr.play_buttons = play;
     if on && tr.row >= start && tr.row < start + h {
         let x: usize = tr.rows[tr.row].chars().take(tr.col).map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
         f.set_cursor_position((body.x + (x as u16).min(body.width.saturating_sub(1)), body.y + (tr.row - start) as u16));
@@ -240,12 +240,12 @@ fn agent_style(app: &App, t: &Theme, n: usize) -> Style {
 
 /// The buttons of the agent sessions in one row above the header (CLAUDE-32). Returns the rows
 /// that it takes.
-fn draw_agent_row(f: &mut Frame, app: &mut App, t: &Theme, labels: Vec<String>, row: Rect) -> u16 {
+fn draw_agent_row(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, labels: Vec<String>, row: Rect) -> u16 {
     let mut x = row.x;
     for (n, text) in labels.into_iter().enumerate() {
         let r = Rect { x, width: text.width() as u16, ..row };
         f.render_widget(Paragraph::new(Line::styled(text, agent_style(app, t, n))), r);
-        app.session_buttons.push((r, n));
+        fr.session_buttons.push((r, n));
         x = r.right() + 1;
     }
     1
@@ -254,13 +254,13 @@ fn draw_agent_row(f: &mut Frame, app: &mut App, t: &Theme, labels: Vec<String>, 
 /// The buttons of the agent sessions on the right edge, one under the other, with their keys and
 /// the marks of the states: while a terminal shows in the chat pane, or the row does not fit
 /// (CLAUDE-32, NAMES-8). They take no row of the chat.
-fn draw_agent_column(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) -> u16 {
+fn draw_agent_column(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) -> u16 {
     let w = area.width as usize;
     for (y, n) in (0..crate::app::SESSIONS).map(|n| (area.y + 2 + 2 * n as u16, n)).filter(|(y, _)| *y < area.bottom()) {
         let r = Rect { y, height: 1, ..area };
         let label = button_label(app, n);
         f.render_widget(Paragraph::new(Line::styled(format!("{label:^w$}"), agent_style(app, t, n))), r);
-        app.session_buttons.push((r, n));
+        fr.session_buttons.push((r, n));
     }
     0
 }
@@ -268,7 +268,7 @@ fn draw_agent_column(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) -> u16
 /// The buttons of the terminals on the right edge, in the color of the text: `F5`, then each `[>]`.
 /// Under the agent buttons when they are on the right edge, after a line; else from the top of the
 /// edge (TERM-14, TERM-15).
-fn draw_terminals(f: &mut Frame, app: &mut App, t: &Theme, area: Rect, under_agents: bool) {
+fn draw_terminals(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect, under_agents: bool) {
     let w = area.width as usize;
     let rule = area.y + 2 + 2 * crate::app::SESSIONS as u16;
     if under_agents && rule < area.bottom() {
@@ -281,6 +281,6 @@ fn draw_terminals(f: &mut Frame, app: &mut App, t: &Theme, area: Rect, under_age
         let bg = pulse_bg(app, t, n, t.fg);
         let label = button_label(app, n);
         f.render_widget(Paragraph::new(Line::styled(format!("{label:^w$}"), Style::new().bg(bg).fg(t.bg).add_modifier(Modifier::BOLD))), r);
-        app.session_buttons.push((r, n));
+        fr.session_buttons.push((r, n));
     }
 }

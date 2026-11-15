@@ -11,7 +11,7 @@ impl App {
 
     /// The selection in read mode, when it starts in a cell of a table with box borders (PANES-34).
     pub fn read_table(&self) -> Option<crate::text::boxtable::Range> {
-        crate::text::boxtable::in_table(&self.read_text, self.read_anchor?, (self.read_cursor, self.read_col))
+        crate::text::boxtable::in_table(self.frame.read_text(), self.read_anchor?, (self.read_cursor, self.read_col))
     }
 
     /// A selection in a table: the cursor stops at the edge of its cell, and two quick presses go
@@ -20,7 +20,7 @@ impl App {
         use crate::text::softstop::Dir;
         let (Some(dir), Some(anchor)) = (Dir::of(act), self.read_anchor) else { return };
         let after = (self.read_cursor, self.read_col);
-        (self.read_cursor, self.read_col) = self.read_stop.step(&self.read_text, anchor, before, after, dir, Instant::now());
+        (self.read_cursor, self.read_col) = self.read_stop.step(self.frame.read_text(), anchor, before, after, dir, Instant::now());
         if dir.horizontal() {
             self.read_want = self.read_col;
         }
@@ -31,12 +31,12 @@ impl App {
         if let Some(((a, _), (b, _))) = self.read_selection() {
             return (a, b);
         }
-        let blank = |i: usize| self.read_text.get(i).is_none_or(|l| l.trim().is_empty());
+        let blank = |i: usize| self.frame.read_text().get(i).is_none_or(|l| l.trim().is_empty());
         let (mut a, mut b) = (self.read_cursor, self.read_cursor);
         while a > 0 && !blank(a - 1) {
             a -= 1;
         }
-        while b + 1 < self.read_text.len() && !blank(b + 1) {
+        while b + 1 < self.frame.read_text().len() && !blank(b + 1) {
             b += 1;
         }
         (a, b)
@@ -44,10 +44,10 @@ impl App {
 
     pub(crate) fn selection_text(&self) -> String {
         if let Some(t) = self.read_table() {
-            return t.text(&self.read_text).trim().to_string();
+            return t.text(self.frame.read_text()).trim().to_string();
         }
         if let Some(((r1, c1), (r2, c2))) = self.read_selection() {
-            let lines = self.read_text.get(r1..=r2.min(self.read_text.len().saturating_sub(1))).unwrap_or(&[]);
+            let lines = self.frame.read_text().get(r1..=r2.min(self.frame.read_text().len().saturating_sub(1))).unwrap_or(&[]);
             let part = |(i, line): (usize, &String)| {
                 let r = r1 + i;
                 let chars: Vec<char> = line.trim_end().chars().collect();
@@ -58,7 +58,7 @@ impl App {
             return lines.iter().enumerate().map(part).collect::<Vec<_>>().join("\n").trim().to_string();
         }
         let (a, b) = self.selection_rows();
-        let rows: Vec<&str> = self.read_text.get(a..=b.min(self.read_text.len().saturating_sub(1))).unwrap_or(&[]).iter().map(|s| s.trim_end()).collect();
+        let rows: Vec<&str> = self.frame.read_text().get(a..=b.min(self.frame.read_text().len().saturating_sub(1))).unwrap_or(&[]).iter().map(|s| s.trim_end()).collect();
         rows.join("\n").trim().to_string()
     }
 
@@ -79,10 +79,10 @@ impl App {
         // line with text that is not the title.
         let src: Vec<String> = self.note_text().unwrap_or_default().lines().map(str::to_string).collect();
         let text_at = |i: usize| src.get(i).is_some_and(|l| !(l.trim().is_empty() || (i == 0 && l.starts_with("# "))));
-        let lo = self.read_rows.iter().rposition(|r| *r <= a).unwrap_or(0);
-        let row = self.read_rows.get(lo).copied().unwrap_or(0);
-        let lo = (0..self.read_rows.len()).find(|i| self.read_rows[*i] == row && text_at(*i)).unwrap_or(lo);
-        let hi = self.read_rows.iter().rposition(|r| *r <= b).unwrap_or(lo);
+        let lo = self.frame.read_rows().iter().rposition(|r| *r <= a).unwrap_or(0);
+        let row = self.frame.read_rows().get(lo).copied().unwrap_or(0);
+        let lo = (0..self.frame.read_rows().len()).find(|i| self.frame.read_rows()[*i] == row && text_at(*i)).unwrap_or(lo);
+        let hi = self.frame.read_rows().iter().rposition(|r| *r <= b).unwrap_or(lo);
         let rel = self.current.as_ref().map(|p| self.rel(p)).unwrap_or_default();
         let quoted: String = text.lines().map(|l| format!("> {l}\n")).collect();
         format!("Selected text from {rel} (about lines {}–{}):\n{quoted}", lo + 1, hi + 1)

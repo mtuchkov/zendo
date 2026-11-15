@@ -141,7 +141,7 @@ impl Transcript {
 impl App {
     /// The keys of the transcript.
     pub(crate) fn key_transcript(&mut self, act: Option<&str>) {
-        let page = self.view_height.saturating_sub(3).max(1) as isize;
+        let page = self.frame.view_height().saturating_sub(3).max(1) as isize;
         let Some(act) = act else { return };
         let t = &mut self.transcript;
         if act.starts_with("select_") && t.anchor.is_none() {

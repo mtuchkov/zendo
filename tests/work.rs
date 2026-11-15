@@ -155,7 +155,7 @@ async fn ctrl_r_twice_marks_the_confusing_lines() {
     let r = a.reviews.shown.clone().unwrap();
     assert_eq!(r.lines, vec![(3, "\"soon\" says no time.".to_string())]);
     let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 30)).unwrap();
-    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
+    term.draw(|f| a.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();
     let rows: Vec<String> = (0..30).map(|y| (0..120).map(|x| buf[(x, y)].symbol().to_string()).collect()).collect();
     assert!(rows.iter().any(|r| r.contains("REVIEW") && r.contains("1 confusing line")), "{rows:#?}");
@@ -166,10 +166,10 @@ async fn ctrl_r_twice_marks_the_confusing_lines() {
     let other = root.join("docs/notes/2026-11-12-other.md");
     std::fs::write(&other, "# Other\n").unwrap();
     a.open_file(other);
-    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
+    term.draw(|f| a.draw(f)).unwrap();
     assert!(a.reviews.shown.is_none(), "the review goes when another file opens");
     a.open_file(root.join(REL));
-    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
+    term.draw(|f| a.draw(f)).unwrap();
     let rows: Vec<String> = (0..30).map(|y| (0..120).map(|x| term.backend().buffer()[(x, y)].symbol().to_string()).collect()).collect();
     assert!(!rows.iter().any(|r| r.contains("REVIEW")), "zendo does not keep it: {rows:#?}");
 }

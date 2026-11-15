@@ -15,11 +15,11 @@ impl App {
 
     /// Tab: the next pane on screen.
     pub(crate) fn next_pane(&mut self) {
-        if self.visible.len() < 2 {
+        if self.frame.visible().len() < 2 {
             return;
         }
-        let i = self.visible.iter().position(|f| *f == self.focus).unwrap_or(0);
-        self.focus = self.visible[(i + 1) % self.visible.len()];
+        let i = self.frame.visible().iter().position(|f| *f == self.focus).unwrap_or(0);
+        self.focus = self.frame.visible()[(i + 1) % self.frame.visible().len()];
     }
 
     /// What any key ends: `m` or `u` held in read mode, a run of `alt-o` or `tab`, a mouse

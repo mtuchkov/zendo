@@ -2,12 +2,12 @@
 use super::*;
 use crate::app::write_rows::{self, RowSpan};
 
-pub(crate) fn draw_write(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
+pub(crate) fn draw_write(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) {
     let code = app.editor_path.as_deref().is_some_and(code::is_code);
     let (gut, col) = if code { code_column(area, app.code_width(), app.editor.lines.len()) } else { (Rect::default(), column(area, app.column_width())) };
     let w = col.width as usize;
-    app.text_width = w;
-    app.regions.push((crate::text::select::Region::Note, col));
+    fr.text_width = w;
+    fr.regions.push((crate::text::select::Region::Note, col));
     let (mut r, head, title) = write_lines(app, t, w);
     let spans = row_spans(app, &r, head, title, w);
     let cur = write_rows::cursor_span(&spans, (app.editor.row, app.editor.col)).unwrap_or(0);
@@ -31,7 +31,7 @@ pub(crate) fn draw_write(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
         draw_over_limit(f, app, t, area, col, y0.max(col.y as i64) as u16, app.word_count);
     }
     let lit = selected_rows(app, &spans, cur);
-    app.write_rows = spans;
+    fr.write_rows = spans;
     let rows: Vec<usize> = r.rows.iter().map(|x| x + head).collect();
     let rel = app.editor_path.as_deref().map(|p| app.rel(p)).unwrap_or_default();
     let marks = confusing_rows(app, &rel, &rows, r.lines.len());

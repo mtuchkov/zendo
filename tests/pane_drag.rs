@@ -9,7 +9,7 @@ fn mouse(a: &mut zendo::app::App, kind: MouseEventKind, x: u16) {
 }
 
 fn chat_width(a: &zendo::app::App) -> u16 {
-    a.pane_rects.iter().find(|(p, _)| *p == zendo::app::Focus::Claude).map(|(_, r)| r.width).expect("the chat pane")
+    a.frame.pane_rects().iter().find(|(p, _)| *p == zendo::app::Focus::Claude).map(|(_, r)| r.width).expect("the chat pane")
 }
 
 // PANES-10: a press on the edge, or one column left or right of it, grabs the edge; a drag to
@@ -21,7 +21,7 @@ fn dragging_the_chat_edge_left_widens_the_chat() {
         let mut a = app(&root);
         a.panel = true;
         draw(&mut a, 120, 30);
-        let (before, edge) = (chat_width(&a), a.pane_rects[1].1.x);
+        let (before, edge) = (chat_width(&a), a.frame.pane_rects()[1].1.x);
         let x = (edge as i32 + off) as u16;
         mouse(&mut a, MouseEventKind::Down(MouseButton::Left), x);
         assert!(a.drag.is_some(), "a press {off} columns off the edge grabs it");

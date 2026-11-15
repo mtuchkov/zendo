@@ -78,11 +78,11 @@ pub fn hide_to_fit(mut p: Vec<Focus>, focus: Focus, fits: impl Fn(&[Focus]) -> b
     p
 }
 
-pub(crate) fn draw_left(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
+pub(crate) fn draw_left(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) {
     if app.mode == Mode::Write {
-        draw_write(f, app, t, area);
+        draw_write(f, app, fr, t, area);
     } else {
-        draw_read(f, app, t, area);
+        draw_read(f, app, fr, t, area);
     }
 }
 
@@ -91,7 +91,7 @@ pub(crate) fn column(area: Rect, width: u16) -> Rect {
     Rect { x: area.x + (area.width.saturating_sub(w)) / 2, width: w, ..area }
 }
 
-pub(crate) fn draw_top(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
+pub(crate) fn draw_top(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) {
     let left = match app.mode {
         Mode::Write => match &app.editor_path {
             Some(p) => app.rel(p),
@@ -113,7 +113,7 @@ pub(crate) fn draw_top(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
         },
     };
     f.render_widget(Paragraph::new(Line::from(vec![Span::raw("  "), Span::raw(left.clone())])).style(Style::new().fg(t.dim)), area);
-    let right = draw_top_right(f, app, t, area);
+    let right = draw_top_right(f, app, fr, t, area);
 
     // A newer zendo shows as a quiet hint with its key.
     if let Some(v) = app.update.as_ref().filter(|_| matches!(app.mode, Mode::Read | Mode::Write)) {
@@ -140,8 +140,8 @@ fn switch(t: &Theme, on: bool) -> Style {
 /// The right of the top line: the sessions that blink while their buttons are not on the screen
 /// (ATTN-10), the music button (LOFI-10), the sound button (ATTN-7), and the branch. Returns its
 /// width.
-fn draw_top_right(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) -> u16 {
-    let chips: Vec<usize> = if app.session_buttons.is_empty() { app.attention.blinks().collect() } else { Vec::new() };
+fn draw_top_right(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) -> u16 {
+    let chips: Vec<usize> = if fr.session_buttons.is_empty() { app.attention.blinks().collect() } else { Vec::new() };
     let chip = |n: usize| Style::new().fg(t.bg).bg(pulse_bg(app, t, n, if n >= crate::app::SESSIONS { t.fg } else { t.acc2 }));
     let mut pieces: Vec<(String, Style)> = chips.iter().map(|n| (format!(" {} ", titled(app, *n)), chip(*n))).collect();
     pieces.push((MUSIC.into(), switch(t, app.music.state() == crate::music::State::Plays)));
@@ -154,7 +154,7 @@ fn draw_top_right(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) -> u16 {
         x += r.width + 2;
         f.render_widget(Paragraph::new(Span::styled(text, style)), r);
         match chips.get(i) {
-            Some(n) => app.session_buttons.push((r, *n)),
+            Some(n) => fr.session_buttons.push((r, *n)),
             None if i == chips.len() => app.music.button = Some(r),
             None if i == chips.len() + 1 => app.attention.button = Some(r),
             None => {}

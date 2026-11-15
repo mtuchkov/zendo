@@ -70,7 +70,12 @@ impl Float {
     pub fn swap(&mut self, app: &mut App) {
         let b = &mut self.behind;
         swap_fields!(app, b, editor, editor_path, last_edit, saved_at, mode, back, focus, current, pinned);
-        swap_fields!(app, b, scroll, read_cursor, read_anchor, read_col, read_want, keep_y, cursor_y, write_rows);
+        swap_fields!(app, b, scroll, read_cursor, read_anchor, read_col, read_want, keep_y, cursor_y);
+    }
+
+    /// The rows of write mode go with the state: the float and the screen behind keep their own.
+    pub fn swap_rows(&mut self, frame: &mut crate::ui::frame::Frame) {
+        frame.swap_write_rows(&mut self.behind.write_rows);
     }
 }
 
@@ -86,6 +91,7 @@ impl App {
         }
         let mut fl = Float { opened: Local::now(), rect: Rect::default(), behind: Behind::new_note() };
         fl.swap(self);
+        fl.swap_rows(&mut self.frame);
         self.float = Some(fl);
     }
 
@@ -99,6 +105,7 @@ impl App {
         let made = self.editor_path.clone();
         let Some(mut fl) = self.float.take() else { return };
         fl.swap(self);
+        fl.swap_rows(&mut self.frame);
         // The new note is a recent file (FIND-6).
         if let Some(p) = made {
             self.add_recent(&p);

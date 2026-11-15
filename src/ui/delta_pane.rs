@@ -1,7 +1,7 @@
 //! The delta pane.
 use super::*;
 
-pub(crate) fn draw_delta(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
+pub(crate) fn draw_delta(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) {
     // A thin rule separates the delta from the pane on its left.
     if area.x > 0 {
         let rule: Vec<Line> = (0..area.height).map(|_| Line::styled("│", Style::new().fg(t.line))).collect();
@@ -32,7 +32,7 @@ pub(crate) fn draw_delta(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     f.render_widget(Paragraph::new(Line::styled(sub_text, dim)), sub);
     f.render_widget(Paragraph::new(Line::styled(base_btn.clone(), dim)), Rect { x: sub.right().saturating_sub(base_btn.width() as u16), width: base_btn.width() as u16, ..sub });
 
-    app.regions.push((Region::Delta, body));
+    fr.regions.push((Region::Delta, body));
     if d.is_empty() {
         let msg = vec![
             Line::styled(format!("No changes {label}."), Style::new().fg(t.fg)),

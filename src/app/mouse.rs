@@ -3,7 +3,7 @@ use super::*;
 
 impl App {
     pub(crate) fn region_at(&self, x: u16, y: u16) -> Option<(Region, Rect)> {
-        self.regions.iter().copied().find(|(_, r)| r.contains(ratatui::layout::Position::new(x, y)))
+        self.frame.regions().iter().copied().find(|(_, r)| r.contains(ratatui::layout::Position::new(x, y)))
     }
 
     /// Mouse: drag selects inside one panel, release copies, the wheel scrolls the panel under it.
@@ -91,15 +91,15 @@ impl App {
         if self.attention.button.is_some_and(|r| hit(&r)) {
             return self.toggle_sound();
         }
-        if let Some(n) = self.session_buttons.iter().find(|(r, _)| hit(r)).map(|(_, n)| *n) {
+        if let Some(n) = self.frame.session_buttons().iter().find(|(r, _)| hit(r)).map(|(_, n)| *n) {
             self.count_session_button(n);
             return if n < SESSIONS { self.switch_session(n) } else { self.open_terminal(n - SESSIONS) };
         }
-        if let Some(cmd) = self.play_buttons.iter().find(|(r, _)| hit(r)).map(|(_, c)| c.clone()) {
+        if let Some(cmd) = self.frame.play_buttons().iter().find(|(r, _)| hit(r)).map(|(_, c)| c.to_string()) {
             self.did_by_mouse(crate::keys::Pane::Global, "terminal");
             return self.put_into_terminal(&cmd, false);
         }
-        let row = self.tree_rows.iter().find(|(r, _)| r.contains(ratatui::layout::Position::new(x, y))).map(|(_, i)| *i);
+        let row = self.frame.tree_rows().iter().find(|(r, _)| r.contains(ratatui::layout::Position::new(x, y))).map(|(_, i)| *i);
         if let Some(i) = row {
             self.focus = Focus::Tree;
             self.tree.sel = i;
@@ -121,7 +121,7 @@ impl App {
         }
         if region == Region::Note && self.mode == Mode::Read {
             self.read_cursor = self.scroll + (y - rect.y) as usize;
-            let row = self.read_text.get(self.read_cursor).cloned().unwrap_or_default();
+            let row = self.frame.read_text().get(self.read_cursor).cloned().unwrap_or_default();
             let mut w = 0;
             let want = (x - rect.x) as usize;
             self.read_col = row.trim_end().chars().take_while(|c| {
@@ -138,7 +138,7 @@ impl App {
         self.sel = None;
         let n = self.scroll_step();
         let ni = n as isize;
-        if self.tree_rows.iter().any(|(r, _)| r.contains(ratatui::layout::Position::new(x, y))) {
+        if self.frame.tree_rows().iter().any(|(r, _)| r.contains(ratatui::layout::Position::new(x, y))) {
             self.tree.scroll = if up { self.tree.scroll.saturating_sub(n) } else { self.tree.scroll + n };
             return;
         }
@@ -152,7 +152,7 @@ impl App {
                 self.delta_scroll = if up { self.delta_scroll.saturating_sub(n) } else { self.delta_scroll + n };
                 self.interact(1);
             }
-            Some(Region::Note) if self.mode == Mode::Write => self.editor.vertical(if up { -ni } else { ni }, self.text_width),
+            Some(Region::Note) if self.mode == Mode::Write => self.editor.vertical(if up { -ni } else { ni }, self.frame.text_width()),
             Some(Region::Note) => {
                 self.scroll = if up { self.scroll.saturating_sub(n) } else { self.scroll + n };
                 self.read_cursor = if up { self.read_cursor.saturating_sub(n) } else { self.read_cursor + n };
@@ -182,7 +182,7 @@ impl App {
     /// Change a pane width by `by` columns, from its width in the last frame.
     pub fn resize(&mut self, pane: Focus, by: i32) {
         let Some(key) = App::pane_key(pane) else { return };
-        let now = self.pane_rects.iter().find(|(p, _)| *p == pane).map(|(_, r)| r.width).unwrap_or(40);
+        let now = self.frame.pane_rects().iter().find(|(p, _)| *p == pane).map(|(_, r)| r.width).unwrap_or(40);
         let w = (now as i32 + by).clamp(20, self.max_width(pane) as i32) as u16;
         self.state.widths.insert(key.into(), w);
         self.state.save(&self.cfg.root);
@@ -190,16 +190,16 @@ impl App {
 
     /// The widest a pane can get: the note keeps 50 columns, the other panes keep theirs.
     pub(crate) fn max_width(&self, pane: Focus) -> u16 {
-        let total: u16 = self.pane_rects.iter().map(|(_, r)| r.width).sum();
-        let others: u16 = self.pane_rects.iter().filter(|(p, _)| *p != pane && *p != Focus::Note).map(|(_, r)| r.width).sum();
-        let note = if self.pane_rects.iter().any(|(p, _)| *p == Focus::Note) { 50 } else { 0 };
+        let total: u16 = self.frame.pane_rects().iter().map(|(_, r)| r.width).sum();
+        let others: u16 = self.frame.pane_rects().iter().filter(|(p, _)| *p != pane && *p != Focus::Note).map(|(_, r)| r.width).sum();
+        let note = if self.frame.pane_rects().iter().any(|(p, _)| *p == Focus::Note) { 50 } else { 0 };
         total.saturating_sub(others + note).max(20)
     }
 
     /// A press on the edge between two panes, or one column beside it, starts a drag; returns true
     /// when it did (PANES-10).
     pub(crate) fn start_drag(&mut self, x: u16, y: u16) -> bool {
-        let hit = self.pane_rects.windows(2).find(|w| x.abs_diff(w[1].1.x) <= 1 && y >= w[1].1.y && y < w[1].1.bottom());
+        let hit = self.frame.pane_rects().windows(2).find(|w| x.abs_diff(w[1].1.x) <= 1 && y >= w[1].1.y && y < w[1].1.bottom());
         let Some(&[(left, lr), (right, rr)]) = hit else { return false };
         // The anchor moves with the grab, so the width changes only as far as the mouse moves.
         let shift = |a: u16| (a + x).saturating_sub(rr.x);

@@ -22,7 +22,7 @@ async fn writing_saves_after_a_pause() {
     let root = repo("flow-autosave", &files());
     let mut a = app(&root);
     draw(&mut a, 120, 30);
-    a.read_cursor = a.read_text.iter().position(|r| r.starts_with("The first")).unwrap();
+    a.read_cursor = a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap();
     key(&mut a, KeyCode::Char('i'));
     draw(&mut a, 120, 30);
     typ(&mut a, "New ");
@@ -43,7 +43,7 @@ async fn alt_a_s_b_work_in_read_and_write_mode() {
     for write in [false, true] {
         let mut a = app(&root);
         draw(&mut a, 120, 30);
-        a.read_cursor = a.read_text.iter().position(|r| r.starts_with("The first")).unwrap();
+        a.read_cursor = a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap();
         if write {
             key(&mut a, KeyCode::Char('i'));
             draw(&mut a, 120, 30);
@@ -76,7 +76,7 @@ async fn the_cursor_row_keeps_its_words() {
     let root = repo("flow-cursor-row", &[(rel, long)]);
     let mut a = app(&root);
     let read = draw(&mut a, 100, 30);
-    a.read_cursor = a.read_text.iter().position(|r| r.contains("architecture")).unwrap();
+    a.read_cursor = a.frame.read_text().iter().position(|r| r.contains("architecture")).unwrap();
     key(&mut a, KeyCode::Char('i'));
     let write = draw(&mut a, 100, 30);
     let body = |s: &Vec<String>| s[..s.len() - 2].iter().map(|l| l.trim_end().to_string()).collect::<Vec<_>>();

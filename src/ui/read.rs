@@ -98,22 +98,22 @@ pub fn source_rows(app: &App, width: usize) -> Vec<usize> {
     }
 }
 
-pub(crate) fn draw_read(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
+pub(crate) fn draw_read(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) {
     let note = app.note().cloned();
     let code = note.as_ref().is_some_and(|n| shows_code(&n.path));
     let (gut, col) = match &note {
         Some(n) if code => code_column(area, app.code_width(), n.body.lines().count()),
         _ => (Rect::default(), column(area, app.column_width())),
     };
-    app.text_width = col.width as usize;
+    fr.text_width = col.width as usize;
     let Some(note) = note else { return draw_no_version(f, app, t, col) };
-    app.regions.push((crate::text::select::Region::Note, col));
+    fr.regions.push((crate::text::select::Region::Note, col));
     let (lines, rows, words) = read_lines(app, &note, col.width as usize, t);
     app.word_limit = app.word_limit_for(&note.path);
     app.word_count = words.iter().sum();
     app.over_limit = over_limit(&words, app.word_limit);
-    app.read_text = lines.iter().map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect()).collect();
-    app.read_rows = rows;
+    fr.read_text = lines.iter().map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect()).collect();
+    fr.read_rows = rows;
     let h = col.height as usize;
     app.read_cursor = app.read_cursor.min(lines.len().saturating_sub(1));
     if let Some(y) = app.keep_y.take() {
@@ -135,11 +135,12 @@ pub(crate) fn draw_read(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     }
     // The cursor and the selection show only where the keys go.
     let active = app.mode == Mode::Read && app.focus == Focus::Note;
-    let len = app.read_text.get(app.read_cursor).map_or(0, |r| r.trim_end().chars().count());
+    let len = fr.read_text.get(app.read_cursor).map_or(0, |r| r.trim_end().chars().count());
     app.read_col = app.read_col.min(len.saturating_sub(1));
-    let marks = confusing_rows(app, &app.rel(&note.path), &app.read_rows, lines.len());
+    let marks = confusing_rows(app, &app.rel(&note.path), &fr.read_rows, lines.len());
     let w = col.width as usize;
-    let table = if active { app.read_table() } else { None };
+    // The frame of this draw, not the stored one: the app has none while `ui` draws.
+    let table = app.read_anchor.filter(|_| active).and_then(|a| crate::text::boxtable::in_table(&fr.read_text, a, (app.read_cursor, app.read_col)));
     let view: Vec<Line> = lines
         .into_iter()
         .enumerate()
@@ -147,18 +148,18 @@ pub(crate) fn draw_read(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
         .take(h)
         .map(|(i, l)| if marks.contains(&i) { tint(l, confusing(t), w) } else { l })
         .zip(app.scroll..)
-        .map(|(l, i)| if active { mark_row(app, t, i, l, w, table.as_ref()) } else { l })
+        .map(|(l, i)| if active { mark_row(app, fr, t, i, l, w, table.as_ref()) } else { l })
         .collect();
     f.render_widget(Paragraph::new(view), col);
     if code {
-        draw_gutter(f, t, gut, &app.read_rows, app.scroll, active.then_some(app.read_cursor));
+        draw_gutter(f, t, gut, &fr.read_rows, app.scroll, active.then_some(app.read_cursor));
     }
-    if let Some(row) = say_row_read(app, &note) {
+    if let Some(row) = say_row_read(app, fr, &note) {
         say_arrow(f, app, t, area, col, row);
     }
     // The block cursor on the current char; the terminal makes it blink.
     if active && app.read_cursor >= app.scroll && app.read_cursor < app.scroll + h {
-        let row = app.read_text.get(app.read_cursor).cloned().unwrap_or_default();
+        let row = fr.read_text.get(app.read_cursor).cloned().unwrap_or_default();
         let x: usize = row.chars().take(app.read_col).map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
         f.set_cursor_position((col.x + (x as u16).min(col.width.saturating_sub(1)), col.y + (app.read_cursor - app.scroll) as u16));
     }
@@ -204,17 +205,17 @@ fn draw_no_notes(f: &mut Frame, app: &App, t: &Theme, col: Rect) {
 }
 
 /// The cursor line and the selection on one row; `table` is the selection in a table (PANES-34).
-fn mark_row(app: &App, t: &Theme, i: usize, l: Line<'static>, width: usize, table: Option<&crate::text::boxtable::Range>) -> Line<'static> {
+fn mark_row(app: &App, fr: &Cache, t: &Theme, i: usize, l: Line<'static>, width: usize, table: Option<&crate::text::boxtable::Range>) -> Line<'static> {
     let l = if i == app.read_cursor { tint(l, cursor_line(t), width) } else { l };
     if let Some(r) = table {
-        return match r.chars(&app.read_text, i) {
+        return match r.chars(&fr.read_text, i) {
             Some((a, b)) => paint(l, a, b, delta::mix(t.bg, t.acc2, 0.42)),
             None => l,
         };
     }
     match app.read_selection() {
         Some(((r1, c1), (r2, c2))) if i >= r1 && i <= r2 => {
-            let n = app.read_text.get(i).map_or(0, |r| r.trim_end().chars().count());
+            let n = fr.read_text.get(i).map_or(0, |r| r.trim_end().chars().count());
             let from = if i == r1 { c1 } else { 0 };
             let to = if i == r2 { c2 + 1 } else { n.max(1) };
             paint(l, from, to, delta::mix(t.bg, t.acc2, 0.42))
@@ -224,10 +225,10 @@ fn mark_row(app: &App, t: &Theme, i: usize, l: Line<'static>, width: usize, tabl
 }
 
 /// The row of the read view where the mark of "say it here" is, in this note.
-fn say_row_read(app: &App, note: &Note) -> Option<usize> {
+fn say_row_read(app: &App, fr: &Cache, note: &Note) -> Option<usize> {
     let say = app.say.as_ref().filter(|s| s.path == note.path)?;
     let src: Vec<&str> = note.body.lines().collect();
-    Some(crate::app::cursor_map::source_to_shown(&app.read_text, &app.read_rows, &src, (say.line, say.col)).0)
+    Some(crate::app::cursor_map::source_to_shown(&fr.read_text, &fr.read_rows, &src, (say.line, say.col)).0)
 }
 
 /// The arrow of "say it here": in the empty space left of the marked row.

@@ -24,8 +24,8 @@ fn the_keys_of_read_mode_select_in_a_column() {
     let root = repo("table-keys", &files());
     let mut a = app(&root);
     draw(&mut a, 120, 30);
-    a.read_cursor = a.read_text.iter().position(|r| r.contains("keep it")).expect("the table row");
-    a.read_col = a.read_text[a.read_cursor].chars().position(|c| c == 'k').unwrap();
+    a.read_cursor = a.frame.read_text().iter().position(|r| r.contains("keep it")).expect("the table row");
+    a.read_col = a.frame.read_text()[a.read_cursor].chars().position(|c| c == 'k').unwrap();
     a.read_want = a.read_col;
     key(&mut a, KeyCode::Char('v'));
     key(&mut a, KeyCode::Char('j'));
@@ -78,15 +78,15 @@ fn the_keys_stop_at_the_edge_of_a_cell_and_two_quick_presses_go_on() {
     let root = repo("table-soft", &files());
     let mut a = app(&root);
     draw(&mut a, 120, 30);
-    a.read_cursor = a.read_text.iter().position(|r| r.contains("keep it")).expect("the table row");
-    a.read_col = a.read_text[a.read_cursor].chars().position(|c| c == 'N').unwrap();
+    a.read_cursor = a.frame.read_text().iter().position(|r| r.contains("keep it")).expect("the table row");
+    a.read_col = a.frame.read_text()[a.read_cursor].chars().position(|c| c == 'N').unwrap();
     a.read_want = a.read_col;
     key(&mut a, KeyCode::Char('v'));
     for _ in 0..12 {
         key(&mut a, KeyCode::Char('l'));
     }
     let one = a.read_table().expect("a selection in the table").cols;
-    let row = a.read_text[a.read_cursor].clone();
+    let row = a.frame.read_text()[a.read_cursor].clone();
     assert_eq!(row.chars().nth(a.read_col + 1), Some('│'), "the cursor stops before the line: {row}");
     std::thread::sleep(std::time::Duration::from_millis(150));
     key(&mut a, KeyCode::Char('l'));

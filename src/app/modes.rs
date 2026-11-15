@@ -16,7 +16,7 @@ pub enum Mode {
 
 impl App {
     pub(crate) fn key_delta(&mut self, act: Option<&str>) {
-        let page = self.view_height.saturating_sub(3).max(1);
+        let page = self.frame.view_height().saturating_sub(3).max(1);
         match act {
             Some("close") => {
                 self.delta_open = false;
@@ -129,7 +129,7 @@ impl App {
                     self.current = Some(self.notes[g.note].path.clone());
                     self.pinned = None;
                     self.mode = Mode::Read;
-                    let rows = crate::ui::source_rows(self, self.text_width);
+                    let rows = crate::ui::source_rows(self, self.frame.text_width());
                     self.read_cursor = rows.get(line).copied().unwrap_or(0);
                     self.read_anchor = None;
                     self.scroll = self.read_cursor.saturating_sub(3);

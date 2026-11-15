@@ -3,12 +3,12 @@ use super::*;
 
 impl App {
     pub(crate) fn row_len(&self, r: usize) -> usize {
-        self.read_text.get(r).map_or(0, |l| l.trim_end().chars().count())
+        self.frame.read_text().get(r).map_or(0, |l| l.trim_end().chars().count())
     }
 
     /// Move the read cursor by rows; the view follows it, the column stays where it can.
     pub fn move_cursor(&mut self, by: isize) {
-        let last = self.read_text.len().saturating_sub(1) as isize;
+        let last = self.frame.read_text().len().saturating_sub(1) as isize;
         self.read_cursor = (self.read_cursor as isize + by).clamp(0, last.max(0)) as usize;
         self.read_col = self.read_want.min(self.row_len(self.read_cursor).saturating_sub(1));
         self.interact(1);
@@ -26,7 +26,7 @@ impl App {
             }
         } else if self.read_col + 1 < len {
             self.read_col += 1;
-        } else if self.read_cursor + 1 < self.read_text.len() {
+        } else if self.read_cursor + 1 < self.frame.read_text().len() {
             self.read_cursor += 1;
             self.read_col = 0;
         }
@@ -35,7 +35,7 @@ impl App {
     }
 
     pub(crate) fn key_read(&mut self, act: Option<&str>) {
-        let page = self.view_height.saturating_sub(3).max(1) as isize;
+        let page = self.frame.view_height().saturating_sub(3).max(1) as isize;
         let Some(act) = act else { return };
         if act.starts_with("select_") && self.read_anchor.is_none() {
             self.read_anchor = Some((self.read_cursor, self.read_col));
@@ -114,7 +114,7 @@ impl App {
 
     /// The cursor to the start of the next word, or of this or the previous word.
     pub(crate) fn move_word(&mut self, right: bool) {
-        let space = |a: &Self| a.read_text.get(a.read_cursor).and_then(|r| r.chars().nth(a.read_col)).is_none_or(char::is_whitespace);
+        let space = |a: &Self| a.frame.read_text().get(a.read_cursor).and_then(|r| r.chars().nth(a.read_col)).is_none_or(char::is_whitespace);
         let at = |a: &Self| (a.read_cursor, a.read_col);
         let step = |a: &mut Self| {
             let before = at(a);
@@ -129,7 +129,7 @@ impl App {
         }
         // Over the spaces before, then to the first char of the word.
         while step(self) && space(self) {}
-        while self.read_col > 0 && !self.read_text[self.read_cursor].chars().nth(self.read_col - 1).is_none_or(char::is_whitespace) {
+        while self.read_col > 0 && !self.frame.read_text()[self.read_cursor].chars().nth(self.read_col - 1).is_none_or(char::is_whitespace) {
             self.move_col(-1);
         }
     }

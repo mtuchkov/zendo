@@ -23,7 +23,7 @@ fn writing(name: &str) -> (std::path::PathBuf, zendo::app::App) {
     let root = repo(name, &files());
     let mut a = app(&root);
     draw(&mut a, 120, 30);
-    a.read_cursor = a.read_text.iter().position(|r| r.starts_with("The first")).unwrap();
+    a.read_cursor = a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap();
     a.read_col = 0;
     key(&mut a, KeyCode::Char('i'));
     draw(&mut a, 120, 30);

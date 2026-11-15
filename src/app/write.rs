@@ -102,8 +102,8 @@ impl App {
 
     /// A key with no action: typing, deleting and the arrows. True when the text changed.
     fn write_key(&mut self, k: KeyEvent) -> bool {
-        let w = self.text_width;
-        let page = self.view_height as isize - 2;
+        let w = self.frame.text_width();
+        let page = self.frame.view_height() as isize - 2;
         let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
         let rows = [(KeyCode::Up, -1), (KeyCode::Down, 1), (KeyCode::PageUp, -page), (KeyCode::PageDown, page)];
         if let Some((_, delta)) = rows.iter().find(|(c, _)| *c == k.code) {

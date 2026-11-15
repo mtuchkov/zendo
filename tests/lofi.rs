@@ -30,7 +30,7 @@ fn app_with(name: &str, music: Option<bool>, output: Output) -> (std::path::Path
 
 fn frame(a: &mut App) -> Buffer {
     let mut term = Terminal::new(TestBackend::new(160, 40)).unwrap();
-    term.draw(|f| zendo::ui::draw(f, a)).unwrap();
+    term.draw(|f| a.draw(f)).unwrap();
     term.backend().buffer().clone()
 }
 

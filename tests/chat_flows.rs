@@ -145,7 +145,7 @@ async fn tab_goes_to_the_transcript_to_select_copy_and_add() {
     assert!(a.input.text().contains("⟦↩ what⟧"), "a chip of the chat: {}", a.input.text());
     assert!(a.chips.iter().any(|c| c.context.as_deref().is_some_and(|x| x.contains("> what"))));
     let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(160, 30)).unwrap();
-    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
+    term.draw(|f| a.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();
     let at = (0..30u16).flat_map(|y| (0..160u16).map(move |x| (x, y))).find(|p| buf[*p].symbol() == "↩").expect("the chip on the screen");
     assert_eq!(buf[at].bg, a.theme().add, "a chip of the chat has its own color");
@@ -162,7 +162,7 @@ async fn say_here_is_a_chip_with_the_line_and_sends_a_default_question() {
     let mut a = app(&root);
     a.open_file(root.join(A));
     draw(&mut a, 140, 30);
-    a.read_cursor = a.read_text.iter().position(|r| r.contains("one")).unwrap();
+    a.read_cursor = a.frame.read_text().iter().position(|r| r.contains("one")).unwrap();
     a.on_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::ALT));
     assert_eq!(a.input.text(), "⟦write here :3⟧ ");
     key(&mut a, KeyCode::Enter);
@@ -187,7 +187,7 @@ async fn five_agent_sessions_with_f6_to_f10_and_alt_bracket() {
     assert_eq!((a.state.session, a.key()), (2, "(chat 3)".to_string()));
     assert!(a.panel && a.threads.get("(chat 3)").is_none_or(|t| !t.items.iter().any(|i| matches!(i, Item::User(_)))), "its own thread");
     let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(160, 30)).unwrap();
-    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
+    term.draw(|f| a.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();
     let find = |s: &str| (0..30u16).flat_map(|y| (0..159u16).map(move |x| (x, y))).find(|p| buf[*p].symbol() == &s[..1] && buf[(p.0 + 1, p.1)].symbol() == &s[1..]).unwrap_or_else(|| panic!("{s}"));
     let (f6, f8) = (find("F6"), find("F8"));

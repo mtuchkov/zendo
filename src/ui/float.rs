@@ -6,22 +6,24 @@ use ratatui::layout::Margin;
 /// The margin of the float on each side of the text column (FLOAT-8).
 const MARGIN: u16 = 4;
 
-pub(crate) fn draw_float(f: &mut Frame, app: &mut App) {
+pub(crate) fn draw_float(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     let Some(mut fl) = app.float.take() else { return };
     // The screen behind, as it was: its own state, without the mouse selection of the float.
     let (sel, copy) = (app.sel.take(), std::mem::take(&mut app.copy_pending));
     fl.swap(app);
-    draw(f, app);
+    fl.swap_rows(fr);
+    draw_into(f, app, fr);
     fl.swap(app);
+    fl.swap_rows(fr);
     (app.sel, app.copy_pending) = (sel, copy);
     let t = *app.theme();
     let area = f.area();
     dim(f, &t, area);
-    let r = float_rect(app, area);
+    let r = float_rect(app, fr, area);
     fl.rect = r;
     app.float = Some(fl);
-    app.regions.clear();
-    app.pane_rects.clear();
+    fr.regions.clear();
+    fr.pane_rects.clear();
     f.render_widget(Clear, r);
     // The float has a background of its own (FLOAT-16).
     let t = t.on_float();
@@ -32,7 +34,7 @@ pub(crate) fn draw_float(f: &mut Frame, app: &mut App) {
     }
     draw_float_top(f, app, &t, Rect { height: 1, ..inner });
     f.render_widget(Paragraph::new("─".repeat(inner.width as usize)).style(Style::new().fg(t.line)), Rect { y: inner.y + 1, height: 1, ..inner });
-    draw_write(f, app, &t, Rect { y: inner.y + 2, height: inner.height - 2, ..inner });
+    draw_write(f, app, fr, &t, Rect { y: inner.y + 2, height: inner.height - 2, ..inner });
     if app.mode == Mode::Help {
         draw_help(f, app, &t, area);
     }
@@ -54,9 +56,9 @@ fn dim(f: &mut Frame, t: &Theme, area: Rect) {
 /// The float: the text column and its margins wide, the screen less one row at the top and at the
 /// bottom high, over the note pane; at the center of the screen when the note pane is narrower
 /// (FLOAT-8, FLOAT-9).
-fn float_rect(app: &App, area: Rect) -> Rect {
+fn float_rect(app: &App, fr: &Cache, area: Rect) -> Rect {
     let w = (app.column_width() + 2 * MARGIN + 2).min(area.width.saturating_sub(2));
-    let over = app.pane_rects.iter().find(|(p, r)| *p == Focus::Note && r.width >= w).map_or(area, |(_, r)| *r);
+    let over = fr.pane_rects.iter().find(|(p, r)| *p == Focus::Note && r.width >= w).map_or(area, |(_, r)| *r);
     Rect { x: over.x + (over.width - w) / 2, y: area.y + 1, width: w, height: area.height.saturating_sub(2) }
 }
 

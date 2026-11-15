@@ -120,7 +120,7 @@ impl App {
     fn say_in_read(&self) -> Place {
         let lines: Vec<String> = self.note_text().unwrap_or_default().lines().map(str::to_string).collect();
         let refs: Vec<&str> = lines.iter().map(String::as_str).collect();
-        let to_src = |p| cursor_map::shown_to_source(&self.read_text, &self.read_rows, &refs, p);
+        let to_src = |p| cursor_map::shown_to_source(self.frame.read_text(), self.frame.read_rows(), &refs, p);
         let (start, end) = match self.read_selection() {
             Some((a, b)) => (to_src(a), to_src(b)),
             None => {

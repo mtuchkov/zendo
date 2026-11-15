@@ -219,7 +219,7 @@ async fn the_preview_shows_the_match_and_enter_opens_at_it() {
     key(&mut a, KeyCode::Enter);
     assert_eq!((a.mode, a.current.clone()), (Mode::Read, Some(root.join("docs/design.md"))));
     draw(&mut a, 140, 40);
-    assert!(a.read_text[a.read_cursor].contains("coffee"), "the cursor on the match: {}", a.read_text[a.read_cursor]);
+    assert!(a.frame.read_text()[a.read_cursor].contains("coffee"), "the cursor on the match: {}", a.frame.read_text()[a.read_cursor]);
     let _ = std::fs::remove_dir_all(&root);
 }
 

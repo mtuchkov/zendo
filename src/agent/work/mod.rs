@@ -137,7 +137,7 @@ impl App {
 
     /// The delta is open but the panes do not all fit beside the file tree: the tree closes.
     pub fn make_room_for_delta(&mut self) {
-        let width: u16 = self.pane_rects.iter().map(|(_, r)| r.width).sum();
+        let width: u16 = self.frame.pane_rects().iter().map(|(_, r)| r.width).sum();
         if !self.delta_open || !self.state.tree || width == 0 {
             return;
         }

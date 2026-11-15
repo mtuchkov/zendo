@@ -2,8 +2,8 @@
 use super::*;
 use crate::docs::tree::{Kind, Row, View};
 
-pub(crate) fn draw_tree(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
-    app.tree_rows.clear();
+pub(crate) fn draw_tree(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) {
+    fr.tree_rows.clear();
     f.render_widget(Block::new().style(Style::new().bg(t.panel)), area);
     let inner = Rect { x: area.x + 1, y: area.y, width: area.width.saturating_sub(2), height: area.height };
     let w = inner.width as usize;
@@ -51,7 +51,7 @@ pub(crate) fn draw_tree(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let current = app.current.as_ref().map(|p| app.store.rel(p).to_path_buf());
     for (i, row) in rows.iter().enumerate().skip(app.tree.scroll).take(h) {
         let r = Rect { x: inner.x, y: body.y + (i - app.tree.scroll) as u16, width: inner.width, height: 1 };
-        app.tree_rows.push((r, i));
+        fr.tree_rows.push((r, i));
         let is_current = current.as_deref() == Some(row.rel.as_path());
         let mut line = tree_line(app, t, row, is_current, w);
         if i == app.tree.sel && app.focus == Focus::Tree {

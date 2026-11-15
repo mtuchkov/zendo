@@ -84,7 +84,7 @@ async fn the_float_hides_the_panes_and_the_hints() {
 fn float_colors(a: &mut App, w: u16, h: u16) -> (ratatui::style::Color, ratatui::style::Color) {
     typ(a, "Tea");
     let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(w, h)).unwrap();
-    term.draw(|f| zendo::ui::draw(f, a)).unwrap();
+    term.draw(|f| a.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();
     let behind = (0..w).map(|x| &buf[(x, 0)]).find(|c| c.symbol() != " ").map(|c| c.fg).unwrap();
     let title = (0..h).flat_map(|y| (0..w - 2).map(move |x| (x, y))).find(|p| buf[*p].symbol() == "T" && buf[(p.0 + 1, p.1)].symbol() == "e" && buf[(p.0 + 2, p.1)].symbol() == "a").unwrap();
@@ -269,7 +269,7 @@ async fn the_float_has_the_float_color_of_the_theme() {
     alt(&mut a, 'n');
     typ(&mut a, "Tea");
     let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 40)).unwrap();
-    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
+    term.draw(|f| a.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();
     let t = *a.theme();
     let r = a.float.as_ref().unwrap().rect;
@@ -298,7 +298,7 @@ async fn the_rows_of_the_float_have_its_ink() {
     key(&mut a, KeyCode::Enter);
     typ(&mut a, "pot");
     let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 40)).unwrap();
-    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
+    term.draw(|f| a.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();
     let ink = a.theme().on_float();
     let r = a.float.as_ref().unwrap().rect;

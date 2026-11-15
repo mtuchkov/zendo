@@ -24,8 +24,8 @@ impl App {
             Some("new_thread") => self.new_thread(key),
             Some("handoff") => self.open_cli(),
             Some("insert_output") => self.insert_output(),
-            Some("scroll_up") => self.panel_scroll += self.view_height / 2,
-            Some("scroll_down") => self.panel_scroll = self.panel_scroll.saturating_sub(self.view_height / 2),
+            Some("scroll_up") => self.panel_scroll += self.frame.view_height() / 2,
+            Some("scroll_down") => self.panel_scroll = self.panel_scroll.saturating_sub(self.frame.view_height() / 2),
             // `\` and Enter is a new line in every terminal, as in Claude Code: a terminal without the
             // kitty keyboard protocol sends Shift-Enter as a plain Enter.
             Some("send") if self.input.col > 0 && self.input.lines[self.input.row].chars().nth(self.input.col - 1) == Some('\\') => {

@@ -35,9 +35,9 @@ fn paint(s: &vt100::Screen, buf: &mut Buffer, area: Rect) -> Option<(u16, u16)> 
 
 /// A session on the full screen: its screen, which the mouse can select from (TERM-46), and the
 /// bottom line.
-pub(crate) fn draw_cli(f: &mut Frame, app: &mut App, t: &Theme, n: usize, area: Rect) {
+pub(crate) fn draw_cli(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, n: usize, area: Rect) {
     let [screen, bar] = Layout::vertical([Constraint::Min(1), Constraint::Length(1)]).areas(area);
-    app.regions.push((Region::Panel, screen));
+    fr.regions.push((Region::Panel, screen));
     f.render_widget(Block::new().style(Style::reset()), screen);
     if let Some(Some(pos)) = app.cli.with_screen(n, |s| paint(s, f.buffer_mut(), screen)) {
         f.set_cursor_position(pos);
@@ -65,7 +65,7 @@ pub(crate) fn draw_hold(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
 }
 
 /// A terminal in the chat pane: a head line with its name and keys, and its screen (TERM-37).
-pub(crate) fn draw_pane_terminal(f: &mut Frame, app: &mut App, t: &Theme, n: usize, head: Rect, body: Rect) {
+pub(crate) fn draw_pane_terminal(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, n: usize, head: Rect, body: Rect) {
     use crate::keys::Pane;
     let dim = Style::new().fg(t.dim);
     let keys = [app.keys.hint(Pane::Chat, "handoff", " full screen"), app.keys.hint(Pane::Session, "leave", " back")];
@@ -76,7 +76,7 @@ pub(crate) fn draw_pane_terminal(f: &mut Frame, app: &mut App, t: &Theme, n: usi
     if let Some(pos) = pos.filter(|_| app.focus == Focus::Claude) {
         f.set_cursor_position(pos);
     }
-    app.regions.push((crate::text::select::Region::Panel, body));
+    fr.regions.push((crate::text::select::Region::Panel, body));
 }
 
 /// The name of session `n`: the F key of an agent session or of the `F5` terminal, `[>]` for

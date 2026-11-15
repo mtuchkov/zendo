@@ -84,7 +84,7 @@ fn turn(a: &mut App) {
 /// Draw one frame; the buffer, with the styles.
 fn frame(a: &mut App, w: u16, h: u16) -> Buffer {
     let mut term = Terminal::new(TestBackend::new(w, h)).unwrap();
-    term.draw(|f| zendo::ui::draw(f, a)).unwrap();
+    term.draw(|f| a.draw(f)).unwrap();
     term.backend().buffer().clone()
 }
 

@@ -8,7 +8,7 @@ impl App {
     /// The session on the screen, and the area of its screen in the last frame.
     fn session_area(&self) -> Option<(usize, Rect)> {
         let n = self.cli.view.or(self.cli.pane)?;
-        self.regions.iter().find(|(region, _)| *region == Region::Panel).map(|(_, rect)| (n, *rect))
+        self.frame.regions().iter().find(|(region, _)| *region == Region::Panel).map(|(_, rect)| (n, *rect))
     }
 
     /// Give the event to the program of the session under the pointer: a program that reports the

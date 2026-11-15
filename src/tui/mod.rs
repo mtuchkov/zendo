@@ -4,7 +4,6 @@
 mod sound;
 
 use crate::app::App;
-use crate::ui;
 use anyhow::Result;
 use ratatui::crossterm::event::{self, DisableBracketedPaste, DisableFocusChange, DisableMouseCapture, EnableBracketedPaste, EnableFocusChange, EnableMouseCapture, Event};
 use ratatui::crossterm::execute;
@@ -45,7 +44,7 @@ pub async fn run(
     // The lofi music opens its output here, not in App::new, so tests play nothing (LOFI-11).
     app.start_music(crate::music::Output::System);
     loop {
-        term.draw(|f| ui::draw(f, app))?;
+        term.draw(|f| app.draw(f))?;
         cursor_shape(app);
         if std::mem::take(&mut app.attention.bells) > 0 {
             sound::ring();
