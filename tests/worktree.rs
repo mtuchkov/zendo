@@ -185,3 +185,17 @@ async fn the_worktree_recap_refreshes_every_10_minutes_when_it_changed() {
     assert!(a.recap_job.is_none(), "no recap without a change");
     assert!(a.threads.values().all(|t| t.items.is_empty()), "the chat has no recap");
 }
+
+// WORK-12, FILES-34: the recap of a file of a worktree without changes tells the last commit of the
+// file in the branch of the worktree.
+#[test]
+fn the_last_commit_of_a_worktree_file_comes_from_the_worktree() {
+    let root = repo("commit");
+    let wt = root.join(".worktrees/1");
+    write(wt.join("a.md"), "# a\n\nchanged\n");
+    git(&wt, &["commit", "-q", "-am", "agent changes a"]);
+    let a = app(&root);
+    let commit = a.last_commit(".worktrees/1/a.md").unwrap_or_default();
+    assert!(commit.contains("agent changes a"), "{commit:?}");
+    assert!(a.last_commit("a.md").is_some_and(|c| c.contains("start")), "a file of the main checkout as before");
+}

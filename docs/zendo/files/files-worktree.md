@@ -83,7 +83,8 @@ The tests are in `tests/worktree.rs`.
 Tests that verify detailed requirements, in `tests/worktree.rs`:
 `the_worktree_views_follow_the_agent_session` (FILES-31, FILES-32),
 `the_changed_view_lists_what_differs_from_main` (FILES-33, FILES-35),
-`a_file_of_the_worktree_opens_with_the_worktree_in_its_head` (FILES-34),
+`a_file_of_the_worktree_opens_with_the_worktree_in_its_head` and
+`the_last_commit_of_a_worktree_file_comes_from_the_worktree` (FILES-34),
 `file_actions_in_a_worktree_ask_first_while_the_agent_works` (FILES-37), and
 `the_worktree_views_follow_folders_only_with_a_worktree` in `src/docs/tree/mod_tests.rs` (FILES-31).
 

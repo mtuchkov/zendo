@@ -14,9 +14,14 @@ const COMMIT_MAX: usize = 8000;
 impl App {
     /// The last commit that changed the file: its id, date, message and diff, shortened.
     pub fn last_commit(&self, rel: &str) -> Option<String> {
+        // A file of a worktree: the branch of the worktree (FILES-34).
+        let (dir, rel) = match crate::docs::tree::worktree::split(rel) {
+            Some((wt, rest)) => (self.cfg.root.join(wt), rest),
+            None => (self.cfg.root.clone(), rel),
+        };
         let out = std::process::Command::new("git")
             .args(["log", "-1", "--date=short", "--format=%h %ad %s%n%b", "-p", "--", rel])
-            .current_dir(&self.cfg.root)
+            .current_dir(dir)
             .stderr(std::process::Stdio::null())
             .output()
             .ok()?;
