@@ -36,6 +36,7 @@ impl App {
         self.cli.pane = None;
         self.state.session = n % SESSIONS;
         self.state.save(&self.cfg.root);
+        self.follow_session();
         if self.state.tree {
             self.scan_tree();
         }
@@ -123,7 +124,9 @@ impl App {
         let mut file = None;
         if scope == ALL_KEY {
             text.push_str(&format!("Notes folder: {}\nSearch across all notes in that folder.\n", self.cfg.notes_dir.display()));
-        } else if let Some(p) = self.current.clone().filter(|_| scope != NEW_KEY) {
+        } else if self.current.as_ref().is_some_and(|p| !p.exists()) {
+            // No version of the document in this session: no note file (FILES-40).
+        } else if let Some(p) = self.current.as_ref().map(|p| self.session_path(p)).filter(|_| scope != NEW_KEY) {
             let rel = self.rel(&p);
             if !self.threads.get(key).is_some_and(|t| t.sent_lately(&rel)) {
                 text.push_str(&self.rules_for(&p));

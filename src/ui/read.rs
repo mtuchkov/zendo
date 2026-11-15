@@ -106,7 +106,7 @@ pub(crate) fn draw_read(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
         _ => (Rect::default(), column(area, app.column_width())),
     };
     app.text_width = col.width as usize;
-    let Some(note) = note else { return draw_no_notes(f, app, t, col) };
+    let Some(note) = note else { return draw_no_version(f, app, t, col) };
     app.regions.push((crate::text::select::Region::Note, col));
     let (lines, rows, words) = read_lines(app, &note, col.width as usize, t);
     app.word_limit = app.word_limit_for(&note.path);
@@ -177,6 +177,18 @@ fn no_notes_keys(app: &App) -> String {
     let help = app.keys.key(Pane::Global, "help").map(|k| format!("{k} for keys"));
     let parts: Vec<String> = chat.into_iter().chain(help).collect();
     if parts.is_empty() { String::new() } else { format!("Press {}.", parts.join(", ")) }
+}
+
+/// The read pane without a note: the open document has no version here (FILES-40, FILES-48), or
+/// there are no notes.
+fn draw_no_version(f: &mut Frame, app: &App, t: &Theme, col: Rect) {
+    let msg = match app.peek.on {
+        Some(o) => format!("This document does not exist in {}.", o.name()),
+        None if app.doc_missing() => "This document does not exist in this session.".to_string(),
+        None => return draw_no_notes(f, app, t, col),
+    };
+    let y = col.y + col.height / 3;
+    f.render_widget(Paragraph::new(Line::styled(msg, Style::new().fg(t.fg).add_modifier(Modifier::BOLD))), Rect { y, height: 1, ..col });
 }
 
 /// The read pane when there is no note.

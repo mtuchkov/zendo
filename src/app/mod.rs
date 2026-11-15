@@ -35,6 +35,7 @@ mod tree;
 mod worktree;
 mod write;
 pub mod write_rows;
+pub mod version;
 
 pub use at::{AT_ROWS, AtPick};
 pub use attention::Attention;
@@ -187,6 +188,8 @@ pub struct App {
     pub name_model: Option<String>,
     /// The pasted images that the name model names: by session key, the file and the answer so far.
     pub image_names: HashMap<String, (PathBuf, String)>,
+    /// `m` or `u` held in read mode: the version of `main` or of the disk (FILES-45, FILES-47).
+    pub peek: version::Peek,
     pub auto_recaps: Vec<Instant>,
     #[default(Instant::now())]
     pub last_input: Instant,
