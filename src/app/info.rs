@@ -134,7 +134,7 @@ impl App {
         self.state.column.unwrap_or(self.width_default)
     }
 
-    /// The repository has no project structure file, and zendo doctor can make one.
+    /// The repository has no project structure file, and zendo init can make one.
     pub fn structure_missing(&self) -> bool {
         self.tree.structure.is_none() && self.structure_error.is_none() && self.cfg.root.join(".git").exists() && !self.cfg.root.join(crate::docs::structure::FILE).exists()
     }

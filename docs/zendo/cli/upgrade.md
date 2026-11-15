@@ -5,7 +5,7 @@ date: "2026-11-14"
 parent: "cli.md"
 prev: "doctor.md"
 level: "what zendo upgrade builds and repairs, the version, and the update suggestion"
-note: "Agent draft from the requests of the user on 2026-11-14, split from commands.md. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. The code does not implement the new CMD-8 yet: zendo upgrade runs zendo setup."
+note: "Agent draft from the requests of the user on 2026-11-14, split from commands.md. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Upgrade
@@ -38,7 +38,8 @@ shows a hint, and `U` upgrades zendo and starts it again.
 | CMD-10 | Event    | When the user runs `zendo --version`, the system shall show the version and the commit of the build.                                     | User, 2026-11-11                   |
 | CMD-11 | Event    | When a newer version exists, the system shall show a hint in the top bar, and `U` shall upgrade zendo and start it again.                | User, 2026-11-11                   |
 
-Tests that verify detailed requirements: `this_checkout_is_the_zendo_repo` (CMD-9),
+Tests that verify detailed requirements: `an_upgrade_ends_with_doctor_fix` (CMD-8),
+`this_checkout_is_the_zendo_repo` (CMD-9),
 `short_and_long_commits_match` (CMD-10).
 
 Revision 1 changed CMD-8: before, the upgrade ran `zendo setup` with the new program.

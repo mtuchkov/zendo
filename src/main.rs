@@ -18,10 +18,13 @@ USAGE
   zendo notes move | consolidate [--agent CMD | --mock]
                                               Claude moves docs/notes into the notes repo, or merges
                                               the notes of this project from every machine (by origin)
-  zendo doctor [--live] [--fix] [--agent CMD | --mock]
-                                              check each step and say what to fix;
-                                              --fix repairs project-structure.toml (zendo, then Claude)
-  zendo upgrade [--force]                      build the newest main from GitHub, then run setup
+  zendo init                                   prepare this repository: project-structure.toml,
+                                              the zendo section for agents, .gitignore
+  zendo doctor [--live] [--fix [--claude]] [--agent CMD | --mock]
+                                              check each step and say what to fix; writes no file.
+                                              --fix repairs the machine and this repository;
+                                              --claude also gives project-structure.toml to Claude
+  zendo upgrade [--force]                      build the newest main, then run zendo doctor --fix
   zendo keymap                                 print the default keys: start ~/.zendo/keymap.toml from it
   zendo mcp --session N                        the MCP server of zendo session N (zendo starts it)
 
@@ -42,7 +45,8 @@ enum Run {
     Tui(Config),
     Setup(doctor::Paths, Option<String>, Option<String>),
     Notes(doctor::Paths, Option<String>, String),
-    Doctor(doctor::Paths, Option<String>, bool, bool),
+    Init(doctor::Paths, Option<String>),
+    Doctor(doctor::Paths, Option<String>, doctor::DoctorFlags),
     Upgrade(bool),
 }
 
@@ -69,6 +73,7 @@ struct Args {
     agent: Option<String>,
     live: bool,
     fix: bool,
+    claude: bool,
     offline: bool,
     notes_repo: Option<String>,
     action: String,
@@ -80,6 +85,7 @@ fn read_args() -> Result<Args> {
     if let Some(first) = args.peek() {
         o.sub = match first.as_str() {
             "setup" => "setup",
+            "init" => "init",
             "doctor" => "doctor",
             "upgrade" => "upgrade",
             "keymap" => "keymap",
@@ -95,6 +101,7 @@ fn read_args() -> Result<Args> {
         match a.as_str() {
             "--live" if sub == "doctor" => o.live = true,
             "--fix" if sub == "doctor" => o.fix = true,
+            "--claude" if sub == "doctor" => o.claude = true,
             "--force" if sub == "upgrade" => o.live = true,
             "--offline" if sub.is_empty() => o.offline = true,
             "-V" | "--version" | "version" => {
@@ -149,7 +156,9 @@ fn parse() -> Result<Run> {
         "setup" => Run::Setup(paths, a.agent, a.notes_repo),
         "notes" if a.action.is_empty() => bail!("zendo notes needs move or consolidate\n\n{HELP}"),
         "notes" => Run::Notes(paths, a.agent, a.action),
-        "doctor" => Run::Doctor(paths, a.agent, a.live, a.fix),
+        "init" => Run::Init(paths, a.agent),
+        "doctor" if a.claude && !a.fix => bail!("--claude needs --fix\n\n{HELP}"),
+        "doctor" => Run::Doctor(paths, a.agent, doctor::DoctorFlags { live: a.live, fix: a.fix, claude: a.claude }),
         "upgrade" => Run::Upgrade(a.live),
         "keymap" => {
             print!("{}", zendo::keys::DEFAULT_KEYMAP);
@@ -181,7 +190,8 @@ async fn main() -> Result<()> {
         Run::Tui(cfg) => cfg,
         Run::Setup(paths, agent, notes_repo) => std::process::exit(if doctor::setup(&paths, agent, notes_repo).await { 0 } else { 1 }),
         Run::Notes(paths, agent, action) => std::process::exit(if doctor::notes(&paths, agent, &action).await { 0 } else { 1 }),
-        Run::Doctor(paths, agent, live, fix) => std::process::exit(if doctor::doctor(&paths, agent, live, fix).await { 0 } else { 1 }),
+        Run::Init(paths, agent) => std::process::exit(if doctor::init(&paths, agent) { 0 } else { 1 }),
+        Run::Doctor(paths, agent, flags) => std::process::exit(if doctor::doctor(&paths, agent, flags).await { 0 } else { 1 }),
         Run::Upgrade(force) => std::process::exit(if doctor::upgrade(force).await { 0 } else { 1 }),
     };
     // The path of this binary, before an upgrade replaces it.

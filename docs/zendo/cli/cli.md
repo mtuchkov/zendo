@@ -11,7 +11,7 @@ children:
   - "doctor.md"
   - "upgrade.md"
 level: "the commands around zendo and the job of each one: setup, init, doctor, upgrade"
-note: "Agent draft. Revision 2 splits commands.md into this parent and one child for each command, from the requests of the user on 2026-11-14. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. The code does not implement revision 2 yet."
+note: "Agent draft. Revision 2 splits commands.md into this parent and one child for each command, from the requests of the user on 2026-11-14. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Commands

@@ -51,7 +51,7 @@ tree are not in the keymap. Their hints show those fixed keys.
 Tests that verify detailed requirements: `the_default_keymap_file_names_every_action` (PANES-17),
 `a_user_keymap_file_then_the_config_change_keys`, `zendo_keymap_prints_the_default_keymap` (PANES-17,
 PANES-23), `a_key_of_two_actions_is_a_problem` (PANES-24), `without_the_kitty_protocol_ctrl_hjkl_select`
-(PANES-25), `the_status_bar_asks_for_zendo_doctor_without_a_structure_file` (PANES-27), the tests of
+(PANES-25), `the_status_bar_asks_for_zendo_init_without_a_structure_file` (PANES-27), the tests of
 `tests/keymap_hints.rs` (PANES-28, PANES-29),
 `the_keymap_file_groups_the_actions_as_the_help_does` and `each_group_of_a_pane_has_one_place`
 (PANES-30), `the_help_shows_groups_the_keymap_file_and_the_version` (PANES-30, PANES-31),

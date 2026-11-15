@@ -6,7 +6,7 @@ parent: "cli.md"
 prev: "init.md"
 next: "upgrade.md"
 level: "what zendo doctor checks, and what its flags --fix, --claude and --live add"
-note: "Agent draft from the requests of the user on 2026-11-14, split from commands.md. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. The code does not implement CMD-14 and CMD-15 yet: zendo doctor writes without --fix."
+note: "Agent draft from the requests of the user on 2026-11-14, split from commands.md. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Doctor
@@ -38,7 +38,7 @@ itself in `project-structure.toml` (STRUCT-7, STRUCT-11, see
 
 ### Acceptance tests
 
-**`doctor_writes_no_file`** (unit test, not written yet; verifies CMD-14)
+**`doctor_writes_no_file`** (integration test with the mock agent; verifies CMD-14)
 
 - Given a repository without `project-structure.toml`, without the zendo sections and without the
   zendo lines of `.gitignore`, and a home folder without the zendo section of the user.
@@ -52,3 +52,6 @@ itself in `project-structure.toml` (STRUCT-7, STRUCT-11, see
 | ------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | CMD-7  | Event   | When the user runs `zendo doctor --live`, the system shall send one short prompt to Claude and show the answer.                                                                              | Design           |
 | CMD-15 | Event   | When the user runs `zendo doctor --fix`, the system shall do each repair that needs no agent and no answer of the user, on the machine and in the repository, and report each file that it changes. | User, 2026-11-14 |
+
+Tests that verify detailed requirements: `doctor_fix_repairs_the_repository_and_the_machine` and
+`fix_without_claude_does_not_call_the_agent` (CMD-15), in `tests/doctor_fix.rs`.

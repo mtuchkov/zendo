@@ -239,7 +239,7 @@ zendo --version
 zendo upgrade
 ```
 
-`zendo upgrade` compares the commit you installed with `main` on GitHub. It builds only when `main` is newer. Then it runs `zendo setup`, which also installs a new adapter version when the new zendo needs one.
+`zendo upgrade` compares the commit you installed with `main` on GitHub. It builds only when `main` is newer. Then it runs `zendo doctor --fix`, which also installs a new adapter version when the new zendo needs one, and brings the files of zendo on the machine and in the repository up to date.
 
 ### Upgrade a build from your clone
 
@@ -271,10 +271,10 @@ The update suggestion for such a build appears only when `main` on GitHub has a 
    zendo doctor
    ```
 
-4. If `zendo doctor` shows `adapter … zendo expects …`, the new version uses a different adapter. Install it:
+4. If `zendo doctor` shows `adapter … zendo expects …` or files that are not up to date, repair them:
 
    ```sh
-   zendo setup
+   zendo doctor --fix
    ```
 
 ### Upgrade without a local clone

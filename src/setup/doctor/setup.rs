@@ -41,6 +41,9 @@ pub async fn setup(paths: &Paths, agent_flag: Option<String>, notes_repo: Option
         return false;
     }
 
+    // The zendo section in the instructions of the user (SESSIONS-22).
+    apply(user_changes(&user_files()), &mut o);
+
     // 4. Check the whole path.
     let ok = checks(paths, None, false, true, &mut o).await;
     // 5. The notes repo is new: Claude moves the notes of this repo into it.
@@ -54,6 +57,21 @@ pub async fn setup(paths: &Paths, agent_flag: Option<String>, notes_repo: Option
         println!("  Ready. Run `zendo` in a repository.");
     }
     ok && moved
+}
+
+/// `zendo doctor --fix`: install the pinned adapter of the agent of the user when it is not there
+/// (CMD-15). The config changes only when the install does.
+pub(super) async fn fix_adapter(o: &mut Out) -> bool {
+    let mut cfg = UserConfig::load();
+    // A command of the user in the config is not a profile: zendo installs nothing for it.
+    let Some(profile) = cfg.agent.as_deref().map_or(Some(&config::CLAUDE), config::Profile::by_id) else { return true };
+    let env = config::agent_env(&cfg);
+    // Without Node.js the checks report it, with the fix.
+    if profile.installed() || !matches!(run("node", &["--version"], &env, 20).await, Some((true, _))) {
+        return true;
+    }
+    let system_ca = matches!(run("node", &[SYSTEM_CA, "-e", "0"], &BTreeMap::new(), 20).await, Some((true, _)));
+    install_adapter(profile, &env, system_ca, &mut cfg, o).await && cfg.save().is_ok()
 }
 
 /// `--notes-repo`: turn the notes repo on or off. `Some(true)` when it was turned on now; `None` on an error.

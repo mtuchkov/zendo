@@ -6,7 +6,7 @@ parent: "cli.md"
 prev: "setup.md"
 next: "doctor.md"
 level: "what zendo init writes in a repository"
-note: "Agent draft from the requests of the user on 2026-11-14. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. The code does not have this command yet: zendo doctor does these writes."
+note: "Agent draft from the requests of the user on 2026-11-14. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Init
@@ -32,8 +32,11 @@ change that it makes. It writes nothing on the machine and does not call the age
 | ------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
 | CMD-16 | Event   | When the user runs `zendo init` in a repository, the system shall bring the state of the repository to the version of zendo (STRUCT-16 to STRUCT-18) and tell the user each change. | User, 2026-11-14 |
 
+Tests that verify detailed requirements: `init_prepares_the_repository_only` and
+`init_outside_a_repository_fails` (CMD-16), in `tests/doctor_fix.rs`.
+
 ## Open points
 
 | Open question                                                              | Affects | Answered by |
 | -------------------------------------------------------------------------- | ------- | ----------- |
-| What shall `zendo init` do outside a repository: an error, or nothing?     | CMD-16  | User        |
+| Outside a repository, `zendo init` reports an error and writes nothing. Is that right, or shall it do nothing? | CMD-16  | User        |

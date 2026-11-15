@@ -6,7 +6,7 @@ parent: "zendo.md"
 prev: "attention.md"
 next: "cli/cli.md"
 level: "how zendo uses project-structure.toml, how zendo init makes it, and how zendo doctor repairs it"
-note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. Revision 2 moves the writes from zendo doctor to zendo init and zendo doctor --fix, and the repair by Claude to --claude, from the requests of the user on 2026-11-14 (see cli/cli.md). The code does not implement revision 2 yet."
+note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. Revision 2 moves the writes from zendo doctor to zendo init and zendo doctor --fix, and the repair by Claude to --claude, from the requests of the user on 2026-11-14 (see cli/cli.md)."
 ---
 
 # Project structure
@@ -85,14 +85,14 @@ instructions in
 | STRUCT-19 | State      | While the repository has no `project-structure.toml`, the system shall show in the status bar that `zendo init` makes one. | User, 2026-11-12 |
 
 Tests that verify detailed requirements: `checks_find_what_zendo_does_not_understand` (STRUCT-5),
-`without_fix_and_without_a_terminal_nothing_changes` (STRUCT-8),
+`without_fix_nothing_changes` (STRUCT-6, STRUCT-8), `fix_without_claude_does_not_call_the_agent` (STRUCT-2, STRUCT-7),
 `quick_fix_renames_keys_and_paths_and_keeps_comments` (STRUCT-9),
 `a_missing_file_is_created_from_project_structure_md` (STRUCT-11), `a_folder_names_its_template`,
 `a_missing_template_is_an_issue` (STRUCT-13), `a_label_in_two_entries_is_an_issue` (STRUCT-14),
 `an_entry_can_have_a_list_of_paths` and `an_entry_with_more_paths_shows_its_files_as_one_flat_list` (STRUCT-15),
 `the_template_keeps_only_the_paths_that_are_here` (STRUCT-16), `the_zendo_section_is_replaced_and_the_rest_stays`
-(STRUCT-17), `doctor_sets_up_the_repository_once` (STRUCT-16 to STRUCT-18),
-`the_status_bar_asks_for_zendo_doctor_without_a_structure_file` (STRUCT-19).
+(STRUCT-17), `doctor_sets_up_the_repository_once` and `init_prepares_the_repository_only` (STRUCT-16 to STRUCT-18),
+`the_status_bar_asks_for_zendo_init_without_a_structure_file` (STRUCT-19).
 
 Revision 2 changed STRUCT-2, STRUCT-6 to STRUCT-8, STRUCT-11 and STRUCT-16 to STRUCT-19: `zendo init` and
 `zendo doctor --fix` do the writes, `--claude` asks Claude, and `zendo doctor` changes nothing.

@@ -1,33 +1,56 @@
 //! `zendo doctor`: check each step of the setup.
 use super::*;
 
-pub async fn doctor(paths: &Paths, agent_flag: Option<String>, live: bool, fix: bool) -> bool {
+/// The flags of `zendo doctor`.
+#[derive(Clone, Copy, Default)]
+pub struct DoctorFlags {
+    /// Also send one short prompt to Claude (CMD-7).
+    pub live: bool,
+    /// Repair what needs no agent and no answer (CMD-15).
+    pub fix: bool,
+    /// With `fix`: give the rest of the structure file to Claude (STRUCT-7, STRUCT-11).
+    pub claude: bool,
+}
+
+/// `zendo doctor`: check every step. Without `--fix` it writes no file (CMD-14).
+pub async fn doctor(paths: &Paths, agent_flag: Option<String>, flags: DoctorFlags) -> bool {
     let mut o = Out::new();
-    o.head("zendo doctor");
-    let mut ok = checks(paths, agent_flag.clone(), live, false, &mut o).await;
+    o.head(if flags.fix { "zendo doctor --fix" } else { "zendo doctor" });
     let (agent, _) = config::resolve_agent(agent_flag.clone(), &UserConfig::load());
-    setup_project(paths, &agent, &mut o);
-    user_section(&user_files(), &mut o);
-    println!();
-    if let Some(problem) = structure_problem(&paths.root) {
-        let what = if matches!(problem, Problem::Missing) { "Create it from project-structure.md" } else { "Fix it" };
-        let go = fix || ask_yes(&format!("  {what} with Claude? (zendo first fixes what it can by itself) [Y/n] "));
-        if go {
-            let others_ok = o.failures.iter().all(|f| f == "structure");
-            let fixed = fix_structure(paths, agent_flag, problem, &mut o).await;
-            // The structure file was the only failure, and now zendo understands it.
-            ok = fixed && others_ok;
-            println!();
-        } else {
-            println!("  To fix {} later: zendo doctor --fix\n", crate::docs::structure::FILE);
-        }
+    let repaired = !flags.fix || repair(paths, agent_flag.clone(), &agent, flags.claude, &mut o).await;
+    // After an upgrade, `--fix` runs anywhere: outside a repository its checks are no failures.
+    let ok = checks(paths, agent_flag, flags.live, flags.fix, &mut o).await && repaired;
+    let pending: Vec<Change> = user_changes(&user_files()).into_iter().chain(project_changes(&paths.root, &agent)).collect();
+    for c in &pending {
+        o.warn(c.label, format!("not up to date: {}", c.what));
     }
-    if ok && !live {
+    println!();
+    match structure_problem(&paths.root) {
+        Some(_) if flags.fix => println!("  To give {} to Claude: zendo doctor --fix --claude\n", crate::docs::structure::FILE),
+        Some(_) => println!("  To repair {}: zendo doctor --fix\n", crate::docs::structure::FILE),
+        None if !pending.is_empty() => println!("  To bring these files up to date: zendo doctor --fix\n"),
+        None => {}
+    }
+    if ok && !flags.live {
         println!("  All checks passed. `zendo doctor --live` also sends one short prompt to Claude.");
     } else if ok {
         println!("  All checks passed.");
     }
     ok
+}
+
+/// `zendo doctor --fix`: each repair that needs no agent and no answer, on the machine and in the
+/// repository (CMD-15); with `claude`, the rest of the structure file goes to Claude.
+async fn repair(paths: &Paths, agent_flag: Option<String>, agent: &str, claude: bool, o: &mut Out) -> bool {
+    // An agent command of the user is not the pinned adapter: zendo installs nothing for it.
+    let adapter = agent_flag.is_some() || fix_adapter(o).await;
+    apply(user_changes(&user_files()), o);
+    apply(project_changes(&paths.root, agent), o);
+    let structure = match structure_problem(&paths.root) {
+        Some(problem) => fix_structure(paths, agent_flag, problem, claude, o).await || !claude,
+        None => true,
+    };
+    adapter && structure && !o.failed
 }
 
 pub(super) async fn checks(paths: &Paths, agent_flag: Option<String>, live: bool, quiet_outside_repo: bool, o: &mut Out) -> bool {
