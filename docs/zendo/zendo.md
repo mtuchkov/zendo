@@ -18,11 +18,12 @@ children:
   - "sessions.md"
   - "handoff.md"
   - "cli-messages.md"
+  - "zendo-session.md"
   - "chat.md"
   - "terminal/terminal.md"
   - "attention.md"
   - "project-structure.md"
-  - "commands.md"
+  - "cli/cli.md"
   - "site.md"
   - "lofi.md"
   - "usage.md"
@@ -52,11 +53,12 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Sessions](sessions.md)                      | Claude Code sessions in the background, more than one at a time |
 | [Hand-off during a turn](handoff.md)         | `ctrl-o` while the chat answers: wait, or stop and continue    |
 | [Claude Code messages in the chat](cli-messages.md) | The prompts and answers of a running Claude Code session in its chat |
+| [zendo session](zendo-session.md)            | What a zendo session is, its id, and what zendo tells its agent |
 | [Chat](chat.md)                              | The chat input: chips, attachments, `@` file suggestions        |
 | [Terminal](terminal/terminal.md)             | Shell blocks in the chat, the `F5` and `[>]` terminals in the chat pane, their output for the agent |
 | [Attention](attention.md)                    | The bell and the blinking button when a turn ends; `[sound]`   |
 | [Project structure](project-structure.md)    | `project-structure.toml`: use and repair                      |
-| [Commands](commands.md)                      | Install, `zendo setup`, `zendo doctor`, `zendo upgrade`          |
+| [Commands](cli/cli.md)                       | Install, `zendo setup`, `zendo init`, `zendo doctor`, `zendo upgrade` |
 | [Landing page](site.md)                      | The page in `site/`: the pixel garden, the demo, the lofi music  |
 | [Lofi music](lofi.md)                        | Calm music that zendo makes itself                               |
 | [Usage counts](usage.md)                     | Local counts of the actions of the user, by pane, for the choice of key hints |
