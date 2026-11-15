@@ -13,7 +13,7 @@ children:
   - "files-worktree.md"
   - "files-worktree-recap.md"
 level: "the file tree pane as a whole: which files it lists, that it has views, what opening a file does"
-note: "Agent rewrite of the reference of zendo 0.9.1. Revision 2 adds FILES-25 (the notes of the notes repo), approved by the user. Revision 3: split into children by topic (user, 2026-11-14); no requirement changed. The children files-worktree.md and files-worktree-recap.md are drafts."
+note: "Agent rewrite of the reference of zendo 0.9.1. Revision 2 adds FILES-25 (the notes of the notes repo), approved by the user. Revision 3: split into children by topic (user, 2026-11-14); no requirement changed. The children files-worktree.md and files-worktree-recap.md were approved on 2026-11-14."
 ---
 
 # File tree
@@ -35,8 +35,8 @@ The children of this document hold the details:
 | [Views](files-views.md)               | The views, folding, the marks, the bottom of the tree                    |
 | [Actions](files-actions.md)           | The filter, rename, move, delete, new file and folder, add to the chat   |
 | [Code files](files-code.md)           | How a file that is not markdown shows in the note pane                   |
-| [Worktree views](files-worktree.md)   | Draft: the worktree of the agent session and its changed files           |
-| [Worktree recap](files-worktree-recap.md) | Draft: the recap of the changes of the worktree, and when it refreshes |
+| [Worktree views](files-worktree.md)   | The worktree of the agent session and its changed files                  |
+| [Worktree recap](files-worktree-recap.md) | The recap of the changes of the worktree, and when it refreshes |
 
 ## Architecturally significant requirements
 

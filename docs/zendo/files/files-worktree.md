@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-14"
 revision: "1"
 date: "2026-11-14"
 parent: "files.md"
 prev: "files-code.md"
 next: "files-worktree-recap.md"
 level: "the two views of the worktree of the agent session: what they list, how they follow the session, what opening a file does"
-note: "Agent draft from the requests of the user on 2026-11-14. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. The recap is in files-worktree-recap.md (split by the user, 2026-11-14). Depends on Sessions (../sessions.md, draft)."
+note: "Agent draft from the requests of the user on 2026-11-14. Approved by the user on 2026-11-14. The recap is in files-worktree-recap.md (split by the user, 2026-11-14). Depends on Sessions (../sessions.md, draft)."
 ---
 
 # File tree: worktree views
