@@ -49,13 +49,13 @@ pub async fn run(
         if std::mem::take(&mut app.attention.bells) > 0 {
             sound::ring();
         }
-        if let Some(text) = app.to_chat.take() {
+        if let Some(text) = app.pointer.take_to_chat() {
             app.mouse_to_chat(text);
             continue;
         }
-        if let Some(text) = app.clip.take() {
+        if let Some(text) = app.pointer.take_clip() {
             crate::text::select::copy(&text);
-            app.last_copy = Some(text.clone());
+            app.pointer.copied(text.clone());
             let n = text.chars().count();
             app.flash(format!("copied {n} character{}", if n == 1 { "" } else { "s" }));
             continue;
@@ -68,7 +68,7 @@ pub async fn run(
                 on_input(app, e);
                 // A trackpad sends a burst of scroll events: take all that are here, then draw once.
                 let until = std::time::Instant::now() + Duration::from_millis(12);
-                while !app.quit && app.clip.is_none() && std::time::Instant::now() < until {
+                while !app.quit && app.pointer.clip().is_none() && std::time::Instant::now() < until {
                     match keys.try_recv() {
                         Ok(e) => on_input(app, e),
                         Err(_) => break,

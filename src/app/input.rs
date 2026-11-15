@@ -36,7 +36,7 @@ impl App {
             self.output_pick = None;
         }
         // Any key ends a mouse selection; the text is already copied.
-        self.sel = None;
+        self.pointer.clear();
         false
     }
 

@@ -2,53 +2,33 @@
 use super::*;
 
 impl App {
-    pub(crate) fn row_len(&self, r: usize) -> usize {
-        self.frame.read_text().get(r).map_or(0, |l| l.trim_end().chars().count())
-    }
-
     /// Move the read cursor by rows; the view follows it, the column stays where it can.
     pub fn move_cursor(&mut self, by: isize) {
-        let last = self.frame.read_text().len().saturating_sub(1) as isize;
-        self.read_cursor = (self.read_cursor as isize + by).clamp(0, last.max(0)) as usize;
-        self.read_col = self.read_want.min(self.row_len(self.read_cursor).saturating_sub(1));
+        self.reader.move_rows(self.frame.read_text(), by);
         self.interact(1);
     }
 
     /// Move the read cursor by chars, across rows.
     pub(crate) fn move_col(&mut self, by: isize) {
-        let len = self.row_len(self.read_cursor);
-        if by < 0 {
-            if self.read_col > 0 {
-                self.read_col = self.read_col.min(len).saturating_sub(1);
-            } else if self.read_cursor > 0 {
-                self.read_cursor -= 1;
-                self.read_col = self.row_len(self.read_cursor).saturating_sub(1);
-            }
-        } else if self.read_col + 1 < len {
-            self.read_col += 1;
-        } else if self.read_cursor + 1 < self.frame.read_text().len() {
-            self.read_cursor += 1;
-            self.read_col = 0;
-        }
-        self.read_want = self.read_col;
+        self.reader.move_col(self.frame.read_text(), by > 0);
         self.interact(1);
     }
 
     pub(crate) fn key_read(&mut self, act: Option<&str>) {
         let page = self.frame.view_height().saturating_sub(3).max(1) as isize;
         let Some(act) = act else { return };
-        if act.starts_with("select_") && self.read_anchor.is_none() {
-            self.read_anchor = Some((self.read_cursor, self.read_col));
+        if act.starts_with("select_") {
+            self.reader.select();
         }
-        let before = (self.read_cursor, self.read_col);
+        let before = self.reader.cursor();
         self.read_action(act, page);
-        self.read_soft_stop(act, before);
+        self.reader.soft_stop(self.frame.read_text(), act, before);
     }
 
     fn read_action(&mut self, act: &str, page: isize) {
         match act {
             "back" if self.say.is_some() => self.say = None,
-            "back" if self.read_anchor.is_some() => self.read_anchor = None,
+            "back" if self.reader.anchor().is_some() => self.reader.unselect(),
             "back" if self.panel => self.panel = false,
             "back" if self.delta_open => self.delta_open = false,
             "quit" => self.quit = true,
@@ -84,9 +64,7 @@ impl App {
             "page_up" => self.move_cursor(-page),
             "top" => self.move_cursor(-(isize::MAX / 4)),
             "bottom" => self.move_cursor(isize::MAX / 4),
-            "select" => {
-                self.read_anchor = if self.read_anchor.is_some() { None } else { Some((self.read_cursor, self.read_col)) };
-            }
+            "select" => self.reader.toggle_select(),
             "ask" => self.ask_about_selection(),
             "add_to_chat" => self.add_to_chat(),
             "say" => self.start_say(),
@@ -105,32 +83,13 @@ impl App {
         let i = self.note_index().unwrap_or(0) as isize + d;
         let i = i.clamp(0, self.notes.len() as isize - 1) as usize;
         self.current = Some(self.notes[i].path.clone());
-        self.scroll = 0;
-        self.read_cursor = 0;
-        self.read_col = 0;
-        self.read_anchor = None;
+        self.reader.to_start();
         self.pinned = None;
     }
 
     /// The cursor to the start of the next word, or of this or the previous word.
     pub(crate) fn move_word(&mut self, right: bool) {
-        let space = |a: &Self| a.frame.read_text().get(a.read_cursor).and_then(|r| r.chars().nth(a.read_col)).is_none_or(char::is_whitespace);
-        let at = |a: &Self| (a.read_cursor, a.read_col);
-        let step = |a: &mut Self| {
-            let before = at(a);
-            a.move_col(if right { 1 } else { -1 });
-            at(a) != before
-        };
-        if right {
-            // Over the rest of this word, then over the spaces.
-            while !space(self) && step(self) {}
-            while space(self) && step(self) {}
-            return;
-        }
-        // Over the spaces before, then to the first char of the word.
-        while step(self) && space(self) {}
-        while self.read_col > 0 && !self.frame.read_text()[self.read_cursor].chars().nth(self.read_col - 1).is_none_or(char::is_whitespace) {
-            self.move_col(-1);
-        }
+        let steps = self.reader.move_word(self.frame.read_text(), right);
+        self.interact(steps);
     }
 }

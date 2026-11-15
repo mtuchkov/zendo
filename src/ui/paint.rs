@@ -15,7 +15,7 @@ pub(crate) fn over_limit(words: &[usize], limit: usize) -> Option<usize> {
 
 /// From the row of the word after the limit down, the whole pane is slightly red; the left margin
 /// says why, and how to split the document.
-pub(crate) fn draw_over_limit(f: &mut Frame, app: &App, t: &Theme, area: Rect, col: Rect, y0: u16, words: usize) {
+pub(crate) fn draw_over_limit(f: &mut Frame, app: &App, fr: &Cache, t: &Theme, area: Rect, col: Rect, y0: u16) {
     let y0 = y0.max(area.y);
     if y0 >= area.bottom() {
         return;
@@ -29,8 +29,8 @@ pub(crate) fn draw_over_limit(f: &mut Frame, app: &App, t: &Theme, area: Rect, c
     let w = (margin - 3) as usize;
     let key = app.keys.first(crate::keys::Pane::Read, "split");
     let text = vec![
-        Line::styled(format!("{words} words"), Style::new().fg(t.del).add_modifier(Modifier::BOLD)),
-        Line::styled(format!("over {}", app.word_limit), Style::new().fg(t.del)),
+        Line::styled(format!("{} words", fr.word_count), Style::new().fg(t.del).add_modifier(Modifier::BOLD)),
+        Line::styled(format!("over {}", fr.word_limit), Style::new().fg(t.del)),
         Line::raw(""),
     ];
     let mut text = text;

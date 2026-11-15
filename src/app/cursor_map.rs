@@ -55,7 +55,7 @@ impl App {
     pub(crate) fn cursor_to_editor(&mut self) {
         let src: Vec<String> = self.editor.lines.clone();
         let src: Vec<&str> = src.iter().map(String::as_str).collect();
-        let (line, col) = shown_to_source(self.frame.read_text(), self.frame.read_rows(), &src, (self.read_cursor, self.read_col));
+        let (line, col) = shown_to_source(self.frame.read_text(), self.frame.read_rows(), &src, self.reader.cursor());
         self.editor.row = line.min(self.editor.lines.len().saturating_sub(1));
         self.editor.col = col.min(self.editor.lines[self.editor.row].chars().count());
     }
@@ -67,9 +67,7 @@ impl App {
         let shown: Vec<String> = lines.iter().map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect()).collect();
         let src: Vec<&str> = note.body.lines().collect();
         let (row, col) = source_to_shown(&shown, &rows, &src, (self.editor.row, self.editor.col));
-        self.read_cursor = row;
-        self.read_col = col;
-        self.read_want = col;
+        self.reader.place(row, col);
     }
 }
 

@@ -45,15 +45,20 @@ fields at the cost of mechanical changes, and it needs no new runtime structure.
   read the stored frame.
 - WHEN the split is complete, no file in `src/ui/` shall assign to a field of `App`.
 
-Two points differ from the note:
+Four points differ from the note:
 
 1. **The frame starts from the last one, not empty.** A draw writes only what it shows: write mode
    does not render the read rows, and the notes list has no panes. The keys of the next mode read
    the values of the last draw that had them. An empty frame in each draw changes behavior.
-2. **`ui` corrects view state in a draw, not only the frame cache.** It clamps the scroll and the
-   cursor to the layout, counts the words, and moves the focus to a visible pane. These writes
-   belong to `Reader`, `Writer`, `Chat` and `Files`. They leave `ui` in the step of their
-   sub-state: the draw returns the corrected values, and the sub-state takes them.
+2. **`ui` corrects view state in a draw, through one method of the sub-state.** The layout is known
+   only in the draw, and the rest of the same draw needs the corrected values: the scroll that
+   follows the cursor, the cursor that stays in the text. A draw that returns corrections has to
+   keep two copies of these values in step. So `ui` calls a method of the sub-state
+   (`Reader::fit`, `Reader::follow`), which changes its own fields. `ui` assigns to no field.
+3. **The word count is part of the frame.** The draw computes the word limit, the words and the row
+   after the limit; the status bar and the split read them. They are not state of the reader.
+4. **`peek` is not view state.** It names the version of the document on the screen (FILES-45,
+   FILES-47). It stays on `App` until the step of `Files`.
 
 The order of work is one commit for each step, without a change of behavior: `Frame`; `Reader` and
 `Pointer`; `Chat`; `Files`, then `Review`; `AgentLink` and `Sessions`.
@@ -77,8 +82,8 @@ The order of work is one commit for each step, without a change of behavior: `Fr
 - `App` has fewer than 30 fields, and no field of the frame cache.
 - No file in `src/ui/` assigns to a field of `App`.
 - Each sub-state has a `*_tests.rs` file that builds it without an `App`.
-- State of the steps: `Frame` is done (`src/ui/frame.rs`, `src/ui/frame_tests.rs`). The other steps
-  are open.
+- State of the steps: `Frame` (`src/ui/frame.rs`), `Reader` (`src/app/reader.rs`) and `Pointer`
+  (`src/app/pointer.rs`) are done, each with a `*_tests.rs` file. The other steps are open.
 
 ## Decision record
 

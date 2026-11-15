@@ -22,7 +22,7 @@ async fn writing_saves_after_a_pause() {
     let root = repo("flow-autosave", &files());
     let mut a = app(&root);
     draw(&mut a, 120, 30);
-    a.read_cursor = a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap();
+    a.reader.to_row(a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap());
     key(&mut a, KeyCode::Char('i'));
     draw(&mut a, 120, 30);
     typ(&mut a, "New ");
@@ -43,7 +43,7 @@ async fn alt_a_s_b_work_in_read_and_write_mode() {
     for write in [false, true] {
         let mut a = app(&root);
         draw(&mut a, 120, 30);
-        a.read_cursor = a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap();
+        a.reader.to_row(a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap());
         if write {
             key(&mut a, KeyCode::Char('i'));
             draw(&mut a, 120, 30);
@@ -76,7 +76,7 @@ async fn the_cursor_row_keeps_its_words() {
     let root = repo("flow-cursor-row", &[(rel, long)]);
     let mut a = app(&root);
     let read = draw(&mut a, 100, 30);
-    a.read_cursor = a.frame.read_text().iter().position(|r| r.contains("architecture")).unwrap();
+    a.reader.to_row(a.frame.read_text().iter().position(|r| r.contains("architecture")).unwrap());
     key(&mut a, KeyCode::Char('i'));
     let write = draw(&mut a, 100, 30);
     let body = |s: &Vec<String>| s[..s.len() - 2].iter().map(|l| l.trim_end().to_string()).collect::<Vec<_>>();
@@ -86,12 +86,12 @@ async fn the_cursor_row_keeps_its_words() {
     let row = diff[0];
     assert!(write[row].contains("**architecture**"), "{}", write[row]);
     assert_eq!(write[row].replace("**", "").trim(), read[row].trim(), "the same words on the row");
-    let y = a.cursor_y;
+    let y = a.reader.cursor_y();
     key(&mut a, KeyCode::Down);
     draw(&mut a, 100, 30);
-    assert_eq!(a.cursor_y, y + 1, "down goes to the next row of the paragraph");
+    assert_eq!(a.reader.cursor_y(), y + 1, "down goes to the next row of the paragraph");
     key(&mut a, KeyCode::Up);
     draw(&mut a, 100, 30);
-    assert_eq!(a.cursor_y, y);
+    assert_eq!(a.reader.cursor_y(), y);
     let _ = std::fs::remove_dir_all(&root);
 }

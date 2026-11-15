@@ -25,7 +25,9 @@ mod modes;
 mod mouse;
 mod music;
 mod new;
+mod pointer;
 mod read;
+mod reader;
 mod say;
 mod selection;
 mod slash;
@@ -51,6 +53,8 @@ pub use tab::{TAB_PAUSE, TabRun};
 pub use thread::*;
 pub use transcript::{CHAT_MARK, Transcript};
 pub use modes::Mode;
+pub use pointer::Pointer;
+pub use reader::Reader;
 pub use worktree::{RECAP_EVERY, TreeAct, WorktreeUi};
 
 use crate::agent::{self, AgentHandle, Attachment, Cmd, Event};
@@ -115,7 +119,8 @@ pub struct App {
     pub state: State,
     pub branch: Option<String>,
 
-    pub scroll: usize,
+    /// The view of the note: the read cursor, the selection, and the scroll.
+    pub reader: Reader,
     pub editor: Editor,
     pub editor_path: Option<PathBuf>,
     #[default(Instant::now())]
@@ -142,8 +147,6 @@ pub struct App {
     pub slash: Slash,
     /// The cursor in the chat transcript.
     pub transcript: Transcript,
-    /// The time of the last scroll event: a fast run of them is a trackpad.
-    last_scroll: Option<std::time::Instant>,
     /// Width of the chat input, for up and down moves in it.
     pub input_width: usize,
     /// The keymap of every pane, and what is wrong in `[keys]` of the config.
@@ -151,8 +154,6 @@ pub struct App {
     pub key_problems: Vec<String>,
     /// The keymap file that the config names, for the help (PANES-31).
     pub keymap_file: Option<String>,
-    /// The last text that zendo copied, for paste when the system clipboard cannot be read.
-    pub last_copy: Option<String>,
     pub threads: HashMap<String, Thread>,
     pub agent: Option<AgentHandle>,
     pub agent_events: Option<tokio::sync::mpsc::UnboundedReceiver<Event>>,
@@ -191,19 +192,6 @@ pub struct App {
     pub ask_default: Option<String>,
     /// What the context is, for the input placeholder: "the changes", "the selection".
     pub ask_about: &'static str,
-    /// Read mode: the cursor row and the selection anchor, in rendered rows.
-    pub read_cursor: usize,
-    pub read_anchor: Option<(usize, usize)>,
-    /// The read cursor column in chars, the column it wants on up and down, the stop at a cell edge (PANES-42).
-    pub read_col: usize,
-    pub read_want: usize,
-    pub read_stop: crate::text::softstop::SoftStop,
-    /// The word limit of the open file, its words, and the row of the word after the limit.
-    pub word_limit: usize,
-    pub word_count: usize,
-    pub over_limit: Option<usize>,
-    /// A pane edge being dragged: the pane, its fixed edge, and whether it grows to the right.
-    pub drag: Option<(Focus, u16, bool)>,
     /// A newer commit on main (short sha), found on start.
     pub update: Option<String>,
     pub update_rx: Option<tokio::sync::oneshot::Receiver<Option<String>>>,
@@ -221,10 +209,6 @@ pub struct App {
     pub file_prompt: Option<FilePrompt>,
     /// The width of the text column from the config, when the repository sets none.
     pub width_default: u16,
-    /// The screen row of the cursor in the note at the last draw: a mode change keeps it.
-    pub cursor_y: usize,
-    /// After a mode change: the screen row the cursor keeps at the next draw.
-    pub keep_y: Option<usize>,
     /// `alt-n`: the new note in a float; the screen behind waits in it (FLOAT-1).
     pub float: Option<Float>,
     /// `alt-/`: the find panel and the recent files (FIND-1).
@@ -254,13 +238,9 @@ pub struct App {
     pub attention: Attention,
     /// The lofi music, its button, and the question at the first start (LOFI-8 to LOFI-15).
     pub music: crate::music::Music,
-    pub sel: Option<Selection>,
-    /// Take the mouse selection on the next frame; after the frame, its text for the clipboard, or
-    /// for a chip with alt (PANES-44).
-    pub copy_pending: bool,
-    pub clip: Option<String>,
-    pub to_chat: Option<String>,
 
+    /// The mouse: its selection, the pane edge in a drag, and the text that it copies.
+    pub pointer: Pointer,
     /// What the last draw left for the mouse and the keys; `ui` builds it, the app only reads it.
     pub frame: crate::ui::frame::Frame,
 }

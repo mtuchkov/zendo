@@ -104,7 +104,7 @@ impl App {
         let rel = self.rel(&path);
         let ctx = format!("{}\n{}", cursor_place(&rel, mark), say_context(&rel, &refs, range, picked.as_deref()));
         let rewrite = picked.is_some();
-        self.read_anchor = None;
+        self.reader.unselect();
         self.open_panel();
         self.say = Some(Say { path, line: mark.0, col: mark.1, key: self.key(), rewrite });
         self.ask_about = if rewrite { "the selection" } else { "the mark" };
@@ -124,7 +124,7 @@ impl App {
         let (start, end) = match self.read_selection() {
             Some((a, b)) => (to_src(a), to_src(b)),
             None => {
-                let p = to_src((self.read_cursor, self.read_col));
+                let p = to_src(self.reader.cursor());
                 (p, p)
             }
         };

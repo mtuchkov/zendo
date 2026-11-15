@@ -109,59 +109,45 @@ pub(crate) fn draw_read(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme,
     let Some(note) = note else { return draw_no_version(f, app, t, col) };
     fr.regions.push((crate::text::select::Region::Note, col));
     let (lines, rows, words) = read_lines(app, &note, col.width as usize, t);
-    app.word_limit = app.word_limit_for(&note.path);
-    app.word_count = words.iter().sum();
-    app.over_limit = over_limit(&words, app.word_limit);
+    fr.word_limit = app.word_limit_for(&note.path);
+    fr.word_count = words.iter().sum();
+    fr.over_limit = over_limit(&words, fr.word_limit);
     fr.read_text = lines.iter().map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect()).collect();
     fr.read_rows = rows;
     let h = col.height as usize;
-    app.read_cursor = app.read_cursor.min(lines.len().saturating_sub(1));
-    if let Some(y) = app.keep_y.take() {
-        app.scroll = app.read_cursor.saturating_sub(y);
-    }
-    // The view follows the cursor, with a margin.
-    let margin = 3.min(h / 4);
-    if app.read_cursor < app.scroll + margin {
-        app.scroll = app.read_cursor.saturating_sub(margin);
-    } else if app.read_cursor + margin >= app.scroll + h {
-        app.scroll = app.read_cursor + margin + 1 - h;
-    }
-    let max = lines.len().saturating_sub(h);
-    app.scroll = app.scroll.min(max);
-    app.cursor_y = app.read_cursor.saturating_sub(app.scroll);
-    if let Some(r) = app.over_limit {
-        let y0 = col.y as i64 + r as i64 - app.scroll as i64;
-        draw_over_limit(f, app, t, area, col, y0.max(col.y as i64) as u16, app.word_count);
+    // The cursor stays in the text, and the view follows it, with a margin.
+    app.reader.fit(&fr.read_text, h);
+    if let Some(r) = fr.over_limit {
+        let y0 = col.y as i64 + r as i64 - app.reader.scroll() as i64;
+        draw_over_limit(f, app, fr, t, area, col, y0.max(col.y as i64) as u16);
     }
     // The cursor and the selection show only where the keys go.
     let active = app.mode == Mode::Read && app.focus == Focus::Note;
-    let len = fr.read_text.get(app.read_cursor).map_or(0, |r| r.trim_end().chars().count());
-    app.read_col = app.read_col.min(len.saturating_sub(1));
     let marks = confusing_rows(app, &app.rel(&note.path), &fr.read_rows, lines.len());
     let w = col.width as usize;
     // The frame of this draw, not the stored one: the app has none while `ui` draws.
-    let table = app.read_anchor.filter(|_| active).and_then(|a| crate::text::boxtable::in_table(&fr.read_text, a, (app.read_cursor, app.read_col)));
+    let table = if active { app.reader.table(&fr.read_text) } else { None };
     let view: Vec<Line> = lines
         .into_iter()
         .enumerate()
-        .skip(app.scroll)
+        .skip(app.reader.scroll())
         .take(h)
         .map(|(i, l)| if marks.contains(&i) { tint(l, confusing(t), w) } else { l })
-        .zip(app.scroll..)
+        .zip(app.reader.scroll()..)
         .map(|(l, i)| if active { mark_row(app, fr, t, i, l, w, table.as_ref()) } else { l })
         .collect();
     f.render_widget(Paragraph::new(view), col);
     if code {
-        draw_gutter(f, t, gut, &fr.read_rows, app.scroll, active.then_some(app.read_cursor));
+        draw_gutter(f, t, gut, &fr.read_rows, app.reader.scroll(), active.then_some(app.reader.row()));
     }
     if let Some(row) = say_row_read(app, fr, &note) {
         say_arrow(f, app, t, area, col, row);
     }
     // The block cursor on the current char; the terminal makes it blink.
-    if active && app.read_cursor >= app.scroll && app.read_cursor < app.scroll + h {
-        let row = fr.read_text.get(app.read_cursor).cloned().unwrap_or_default();
-        let x: usize = row.chars().take(app.read_col).map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
-        f.set_cursor_position((col.x + (x as u16).min(col.width.saturating_sub(1)), col.y + (app.read_cursor - app.scroll) as u16));
+    if active && app.reader.row() >= app.reader.scroll() && app.reader.row() < app.reader.scroll() + h {
+        let row = fr.read_text.get(app.reader.row()).cloned().unwrap_or_default();
+        let x: usize = row.chars().take(app.reader.col()).map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
+        f.set_cursor_position((col.x + (x as u16).min(col.width.saturating_sub(1)), col.y + (app.reader.row() - app.reader.scroll()) as u16));
     }
 }
 
@@ -206,7 +192,7 @@ fn draw_no_notes(f: &mut Frame, app: &App, t: &Theme, col: Rect) {
 
 /// The cursor line and the selection on one row; `table` is the selection in a table (PANES-34).
 fn mark_row(app: &App, fr: &Cache, t: &Theme, i: usize, l: Line<'static>, width: usize, table: Option<&crate::text::boxtable::Range>) -> Line<'static> {
-    let l = if i == app.read_cursor { tint(l, cursor_line(t), width) } else { l };
+    let l = if i == app.reader.row() { tint(l, cursor_line(t), width) } else { l };
     if let Some(r) = table {
         return match r.chars(&fr.read_text, i) {
             Some((a, b)) => paint(l, a, b, delta::mix(t.bg, t.acc2, 0.42)),
@@ -234,10 +220,10 @@ fn say_row_read(app: &App, fr: &Cache, note: &Note) -> Option<usize> {
 /// The arrow of "say it here": in the empty space left of the marked row.
 pub(crate) fn say_arrow(f: &mut Frame, app: &App, t: &Theme, area: Rect, col: Rect, row: usize) {
     let h = col.height as usize;
-    if row < app.scroll || row >= app.scroll + h || col.x < area.x + 2 {
+    if row < app.reader.scroll() || row >= app.reader.scroll() + h || col.x < area.x + 2 {
         return;
     }
-    let y = col.y + (row - app.scroll) as u16;
+    let y = col.y + (row - app.reader.scroll()) as u16;
     let arrow = Span::styled("→", Style::new().fg(t.acc).add_modifier(Modifier::BOLD));
     f.render_widget(Paragraph::new(Line::from(arrow)), Rect { x: col.x - 2, y, width: 1, height: 1 });
 }

@@ -34,7 +34,7 @@ impl App {
             "add_to_chat" => self.add_line_to_chat(),
             "copy" => {
                 if let Some(t) = self.editor.selected_text() {
-                    self.clip = Some(t);
+                    self.pointer.copy(t);
                 }
             }
             _ => return self.write_edit(a),
@@ -50,10 +50,10 @@ impl App {
             "underline" => self.editor.wrap_marks("<u>", "</u>"),
             "cut" => {
                 let t = self.editor.selected_text()?;
-                self.clip = Some(t);
+                self.pointer.copy(t);
                 self.editor.delete_selection();
             }
-            "paste" => match crate::text::select::paste().or_else(|| self.last_copy.clone()) {
+            "paste" => match crate::text::select::paste().or_else(|| self.pointer.last_copy()) {
                 Some(t) => self.editor.type_str(&t),
                 None => {
                     self.flash("the clipboard is empty, or zendo cannot read it here");

@@ -24,7 +24,7 @@ fn dragging_the_chat_edge_left_widens_the_chat() {
         let (before, edge) = (chat_width(&a), a.frame.pane_rects()[1].1.x);
         let x = (edge as i32 + off) as u16;
         mouse(&mut a, MouseEventKind::Down(MouseButton::Left), x);
-        assert!(a.drag.is_some(), "a press {off} columns off the edge grabs it");
+        assert!(a.pointer.grabbed().is_some(), "a press {off} columns off the edge grabs it");
         mouse(&mut a, MouseEventKind::Drag(MouseButton::Left), x - 10);
         mouse(&mut a, MouseEventKind::Up(MouseButton::Left), x - 10);
         draw(&mut a, 120, 30);

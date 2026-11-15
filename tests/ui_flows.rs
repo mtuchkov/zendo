@@ -143,7 +143,7 @@ async fn say_marks_the_place_until_the_answer_ends() {
     let root = repo("flow-say", &files());
     let mut a = app(&root);
     draw(&mut a, 120, 30);
-    a.read_cursor = a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap();
+    a.reader.to_row(a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap());
     ctrl_shift(&mut a, 's');
     assert_eq!(a.input.text(), "⟦write here :3⟧ ", "a chip with the line of the mark");
     assert!(a.chips[0].context.as_deref().is_some_and(|c| c.contains("line 3")));
@@ -169,8 +169,8 @@ fn write_mode_keeps_the_char_and_shows_only_the_cursor_line_as_source() {
     let mut a = app(&root);
     draw(&mut a, 120, 30);
     let row = a.frame.read_text().iter().position(|r| r.starts_with("The second bold")).unwrap();
-    a.read_cursor = row;
-    a.read_col = "The second ".len();
+    let col = "The second ".len();
+    a.reader.place(row, col);
     key(&mut a, KeyCode::Char('i'));
     assert_eq!(a.mode, Mode::Write);
     let line = &a.editor.lines[a.editor.row];
@@ -185,7 +185,7 @@ fn write_mode_keeps_the_char_and_shows_only_the_cursor_line_as_source() {
     a.editor.col = "The second **".len();
     key(&mut a, KeyCode::Esc);
     draw(&mut a, 120, 30);
-    assert_eq!(&a.frame.read_text()[a.read_cursor][a.read_col..a.read_col + 4], "bold");
+    assert_eq!(&a.frame.read_text()[a.reader.row()][a.reader.col()..a.reader.col() + 4], "bold");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -195,7 +195,7 @@ fn typing_past_the_column_breaks_the_line() {
     let root = repo("flow-wrap", &files());
     let mut a = app(&root);
     draw(&mut a, 120, 30);
-    a.read_cursor = a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap();
+    a.reader.to_row(a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap());
     key(&mut a, KeyCode::Char('i'));
     draw(&mut a, 120, 30);
     a.editor.end();
@@ -220,7 +220,7 @@ fn write_mode_wraps_as_read_mode_and_keeps_the_head() {
     a.state.file(rel).recap = Some(recap);
     let read = draw(&mut a, 100, 30);
     let row = a.frame.read_text().iter().position(|r| r.starts_with("A zendo is")).unwrap();
-    a.read_cursor = row;
+    a.reader.to_row(row);
     key(&mut a, KeyCode::Char('i'));
     let write = draw(&mut a, 100, 30);
     let trim = |s: &Vec<String>| s.iter().map(|l| l.trim_end().to_string()).collect::<Vec<_>>();
@@ -245,7 +245,7 @@ async fn say_and_add_to_chat_work_in_write_mode() {
     let root = repo("flow-write-keys", &files());
     let mut a = app(&root);
     draw(&mut a, 120, 30);
-    a.read_cursor = a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap();
+    a.reader.to_row(a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap());
     key(&mut a, KeyCode::Char('i'));
     draw(&mut a, 120, 30);
     ctrl_shift(&mut a, 's');
@@ -293,14 +293,15 @@ async fn alt_shift_selects_words_in_read_mode_and_the_chat() {
     let root = repo("flow-words", &files());
     let mut a = app(&root);
     draw(&mut a, 120, 30);
-    a.read_cursor = a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap();
-    a.read_col = 0;
+    let row = a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap();
+    let col = 0;
+    a.reader.place(row, col);
     let alt_shift = KeyModifiers::ALT | KeyModifiers::SHIFT;
     a.on_key(KeyEvent::new(KeyCode::Char('L'), alt_shift));
     a.on_key(KeyEvent::new(KeyCode::Char('L'), alt_shift));
-    assert_eq!(a.read_col, "The first ".len(), "two words to the right");
+    assert_eq!(a.reader.col(), "The first ".len(), "two words to the right");
     a.on_key(KeyEvent::new(KeyCode::Char('y'), KeyModifiers::NONE));
-    assert_eq!(a.clip.as_deref(), Some("The first p"), "the selection ends on the cursor char");
+    assert_eq!(a.pointer.clip(), Some("The first p"), "the selection ends on the cursor char");
     a.open_panel();
     a.focus = Focus::Claude;
     typ(&mut a, "one two");

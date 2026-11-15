@@ -111,8 +111,7 @@ impl App {
         (self.mode, self.focus) = (Mode::Read, Focus::Note);
         if let Some(line) = item.snippets.first().map(|s| s.line) {
             let rows = crate::ui::source_rows(self, self.column_width() as usize);
-            self.read_cursor = rows.get(line).copied().unwrap_or(0);
-            self.scroll = self.read_cursor.saturating_sub(3);
+            self.reader.jump(rows.get(line).copied().unwrap_or(0));
         }
         self.track_recent();
     }

@@ -1,9 +1,9 @@
 //! The status bar.
 use super::*;
 
-pub(crate) fn draw_status(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
+pub(crate) fn draw_status(f: &mut Frame, app: &App, fr: &Cache, t: &Theme, area: Rect) {
     let claude = app.panel && app.focus == Focus::Claude && matches!(app.mode, Mode::Read | Mode::Write);
-    let (badge, color, mut keys) = status_keys(app, t, claude);
+    let (badge, color, mut keys) = status_keys(app, fr, t, claude);
     // The key of the help, in every pane and mode, first: it is always on the screen.
     // An action without a key has no hint (PANES-29).
     keys.retain(|(k, v)| v != "keys" && !k.is_empty());
@@ -11,7 +11,7 @@ pub(crate) fn draw_status(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
         keys.insert(0, (help, "keys".into()));
     }
     let mut spans = vec![Span::raw("  "), Span::styled(format!(" {badge} "), Style::new().bg(color).fg(t.bg).add_modifier(Modifier::BOLD)), Span::raw("  ")];
-    let right = status_right(app, claude);
+    let right = status_right(app, fr, claude);
     // The right side shows whole: the hints at the end give way, the help key stays.
     let room = (area.width as usize).saturating_sub(right.width() + 2 + spans.iter().map(|s| s.content.width()).sum::<usize>());
     let fit = keys.iter().scan(0, |w, (k, v)| {
@@ -33,7 +33,7 @@ pub(crate) fn draw_status(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
 type Hints = Vec<(String, String)>;
 
 /// The badge of the pane in focus and its key hints, from the keymap: the first key of each action.
-fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hints) {
+fn status_keys(app: &App, fr: &Cache, t: &Theme, claude: bool) -> (&'static str, Color, Hints) {
     use crate::keys::Pane;
     let delta = app.delta_open && app.focus == Focus::Delta && matches!(app.mode, Mode::Read | Mode::Write);
     let tree = app.state.tree && app.focus == Focus::Tree && matches!(app.mode, Mode::Read | Mode::Write);
@@ -45,7 +45,7 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
         v.push(next.clone());
         v
     };
-    if app.sel.is_some_and(|s| !s.done) {
+    if app.pointer.sel().is_some_and(|s| !s.done) {
         return mouse_selection(t);
     }
     if tree {
@@ -77,7 +77,7 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
         return ("CHAT", t.acc, with_next(v));
     }
     match app.mode {
-        Mode::Read if app.read_anchor.is_some() => ("SELECT", t.acc2, hints(Pane::Read, &[("select_down", "extend"), ("ask", "ask claude"), ("add_to_chat", "add to chat"), ("copy", "copy"), ("back", "cancel")])),
+        Mode::Read if app.reader.anchor().is_some() => ("SELECT", t.acc2, hints(Pane::Read, &[("select_down", "extend"), ("ask", "ask claude"), ("add_to_chat", "add to chat"), ("copy", "copy"), ("back", "cancel")])),
         Mode::Read | Mode::Help => {
             let mut v = hints(Pane::Read, &[("down", "cursor"), ("select_down", "select"), ("ask", "ask"), ("say", "say here"), ("add_to_chat", "to chat"), ("chat", "chat"), ("write", "write"), ("search", "search"), ("help", "keys")]);
             // The four cursor keys and the four select keys, each with one label.
@@ -88,8 +88,8 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
             v[0].0 = four(["left", "down", "up", "right"]);
             v[1].0 = four(["select_left", "select_down", "select_up", "select_right"]);
             v.insert(5, (app.keys.first(Pane::Global, "toggle_tree"), "files".into()));
-            if app.over_limit.is_some() {
-                v.insert(0, (app.keys.first(Pane::Read, "split"), format!("split: {} words", app.word_count)));
+            if fr.over_limit.is_some() {
+                v.insert(0, (app.keys.first(Pane::Read, "split"), format!("split: {} words", fr.word_count)));
             }
             ("READ", t.acc, v)
         }
@@ -111,7 +111,7 @@ fn mouse_selection(t: &Theme) -> (&'static str, Color, Hints) {
 }
 
 /// The right side: a flash, the sync, the agent, or the words of the note.
-fn status_right(app: &App, claude: bool) -> String {
+fn status_right(app: &App, fr: &Cache, claude: bool) -> String {
     if let Some((msg, _)) = &app.flash {
         return msg.clone();
     }
@@ -127,7 +127,7 @@ fn status_right(app: &App, claude: bool) -> String {
     match app.mode {
         Mode::Write => {
             // The words of prose, as the word limit counts them.
-            let words = app.word_count;
+            let words = fr.word_count;
             let saved = match (app.editor.dirty, app.saved_at, &app.editor_path) {
                 (true, _, _) => "editing".to_string(),
                 (false, Some(at), _) => format!("saved {}", at.format("%H:%M")),
@@ -139,8 +139,8 @@ fn status_right(app: &App, claude: bool) -> String {
         Mode::Notes | Mode::Search => format!("{} notes · {}", app.notes.len(), app.rel(&app.cfg.notes_dir)),
         Mode::Find => format!("{} files", app.find.items.len()),
         Mode::Theme => THEMES[app.theme].name.to_string(),
-        _ if app.note().is_some() && app.word_limit > 0 => format!("{} / {} words", app.word_count, app.word_limit),
-        _ => app.note().map(|_| format!("{} words", app.word_count)).unwrap_or_default(),
+        _ if app.note().is_some() && fr.word_limit > 0 => format!("{} / {} words", fr.word_count, fr.word_limit),
+        _ => app.note().map(|_| format!("{} words", fr.word_count)).unwrap_or_default(),
     }
 }
 

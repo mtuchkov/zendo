@@ -18,17 +18,17 @@ pub(crate) fn draw_write(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
         r.lines[s.row] = Line::styled(s.text(), Style::new().fg(t.fg));
     }
     if let Some(p) = app.editor_path.clone() {
-        app.word_limit = app.word_limit_for(&p);
+        fr.word_limit = app.word_limit_for(&p);
     }
-    app.word_count = r.words.iter().sum();
+    fr.word_count = r.words.iter().sum();
     let mut words = vec![0; head];
     words.extend(&r.words);
-    app.over_limit = over_limit(&words, app.word_limit);
+    fr.over_limit = over_limit(&words, fr.word_limit);
     let h = col.height as usize;
-    follow(app, vrow, h, r.lines.len());
-    if let Some(row) = app.over_limit {
-        let y0 = col.y as i64 + row as i64 - app.scroll as i64;
-        draw_over_limit(f, app, t, area, col, y0.max(col.y as i64) as u16, app.word_count);
+    app.reader.follow(vrow, h, r.lines.len());
+    if let Some(row) = fr.over_limit {
+        let y0 = col.y as i64 + row as i64 - app.reader.scroll() as i64;
+        draw_over_limit(f, app, fr, t, area, col, y0.max(col.y as i64) as u16);
     }
     let lit = selected_rows(app, &spans, cur);
     fr.write_rows = spans;
@@ -40,7 +40,7 @@ pub(crate) fn draw_write(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
         .lines
         .into_iter()
         .enumerate()
-        .skip(app.scroll)
+        .skip(app.reader.scroll())
         .take(h)
         .map(|(i, l)| match lit.iter().find(|(row, ..)| *row == i) {
             Some((_, a, b)) => paint(l, *a, *b, sel_bg),
@@ -53,30 +53,15 @@ pub(crate) fn draw_write(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
     let wide = Rect { width: (area.x + area.width).saturating_sub(col.x).min(col.width + 12), ..col };
     f.render_widget(Paragraph::new(view), wide);
     if code {
-        draw_gutter(f, t, gut, &rows, app.scroll, Some(vrow));
+        draw_gutter(f, t, gut, &rows, app.reader.scroll(), Some(vrow));
     }
     if let Some(say) = app.say.as_ref().filter(|s| app.editor_path.as_ref() == Some(&s.path)) {
         let row = if say.line == app.editor.row { vrow } else if title == Some(say.line) { 0 } else { head + r.rows.get(say.line).copied().unwrap_or(0) };
         say_arrow(f, app, t, area, col, row);
     }
-    app.cursor_y = vrow.saturating_sub(app.scroll);
     if !(app.panel && app.focus == Focus::Claude) {
-        f.set_cursor_position((col.x + vx.min(wide.width as usize) as u16, col.y + (vrow - app.scroll) as u16));
+        f.set_cursor_position((col.x + vx.min(wide.width as usize) as u16, col.y + (vrow - app.reader.scroll()) as u16));
     }
-}
-
-/// The view follows the cursor row, with a margin, as in read mode.
-fn follow(app: &mut App, vrow: usize, h: usize, total: usize) {
-    if let Some(y) = app.keep_y.take() {
-        app.scroll = vrow.saturating_sub(y);
-    }
-    let margin = 3.min(h / 4);
-    if vrow < app.scroll + margin {
-        app.scroll = vrow.saturating_sub(margin);
-    } else if vrow + margin >= app.scroll + h {
-        app.scroll = vrow + margin + 1 - h;
-    }
-    app.scroll = app.scroll.min(total.saturating_sub(h));
 }
 
 /// The lines of write mode: the head of the note as in read mode, then the text. The title line of

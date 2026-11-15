@@ -122,7 +122,7 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     }
     // After the panes: the top line shows the blinking sessions whose buttons are not on the screen.
     draw_top(f, app, fr, &t, top);
-    draw_status(f, app, &t, status);
+    draw_status(f, app, fr, &t, status);
     draw_file_prompt(f, app, &t, prompt);
     draw_confirm(f, app, &t, area);
     draw_music_question(f, app, &t, area);
@@ -132,15 +132,15 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
 
 /// The mouse selection on top of the frame; after the release, its text goes to the clipboard.
 fn draw_selection(f: &mut Frame, app: &mut App, t: &Theme) {
-    let Some(sel) = app.sel else { return };
-    if std::mem::take(&mut app.copy_pending) {
+    let Some(sel) = app.pointer.sel() else { return };
+    if app.pointer.take_copy_request() {
         let text = sel.text(f.buffer_mut());
         if sel.chat {
             // After the frame, the text goes to the chat input as a chip (PANES-44).
-            app.to_chat = Some(text);
+            app.pointer.send_to_chat(text);
             return;
         } else if !text.is_empty() {
-            app.clip = Some(text);
+            app.pointer.copy(text);
         }
     }
     sel.paint(f.buffer_mut(), t.acc2, t.bg);
@@ -171,7 +171,7 @@ fn draw_panes(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, main: Rec
         }
         // The edge between panes: drag it to resize.
         if i > 0 {
-            let dragging = app.drag.is_some_and(|(d, _, _)| d == *p || (d == panes[i - 1] && *p == Focus::Note));
+            let dragging = app.pointer.grabbed().is_some_and(|(d, _, _)| d == *p || (d == panes[i - 1] && *p == Focus::Note));
             let style = Style::new().fg(if dragging { t.acc2 } else { t.line }).bg(t.bg);
             let rule: Vec<Line> = (0..a.height).map(|_| Line::styled("│", style)).collect();
             f.render_widget(Paragraph::new(rule), Rect { width: 1, ..*a });

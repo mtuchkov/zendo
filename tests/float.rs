@@ -100,9 +100,9 @@ async fn esc_saves_the_float_and_restores_the_screen() {
     let mut a = app(&root);
     a.open_file(root.join(DESIGN));
     draw(&mut a, 120, 40);
-    a.read_cursor = 12;
-    a.read_anchor = Some((10, 0));
-    let scroll = a.scroll;
+    a.reader.to_row(12);
+    a.reader.select_from((10, 0));
+    let scroll = a.reader.scroll();
     alt(&mut a, 'n');
     typ(&mut a, "Tea");
     let screen = draw(&mut a, 120, 40).join("\n");
@@ -118,7 +118,7 @@ async fn esc_saves_the_float_and_restores_the_screen() {
     let text = std::fs::read_to_string(root.join("docs/notes").join(&saved[0])).unwrap();
     assert!(text.starts_with("# Tea\n") && text.contains("A line of text."), "{text}");
     assert_eq!(a.current.as_deref(), Some(root.join(DESIGN).as_path()), "the same file");
-    assert_eq!((a.mode, a.focus, a.read_cursor, a.read_anchor, a.scroll), (Mode::Read, Focus::Note, 12, Some((10, 0)), scroll));
+    assert_eq!((a.mode, a.focus, a.reader.row(), a.reader.anchor(), a.reader.scroll()), (Mode::Read, Focus::Note, 12, Some((10, 0)), scroll));
     assert!(a.notes.iter().any(|n| n.title == "Tea"), "the new note is in the notes list");
     let _ = std::fs::remove_dir_all(&root);
 }

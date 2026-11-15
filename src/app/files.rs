@@ -33,7 +33,7 @@ impl App {
             self.editor = Editor::new(body.trim_end_matches('\n'));
             self.editor_path = Some(path);
             self.cursor_to_editor();
-            self.keep_y = Some(self.cursor_y);
+            self.reader.keep_screen_row();
         } else {
             return self.start_write(true);
         }
@@ -78,7 +78,7 @@ impl App {
         self.mode = Mode::Read;
         // The read cursor on the char of the write cursor, at the same height on the screen.
         self.cursor_to_read();
-        self.keep_y = Some(self.cursor_y);
+        self.reader.keep_screen_row();
     }
 
     /// Pick up changes made outside zendo: Claude Code, git pull, another editor.
@@ -182,9 +182,7 @@ impl App {
             self.extra.push(path);
             self.reload();
         }
-        self.scroll = 0;
-        self.read_cursor = 0;
-        self.read_anchor = None;
+        self.reader.to_top();
         self.delta_scroll = 0;
         self.pinned = None;
         if !matches!(self.mode, Mode::Read | Mode::Write) {

@@ -55,10 +55,7 @@ impl App {
             Some("bottom") => self.notes_sel = n.saturating_sub(1),
             Some("open") if n > 0 => {
                 self.current = Some(self.notes[self.notes_sel].path.clone());
-                self.scroll = 0;
-                self.read_cursor = 0;
-                self.read_col = 0;
-                self.read_anchor = None;
+                self.reader.to_start();
                 self.pinned = None;
                 self.mode = Mode::Read;
             }
@@ -130,9 +127,8 @@ impl App {
                     self.pinned = None;
                     self.mode = Mode::Read;
                     let rows = crate::ui::source_rows(self, self.frame.text_width());
-                    self.read_cursor = rows.get(line).copied().unwrap_or(0);
-                    self.read_anchor = None;
-                    self.scroll = self.read_cursor.saturating_sub(3);
+                    self.reader.jump(rows.get(line).copied().unwrap_or(0));
+                    self.reader.unselect();
                 }
             }
             KeyCode::Backspace => {

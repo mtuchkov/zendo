@@ -44,7 +44,7 @@ impl App {
         if !alternate || mode != vt100::MouseProtocolMode::None {
             return false;
         }
-        let lines = self.scroll_step();
+        let lines = self.pointer.scroll_step(Instant::now());
         self.cli.write(n, &keys::encode(&KeyEvent::new(key, KeyModifiers::NONE), app_cursor).repeat(lines));
         true
     }
@@ -53,7 +53,7 @@ impl App {
     /// and a terminal in the chat pane gets the keys, as after a click in the transcript (TERM-47).
     fn press_in_session(&mut self, n: usize) {
         self.cli.pressed = Some(n);
-        self.sel = None;
+        self.pointer.clear();
         if self.cli.view.is_none() && matches!(self.mode, Mode::Read | Mode::Write) {
             self.focus = Focus::Claude;
         }
@@ -65,10 +65,10 @@ impl App {
         let (x, y) = (m.column, m.row);
         match m.kind {
             MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => {
-                self.sel = None;
+                self.pointer.clear();
                 self.cli.scroll(n, m.kind == MouseEventKind::ScrollUp);
             }
-            MouseEventKind::Down(MouseButton::Left) => self.sel = self.region_at(x, y).map(|(region, rect)| Selection::start(region, rect, x, y).with(m.modifiers)),
+            MouseEventKind::Down(MouseButton::Left) => self.pointer.press(self.region_at(x, y).map(|(region, rect)| Selection::start(region, rect, x, y).with(m.modifiers))),
             MouseEventKind::Drag(MouseButton::Left) => self.drag_selection(x, y, m.modifiers),
             MouseEventKind::Up(MouseButton::Left) => self.end_selection(m.modifiers),
             _ => {}

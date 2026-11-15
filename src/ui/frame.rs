@@ -19,12 +19,15 @@ pub struct Frame {
     pub(super) write_rows: Vec<RowSpan>,
     pub(super) view_height: usize,
     pub(super) text_width: usize,
+    pub(super) word_limit: usize,
+    pub(super) word_count: usize,
+    pub(super) over_limit: Option<usize>,
 }
 
 impl Frame {
     /// The frame before the first draw: the height of the view and the width of the text.
-    pub(crate) fn sized(view_height: usize, text_width: usize) -> Self {
-        Self { view_height, text_width, ..Self::default() }
+    pub(crate) fn sized(view_height: usize, text_width: usize, word_limit: usize) -> Self {
+        Self { view_height, text_width, word_limit, ..Self::default() }
     }
 
     /// The panes, left to right.
@@ -80,6 +83,21 @@ impl Frame {
     /// The width of the text column.
     pub fn text_width(&self) -> usize {
         self.text_width
+    }
+
+    /// The word limit of the document on the screen.
+    pub fn word_limit(&self) -> usize {
+        self.word_limit
+    }
+
+    /// The words of the document on the screen.
+    pub fn word_count(&self) -> usize {
+        self.word_count
+    }
+
+    /// The row of the word after the limit.
+    pub fn over_limit(&self) -> Option<usize> {
+        self.over_limit
     }
 
     /// The float and the screen behind it each keep their own rows of write mode.

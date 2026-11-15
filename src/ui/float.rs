@@ -9,13 +9,13 @@ const MARGIN: u16 = 4;
 pub(crate) fn draw_float(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     let Some(mut fl) = app.float.take() else { return };
     // The screen behind, as it was: its own state, without the mouse selection of the float.
-    let (sel, copy) = (app.sel.take(), std::mem::take(&mut app.copy_pending));
+    let aside = app.pointer.set_aside();
     fl.swap(app);
     fl.swap_rows(fr);
     draw_into(f, app, fr);
     fl.swap(app);
     fl.swap_rows(fr);
-    (app.sel, app.copy_pending) = (sel, copy);
+    app.pointer.bring_back(aside);
     let t = *app.theme();
     let area = f.area();
     dim(f, &t, area);

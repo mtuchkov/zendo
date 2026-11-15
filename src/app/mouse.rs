@@ -29,14 +29,14 @@ impl App {
         let (x, y) = (m.column, m.row);
         match m.kind {
             MouseEventKind::Down(MouseButton::Left) if self.start_drag(x, y) => {}
-            MouseEventKind::Drag(MouseButton::Left) if self.drag.is_some() => self.drag_to(x),
-            MouseEventKind::Up(MouseButton::Left) if self.drag.is_some() => {
-                self.drag = None;
+            MouseEventKind::Drag(MouseButton::Left) if self.pointer.grabbed().is_some() => self.drag_to(x),
+            MouseEventKind::Up(MouseButton::Left) if self.pointer.grabbed().is_some() => {
+                self.pointer.let_go();
                 self.state.save(&self.cfg.root);
             }
             MouseEventKind::Down(MouseButton::Left) => {
                 self.click(x, y);
-                self.hold(m.modifiers);
+                self.pointer.hold(m.modifiers);
             }
             MouseEventKind::Drag(MouseButton::Left) => self.drag_selection(x, y, m.modifiers),
             MouseEventKind::Up(MouseButton::Left) => self.end_selection(m.modifiers),
@@ -45,33 +45,15 @@ impl App {
         }
     }
 
-    /// The modifier keys of a mouse event count for the selection that it makes (PANES-43, PANES-44).
-    fn hold(&mut self, m: KeyModifiers) {
-        if let Some(s) = self.sel.as_mut().filter(|s| !s.done) {
-            s.hold(m);
-        }
-    }
-
     /// A drag moves the end of the selection, until the button is up.
     pub(crate) fn drag_selection(&mut self, x: u16, y: u16, m: KeyModifiers) {
-        self.hold(m);
-        if let Some(s) = self.sel.as_mut().filter(|s| !s.done) {
-            s.drag(x, y);
-        }
+        self.pointer.drag(x, y, m);
     }
 
     /// The button is up: the selection is final and goes to the clipboard, or with alt to the chat;
     /// an empty one goes away.
     pub(crate) fn end_selection(&mut self, m: KeyModifiers) {
-        self.hold(m);
-        let Some(s) = self.sel.as_mut() else { return };
-        if s.is_empty() {
-            self.sel = None;
-            return;
-        }
-        s.done = true;
-        let (region, to_chat) = (s.region, s.chat);
-        self.copy_pending = true;
+        let Some((region, to_chat)) = self.pointer.release(m) else { return };
         self.count_selection(region, to_chat);
         if region != Region::Panel {
             self.interact(2);
@@ -80,7 +62,7 @@ impl App {
 
     /// A click: a row of the tree opens, a click in a text starts a selection and moves the focus.
     fn click(&mut self, x: u16, y: u16) {
-        self.sel = None;
+        self.pointer.clear();
         let hit = |r: &Rect| r.contains(ratatui::layout::Position::new(x, y));
         if self.music.asking {
             return self.click_music_question(x, y);
@@ -108,7 +90,7 @@ impl App {
             return;
         }
         let Some((region, rect)) = self.region_at(x, y) else { return };
-        self.sel = Some(Selection::start(region, rect, x, y));
+        self.pointer.press(Some(Selection::start(region, rect, x, y)));
         if matches!(self.mode, Mode::Read | Mode::Write) {
             self.focus = match region {
                 Region::Panel => Focus::Claude,
@@ -120,23 +102,23 @@ impl App {
             self.interact(1);
         }
         if region == Region::Note && self.mode == Mode::Read {
-            self.read_cursor = self.scroll + (y - rect.y) as usize;
-            let row = self.frame.read_text().get(self.read_cursor).cloned().unwrap_or_default();
+            let at = self.reader.scroll() + (y - rect.y) as usize;
+            let row = self.frame.read_text().get(at).cloned().unwrap_or_default();
             let mut w = 0;
             let want = (x - rect.x) as usize;
-            self.read_col = row.trim_end().chars().take_while(|c| {
+            let col = row.trim_end().chars().take_while(|c| {
                 w += unicode_width::UnicodeWidthChar::width(*c).unwrap_or(0);
                 w <= want
             }).count().min(row.trim_end().chars().count().saturating_sub(1));
-            self.read_want = self.read_col;
-            self.read_anchor = None;
+            self.reader.place(at, col);
+            self.reader.unselect();
         }
     }
 
     /// The wheel scrolls the pane under the pointer.
     fn wheel(&mut self, x: u16, y: u16, up: bool) {
-        self.sel = None;
-        let n = self.scroll_step();
+        self.pointer.clear();
+        let n = self.pointer.scroll_step(Instant::now());
         let ni = n as isize;
         if self.frame.tree_rows().iter().any(|(r, _)| r.contains(ratatui::layout::Position::new(x, y))) {
             self.tree.scroll = if up { self.tree.scroll.saturating_sub(n) } else { self.tree.scroll + n };
@@ -154,20 +136,11 @@ impl App {
             }
             Some(Region::Note) if self.mode == Mode::Write => self.editor.vertical(if up { -ni } else { ni }, self.frame.text_width()),
             Some(Region::Note) => {
-                self.scroll = if up { self.scroll.saturating_sub(n) } else { self.scroll + n };
-                self.read_cursor = if up { self.read_cursor.saturating_sub(n) } else { self.read_cursor + n };
+                self.reader.wheel(up, n);
                 self.interact(1);
             }
             None => {}
         }
-    }
-
-    /// Lines for one scroll event: 3 for a wheel notch, 1 inside a fast run of events (a trackpad).
-    pub(crate) fn scroll_step(&mut self) -> usize {
-        let now = std::time::Instant::now();
-        let fast = self.last_scroll.is_some_and(|t| now.duration_since(t) < std::time::Duration::from_millis(40));
-        self.last_scroll = Some(now);
-        if fast { 1 } else { 3 }
     }
 
     pub fn pane_key(f: Focus) -> Option<&'static str> {
@@ -204,12 +177,12 @@ impl App {
         // The anchor moves with the grab, so the width changes only as far as the mouse moves.
         let shift = |a: u16| (a + x).saturating_sub(rr.x);
         // The note fills the rest: resize the other pane of the edge.
-        self.drag = Some(if right == Focus::Note { (left, shift(lr.x), true) } else { (right, shift(rr.right()), false) });
+        self.pointer.grab(if right == Focus::Note { (left, shift(lr.x), true) } else { (right, shift(rr.right()), false) });
         true
     }
 
     pub(crate) fn drag_to(&mut self, x: u16) {
-        let Some((pane, anchor, grows_right)) = self.drag else { return };
+        let Some((pane, anchor, grows_right)) = self.pointer.grabbed() else { return };
         let Some(key) = App::pane_key(pane) else { return };
         let w = if grows_right { x.saturating_sub(anchor) } else { anchor.saturating_sub(x) };
         let max = self.max_width(pane);

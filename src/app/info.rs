@@ -69,20 +69,20 @@ impl App {
 
     /// `S`: ask Claude to split the open document, and keep the altitude.
     pub fn split_document(&mut self) {
-        if self.over_limit.is_none() {
-            self.flash(format!("{} words: within the limit of {}", self.word_count, self.word_limit));
+        if self.frame.over_limit().is_none() {
+            self.flash(format!("{} words: within the limit of {}", self.frame.word_count(), self.frame.word_limit()));
             return;
         }
         let Some(path) = self.current.clone() else { return };
         let rel = self.rel(&path);
-        let ctx = SPLIT_PROMPT.replace("{{FILE}}", &rel).replace("{{WORDS}}", &self.word_count.to_string()).replace("{{LIMIT}}", &self.word_limit.to_string());
+        let ctx = SPLIT_PROMPT.replace("{{FILE}}", &rel).replace("{{WORDS}}", &self.frame.word_count().to_string()).replace("{{LIMIT}}", &self.frame.word_limit().to_string());
         self.open_panel();
         if !self.panel {
             return;
         }
         self.ask_context = Some(ctx);
         let scope = self.scope();
-        self.ask(format!("Split {rel}: {} words, the limit is {}. Keep the altitude.", self.word_count, self.word_limit), scope);
+        self.ask(format!("Split {rel}: {} words, the limit is {}. Keep the altitude.", self.frame.word_count(), self.frame.word_limit()), scope);
     }
 
     /// What the notes sync wants the user to know, if anything.

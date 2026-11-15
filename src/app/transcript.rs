@@ -172,7 +172,7 @@ impl App {
     fn copy_transcript(&mut self) {
         let text = self.transcript.text();
         if !text.is_empty() {
-            self.clip = Some(text);
+            self.pointer.copy(text);
             self.transcript.anchor = None;
         }
     }

@@ -24,13 +24,7 @@ struct Behind {
     focus: Focus,
     current: Option<PathBuf>,
     pinned: Option<String>,
-    scroll: usize,
-    read_cursor: usize,
-    read_anchor: Option<(usize, usize)>,
-    read_col: usize,
-    read_want: usize,
-    keep_y: Option<usize>,
-    cursor_y: usize,
+    view: Reader,
     write_rows: Vec<write_rows::RowSpan>,
 }
 
@@ -53,13 +47,7 @@ impl Behind {
             focus: Focus::Note,
             current: None,
             pinned: None,
-            scroll: 0,
-            read_cursor: 0,
-            read_anchor: None,
-            read_col: 0,
-            read_want: 0,
-            keep_y: None,
-            cursor_y: 0,
+            view: Reader::default(),
             write_rows: Vec::new(),
         }
     }
@@ -70,7 +58,7 @@ impl Float {
     pub fn swap(&mut self, app: &mut App) {
         let b = &mut self.behind;
         swap_fields!(app, b, editor, editor_path, last_edit, saved_at, mode, back, focus, current, pinned);
-        swap_fields!(app, b, scroll, read_cursor, read_anchor, read_col, read_want, keep_y, cursor_y);
+        app.reader.swap_view(&mut b.view);
     }
 
     /// The rows of write mode go with the state: the float and the screen behind keep their own.

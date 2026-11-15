@@ -133,8 +133,8 @@ async fn tab_goes_to_the_transcript_to_select_copy_and_add() {
         key(&mut a, KeyCode::Char('k'));
     }
     key(&mut a, KeyCode::Char('y'));
-    assert_eq!(a.clip.as_deref(), Some("what is in it"), "no selection: the message");
-    a.clip = None;
+    assert_eq!(a.pointer.clip(), Some("what is in it"), "no selection: the message");
+    a.pointer.take_clip();
     let alt_shift = KeyModifiers::ALT | KeyModifiers::SHIFT;
     let row = a.transcript.rows[a.transcript.row].clone();
     a.transcript.col = row[..row.find("what").unwrap()].chars().count();
@@ -162,7 +162,7 @@ async fn say_here_is_a_chip_with_the_line_and_sends_a_default_question() {
     let mut a = app(&root);
     a.open_file(root.join(A));
     draw(&mut a, 140, 30);
-    a.read_cursor = a.frame.read_text().iter().position(|r| r.contains("one")).unwrap();
+    a.reader.to_row(a.frame.read_text().iter().position(|r| r.contains("one")).unwrap());
     a.on_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::ALT));
     assert_eq!(a.input.text(), "⟦write here :3⟧ ");
     key(&mut a, KeyCode::Enter);
