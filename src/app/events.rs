@@ -79,12 +79,25 @@ impl App {
     }
 
     fn on_session(&mut self, key: String, id: String, resumed: bool) {
-        self.state.set_session(&self.cfg.agent, &key, id.clone());
-        self.state.save(&self.cfg.root);
         let t = self.thread(&key);
         t.session = Some(id);
+        // A session without a question has no messages to resume: it is kept with its first one
+        // (CLAUDE-37).
+        let asked = t.busy.is_some();
         if resumed {
             t.items.insert(0, Item::Info("resumed the earlier thread".into()));
+        }
+        if asked {
+            self.keep_session(&key);
+        }
+    }
+
+    /// Keep the session ID of the thread `key` in the repository (CLAUDE-5).
+    pub(crate) fn keep_session(&mut self, key: &str) {
+        let Some(id) = self.threads.get(key).and_then(|t| t.session.clone()) else { return };
+        if self.state.session(&self.cfg.agent, key).as_ref() != Some(&id) {
+            self.state.set_session(&self.cfg.agent, key, id);
+            self.state.save(&self.cfg.root);
         }
     }
 

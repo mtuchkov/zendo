@@ -105,6 +105,7 @@ impl App {
         t.busy = Some(Instant::now());
         t.primed |= !out.command;
         t.files.push(out.sent);
+        self.keep_session(&key);
         if let Some(a) = &self.agent {
             a.send(Cmd::Prompt { key, known, text: out.text, attach: out.attach });
         }

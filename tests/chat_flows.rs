@@ -98,12 +98,13 @@ async fn slash_commands_come_from_the_agent_and_go_to_it_as_typed() {
 }
 
 // CLAUDE-27, CLAUDE-6: the chat shows the last session when it opens, before the first question.
+// The last session got a question, so its ID is kept (CLAUDE-37).
 #[tokio::test]
 async fn the_chat_shows_the_last_session_when_it_opens() {
     let root = repo("chat-resume", &files());
     let mut a = app(&root);
     a.open_panel();
-    until(&mut a, |a| a.threads.get(CHAT_KEY).is_some_and(|t| t.session.is_some())).await;
+    ask(&mut a, "first").await;
     drop(a);
     let mut b = app(&root);
     b.open_panel();
@@ -273,5 +274,28 @@ async fn the_first_tab_goes_to_the_sister_pane_of_the_chat() {
     tabs(&mut a, &["chat", "transcript"]);
     a.tab_run.at = a.tab_run.at.map(|t| t - zendo::app::TAB_PAUSE);
     tabs(&mut a, &["chat", "note", "transcript"]);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// The session ID that zendo keeps in the repository for the active thread.
+fn kept(a: &App) -> Option<String> {
+    zendo::setup::state::State::load(&a.cfg.root).session(&a.cfg.agent, &a.key())
+}
+
+// CLAUDE-37: a session that the chat opens and that gets no question leaves no session ID, so the
+// next start does not try to resume a thread that has no messages. The first question keeps it.
+#[tokio::test]
+async fn a_session_id_is_kept_only_after_the_first_question() {
+    let root = repo("chat-keep-after-question", &files());
+    let mut a = app(&root);
+    a.open_panel();
+    until(&mut a, |a| a.threads.get(&a.key()).is_some_and(|t| t.session.is_some())).await;
+    assert_eq!(kept(&a), None, "an opened session without a question is not kept");
+    let k = a.key();
+    a.focus = Focus::Claude;
+    typ(&mut a, "hello");
+    key(&mut a, KeyCode::Enter);
+    until(&mut a, |a| a.threads.get(&a.key()).is_some_and(|t| t.busy.is_none() && t.items.iter().any(|i| matches!(i, Item::Agent(_))))).await;
+    assert_eq!(kept(&a), a.threads[&k].session.clone(), "the first question keeps the session ID");
     let _ = std::fs::remove_dir_all(&root);
 }

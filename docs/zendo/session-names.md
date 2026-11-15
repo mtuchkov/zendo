@@ -12,7 +12,7 @@ note: "From the requests of the user on 2026-11-14; the user approved the requir
 
 # Session names
 
-Each agent session (`F6` to `F10`, see [Claude](claude.md)) gets a name of one word that tells what
+Each agent session (`F6` to `F10`, see [Threads](threads.md)) gets a name of one word that tells what
 its conversation is about, for example `parser`. The name stands next to the key of the session.
 
 **When a name comes.** After the second answer of a Claude session, zendo asks a light model of the

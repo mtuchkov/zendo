@@ -15,6 +15,7 @@ children:
   - "files/files.md"
   - "work.md"
   - "claude.md"
+  - "threads.md"
   - "sessions.md"
   - "session-names.md"
   - "handoff.md"
@@ -50,7 +51,8 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Length](length.md)                          | The word limit, the red area, the split with Claude            |
 | [File tree](files/files.md)                  | The files of the repository and their views                   |
 | [Work, delta and recaps](work.md)            | Visits that count, the delta pane, recaps                     |
-| [Claude](claude.md)                          | The connection to Claude, threads, edits                      |
+| [Claude](claude.md)                          | The connection to Claude, edits                               |
+| [Threads](threads.md)                        | The five agent sessions, their keys and buttons, session IDs and resume |
 | [Sessions](sessions.md)                      | Claude Code sessions in the background, more than one at a time |
 | [Hand-off during a turn](handoff.md)         | `ctrl-o` while the chat answers: wait, or stop and continue    |
 | [Claude Code messages in the chat](cli-messages.md) | The prompts and answers of a running Claude Code session in its chat |
