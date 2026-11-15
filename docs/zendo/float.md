@@ -1,13 +1,13 @@
 ---
 status: "implemented"
 approved: "2026-11-13"
-revision: "2"
-date: "2026-11-13"
+revision: "3"
+date: "2026-11-14"
 parent: "zendo.md"
 prev: "notes-list.md"
 next: "find.md"
 level: "the new note in a float: how it opens, what it shows, how it closes"
-note: "Agent draft of the decisions of the user on 2026-11-13, approved by the user. Revision 2: the test names and kinds as in the code."
+note: "Agent draft of the decisions of the user on 2026-11-13, approved by the user. Revision 2: the test names and kinds as in the code. Revision 3: FLOAT-16 (the float color of the theme), asked by the user on 2026-11-14; the wording is not reviewed."
 ---
 
 # New note in a float
@@ -100,8 +100,9 @@ file, pane, mode, cursor and selection. The new note is in the notes list and in
 | FLOAT-13 | Event      | When the user closes the float, the system shall not open the new note in the note pane.                                                            | Design           |
 | FLOAT-14 | State      | While a Claude Code session or a terminal is on the full screen, the system shall open the float over it when the user presses `alt-n`, and not send the key to the program. | User, 2026-11-13 |
 | FLOAT-15 | Event      | When the user opens a note that is already there, from the notes list or elsewhere, the system shall show it in the note pane as every other file, not in the float. | User, 2026-11-13 |
+| FLOAT-16 | Ubiquitous | The system shall paint the background of the float with the float color of the theme, a color of its own. | User, 2026-11-14 |
 
-Tests that verify detailed requirements: `n_opens_the_float` (FLOAT-5),
+Tests that verify detailed requirements: `the_float_has_the_float_color_of_the_theme` and `each_theme_has_a_float_color_of_its_own` (FLOAT-16), `n_opens_the_float` (FLOAT-5),
 `the_top_line_shows_the_path_after_the_first_save` (FLOAT-6), `the_float_fits_the_text_column` and
 `a_narrow_note_pane_centers_the_float` (FLOAT-8, FLOAT-9),
 `pane_keys_do_nothing_in_the_float` (FLOAT-10, FLOAT-11), `an_empty_float_makes_no_file` (FLOAT-12),

@@ -258,3 +258,25 @@ async fn an_empty_float_makes_no_file() {
     assert_eq!(notes(&root), before);
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// FLOAT-16: the float has its own background, the float color of the theme; the screen behind
+// keeps the background of the note.
+#[tokio::test]
+async fn the_float_has_the_float_color_of_the_theme() {
+    let root = repo("float-panel-bg", &files());
+    let mut a = app(&root);
+    a.open_file(root.join(NOTE));
+    alt(&mut a, 'n');
+    typ(&mut a, "Tea");
+    let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 40)).unwrap();
+    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
+    let buf = term.backend().buffer().clone();
+    let t = *a.theme();
+    let r = a.float.as_ref().unwrap().rect;
+    let border = (r.left()..r.right()).flat_map(|x| [(x, r.top()), (x, r.bottom() - 1)]).chain((r.top()..r.bottom()).flat_map(|y| [(r.left(), y), (r.right() - 1, y)]));
+    let empty = (r.left()..r.right()).map(|x| (x, r.bottom() - 2));
+    assert!(border.chain(empty).all(|p| buf[p].bg == t.float), "the border and the empty rows of the float have the float color");
+    assert_eq!(buf[(0, 0)].bg, t.bg, "the screen behind keeps the note color");
+    a.cli.stop_all();
+    let _ = std::fs::remove_dir_all(&root);
+}
