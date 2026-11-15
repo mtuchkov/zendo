@@ -3,7 +3,7 @@ status: "draft"
 revision: "1"
 date: "2026-11-11"
 children:
-  - "panes.md"
+  - "panes/panes.md"
   - "notes.md"
   - "write.md"
   - "say.md"
@@ -38,7 +38,7 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 
 | Document                                     | Topic                                                         |
 | -------------------------------------------- | ------------------------------------------------------------- |
-| [Panes and layouts](panes.md)                | The panes, the two layouts, resizing, hiding, mouse selection |
+| [Panes and layouts](panes/panes.md)          | The panes, the two layouts, resizing, hiding; text selection; keys, hints and help |
 | [Notes](notes.md)                            | The note pane: read mode and write mode                       |
 | [Write mode](write.md)                       | The live view, hard wrap, the cursor between modes            |
 | [Say it here](say.md)                        | `ctrl-shift-s`: the agent writes an idea at a place in the note |

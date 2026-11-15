@@ -1,4 +1,4 @@
-//! Key hints and messages take their keys from the keymap in effect (docs/zendo/panes.md: PANES-28,
+//! Key hints and messages take their keys from the keymap in effect (docs/zendo/panes/keymap.md: PANES-28,
 //! PANES-29): with other keys in the config, no hint shows a default key.
 
 mod common;
