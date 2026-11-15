@@ -93,6 +93,24 @@ pub(crate) fn name(app: &App, n: usize) -> String {
     }
 }
 
+/// The name of session `n` with the name of its Claude session after the key, if it has one
+/// (NAMES-6).
+pub(crate) fn titled(app: &App, n: usize) -> String {
+    let key = name(app, n);
+    match app.session_name(n).filter(|_| n < crate::app::SESSIONS) {
+        Some(s) => format!("{key} {s}"),
+        None => key,
+    }
+}
+
+/// The text of the button of agent session `n`: its key, `name` if not empty, and `!` while its
+/// Claude Code session waits for the user (CLAUDE-32, NAMES-6, SESSIONS-14).
+pub(crate) fn agent_label(app: &App, n: usize, name_part: &str) -> String {
+    let key = name(app, n);
+    let mark = if app.cli.state(n) == Some(crate::session::State::Waits) { "!" } else { "" };
+    if name_part.is_empty() { format!("{key}{mark}") } else { format!("{key} {name_part}{mark}") }
+}
+
 /// The sessions on the bottom line and the buttons: the agent sessions, the `F5` terminal, and the
 /// `[>]` terminals that run.
 fn shown(app: &App) -> impl Iterator<Item = usize> + '_ {
@@ -105,7 +123,7 @@ fn draw_cli_bar(f: &mut Frame, app: &App, t: &Theme, n: usize, area: Rect) {
     let badge = if n < crate::app::SESSIONS { " CLAUDE CODE " } else { " TERMINAL " };
     let mut spans = vec![Span::raw(" "), Span::styled(badge, Style::new().bg(t.acc).fg(t.bg).add_modifier(Modifier::BOLD)), Span::raw("  ")];
     for m in shown(app) {
-        let key = name(app, m);
+        let key = titled(app, m);
         let (text, style) = match app.cli.state(m) {
             Some(s) if m == n => (format!(" {key} {} ", s.word()), Style::new().bg(t.acc2).fg(t.bg).add_modifier(Modifier::BOLD)),
             Some(s) => (format!(" {key} {} ", s.word()), Style::new().fg(if s == crate::session::State::Waits { t.acc } else { t.fg })),

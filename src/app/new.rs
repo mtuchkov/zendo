@@ -11,6 +11,7 @@ impl App {
         let current = notes.first().map(|n| n.path.clone());
         let user = crate::setup::config::UserConfig::load();
         let (keys, key_problems) = user.keymap();
+        let name_model = user.name_model(crate::setup::config::kind_of(&cfg.agent));
         crate::text::highlight::init(user.highlight.as_ref());
         let mut app = Self {
             cfg,
@@ -33,6 +34,7 @@ impl App {
             text_width: 70,
             width_default: user.width.unwrap_or(crate::ui::COLUMN).clamp(30, 300),
             attention: Attention::from_config(&user),
+            name_model,
             ..Default::default()
         };
         app.find.seen = app.current.clone();

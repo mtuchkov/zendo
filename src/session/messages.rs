@@ -1,5 +1,5 @@
 //! The messages of a Claude Code session from its hooks (docs/zendo/cli-messages.md): the hooks of
-//! "prompt sent" and "stop" append their input to a file of the session, one line each; zendo
+//! "prompt sent", "stop" and "session start" append their input to a file of the session, one line each; zendo
 //! takes the new whole lines on each tick.
 
 use std::io::{Read, Seek, SeekFrom};
@@ -12,6 +12,9 @@ pub enum Message {
     Prompt(String),
     /// The final answer of a turn.
     Answer(String),
+    /// A Claude session started: its session ID, and whether `/clear` started a new conversation
+    /// (NAMES-4, NAMES-7).
+    Session { id: String, clear: bool },
 }
 
 /// The file of the messages of a session, and how far zendo read it.
@@ -47,6 +50,7 @@ fn parse(line: &str) -> Option<Message> {
     match v["hook_event_name"].as_str()? {
         "UserPromptSubmit" => text("prompt").map(Message::Prompt),
         "Stop" => text("last_assistant_message").map(Message::Answer),
+        "SessionStart" => text("session_id").map(|id| Message::Session { id, clear: v["source"] == "clear" }),
         _ => None,
     }
 }

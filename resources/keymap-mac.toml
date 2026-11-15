@@ -227,7 +227,7 @@ add_to_chat = ["a"]  # add the file to the chat
 # panes and view
 open = ["enter"]  # open in the note
 preview = ["l", "right", "space"]  # open, stay in the tree
-view = ["v"]  # structure, docs, all .md, text files, folders
+view = ["v"]  # structure, docs, all .md, text files, folders, worktree, worktree Δ
 layout = ["w"]  # standard / wide screen
 delta = ["d"]  # delta
 chat = ["c"]  # chat

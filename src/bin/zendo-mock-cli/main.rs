@@ -3,7 +3,9 @@
 //! It prints its arguments, then `tick N` each 100 ms. In raw mode it reads keys: `r` reports the
 //! state "works", `w` reports "waits", `i` reports "idle", `q` exits, and `enter` prints `got: <the line>`. A state goes to the file in `$ZENDO_STATE`, as the
 //! hooks of Claude Code do. On `enter`, the inputs of the "prompt sent" and "stop" hooks go to the
-//! file in `$ZENDO_MESSAGES`: the line, and `answer: <the line>`.
+//! file in `$ZENDO_MESSAGES`: the line, and `answer: <the line>`. At the start the input of the
+//! "session start" hook of a resume goes there with the session ID after `--resume`, and on
+//! `ctrl-l` the one of a `/clear` with a new session ID.
 
 use ratatui::crossterm::terminal;
 use std::io::{Read, Write};
@@ -12,6 +14,15 @@ use std::time::Duration;
 fn report(state: &str) {
     if let Ok(path) = std::env::var("ZENDO_STATE") {
         let _ = std::fs::write(path, state);
+    }
+}
+
+/// The input of the "session start" hook: `source` is "resume" or "clear".
+fn session_start(id: &str, source: &str) {
+    let Ok(path) = std::env::var("ZENDO_MESSAGES") else { return };
+    let start = serde_json::json!({ "hook_event_name": "SessionStart", "session_id": id, "source": source });
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
+        let _ = writeln!(f, "{start}");
     }
 }
 
@@ -30,6 +41,9 @@ fn main() {
     let _ = terminal::enable_raw_mode();
     let args: Vec<String> = std::env::args().skip(1).collect();
     print!("mock cli: {}\r\n", args.join(" "));
+    if let Some(id) = args.iter().skip_while(|a| *a != "--resume").nth(1) {
+        session_start(id, "resume");
+    }
     let _ = std::io::stdout().flush();
     std::thread::spawn(|| {
         let mut n = 0u64;
@@ -49,6 +63,7 @@ fn main() {
             b'w' => report("waits"),
             b'i' => report("idle"),
             b'q' => break,
+            0x0c => session_start(&format!("cleared-{}", std::process::id()), "clear"),
             b'\r' | b'\n' => {
                 print!("got: {}\r\n", String::from_utf8_lossy(&line));
                 let _ = std::io::stdout().flush();

@@ -37,7 +37,8 @@ pub(super) async fn turn(cx: Cx, p: PromptRequest) -> Result<StopReason> {
     propose_edit(&cx, &sid, &path, n).await
 }
 
-/// The tasks of zendo that need no note: fix the structure, metadata, move notes, a recap.
+/// The tasks of zendo that need no note: fix the structure, metadata, a session name, move notes,
+/// a recap.
 async fn scripted(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, text: &str) -> Result<Option<StopReason>> {
     if text.contains("You are fixing the project structure file") {
         return fix_structure(cx, sid, text).await.map(Some);
@@ -54,12 +55,22 @@ async fn scripted(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, t
         stream(cx, sid, &out).await?;
         return Ok(Some(StopReason::EndTurn));
     }
+    if text.starts_with("Name this conversation") {
+        let light = model_of(&sid.0).as_deref() == Some("mock-light");
+        stream(cx, sid, if light { "light, stub, fake" } else { "mock, stub, fake" }).await?;
+        return Ok(Some(StopReason::EndTurn));
+    }
     if text.contains("You are moving the notes") || text.contains("You are consolidating the notes") {
         return move_notes(cx, sid, text).await.map(Some);
     }
     if text.contains("that a reader will find confusing") {
         let line = text.lines().find(|l| l.contains("| ") && l.contains("soon")).and_then(|l| l.split('|').next()).map_or("1", str::trim).to_string();
         stream(cx, sid, &format!("SUMMARY: The mock agent read the file.\nLINE {line}: \"soon\" says no time.\nEND")).await?;
+        return Ok(Some(StopReason::EndTurn));
+    }
+    if text.contains("Recap the changes of the worktree") {
+        let n = text.lines().filter(|l| l.starts_with("diff --git ") || l.starts_with("--- new file ")).count();
+        stream(cx, sid, &format!("- The worktree changes {n} file{}.", if n == 1 { "" } else { "s" })).await?;
         return Ok(Some(StopReason::EndTurn));
     }
     if text.contains("Write a recap") {

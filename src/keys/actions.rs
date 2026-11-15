@@ -158,7 +158,7 @@ pub const ACTIONS: &[Action] = &[
     a(Tree, Features, "add_to_chat", "add the file to the chat"),
     a(Tree, View, "open", "open in the note"),
     a(Tree, View, "preview", "open, stay in the tree"),
-    a(Tree, View, "view", "structure, docs, all .md, text files, folders"),
+    a(Tree, View, "view", "structure, docs, all .md, text files, folders, worktree, worktree Δ"),
     a(Tree, View, "layout", "standard / wide screen"),
     a(Tree, View, "delta", "delta"),
     a(Tree, View, "chat", "chat"),

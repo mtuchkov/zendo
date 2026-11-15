@@ -4,6 +4,9 @@ use super::*;
 impl Tree {
     /// Walk the repo. `.gitignore`, `.git/info/exclude`, the global gitignore and hidden files are skipped.
     pub fn scan(&mut self, root: &Path) {
+        if self.view.is_worktree() {
+            return self.scan_worktree(root);
+        }
         self.scan_in(root, root);
     }
 

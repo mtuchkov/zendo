@@ -1,10 +1,12 @@
 //! Work on files: visits that count, delta bases, and recaps Claude writes when idle.
 
 mod meta;
+mod names;
 mod recap;
 mod review;
 
 pub use meta::*;
+pub use names::pick;
 pub use review::*;
 
 use crate::agent::Cmd;
@@ -95,9 +97,14 @@ impl App {
     // ----- delta -------------------------------------------------------------
 
     pub fn git_head(&self, rel: &str) -> Option<String> {
+        // A file of a worktree: the HEAD of the worktree (FILES-34).
+        let (dir, rel) = match crate::docs::tree::worktree::split(rel) {
+            Some((wt, rest)) => (self.cfg.root.join(wt), rest),
+            None => (self.cfg.root.clone(), rel),
+        };
         let out = std::process::Command::new("git")
             .args(["show", &format!("HEAD:{rel}")])
-            .current_dir(&self.cfg.root)
+            .current_dir(dir)
             .stderr(std::process::Stdio::null())
             .output()
             .ok()?;

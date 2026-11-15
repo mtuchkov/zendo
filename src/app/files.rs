@@ -136,6 +136,7 @@ impl App {
         }
         self.sync_visit();
         self.track_recent();
+        self.worktree_recap_tick();
         self.recap_tick();
         self.cli_tick();
         self.hold_tick();

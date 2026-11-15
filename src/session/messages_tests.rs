@@ -48,3 +48,12 @@ fn the_marks_of_pasted_content_are_not_part_of_the_text() {
     assert_eq!(plain("<pasted_content id=\"1\">\none\ntwo\n</pasted_content id=\"1\">\n"), "one\ntwo");
     assert_eq!(plain("  hi \n"), "hi");
 }
+
+// NAMES-4, NAMES-7: the start of a session gives its session ID, and whether `/clear` started it.
+#[test]
+fn a_session_start_gives_the_session_id() {
+    let (path, mut inbox) = inbox("start");
+    append(&path, "{\"hook_event_name\":\"SessionStart\",\"session_id\":\"s2\",\"source\":\"clear\"}\n{\"hook_event_name\":\"SessionStart\",\"session_id\":\"s3\",\"source\":\"resume\"}\n{\"hook_event_name\":\"SessionStart\",\"source\":\"startup\"}\n");
+    assert_eq!(inbox.take(), vec![Message::Session { id: "s2".into(), clear: true }, Message::Session { id: "s3".into(), clear: false }]);
+    let _ = std::fs::remove_file(&path);
+}

@@ -4,6 +4,7 @@
 //! and talks to it on a background task. The UI sends `Cmd`s and gets `Event`s.
 
 mod acp;
+mod model;
 pub mod work;
 
 use acp::*;
@@ -13,7 +14,7 @@ use agent_client_protocol::v1::schema::{
     CancelNotification, ContentBlock, InitializeRequest, LoadSessionRequest, NewSessionRequest,
     PermissionOptionKind, PromptRequest, RequestPermissionOutcome, RequestPermissionRequest,
     RequestPermissionResponse, SelectedPermissionOutcome, SessionId, SessionNotification,
-    SessionUpdate, TextContent, AvailableCommandsUpdate, AvailableCommandInput, ToolCallContent, ToolKind, ImageContent, ResourceLink,
+    SessionUpdate, TextContent, AvailableCommandsUpdate, SessionConfigOption, SetSessionConfigOptionRequest, AvailableCommandInput, ToolCallContent, ToolKind, ImageContent, ResourceLink,
 };
 use agent_client_protocol::{AcpAgent, Agent, Client};
 use std::collections::{BTreeMap, HashMap};
@@ -89,6 +90,9 @@ pub enum Cmd {
     Cancel { key: String },
     /// Forget the thread of `key`; the next prompt starts a new session.
     Forget { key: String },
+    /// Start a new session for `key` with the model of the agent that `model` names, if the agent
+    /// has one; else with its default model (NAMES-12, NAMES-13).
+    Model { key: String, model: String },
 }
 
 #[derive(Clone, Debug)]

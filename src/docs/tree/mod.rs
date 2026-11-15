@@ -1,6 +1,7 @@
 //! The file tree: markdown files of the repo, `.gitignore` respected.
 //! Views: the project structure (the main materials of `project-structure.toml`),
-//! files under a `docs` folder (`**/docs/**`), every `.md` file, every text file, or every folder.
+//! files under a `docs` folder (`**/docs/**`), every `.md` file, every text file, or every folder;
+//! and the worktree of the active agent session: every text file, or the files that differ from `main`.
 
 use crate::docs::structure::Structure;
 use globset::{Glob, GlobMatcher};
@@ -28,6 +29,10 @@ pub enum View {
     Text,
     /// Every folder, also an empty one or one without `.md`, and every `.md` file.
     Folders,
+    /// Every text file of the worktree of the active agent session (FILES-26).
+    Worktree,
+    /// The files of that worktree that differ from the merge base with `main` (FILES-27).
+    WorktreeChanged,
 }
 
 impl View {
@@ -38,6 +43,8 @@ impl View {
             View::All => "all",
             View::Text => "text",
             View::Folders => "folders",
+            View::Worktree => "worktree",
+            View::WorktreeChanged => "worktree changed",
         }
     }
     pub fn from_name(s: &str) -> Option<View> {
@@ -47,8 +54,14 @@ impl View {
             "all" => Some(View::All),
             "text" => Some(View::Text),
             "folders" => Some(View::Folders),
+            "worktree" => Some(View::Worktree),
+            "worktree changed" => Some(View::WorktreeChanged),
             _ => None,
         }
+    }
+    /// A view of the worktree of the active agent session.
+    pub fn is_worktree(self) -> bool {
+        matches!(self, View::Worktree | View::WorktreeChanged)
     }
 }
 
@@ -86,6 +99,10 @@ pub struct Tree {
     pub notes: Option<PathBuf>,
     /// The markdown files of the notes folder, relative to it.
     pub notes_files: Vec<PathBuf>,
+    /// The worktree of the active agent session, from the repo root, when it exists.
+    pub worktree: Option<PathBuf>,
+    /// The deleted files in the worktree changed view (FILES-35).
+    pub deleted: BTreeSet<PathBuf>,
     docs: GlobMatcher,
 }
 
@@ -106,6 +123,8 @@ impl Default for Tree {
             find: None,
             notes: None,
             notes_files: Vec::new(),
+            worktree: None,
+            deleted: BTreeSet::new(),
             docs: Glob::new(DOCS_GLOB).expect("valid glob").compile_matcher(),
         }
     }
@@ -120,6 +139,7 @@ struct Node {
 mod notes;
 mod scan;
 mod sections;
+pub mod worktree;
 pub use scan::is_text;
 pub use sections::section_id;
 
@@ -131,6 +151,8 @@ impl Tree {
             View::All => "*.md",
             View::Text => "text files",
             View::Folders => "folders",
+            View::Worktree => "worktree",
+            View::WorktreeChanged => "worktree Δ",
         }
     }
 
@@ -139,7 +161,8 @@ impl Tree {
         self.structure.as_ref().filter(|s| self.view == View::Structure && s.main().next().is_some())
     }
 
-    /// `v`: structure (if there is one) → docs → all → text → folders → …
+    /// `v`: structure (if there is one) → docs → all → text → folders → worktree → worktree changed
+    /// → …; the worktree views only while the active agent session has a worktree (FILES-4, FILES-31).
     pub fn next_view(&mut self) {
         let has = self.structure.as_ref().is_some_and(|s| s.main().next().is_some());
         self.view = match self.view {
@@ -147,8 +170,10 @@ impl Tree {
             View::Docs => View::All,
             View::All => View::Text,
             View::Text => View::Folders,
-            View::Folders if has => View::Structure,
-            View::Folders => View::Docs,
+            View::Folders if self.worktree.is_some() => View::Worktree,
+            View::Worktree => View::WorktreeChanged,
+            View::Folders | View::WorktreeChanged if has => View::Structure,
+            View::Folders | View::WorktreeChanged => View::Docs,
         };
     }
 
@@ -157,6 +182,9 @@ impl Tree {
     pub fn rows(&self) -> Vec<Row> {
         if let Some(q) = self.find.as_deref().filter(|q| !q.trim().is_empty()) {
             return self.found(q);
+        }
+        if self.view.is_worktree() {
+            return self.worktree_rows();
         }
         let mut out = self.notes_rows();
         match self.structured() {

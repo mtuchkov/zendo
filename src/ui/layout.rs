@@ -103,7 +103,8 @@ pub(crate) fn draw_top(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
         },
         _ => match app.pinned.as_deref() {
             Some(ALL_KEY) => format!("{} · all notes", app.rel(&app.cfg.notes_dir)),
-            _ => app.note().map(|n| app.rel(&n.path)).unwrap_or_else(|| app.rel(&app.cfg.notes_dir)),
+            // FILES-34: a file of a worktree names its worktree.
+            _ => app.note().map(|n| crate::docs::tree::worktree::label(&app.rel(&n.path))).unwrap_or_else(|| app.rel(&app.cfg.notes_dir)),
         },
     };
     f.render_widget(Paragraph::new(Line::from(vec![Span::raw("  "), Span::raw(left.clone())])).style(Style::new().fg(t.dim)), area);
@@ -129,7 +130,7 @@ pub const SOUND: &str = "[sound]";
 fn draw_top_right(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) -> u16 {
     let chips: Vec<usize> = if app.session_buttons.is_empty() { app.attention.blinks().collect() } else { Vec::new() };
     let chip = |n: usize| Style::new().fg(t.bg).bg(pulse_bg(app, t, n, if n >= crate::app::SESSIONS { t.fg } else { t.acc2 }));
-    let mut pieces: Vec<(String, Style)> = chips.iter().map(|n| (format!(" {} ", name(app, *n)), chip(*n))).collect();
+    let mut pieces: Vec<(String, Style)> = chips.iter().map(|n| (format!(" {} ", titled(app, *n)), chip(*n))).collect();
     let silent = if app.attention.sound { Modifier::empty() } else { Modifier::CROSSED_OUT };
     pieces.push((SOUND.into(), Style::new().fg(t.dim).add_modifier(silent)));
     pieces.extend(app.branch.clone().filter(|b| !b.is_empty()).map(|b| (b, Style::new().fg(t.dim))));

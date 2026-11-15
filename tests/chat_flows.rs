@@ -172,8 +172,8 @@ async fn say_here_is_a_chip_with_the_line_and_sends_a_default_question() {
 }
 
 // CLAUDE-31, CLAUDE-32, TERM-41: five agent sessions; F6 to F10 choose one, alt-] the next, after
-// the last the F5 terminal, then the first; each has its own thread; the buttons show the active one
-// in the accent color.
+// the last the F5 terminal, then the first; each has its own thread; the buttons stand in a row and
+// show the active one in the accent color.
 #[tokio::test]
 async fn five_agent_sessions_with_f6_to_f10_and_alt_bracket() {
     let root = repo("chat-sessions", &files());
@@ -190,7 +190,7 @@ async fn five_agent_sessions_with_f6_to_f10_and_alt_bracket() {
     let buf = term.backend().buffer().clone();
     let find = |s: &str| (0..30u16).flat_map(|y| (0..159u16).map(move |x| (x, y))).find(|p| buf[*p].symbol() == &s[..1] && buf[(p.0 + 1, p.1)].symbol() == &s[1..]).unwrap_or_else(|| panic!("{s}"));
     let (f6, f8) = (find("F6"), find("F8"));
-    assert_eq!(f6.0, f8.0, "one under the other");
+    assert!(f6.1 == f8.1 && f6.0 < f8.0, "in one row");
     assert_eq!((buf[f8].bg, buf[f6].bg), (a.theme().acc, a.theme().acc2), "the active one in the accent color");
     for want in [(3, None), (4, None), (4, Some(zendo::session::shell(0))), (0, None)] {
         a.on_key(KeyEvent::new(KeyCode::Char(']'), KeyModifiers::ALT));

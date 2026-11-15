@@ -12,10 +12,11 @@ children:
   - "find.md"
   - "notes-repo.md"
   - "length.md"
-  - "files.md"
+  - "files/files.md"
   - "work.md"
   - "claude.md"
   - "sessions.md"
+  - "session-names.md"
   - "handoff.md"
   - "cli-messages.md"
   - "zendo-session.md"
@@ -47,7 +48,7 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Find](find.md)                              | `alt-/`: recent files, search by path and text, the preview   |
 | [Notes repo](notes-repo.md)                  | Notes in a private git repo, in sync between machines         |
 | [Length](length.md)                          | The word limit, the red area, the split with Claude            |
-| [File tree](files.md)                        | The files of the repository and their views                   |
+| [File tree](files/files.md)                  | The files of the repository and their views                   |
 | [Work, delta and recaps](work.md)            | Visits that count, the delta pane, recaps                     |
 | [Claude](claude.md)                          | The connection to Claude, threads, edits                      |
 | [Sessions](sessions.md)                      | Claude Code sessions in the background, more than one at a time |

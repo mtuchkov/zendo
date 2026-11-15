@@ -15,7 +15,7 @@ note: "Agent rewrite of the reference of zendo 0.9.1. Revision 5 moves this docu
 
 zendo has four panes: the file tree, the note, the chat with Claude and the delta. The note is the
 main pane. The other panes open and close on the request of the user. Each pane has its own
-document for what it shows: [Notes](../notes.md), [File tree](../files.md), [Claude](../claude.md),
+document for what it shows: [Notes](../notes.md), [File tree](../files/files.md), [Claude](../claude.md),
 [Work, delta and recaps](../work.md). Two topics that hold for all panes are child documents:
 [Text selection](selection.md) and [Keys, hints and help](keymap.md).
 

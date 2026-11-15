@@ -104,3 +104,15 @@ fn columns(groups: Vec<Vec<Line<'static>>>, height: usize) -> Vec<Vec<Line<'stat
     }
     cols
 }
+
+/// FILES-37: the popup before a file action in a worktree while the agent of the session answers.
+pub(crate) fn draw_confirm(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
+    let Some(text) = app.confirm_text() else { return };
+    let w = 60.min(area.width);
+    let lines = markdown::wrap(vec![Span::styled(text, Style::new().fg(t.fg))], w.saturating_sub(4) as usize, "  ", "  ");
+    let h = (lines.len() as u16 + 2).min(area.height);
+    let r = Rect { x: area.x + (area.width - w) / 2, y: area.y + (area.height - h) / 2, width: w, height: h };
+    f.render_widget(Clear, r);
+    let block = Block::bordered().title(" the agent works ").border_style(Style::new().fg(t.acc2)).style(Style::new().bg(t.panel));
+    f.render_widget(Paragraph::new(lines).block(block), r);
+}

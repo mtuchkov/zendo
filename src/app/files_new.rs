@@ -81,7 +81,10 @@ impl App {
         if let Err(e) = std::fs::create_dir_all(&path) {
             return self.flash(format!("could not make the folder: {e}"));
         }
-        self.tree.view = crate::docs::tree::View::Folders;
+        // A worktree view stays: its files show the new folder when a file is in it.
+        if !self.tree.view.is_worktree() {
+            self.tree.view = crate::docs::tree::View::Folders;
+        }
         self.scan_tree();
         let rel = path.strip_prefix(&self.cfg.root).unwrap_or(&path).to_path_buf();
         self.tree.reveal(&rel);

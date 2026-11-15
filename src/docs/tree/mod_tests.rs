@@ -199,3 +199,32 @@ fn the_tree_shows_the_notes_of_the_notes_repo() {
     let _ = std::fs::remove_dir_all(&root);
     let _ = std::fs::remove_dir_all(&notes);
 }
+
+// FILES-4, FILES-31: the two worktree views come after folders, and only while the session has a
+// worktree.
+#[test]
+fn the_worktree_views_follow_folders_only_with_a_worktree() {
+    let mut t = Tree { view: View::Folders, ..Default::default() };
+    t.next_view();
+    assert_eq!(t.view, View::Docs, "no worktree: v skips both worktree views");
+    t.view = View::Folders;
+    t.worktree = Some(PathBuf::from(".worktrees/1"));
+    t.next_view();
+    assert_eq!(t.view, View::Worktree);
+    t.next_view();
+    assert_eq!(t.view, View::WorktreeChanged);
+    t.next_view();
+    assert_eq!(t.view, View::Docs);
+    for v in [View::Worktree, View::WorktreeChanged] {
+        assert_eq!(View::from_name(v.name()), Some(v), "the view is kept by its name (FILES-10)");
+    }
+}
+
+// FILES-34: the head of the note names the worktree of a file.
+#[test]
+fn a_worktree_path_names_its_worktree() {
+    assert_eq!(worktree::label(".worktrees/3/src/main.rs"), "worktree 3 · src/main.rs");
+    assert_eq!(worktree::label("docs/zendo/files/files.md"), "docs/zendo/files/files.md");
+    assert_eq!(worktree::split(".worktrees/12/a/b.md"), Some((".worktrees/12", "a/b.md")));
+    assert_eq!(worktree::split(".worktrees/12"), None);
+}
