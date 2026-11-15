@@ -168,7 +168,21 @@ impl App {
 
     /// Put a file or an image into the chat input as a chip; it goes with the next prompt.
     pub fn attach(&mut self, a: Attachment) {
-        let label = self.add_chip(chips::file_label(a.path()), None, Some(a), false);
+        let label = chips::file_label(a.path());
+        self.attach_as(label, a);
+    }
+
+    /// Put an image from the clipboard into the chat input as the chip `Image #n`, with the lowest
+    /// number that no chip in the input has (CLAUDE-17).
+    pub fn attach_pasted_image(&mut self, path: PathBuf) {
+        let free = |n: &usize| !self.chips.iter().any(|c| c.label == format!("{}Image #{n}{}", chips::OPEN, chips::CLOSE));
+        let n = (1..).find(free).expect("a free number");
+        self.attach_as(format!("Image #{n}"), Attachment::Image(path.clone()));
+        self.name_image(path);
+    }
+
+    fn attach_as(&mut self, label: String, a: Attachment) {
+        let label = self.add_chip(label, None, Some(a), false);
         self.flash(format!("attached {}", label.trim_matches([chips::OPEN, chips::CLOSE])));
     }
 

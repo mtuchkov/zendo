@@ -34,7 +34,7 @@ shows the messages of the last session, and the agent sends its slash commands.
 | --------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | CLAUDE-5  | Ubiquitous | The system shall keep five agent sessions for the repository, each one thread for all files, and keep their session IDs and the active session in the repository. | User, 2026-11-12 |
 | CLAUDE-6  | Event      | When the user asks in a thread that has a session ID, the system shall continue that session and show its earlier messages. | Design           |
-| CLAUDE-37 | Event      | When the first question goes to a session, the system shall keep its session ID; the system shall not keep the ID of a session that got no question. | User, 2026-11-14 |
+| CLAUDE-40 | Event      | When the first question goes to a session, the system shall keep its session ID; the system shall not keep the ID of a session that got no question. | User, 2026-11-14 |
 | CLAUDE-27 | Event      | When the chat opens the first time, the system shall open the session of the thread and show the messages of the last session in their order, each question without the context that zendo sent with it. | User, 2026-11-12 |
 | CLAUDE-31 | Event      | When the user presses `F6` to `F10`, or `alt` and one of them, the system shall open the chat on that agent session; when the user presses `alt-]`, or `alt-[` (`alt-}` on macOS), on the next or the previous session, after the last the terminals (TERM-41, TERM-49). | User, 2026-11-12; User, 2026-11-13 |
 | CLAUDE-32 | Ubiquitous | The system shall show a button for each agent session in one row above the header of the chat, or on its right edge (NAMES-8, NAMES-11), named by its F key and its name (NAMES-6): the active one in the accent color, the others in the second accent; a click chooses the session. | User, 2026-11-12; User, 2026-11-14 |
@@ -45,8 +45,8 @@ This document has no architecturally significant requirement of its own: CLAUDE-
 [Claude](claude.md) cover the connection that the threads use.
 
 Tests: `one_thread_for_every_file_and_the_file_goes_once` (CLAUDE-5),
-`the_chat_shows_the_last_session_when_it_opens` (CLAUDE-27, CLAUDE-6, CLAUDE-37),
-`a_session_id_is_kept_only_after_the_first_question` (CLAUDE-37),
+`the_chat_shows_the_last_session_when_it_opens` (CLAUDE-27, CLAUDE-6, CLAUDE-40),
+`a_session_id_is_kept_only_after_the_first_question` (CLAUDE-40),
 `five_agent_sessions_with_f6_to_f10_and_alt_n` (CLAUDE-5, CLAUDE-31, CLAUDE-32) and
 `alt_and_an_f_key_choose_a_session_too` (CLAUDE-31) in `tests/chat_flows.rs`;
 `shell_is_blocked_and_resume_replays` (CLAUDE-6) in `tests/acp_mock.rs`;

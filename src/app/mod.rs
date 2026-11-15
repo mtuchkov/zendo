@@ -185,6 +185,8 @@ pub struct App {
     pub names_asked: HashMap<String, usize>,
     /// The model that names the agent sessions; none: the default model of the agent (NAMES-12).
     pub name_model: Option<String>,
+    /// The pasted images that the name model names: by session key, the file and the answer so far.
+    pub image_names: HashMap<String, (PathBuf, String)>,
     pub auto_recaps: Vec<Instant>,
     #[default(Instant::now())]
     pub last_input: Instant,

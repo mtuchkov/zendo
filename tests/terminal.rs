@@ -152,7 +152,8 @@ async fn five_busy_terminals_take_nothing() {
 }
 
 // TERM-8, TERM-11, TERM-14: the play button on the block; F5 outside a block shows the F5
-// terminal; the terminal buttons stay on the right edge, after a line.
+// terminal; while the agent buttons are in the row above the chat, the terminal buttons start at
+// the top of the right edge, with no line.
 #[tokio::test(flavor = "multi_thread")]
 async fn play_button_and_terminal_buttons() {
     let (root, mut a) = app_with_shell("term-buttons");
@@ -161,8 +162,9 @@ async fn play_button_and_terminal_buttons() {
     assert!(screen.iter().any(|l| l.contains("▶")), "the play button:\n{}", screen.join("\n"));
     let col = |s: &str| screen.iter().position(|l| l.contains(s));
     let (f10, f5_row) = (col("F10").unwrap(), col(" F5 ").unwrap());
-    assert!(f5_row > f10 + 2 && screen[f5_row].trim_end().ends_with("F5"), "F5 on the right edge, under the agent buttons:\n{}", screen.join("\n"));
-    assert!(screen[f5_row - 2].trim_end().ends_with("────"), "a line above it:\n{}", screen.join("\n"));
+    assert!(screen[f10].contains("F6"), "the agent buttons in a row:\n{}", screen.join("\n"));
+    assert!(f5_row == f10 + 2 && screen[f5_row].trim_end().ends_with("F5"), "F5 at the top of the right edge:\n{}", screen.join("\n"));
+    assert!(!screen[..f5_row].iter().any(|l| l.trim_end().ends_with("────")), "no line above it:\n{}", screen.join("\n"));
     a.focus = Focus::Note;
     a.transcript.on = false;
     f5(&mut a, false);

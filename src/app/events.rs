@@ -7,6 +7,9 @@ impl App {
         if event_key(&e).as_deref().is_some_and(|k| k.starts_with(RECAP_PREFIX)) {
             return self.on_recap_event(e);
         }
+        if event_key(&e).as_deref().is_some_and(|k| k.starts_with(crate::agent::work::IMAGE_PREFIX)) {
+            return self.on_image_event(e);
+        }
         match e {
             Event::Ready { agent, can_image, .. } => {
                 self.agent_name = Some(agent);
@@ -82,7 +85,7 @@ impl App {
         let t = self.thread(&key);
         t.session = Some(id);
         // A session without a question has no messages to resume: it is kept with its first one
-        // (CLAUDE-37).
+        // (CLAUDE-40).
         let asked = t.busy.is_some();
         if resumed {
             t.items.insert(0, Item::Info("resumed the earlier thread".into()));

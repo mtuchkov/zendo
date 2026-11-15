@@ -78,7 +78,7 @@ Claude Code sessions that run in the background while the user works in zendo ar
 | CLAUDE-12 | Ubiquitous | The system shall not tell the agent that zendo can read files or run commands for it.                                         | Design           |
 
 The requirements of the threads (CLAUDE-5, CLAUDE-6, CLAUDE-10, CLAUDE-27, CLAUDE-31, CLAUDE-32,
-CLAUDE-35, CLAUDE-37) are in [Threads](threads.md).
+CLAUDE-35, CLAUDE-40) are in [Threads](threads.md).
 
 Retired in revision 1: CLAUDE-2 (wait for the decision of the user on an edit), CLAUDE-7 (show a proposed edit inline in the note) and CLAUDE-8 (`e` opens a proposed edit in the editor), because zendo does not wait for the user on an edit (User, 2026-11-12). Retired identifiers are never reused.
 
