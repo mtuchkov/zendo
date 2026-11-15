@@ -76,15 +76,19 @@ pub(super) fn git_env() -> BTreeMap<String, String> {
 
 /// `zendo --version`: the version, the commit, uncommitted changes, and the local copy it came from.
 pub fn version_line() -> String {
+    version_line_in(&std::env::var("HOME").unwrap_or_default())
+}
+
+/// The version line for the home folder `home`, which shows as `~`.
+pub(super) fn version_line_in(home: &str) -> String {
     let Some(c) = installed_commit() else { return format!("zendo {}", env!("CARGO_PKG_VERSION")) };
     let mut parts = vec![c[..7.min(c.len())].to_string()];
     if built_dirty() {
         parts[0].push_str("+changes");
     }
     if let Some(src) = local_clone() {
-        let home = std::env::var("HOME").unwrap_or_default();
         let shown = src.display().to_string();
-        let shown = match shown.strip_prefix(&home).filter(|_| !home.is_empty()) {
+        let shown = match shown.strip_prefix(home).filter(|_| !home.is_empty()) {
             Some(rest) => format!("~{rest}"),
             None => shown,
         };
@@ -96,11 +100,11 @@ pub fn version_line() -> String {
 /// The version for the help: only the version, and the details of `version_line` only for a build
 /// with uncommitted changes (PANES-31).
 pub fn help_version() -> String {
-    help_version_for(built_dirty())
+    help_version_for(built_dirty(), &std::env::var("HOME").unwrap_or_default())
 }
 
-pub(super) fn help_version_for(dirty: bool) -> String {
-    if dirty { version_line() } else { format!("zendo {}", env!("CARGO_PKG_VERSION")) }
+pub(super) fn help_version_for(dirty: bool, home: &str) -> String {
+    if dirty { version_line_in(home) } else { format!("zendo {}", env!("CARGO_PKG_VERSION")) }
 }
 
 /// For a build from your clone: the clone has `head` and it is in the history of the build.

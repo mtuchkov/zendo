@@ -89,6 +89,13 @@ session its MCP server `zendo`; its tool `session` returns the id of the zendo s
   check again what each affected test means and whether it still makes sense, and change, add or
   remove tests until the tests and the requirements agree.
 - Tests shall name the requirements that they verify.
+- Each test shall be able to run in parallel with every other test. A test shall not change state
+  that tests share: the environment variables of the process, the current directory, or a path
+  that another test uses. A test shall keep its files in a folder of its own.
+- IF a test cannot run in parallel, THEN the agent shall mark it with `#[serial]` of the crate
+  `serial_test`, so that it runs sequentially, and shall state the reason in a comment at the test.
+- Each test that writes files or changes shared state, parallel or sequential, shall start with a
+  setup step that removes what an interrupted earlier run of the test left behind.
 
 ## Code review
 

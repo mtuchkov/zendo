@@ -61,6 +61,8 @@ fn doctor_names_the_handoff_key_of_the_user() {
 // with uncommitted changes.
 #[test]
 fn the_help_shows_the_details_of_the_version_only_for_a_build_with_changes() {
-    assert_eq!(help_version_for(false), format!("zendo {}", env!("CARGO_PKG_VERSION")));
-    assert_eq!(help_version_for(true), version_line());
+    // The home folder is an argument: another test changes `HOME` of the process while this one runs.
+    let home = "/no/such/home";
+    assert_eq!(help_version_for(false, home), format!("zendo {}", env!("CARGO_PKG_VERSION")));
+    assert_eq!(help_version_for(true, home), version_line_in(home));
 }

@@ -10,14 +10,9 @@ fn old_folders_move_to_the_new_name_once() {
     }
     let agent = format!("node {}/.local/share/dawn/agent/index.js", base.display());
     std::fs::write(base.join(".config/dawn/config.json"), format!("{{\"agent\": \"{agent}\"}}")).unwrap();
-    // SAFETY: this test is the only one that changes these variables.
-    unsafe {
-        std::env::set_var("XDG_CONFIG_HOME", base.join(".config"));
-        std::env::set_var("XDG_DATA_HOME", base.join(".local/share"));
-        std::env::set_var("XDG_CACHE_HOME", base.join(".cache"));
-    }
-    unsafe { std::env::set_var("HOME", &base) };
-    assert_eq!(move_old_folders(&repo).len(), 5);
+    // The folders are arguments: a test must not change `HOME` of the process, which the tests share.
+    let dirs = Dirs { legacy_config: base.join(".config/zendo"), data: base.join(".local/share/zendo"), cache: base.join(".cache/zendo"), config: base.join(".zendo/config.toml") };
+    assert_eq!(move_old_folders_in(&repo, &dirs).len(), 5);
     for d in [".local/share/zendo/agent", ".cache/zendo/target", "repo/.zendo"] {
         assert!(base.join(d).is_dir(), "{d}");
     }
@@ -25,7 +20,7 @@ fn old_folders_move_to_the_new_name_once() {
     let text = std::fs::read_to_string(base.join(".zendo/config.toml")).unwrap();
     assert!(text.contains("/.local/share/zendo/agent/") && !text.contains("/dawn/"), "{text}");
     std::fs::create_dir_all(base.join(".local/share/dawn")).unwrap();
-    assert!(move_old_folders(&repo).is_empty(), "a folder moves only once");
+    assert!(move_old_folders_in(&repo, &dirs).is_empty(), "a folder moves only once");
     let _ = std::fs::remove_dir_all(&base);
 }
 
