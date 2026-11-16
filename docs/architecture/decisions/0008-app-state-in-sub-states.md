@@ -1,5 +1,6 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-16"
 date: "2026-11-15"
 sources:
   - "The note of the user `docs/notes/2026-11-15-note.md`: Splitting the App struct into sub-states."
@@ -27,7 +28,7 @@ The split changes no behavior that a user can see. It adds no requirement to a s
 
 ## Decision
 
-This is a proposal until the user approves it. The second option is chosen: it gives owners to the
+The second option is chosen: it gives owners to the
 fields, and it needs no new runtime structure.
 
 - The app shall keep its state in sub-states. `App` shall hold one field for each sub-state, and
@@ -95,4 +96,4 @@ Where the result differs from the note, or settles what it left open:
 ## Decision record
 
 Proposed by the agent from the note of the user, 2026-11-15. The user decided points 3 and 4 on
-2026-11-15, and asked the agent to finish the split on its own. The rest is not reviewed.
+2026-11-15, and asked the agent to finish the split on its own. The user approved the record on 2026-11-16.
