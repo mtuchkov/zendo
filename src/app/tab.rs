@@ -32,7 +32,7 @@ impl TabRun {
     /// A `tab` in `pane`: continue the run, or start a new one there. True when the run started
     /// in the transcript.
     fn step(&mut self, pane: Pane) -> bool {
-        if !self.last.is_some_and(|t| t.elapsed() < TAB_PAUSE) {
+        if self.last.is_none_or(|t| t.elapsed() >= TAB_PAUSE) {
             self.from_transcript = pane == Pane::Transcript;
         }
         self.at = Some(Instant::now());

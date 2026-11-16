@@ -91,7 +91,10 @@ impl App {
             return;
         }
         let idle = self.agent_idle();
-        if (idle && (self.review_tick() || self.meta_tick())) || self.name_tick() || !idle {
+        if idle && (self.review_tick() || self.meta_tick()) {
+            return;
+        }
+        if self.name_tick() || !idle {
             return;
         }
         let (rel, auto) = if let Some(r) = self.work.next_recap() {
