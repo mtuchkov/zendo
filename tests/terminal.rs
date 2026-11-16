@@ -21,9 +21,10 @@ fn app_with_shell(name: &str) -> (std::path::PathBuf, App) {
 fn answer(a: &mut App, command: &str) {
     a.thread(&session_key(0)).items.push(Item::Agent(format!("Run this:\n\n```sh\n{command}\n```\n")));
     a.focus = Focus::Claude;
-    a.threads.transcript_mut().on = true;
+    a.threads.transcript_mut().focus(true);
     draw(a, 120, 40);
-    a.threads.transcript_mut().row = a.threads.transcript().blocks.last().expect("a shell block").0 + 1;
+    let row = a.threads.transcript().blocks().last().expect("a shell block").0 + 1;
+    a.threads.transcript_mut().place(row, 0);
 }
 
 fn f5(a: &mut App, alt: bool) {
@@ -166,7 +167,7 @@ async fn play_button_and_terminal_buttons() {
     assert!(f5_row == f10 + 2 && screen[f5_row].trim_end().ends_with("F5"), "F5 at the top of the right edge:\n{}", screen.join("\n"));
     assert!(!screen[..f5_row].iter().any(|l| l.trim_end().ends_with("────")), "no line above it:\n{}", screen.join("\n"));
     a.focus = Focus::Note;
-    a.threads.transcript_mut().on = false;
+    a.threads.transcript_mut().focus(false);
     f5(&mut a, false);
     assert_eq!(a.cli.pane, Some(SESSIONS), "F5 elsewhere shows the F5 terminal");
     a.cli.put(0, "sleep 30", true);

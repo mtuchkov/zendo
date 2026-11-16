@@ -6,13 +6,12 @@ impl App {
     pub fn scan_tree(&mut self) {
         if self.cfg.root.join(".git").exists() {
             // FILES-25: the notes of the notes repo live outside the repository.
-            self.files.tree.notes = self.repo_notes_outside();
+            let notes = self.repo_notes_outside();
             // FILES-32: the worktree views show the worktree of the active agent session.
-            self.files.tree.worktree = crate::docs::tree::worktree::of(&self.cfg.root, self.state.session);
-            self.files.tree.scan(&self.cfg.root);
+            let worktree = crate::docs::tree::worktree::of(&self.cfg.root, self.state.session);
+            self.files.scan(&self.cfg.root, notes, worktree);
         } else {
-            let under = self.cfg.notes_dir.clone();
-            self.files.tree.scan_in(&self.cfg.root, &under);
+            self.files.scan_in(&self.cfg.root, &self.cfg.notes_dir);
         }
     }
 
@@ -64,7 +63,7 @@ impl App {
     /// The word limit of a file: from project-structure.toml, else 1,000.
     pub fn word_limit_for(&self, path: &Path) -> usize {
         let rel = path.strip_prefix(&self.cfg.root).unwrap_or(path);
-        self.files.tree.structure.as_ref().and_then(|s| s.words_for(rel)).unwrap_or(DEFAULT_WORDS)
+        self.files.structure().and_then(|s| s.words_for(rel)).unwrap_or(DEFAULT_WORDS)
     }
 
     /// `S`: ask Claude to split the open document, and keep the altitude.
@@ -136,7 +135,7 @@ impl App {
 
     /// The repository has no project structure file, and zendo init can make one.
     pub fn structure_missing(&self) -> bool {
-        self.files.tree.structure.is_none() && self.files.structure_error().is_none() && self.cfg.root.join(".git").exists() && !self.cfg.root.join(crate::docs::structure::FILE).exists()
+        self.files.structure().is_none() && self.files.structure_error().is_none() && self.cfg.root.join(".git").exists() && !self.cfg.root.join(crate::docs::structure::FILE).exists()
     }
 
     /// The width of the code column: the one of this repository, else 120.

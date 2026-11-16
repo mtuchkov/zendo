@@ -61,7 +61,7 @@ impl App {
         let Some(structure) = self.files.disk_due(&self.cfg.root) else { return };
         if structure {
             self.load_structure();
-            self.files.tree.scanned = None;
+            self.files.scan_again();
         }
         if self.files.disk_changed() {
             self.reload_after_agent();
@@ -78,7 +78,7 @@ impl App {
         }
         self.usage.tick(Instant::now());
         self.check_disk();
-        if self.state.tree && self.files.tree.stale() {
+        if self.state.tree && self.files.tree_stale() {
             self.scan_tree();
             self.mark_tree();
         }

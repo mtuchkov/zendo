@@ -22,7 +22,7 @@ fn in_tree(root: &std::path::Path, rel: &str) -> zendo::app::App {
     a.toggle_tree();
     draw(&mut a, 140, 30);
     a.focus = Focus::Tree;
-    a.files.tree_mut().sel = a.files.tree().rows().iter().position(|r| r.rel.ends_with(rel)).unwrap_or_else(|| panic!("{rel} in the tree"));
+    a.files.select_row(a.files.tree().rows().iter().position(|r| r.rel.ends_with(rel)).unwrap_or_else(|| panic!("{rel} in the tree")));
     a
 }
 

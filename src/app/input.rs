@@ -112,7 +112,7 @@ impl App {
         if self.composer.slash().open && self.key_pane() == Pane::Chat && self.composer.key_slash(k) {
             return;
         }
-        if self.files.tree.find.is_some() && self.key_pane() == Pane::Tree {
+        if self.files.filtering() && self.key_pane() == Pane::Tree {
             return self.key_tree_find(k);
         }
         let pane = self.key_pane();
@@ -197,7 +197,7 @@ impl App {
     /// The pane that gets the keys.
     pub fn key_pane(&self) -> crate::keys::Pane {
         use crate::keys::Pane;
-        if self.threads.shown() && self.focus == Focus::Claude && self.threads.transcript().on {
+        if self.threads.shown() && self.focus == Focus::Claude && self.threads.transcript().on() {
             Pane::Transcript
         } else if self.threads.shown() && self.focus == Focus::Claude {
             Pane::Chat

@@ -82,7 +82,7 @@ impl App {
     /// Δ marks for the tree: files whose text differs from the last visit that counted.
     pub fn mark_tree(&mut self) {
         let root = self.cfg.root.clone();
-        self.files.tree_mut().changed = self
+        let changed = self
             .state
             .files
             .iter()
@@ -90,6 +90,7 @@ impl App {
             .filter(|(rel, s)| std::fs::read_to_string(root.join(rel)).is_ok_and(|t| state::hash(&t) != s.hash))
             .map(|(rel, _)| std::path::PathBuf::from(rel))
             .collect();
+        self.files.mark_changed(changed);
     }
 
     // ----- delta -------------------------------------------------------------

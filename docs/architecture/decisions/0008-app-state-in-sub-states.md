@@ -80,9 +80,9 @@ Where the result differs from the note, or settles what it left open:
 - The integration tests reach the fields through the sub-states: `a.frame.read_text()`.
 - The float (`src/app/float.rs`) swaps the draft, the view, the open document and the pinned
   thread with the screen behind it, each through a swap method of its sub-state.
-- Not private yet: the fields of `Transcript`; the tree, the find panel and the worktree popup of
-  `Files`, and six fields of `Composer`, inside `src/app/`. `Composer` and `Writer` hand out their
-  editor to the keys.
+- Not private yet, inside `src/app/`: the find panel, the worktree popup and the held key of
+  `Files`. `Composer` and `Writer` hand out their editor to the keys.
+- The app reads the tree of `Files` and changes it only through methods of `Files`.
 - The effect type can grow into a second `App`. It shall hold cross-state effects only.
 
 ## Verification

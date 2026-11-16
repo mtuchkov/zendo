@@ -1,6 +1,7 @@
 //! Chips in the chat input: `⟦label⟧` tokens for a selection or a file. The arrows and the delete
 //! keys take a chip as one unit.
-use super::*;
+use super::Composer;
+use super::super::*;
 
 pub const OPEN: char = '⟦';
 pub const CLOSE: char = '⟧';

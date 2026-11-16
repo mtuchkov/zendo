@@ -1,7 +1,6 @@
 //! What goes into the next question: the chat input, its chips and attachments, the suggestions
 //! under it, and the context that the question brings (ADR 0008). The composer does not see the
 //! app. The chips are in `chips.rs`, the suggestions in `slash.rs` and `at.rs`.
-use super::chips;
 use super::{AtPick, Chip, Slash};
 #[cfg(test)]
 use super::AtKey;
@@ -10,18 +9,18 @@ use crate::text::editor::Editor;
 use std::path::PathBuf;
 
 pub struct Composer {
-    pub(super) input: Editor,
+    input: Editor,
     /// Selections added to the chat: the label in the input, and the text that goes as context.
-    pub(super) chips: Vec<Chip>,
+    chips: Vec<Chip>,
     /// Files and images for the next prompt.
     attach: Vec<Attachment>,
-    pub(super) slash: Slash,
+    slash: Slash,
     /// `@` in the input: the file suggestions under it.
-    pub(super) at: Option<AtPick>,
+    at: Option<AtPick>,
     /// The files of the repository while the suggestions are open.
-    pub(super) at_files: Option<Vec<PathBuf>>,
+    at_files: Option<Vec<PathBuf>>,
     /// `ctrl-t`: the next suggestions show only templates.
-    pub(super) at_templates: bool,
+    at_templates: bool,
     /// Text attached to the next question, e.g. the delta.
     context: Option<String>,
     /// The question sent when the input is empty and there is a context.
@@ -177,6 +176,13 @@ impl Composer {
         q
     }
 }
+
+#[path = "at.rs"]
+pub(crate) mod at;
+#[path = "chips.rs"]
+pub mod chips;
+#[path = "slash.rs"]
+pub(crate) mod slash;
 
 #[cfg(test)]
 #[path = "composer_tests.rs"]

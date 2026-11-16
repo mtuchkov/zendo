@@ -67,9 +67,10 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
 fn draw_transcript(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, body: Rect, lines: Vec<Line<'static>>, w: usize) {
     let h = body.height as usize;
     app.threads.transcript_mut().show_rows(lines.iter().map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect()).collect());
-    let on = app.threads.transcript().on && app.focus == Focus::Claude;
+    let on = app.threads.transcript().on() && app.focus == Focus::Claude;
     let start = app.threads.fit(lines.len(), h, on);
     let tr = app.threads.transcript();
+    let (row, col) = tr.cursor();
     let sel = delta::mix(t.bg, t.acc2, 0.42);
     let table = if on { tr.table() } else { None };
     let view: Vec<Line> = lines
@@ -79,17 +80,17 @@ fn draw_transcript(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, body
         .take(h)
         .map(|(i, l)| match tr.marked(table.as_ref(), i) {
             Some((a, b)) if on => paint(l, a, b, sel),
-            _ if on && i == tr.row => tint(l, cursor_line(t), w),
+            _ if on && i == row => tint(l, cursor_line(t), w),
             _ => l,
         })
         .collect();
     f.render_widget(Paragraph::new(view), body);
     let shown = |(a, ..): &&(usize, usize, String)| *a >= start && *a < start + h;
-    let play = app.threads.transcript().blocks.iter().filter(shown).map(|(a, _, c)| (Rect { x: body.x + (w as u16).saturating_sub(2), y: body.y + (a - start) as u16, width: 2, height: 1 }, c.clone())).collect::<Vec<_>>();
+    let play = app.threads.transcript().blocks().iter().filter(shown).map(|(a, _, c)| (Rect { x: body.x + (w as u16).saturating_sub(2), y: body.y + (a - start) as u16, width: 2, height: 1 }, c.clone())).collect::<Vec<_>>();
     fr.play_buttons = play;
-    if on && tr.row >= start && tr.row < start + h {
-        let x: usize = tr.rows[tr.row].chars().take(tr.col).map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
-        f.set_cursor_position((body.x + (x as u16).min(body.width.saturating_sub(1)), body.y + (tr.row - start) as u16));
+    if on && row >= start && row < start + h {
+        let x: usize = tr.rows()[row].chars().take(col).map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
+        f.set_cursor_position((body.x + (x as u16).min(body.width.saturating_sub(1)), body.y + (row - start) as u16));
     }
 }
 
@@ -98,7 +99,7 @@ fn draw_input(f: &mut Frame, app: &App, t: &Theme, input: Rect, in_h: u16, in_w:
     let key = app.key();
     f.render_widget(Block::new().style(Style::new().bg(t.bg)), input);
     let box_in = Rect { x: input.x + 1, y: input.y + 1, width: input.width.saturating_sub(2), height: in_h };
-    let focused = app.focus == Focus::Claude && !app.threads.transcript().on;
+    let focused = app.focus == Focus::Claude && !app.threads.transcript().on();
     let mark = Span::styled("› ", Style::new().fg(if focused { t.acc } else { t.dim }));
     let text_area = Rect { x: box_in.x + 2, width: box_in.width.saturating_sub(2), ..box_in };
     if app.composer.input().is_empty() {

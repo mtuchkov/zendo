@@ -28,7 +28,7 @@ fn a_new_file_starts_from_the_template_of_its_folder() {
     a.focus = Focus::Tree;
     draw(&mut a, 120, 30);
     let row = a.files.tree().rows().iter().position(|r| r.rel.ends_with("docs/specs")).expect("the specs row");
-    a.files.tree_mut().sel = row;
+    a.files.select_row(row);
     key(&mut a, KeyCode::F(3));
     typ(&mut a, "audit-log");
     key(&mut a, KeyCode::Enter);

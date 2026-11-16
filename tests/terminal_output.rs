@@ -46,7 +46,7 @@ fn run(a: &mut App, i: usize, command: &str) {
 fn to_input(a: &mut App) {
     alt(a, 'q');
     a.focus = Focus::Claude;
-    a.threads.transcript_mut().on = false;
+    a.threads.transcript_mut().focus(false);
 }
 
 fn input(a: &App) -> String {

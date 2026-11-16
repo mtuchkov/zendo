@@ -1,6 +1,6 @@
 //! Application state and key handling. Drawing is in `ui`.
 
-mod at;
+mod at_keys;
 mod attention;
 mod chat;
 mod chat_keys;
@@ -9,7 +9,6 @@ mod cli;
 mod terminal;
 mod terminal_mouse;
 pub mod cursor_map;
-pub mod chips;
 mod composer;
 mod events;
 mod effect;
@@ -35,11 +34,11 @@ mod read;
 mod reader;
 mod say;
 mod selection;
-mod slash;
 mod tab;
 mod thread;
 mod threads;
 mod transcript;
+mod transcript_keys;
 mod tree;
 mod update;
 mod work;
@@ -51,6 +50,8 @@ pub mod version;
 
 pub use at::{AT_ROWS, AtKey, AtPick};
 pub use composer::Composer;
+pub use composer::chips;
+pub(crate) use composer::{at, slash};
 pub use attention::Attention;
 pub use effect::Effect;
 pub use file_prompt::FilePrompt;

@@ -38,9 +38,9 @@ fn the_view_scrolls_from_the_end_of_the_thread() {
 #[test]
 fn the_view_follows_the_cursor_of_the_transcript() {
     let mut t = Threads::default();
-    t.transcript_mut().row = 10;
+    t.transcript_mut().place(10, 0);
     assert_eq!(t.fit(100, 20, true), 10, "the cursor row is the first row");
-    t.transcript_mut().row = 95;
+    t.transcript_mut().place(95, 0);
     assert_eq!(t.fit(100, 20, true), 76, "the cursor row is the last row");
     assert_eq!(t.fit(100, 20, false), 76, "the view stays when the input takes the keys");
 }

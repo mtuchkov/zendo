@@ -1,7 +1,7 @@
 //! The chat transcript as text to read: `tab` from the chat input moves the keys here. The cursor
 //! and the selection keys of read mode work on the rows of the thread; `y` copies, and `a` adds
 //! the text to the chat input as a chip of its own color.
-use super::*;
+use std::time::Instant;
 
 /// The mark at the start of the label of a chip from the transcript.
 pub const CHAT_MARK: char = '↩';
@@ -10,19 +10,80 @@ pub const CHAT_MARK: char = '↩';
 #[derive(Clone, Debug, Default)]
 pub struct Transcript {
     /// The transcript has the keys of the chat pane, not the input.
-    pub on: bool,
-    pub rows: Vec<String>,
-    pub row: usize,
-    pub col: usize,
+    on: bool,
+    rows: Vec<String>,
+    row: usize,
+    col: usize,
     want: usize,
-    pub anchor: Option<(usize, usize)>,
+    anchor: Option<(usize, usize)>,
     /// The stop of the selection keys at the edge of a cell of a table (PANES-42).
     stop: crate::text::softstop::SoftStop,
     /// The shell blocks of the last frame: their first row, the row after them, their command.
-    pub blocks: Vec<(usize, usize, String)>,
+    blocks: Vec<(usize, usize, String)>,
 }
 
 impl Transcript {
+    /// The transcript has the keys of the chat pane.
+    pub fn on(&self) -> bool {
+        self.on
+    }
+
+    /// The keys go to the transcript, with the cursor at its end, or back to the input.
+    pub fn focus(&mut self, on: bool) {
+        self.on = on;
+        if on {
+            self.to_end();
+        }
+    }
+
+    pub fn rows(&self) -> &[String] {
+        &self.rows
+    }
+
+    /// The row and the char of the cursor.
+    pub fn cursor(&self) -> (usize, usize) {
+        (self.row, self.col)
+    }
+
+    pub fn place(&mut self, row: usize, col: usize) {
+        (self.row, self.col, self.want) = (row, col, col);
+    }
+
+    pub fn blocks(&self) -> &[(usize, usize, String)] {
+        &self.blocks
+    }
+
+    pub fn unselect(&mut self) {
+        self.anchor = None;
+    }
+
+    /// A key that moves the cursor, changes the selection or leaves the transcript. False: the
+    /// action is not one of the transcript alone.
+    pub fn key(&mut self, act: &str, page: isize, now: Instant) -> bool {
+        if act.starts_with("select_") && self.anchor.is_none() {
+            self.anchor = Some((self.row, self.col));
+        }
+        let before = (self.row, self.col);
+        match act {
+            "down" | "select_down" => self.move_rows(1),
+            "up" | "select_up" => self.move_rows(-1),
+            "left" | "select_left" => self.move_col(-1),
+            "right" | "select_right" => self.move_col(1),
+            "select_word_left" => self.move_word(false),
+            "select_word_right" => self.move_word(true),
+            "page_down" => self.move_rows(page),
+            "page_up" => self.move_rows(-page),
+            "top" => self.move_rows(-(isize::MAX / 4)),
+            "bottom" => self.move_rows(isize::MAX / 4),
+            "select" => self.anchor = if self.anchor.is_some() { None } else { Some((self.row, self.col)) },
+            "back" if self.anchor.is_some() => self.anchor = None,
+            "back" | "input" => self.on = false,
+            _ => return false,
+        }
+        self.soft_stop(act, before, now);
+        true
+    }
+
     fn len(&self, r: usize) -> usize {
         self.rows.get(r).map_or(0, |l| l.trim_end().chars().count())
     }
@@ -145,59 +206,6 @@ impl Transcript {
             chars[from..to.max(from)].iter().collect::<String>()
         });
         rows.map(|r| r.trim_start_matches(" › ").to_string()).collect::<Vec<_>>().join("\n").trim().to_string()
-    }
-}
-
-impl App {
-    /// The keys of the transcript.
-    pub(crate) fn key_transcript(&mut self, act: Option<&str>) {
-        let page = self.frame.view_height().saturating_sub(3).max(1) as isize;
-        let Some(act) = act else { return };
-        let t = self.threads.transcript_mut();
-        if act.starts_with("select_") && t.anchor.is_none() {
-            t.anchor = Some((t.row, t.col));
-        }
-        let before = (t.row, t.col);
-        match act {
-            "down" | "select_down" => t.move_rows(1),
-            "up" | "select_up" => t.move_rows(-1),
-            "left" | "select_left" => t.move_col(-1),
-            "right" | "select_right" => t.move_col(1),
-            "select_word_left" => t.move_word(false),
-            "select_word_right" => t.move_word(true),
-            "page_down" => t.move_rows(page),
-            "page_up" => t.move_rows(-page),
-            "top" => t.move_rows(-(isize::MAX / 4)),
-            "bottom" => t.move_rows(isize::MAX / 4),
-            "select" => t.anchor = if t.anchor.is_some() { None } else { Some((t.row, t.col)) },
-            "back" if t.anchor.is_some() => t.anchor = None,
-            "back" | "input" => t.on = false,
-            "copy" => self.copy_transcript(),
-            "add_to_chat" => self.transcript_to_chat(),
-            _ => {}
-        }
-        self.threads.transcript_mut().soft_stop(act, before, Instant::now());
-    }
-
-    fn copy_transcript(&mut self) {
-        let text = self.threads.transcript().text();
-        if !text.is_empty() {
-            self.pointer.copy(text);
-            self.threads.transcript_mut().anchor = None;
-        }
-    }
-
-    /// `a`: the selected text of the chat goes to the input as a chip of its own color.
-    fn transcript_to_chat(&mut self) {
-        let text = self.threads.transcript().text();
-        if text.is_empty() {
-            return self.flash("nothing to add here");
-        }
-        let quoted: String = text.lines().map(|l| format!("> {l}\n")).collect();
-        let ctx = format!("Text from this chat:\n{quoted}");
-        let label = self.composer.add_chip(format!("{CHAT_MARK} {}", chips::selection_label(&text)), Some(ctx), None, true);
-        self.threads.transcript_mut().anchor = None;
-        self.flash(format!("{} is in the chat", label.trim_matches([chips::OPEN, chips::CLOSE])));
     }
 }
 

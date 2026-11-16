@@ -23,7 +23,7 @@ impl App {
         }
         self.threads.show();
         self.focus = Focus::Claude;
-        self.threads.transcript_mut().on = false;
+        self.threads.transcript_mut().focus(false);
         self.threads.to_end();
         self.open_session();
     }
@@ -143,7 +143,7 @@ impl App {
 
     /// The rules of project-structure.toml for a file: project rules first, then each folder.
     fn rules_for(&self, p: &Path) -> String {
-        let Some(st) = self.files.tree.structure.as_ref() else { return String::new() };
+        let Some(st) = self.files.structure() else { return String::new() };
         let rules = st.rules_for(self.files.store().rel(p));
         if rules.is_empty() { rules } else { rules + "\n" }
     }

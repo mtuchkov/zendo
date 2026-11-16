@@ -28,9 +28,9 @@ fn typ(f: &mut Files, root: &Path, text: &str) -> Option<Effect> {
 }
 
 fn select(f: &mut Files, root: &Path, rel: &str) {
-    f.tree_mut().view = View::All;
-    f.tree_mut().scan(root);
-    f.tree_mut().reveal(Path::new(rel));
+    f.set_view(View::All);
+    f.scan(root, None, None);
+    f.reveal(Path::new(rel));
     assert_eq!(f.tree_file().as_deref(), Some(Path::new(rel)), "the row of {rel}");
 }
 
@@ -137,7 +137,7 @@ fn a_file_action_waits_for_the_popup_while_the_agent_works() {
     assert_eq!(f.tree_act(act(), true), None);
     assert!(f.prompt().is_some() && f.confirm_text(0).is_none(), "not a worktree view: no popup");
     f.key_prompt(key(KeyCode::Esc), &root);
-    f.tree_mut().view = View::Worktree;
+    f.set_view(View::Worktree);
     assert_eq!(f.tree_act(act(), true), None);
     assert!(f.prompt().is_none() && f.confirm_text(1).is_some_and(|t| t.contains("session 2") && t.contains("delete")));
     assert_eq!(f.key_confirm(key(KeyCode::Char('n'))), None);
@@ -175,5 +175,36 @@ fn a_structure_that_does_not_parse_leaves_its_reason() {
     assert!(matches!(f.load_structure(&root, "", false), Some(Effect::Flash(t)) if t.contains("does not parse")));
     assert!(f.structure_error().is_some());
     assert_eq!(f.disk_due(&root), None);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// ADR 0008: the app changes the tree only through the methods of the files.
+#[test]
+fn the_tree_changes_through_the_files() {
+    let (root, mut f) = repo("tree-methods");
+    f.set_view(View::All);
+    assert!(f.tree_stale(), "a tree that was never filled");
+    f.scan(&root, None, None);
+    assert!(!f.tree_stale() && !f.tree().rows().is_empty());
+    f.scan_again();
+    assert!(f.tree_stale(), "the next tick fills it again");
+
+    f.reveal(Path::new("docs/b.md"));
+    assert_eq!(f.tree_file().as_deref(), Some(Path::new("docs/b.md")));
+    f.select_row(0);
+    f.scroll_tree(false, 50);
+    let rows = f.tree().rows().len();
+    f.fit_tree(rows, 3);
+    assert!(f.tree().sel >= f.tree().scroll && f.tree().sel < f.tree().scroll + 3, "the draw keeps the selection in view");
+    f.scroll_tree(true, 50);
+    assert_eq!(f.tree().scroll, 0);
+
+    f.mark_changed([PathBuf::from("docs/a.md")].into());
+    assert!(f.tree().changed.contains(Path::new("docs/a.md")));
+
+    f.select_row(1);
+    let name = f.next_view();
+    assert_eq!((name, f.tree().sel, f.tree().scroll), (f.tree().view.name(), 0, 0), "the next view starts from its first row");
+    assert!(!f.filtering());
     let _ = std::fs::remove_dir_all(&root);
 }

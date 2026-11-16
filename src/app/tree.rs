@@ -28,12 +28,9 @@ impl App {
     }
 
     pub fn toggle_tree_filter(&mut self) {
-        self.files.tree.next_view();
-        self.state.tree_view = self.files.tree.view.name().to_string();
+        self.state.tree_view = self.files.next_view().to_string();
         self.state.save(&self.cfg.root);
         self.scan_tree();
-        self.files.tree.sel = 0;
-        self.files.tree.scroll = 0;
         self.files.reveal_current();
     }
 
@@ -79,7 +76,7 @@ impl App {
             FilterKey::Act(act) => self.tree_act(act),
             FilterKey::Open(rel) => {
                 self.open_file(self.cfg.root.join(&rel));
-                self.files.tree.reveal(&rel);
+                self.files.reveal(&rel);
                 self.focus = Focus::Note;
             }
         }

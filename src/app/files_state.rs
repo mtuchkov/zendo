@@ -1,11 +1,10 @@
 //! The files: which documents there are and which one is open, the file tree, the find panel, and
 //! the questions about a file (ADR 0008). The files do not see the app: a change in the chat, the
 //! sessions or the focus goes back as an `Effect`. The file actions are in `files_ops.rs` and
-//! `files_new.rs`, the keys of the tree in `tree_keys.rs`.
+//! `files_new.rs`, the tree in `files_tree.rs`, its keys in `tree_keys.rs`.
 use super::version::Peek;
 use super::{Effect, FilePrompt, Find, WorktreeUi};
 use crate::docs::notes::{self, Note, Store};
-use crate::docs::structure::Structure;
 use crate::docs::tree::Tree;
 use crate::setup::sync::Syncer;
 use std::path::{Path, PathBuf};
@@ -18,7 +17,7 @@ pub struct Files {
     current: Option<PathBuf>,
     /// Files opened from the tree outside the notes folder.
     extra: Vec<PathBuf>,
-    pub(super) tree: Tree,
+    tree: Tree,
     /// `alt-/`: the find panel and the recent files (FIND-1).
     pub(super) find: Find,
     /// `delete`, `f2` or `m` on a file: the question in the status bar.
@@ -64,14 +63,6 @@ impl Files {
 
     pub fn current_path(&self) -> Option<&Path> {
         self.current.as_deref()
-    }
-
-    pub fn tree(&self) -> &Tree {
-        &self.tree
-    }
-
-    pub fn tree_mut(&mut self) -> &mut Tree {
-        &mut self.tree
     }
 
     pub fn find(&self) -> &Find {
@@ -127,10 +118,6 @@ impl Files {
     /// What the notes sync wants the user to know, if anything.
     pub fn sync_label(&self) -> Option<String> {
         self.syncer.as_ref().and_then(|s| s.state().label())
-    }
-
-    pub fn structure(&self) -> Option<&Structure> {
-        self.tree.structure.as_ref()
     }
 
     pub fn structure_error(&self) -> Option<&str> {
@@ -201,27 +188,10 @@ impl Files {
         std::mem::swap(&mut self.current, other);
     }
 
-    /// The tree shows the row of the open document.
-    pub fn reveal_current(&mut self) {
-        if let Some(p) = self.current.clone() {
-            let rel = self.store.rel(&p).to_path_buf();
-            self.tree.reveal(&rel);
-        }
-    }
-
-    /// The draw of the tree: the selection stays in the `rows` rows, and in the view of `h` rows.
-    pub fn fit_tree(&mut self, rows: usize, h: usize) {
-        let t = &mut self.tree;
-        t.sel = t.sel.min(rows.saturating_sub(1));
-        if t.sel < t.scroll {
-            t.scroll = t.sel;
-        } else if t.sel >= t.scroll + h {
-            t.scroll = t.sel + 1 - h;
-        }
-        t.scroll = t.scroll.min(rows.saturating_sub(h));
-    }
 }
 
+#[path = "files_tree.rs"]
+mod tree;
 #[path = "files_disk.rs"]
 mod disk;
 #[path = "files_new.rs"]

@@ -9,7 +9,7 @@ fn t(rows: &[&str]) -> Transcript {
 fn the_cursor_moves_and_selects_in_the_transcript() {
     let mut x = t(&[" › what is it", "", "It is a log of events.", "It keeps them a week."]);
     x.to_end();
-    assert_eq!((x.row, x.col), (3, 0));
+    assert_eq!(x.cursor(), (3, 0));
     assert_eq!(x.text(), "It is a log of events.\nIt keeps them a week.", "no selection: the message");
     x.move_rows(-1);
     x.move_word(true);
@@ -28,7 +28,7 @@ fn the_cursor_moves_and_selects_in_the_transcript() {
     x.move_col(-1);
     x.move_col(-1);
     x.move_col(-1);
-    assert_eq!((x.row, x.col), (0, 0), "left stops at the start");
+    assert_eq!(x.cursor(), (0, 0), "left stops at the start");
 }
 
 // PANES-34: a selection that starts in a cell of a table keeps to its column.
@@ -57,9 +57,23 @@ fn the_keys_of_the_transcript_stop_at_the_edge_of_a_cell() {
         x.move_col(1);
         x.soft_stop("select_right", before, t0 + std::time::Duration::from_millis(20 * i));
     }
-    assert_eq!((x.row, x.col), (1, 6), "the edge of the cell");
+    assert_eq!(x.cursor(), (1, 6), "the edge of the cell");
     let before = (x.row, x.col);
     x.move_col(1);
     x.soft_stop("select_right", before, t0 + std::time::Duration::from_millis(300));
-    assert_eq!((x.row, x.col), (1, 8), "the next cell");
+    assert_eq!(x.cursor(), (1, 8), "the next cell");
+}
+
+// ADR 0008: the transcript handles its own keys, and leaves `copy` and `add_to_chat` to the app.
+#[test]
+fn the_transcript_takes_its_own_keys_and_leaves_the_rest() {
+    let mut x = t(&["one two", "three"]);
+    x.focus(true);
+    assert!(x.on() && x.cursor() == (1, 0), "the keys come with the cursor at the end");
+    let now = Instant::now();
+    assert!(x.key("up", 5, now) && x.cursor() == (0, 0));
+    assert!(x.key("select_right", 5, now) && x.selection() == Some(((0, 0), (0, 1))));
+    assert!(!x.key("copy", 5, now) && !x.key("add_to_chat", 5, now), "the app does these");
+    assert!(x.key("back", 5, now) && x.selection().is_none() && x.on(), "back drops the selection first");
+    assert!(x.key("back", 5, now) && !x.on(), "then the keys go back to the input");
 }

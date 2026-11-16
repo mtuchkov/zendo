@@ -65,7 +65,7 @@ impl App {
         self.open_panel();
         if self.threads.shown() {
             self.focus = Focus::Claude;
-            self.threads.transcript_mut().on = false;
+            self.threads.transcript_mut().focus(false);
         }
         self.flash(format!("{} is in the chat", label.trim_matches([chips::OPEN, chips::CLOSE])));
     }

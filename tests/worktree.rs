@@ -81,13 +81,13 @@ fn the_changed_view_lists_what_differs_from_main() {
 
     // A deleted file does not open.
     a.focus = Focus::Tree;
-    a.files.tree_mut().reveal(Path::new(".worktrees/1/b.md"));
+    a.files.reveal(Path::new(".worktrees/1/b.md"));
     key(&mut a, KeyCode::Enter);
     assert!(a.files.current().is_none_or(|p| !p.ends_with("b.md")), "{:?}", a.files.current());
 
     // A new change shows without a restart.
     write(wt.join("c.md"), "# c\n\nchanged too\n");
-    a.files.tree_mut().scanned = None;
+    a.files.scan_again();
     a.tick();
     assert!(files(&a).contains(&".worktrees/1/c.md".to_string()), "{:?}", files(&a));
 }
@@ -103,7 +103,7 @@ async fn the_worktree_views_follow_the_agent_session() {
     assert!(a.files.tree().files.is_empty(), "{:?}", a.files.tree().files);
     let screen = draw(&mut a, 120, 30).join("\n");
     assert!(screen.contains("has no") && screen.contains("worktree yet"), "{screen}");
-    a.files.tree_mut().view = View::Folders;
+    a.files.set_view(View::Folders);
     key(&mut a, KeyCode::Char('v'));
     assert!(!a.files.tree().view.is_worktree(), "v skips the worktree views: {:?}", a.files.tree().view);
     a.switch_session(0);
@@ -116,7 +116,7 @@ fn a_file_of_the_worktree_opens_with_the_worktree_in_its_head() {
     let root = repo("open");
     let mut a = tree_in(&root, View::Worktree);
     a.focus = Focus::Tree;
-    a.files.tree_mut().reveal(Path::new(".worktrees/1/a.md"));
+    a.files.reveal(Path::new(".worktrees/1/a.md"));
     key(&mut a, KeyCode::Enter);
     assert_eq!(a.files.current_path(), Some(root.join(".worktrees/1/a.md").as_path()));
     let screen = draw(&mut a, 120, 30);
@@ -131,7 +131,7 @@ fn file_actions_in_a_worktree_ask_first_while_the_agent_works() {
     let root = repo("confirm");
     let mut a = tree_in(&root, View::Worktree);
     a.focus = Focus::Tree;
-    a.files.tree_mut().reveal(Path::new(".worktrees/1/a.md"));
+    a.files.reveal(Path::new(".worktrees/1/a.md"));
 
     // The agent is idle: the usual question.
     key(&mut a, KeyCode::Delete);

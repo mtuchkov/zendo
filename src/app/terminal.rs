@@ -9,7 +9,7 @@ impl App {
     /// terminal that does not run a command; without a block, the `F5` terminal shows (TERM-1,
     /// TERM-4, TERM-11, TERM-21).
     pub(crate) fn terminal_key(&mut self, run: bool) {
-        let on_block = self.threads.shown() && self.focus == Focus::Claude && self.threads.transcript().on;
+        let on_block = self.threads.shown() && self.focus == Focus::Claude && self.threads.transcript().on();
         match self.threads.transcript().block().filter(|_| on_block).map(str::to_string) {
             Some(command) => self.put_into_terminal(&command, run),
             None => self.open_terminal(0),

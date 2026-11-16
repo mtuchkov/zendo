@@ -126,18 +126,19 @@ async fn tab_goes_to_the_transcript_to_select_copy_and_add() {
     ask(&mut a, "what is in it").await;
     draw(&mut a, 160, 30);
     key(&mut a, KeyCode::Tab);
-    assert!(a.threads.transcript().on && a.focus == Focus::Claude, "tab: the transcript");
+    assert!(a.threads.transcript().on() && a.focus == Focus::Claude, "tab: the transcript");
     let bar = draw(&mut a, 160, 30).into_iter().rev().find(|r| r.contains("TRANSCRIPT")).unwrap_or_default();
     assert!(bar.contains("y copy") && bar.contains("a to chat"), "{bar}");
-    while !a.threads.transcript().rows[a.threads.transcript().row].trim_start().starts_with("› what is in it") {
+    while !a.threads.transcript().rows()[a.threads.transcript().cursor().0].trim_start().starts_with("› what is in it") {
         key(&mut a, KeyCode::Char('k'));
     }
     key(&mut a, KeyCode::Char('y'));
     assert_eq!(a.pointer.clip(), Some("what is in it"), "no selection: the message");
     a.pointer.take_clip();
     let alt_shift = KeyModifiers::ALT | KeyModifiers::SHIFT;
-    let row = a.threads.transcript().rows[a.threads.transcript().row].clone();
-    a.threads.transcript_mut().col = row[..row.find("what").unwrap()].chars().count();
+    let row = a.threads.transcript().rows()[a.threads.transcript().cursor().0].clone();
+    let at = a.threads.transcript().cursor().0;
+    a.threads.transcript_mut().place(at, row[..row.find("what").unwrap()].chars().count());
     a.on_key(KeyEvent::new(KeyCode::Char('L'), alt_shift));
     key(&mut a, KeyCode::Char('h'));
     key(&mut a, KeyCode::Char('h'));
@@ -150,7 +151,7 @@ async fn tab_goes_to_the_transcript_to_select_copy_and_add() {
     let at = (0..30u16).flat_map(|y| (0..160u16).map(move |x| (x, y))).find(|p| buf[*p].symbol() == "↩").expect("the chip on the screen");
     assert_eq!(buf[at].bg, a.theme().add, "a chip of the chat has its own color");
     key(&mut a, KeyCode::Esc);
-    assert!(!a.threads.transcript().on, "esc: back to the input");
+    assert!(!a.threads.transcript().on(), "esc: back to the input");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -229,7 +230,7 @@ async fn edit_is_applied_without_a_question() {
     let text = std::fs::read_to_string(root.join(A)).unwrap();
     assert!(text.contains("- WHEN the mock agent"), "the edit is in the file: {text}");
     draw(&mut a, 160, 50);
-    let chat = a.threads.transcript().rows.join("\n");
+    let chat = a.threads.transcript().rows().join("\n");
     assert!(!chat.contains("WHEN the mock agent") && !chat.contains("discard"), "no diff and no question in the chat:\n{chat}");
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -237,7 +238,7 @@ async fn edit_is_applied_without_a_question() {
 /// Where the keys go: the chat input, its transcript, or another pane.
 fn place(a: &App) -> &'static str {
     match a.focus {
-        Focus::Claude if a.threads.transcript().on => "transcript",
+        Focus::Claude if a.threads.transcript().on() => "transcript",
         Focus::Claude => "chat",
         Focus::Note => "note",
         Focus::Delta => "delta",

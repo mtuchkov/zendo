@@ -1,6 +1,7 @@
 //! `/` at the start of the chat input: the slash commands of the agent. zendo passes them through:
 //! the list comes from the agent, and the command goes to the agent as the user typed it.
-use super::*;
+use super::Composer;
+use super::super::*;
 use crate::agent::Command;
 
 /// The commands of the agent, and the open suggestions.

@@ -116,7 +116,7 @@ impl Threads {
     pub fn fit(&mut self, total: usize, h: usize, on: bool) -> usize {
         let max = total.saturating_sub(h);
         let bottom = max - self.scroll.min(max);
-        let row = self.transcript.row;
+        let row = self.transcript.cursor().0;
         let start = if on { bottom.min(row).max((row + 1).saturating_sub(h)).min(max) } else { bottom };
         self.scroll = max - start;
         start

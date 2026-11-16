@@ -14,7 +14,7 @@ impl App {
             Some(Effect::MadeFolder(path)) => {
                 self.scan_tree();
                 let rel = path.strip_prefix(&self.cfg.root).unwrap_or(&path).to_path_buf();
-                self.files.tree.reveal(&rel);
+                self.files.reveal(&rel);
                 self.flash(format!("made {}/ · the folders view shows it", rel.display()));
             }
         }
@@ -57,7 +57,7 @@ impl App {
     fn file_made(&mut self, path: PathBuf) {
         self.scan_tree();
         let rel = path.strip_prefix(&self.cfg.root).unwrap_or(&path).to_path_buf();
-        self.files.tree.reveal(&rel);
+        self.files.reveal(&rel);
         self.open_file(path);
         self.focus = Focus::Note;
         self.start_write(false);
@@ -68,9 +68,9 @@ impl App {
         self.keys_moved(old, target);
         self.scan_tree();
         // Show the file under its new name, also when a name filter found it.
-        self.files.tree.find = None;
+        self.files.close_filter();
         let new_rel = target.strip_prefix(&self.cfg.root).unwrap_or(target).to_path_buf();
-        self.files.tree.reveal(&new_rel);
+        self.files.reveal(&new_rel);
         if let Some(i) = self.files.notes().iter().position(|n| n.path == target) {
             self.lists.select_note(i);
         }
