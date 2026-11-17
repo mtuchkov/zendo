@@ -3,7 +3,7 @@ use super::*;
 
 impl App {
     pub(crate) fn region_at(&self, x: u16, y: u16) -> Option<(Region, Rect)> {
-        self.regions.iter().copied().find(|(_, r)| r.contains(ratatui::layout::Position::new(x, y)))
+        self.frame.regions().iter().copied().find(|(_, r)| r.contains(ratatui::layout::Position::new(x, y)))
     }
 
     /// Mouse: drag selects inside one panel, release copies, the wheel scrolls the panel under it.
@@ -13,26 +13,30 @@ impl App {
             return;
         }
         if !matches!(m.kind, MouseEventKind::Moved) {
-            self.last_input = Instant::now();
+            self.work.input_now();
             self.tab_run.end();
         }
-        if self.mouse_to_program(m) {
+        // The float takes the mouse: only what happens over it counts.
+        if let Some(fl) = self.writer.float() {
+            if !fl.rect.contains(ratatui::layout::Position::new(m.column, m.row)) {
+                return;
+            }
+        } else if self.mouse_to_program(m) {
             return;
-        }
-        if let Some(n) = self.cli.view {
+        } else if let Some(n) = self.cli.view {
             return self.mouse_cli(n, m);
         }
         let (x, y) = (m.column, m.row);
         match m.kind {
             MouseEventKind::Down(MouseButton::Left) if self.start_drag(x, y) => {}
-            MouseEventKind::Drag(MouseButton::Left) if self.drag.is_some() => self.drag_to(x),
-            MouseEventKind::Up(MouseButton::Left) if self.drag.is_some() => {
-                self.drag = None;
+            MouseEventKind::Drag(MouseButton::Left) if self.pointer.grabbed().is_some() => self.drag_to(x),
+            MouseEventKind::Up(MouseButton::Left) if self.pointer.grabbed().is_some() => {
+                self.pointer.let_go();
                 self.state.save(&self.cfg.root);
             }
             MouseEventKind::Down(MouseButton::Left) => {
                 self.click(x, y);
-                self.hold(m.modifiers);
+                self.pointer.hold(m.modifiers);
             }
             MouseEventKind::Drag(MouseButton::Left) => self.drag_selection(x, y, m.modifiers),
             MouseEventKind::Up(MouseButton::Left) => self.end_selection(m.modifiers),
@@ -41,59 +45,63 @@ impl App {
         }
     }
 
-    /// The modifier keys of a mouse event count for the selection that it makes (PANES-43, PANES-44).
-    fn hold(&mut self, m: KeyModifiers) {
-        if let Some(s) = self.sel.as_mut().filter(|s| !s.done) {
-            s.hold(m);
-        }
-    }
-
     /// A drag moves the end of the selection, until the button is up.
     pub(crate) fn drag_selection(&mut self, x: u16, y: u16, m: KeyModifiers) {
-        self.hold(m);
-        if let Some(s) = self.sel.as_mut().filter(|s| !s.done) {
-            s.drag(x, y);
-        }
+        self.pointer.drag(x, y, m);
     }
 
     /// The button is up: the selection is final and goes to the clipboard, or with alt to the chat;
     /// an empty one goes away.
     pub(crate) fn end_selection(&mut self, m: KeyModifiers) {
-        self.hold(m);
-        let Some(s) = self.sel.as_mut() else { return };
-        if s.is_empty() {
-            self.sel = None;
-            return;
-        }
-        s.done = true;
-        self.copy_pending = true;
-        if s.region != Region::Panel {
+        let Some((region, to_chat)) = self.pointer.release(m) else { return };
+        self.count_selection(region, to_chat);
+        if region != Region::Panel {
             self.interact(2);
         }
     }
 
     /// A click: a row of the tree opens, a click in a text starts a selection and moves the focus.
     fn click(&mut self, x: u16, y: u16) {
-        self.sel = None;
+        self.pointer.clear();
         let hit = |r: &Rect| r.contains(ratatui::layout::Position::new(x, y));
-        if self.attention.button.is_some_and(|r| hit(&r)) {
+        if self.music.asking {
+            return self.click_music_question(x, y);
+        }
+        if self.frame.music_button().is_some_and(|r| hit(&r)) {
+            return self.toggle_music();
+        }
+        if self.frame.sound_button().is_some_and(|r| hit(&r)) {
             return self.toggle_sound();
         }
-        if let Some(n) = self.session_buttons.iter().find(|(r, _)| hit(r)).map(|(_, n)| *n) {
+        if self.frame.spec_button().is_some_and(|r| hit(&r)) {
+            self.did_by_mouse(crate::keys::Pane::Read, "to_spec");
+            return self.note_to_spec();
+        }
+        if self.frame.upgrade_button().is_some_and(|r| hit(&r)) {
+            self.did_by_mouse(crate::keys::Pane::Read, "upgrade");
+            return self.upgrade();
+        }
+        if let Some(n) = self.frame.session_buttons().iter().find(|(r, _)| hit(r)).map(|(_, n)| *n) {
+            self.count_session_button(n);
             return if n < SESSIONS { self.switch_session(n) } else { self.open_terminal(n - SESSIONS) };
         }
-        if let Some(cmd) = self.play_buttons.iter().find(|(r, _)| hit(r)).map(|(_, c)| c.clone()) {
+        if let Some(cmd) = self.frame.play_buttons().iter().find(|(r, _)| hit(r)).map(|(_, c)| c.to_string()) {
+            self.did_by_mouse(crate::keys::Pane::Global, "terminal");
             return self.put_into_terminal(&cmd, false);
         }
-        let row = self.tree_rows.iter().find(|(r, _)| r.contains(ratatui::layout::Position::new(x, y))).map(|(_, i)| *i);
+        if let Some(open) = self.frame.tree_fold().iter().find(|(r, _)| hit(r)).map(|(_, o)| *o) {
+            return self.fold_all(open);
+        }
+        let row = self.frame.tree_rows().iter().find(|(r, _)| hit(r)).map(|(_, i)| *i);
         if let Some(i) = row {
             self.focus = Focus::Tree;
-            self.tree.sel = i;
+            self.files.select_row(i);
+            self.did_by_mouse(crate::keys::Pane::Tree, "preview");
             self.tree_activate(false);
             return;
         }
         let Some((region, rect)) = self.region_at(x, y) else { return };
-        self.sel = Some(Selection::start(region, rect, x, y));
+        self.pointer.press(Some(Selection::start(region, rect, x, y)));
         if matches!(self.mode, Mode::Read | Mode::Write) {
             self.focus = match region {
                 Region::Panel => Focus::Claude,
@@ -105,54 +113,45 @@ impl App {
             self.interact(1);
         }
         if region == Region::Note && self.mode == Mode::Read {
-            self.read_cursor = self.scroll + (y - rect.y) as usize;
-            let row = self.read_text.get(self.read_cursor).cloned().unwrap_or_default();
+            let at = self.reader.scroll() + (y - rect.y) as usize;
+            let row = self.frame.read_text().get(at).cloned().unwrap_or_default();
             let mut w = 0;
             let want = (x - rect.x) as usize;
-            self.read_col = row.trim_end().chars().take_while(|c| {
+            let col = row.trim_end().chars().take_while(|c| {
                 w += unicode_width::UnicodeWidthChar::width(*c).unwrap_or(0);
                 w <= want
             }).count().min(row.trim_end().chars().count().saturating_sub(1));
-            self.read_want = self.read_col;
-            self.read_anchor = None;
+            self.reader.place(at, col);
+            self.reader.unselect();
         }
     }
 
     /// The wheel scrolls the pane under the pointer.
     fn wheel(&mut self, x: u16, y: u16, up: bool) {
-        self.sel = None;
-        let n = self.scroll_step();
+        self.pointer.clear();
+        let n = self.pointer.scroll_step(Instant::now());
         let ni = n as isize;
-        if self.tree_rows.iter().any(|(r, _)| r.contains(ratatui::layout::Position::new(x, y))) {
-            self.tree.scroll = if up { self.tree.scroll.saturating_sub(n) } else { self.tree.scroll + n };
+        if self.frame.tree_rows().iter().any(|(r, _)| r.contains(ratatui::layout::Position::new(x, y))) {
+            self.files.scroll_tree(up, n);
             return;
         }
         match self.region_at(x, y).map(|(r, _)| r) {
             // The wheel over a terminal in the chat pane scrolls through the lines that left it.
             Some(Region::Panel) if self.cli.pane.is_some() => self.cli.scroll(self.cli.pane.unwrap_or_default(), up),
             Some(Region::Panel) => {
-                self.panel_scroll = if up { self.panel_scroll + n } else { self.panel_scroll.saturating_sub(n) };
+                self.threads.scroll_by(up, n);
             }
             Some(Region::Delta) => {
-                self.delta_scroll = if up { self.delta_scroll.saturating_sub(n) } else { self.delta_scroll + n };
+                self.work.scroll_delta(up, n);
                 self.interact(1);
             }
-            Some(Region::Note) if self.mode == Mode::Write => self.editor.vertical(if up { -ni } else { ni }, self.text_width),
+            Some(Region::Note) if self.mode == Mode::Write => self.writer.editor_mut().vertical(if up { -ni } else { ni }, self.frame.text_width()),
             Some(Region::Note) => {
-                self.scroll = if up { self.scroll.saturating_sub(n) } else { self.scroll + n };
-                self.read_cursor = if up { self.read_cursor.saturating_sub(n) } else { self.read_cursor + n };
+                self.reader.wheel(up, n);
                 self.interact(1);
             }
             None => {}
         }
-    }
-
-    /// Lines for one scroll event: 3 for a wheel notch, 1 inside a fast run of events (a trackpad).
-    pub(crate) fn scroll_step(&mut self) -> usize {
-        let now = std::time::Instant::now();
-        let fast = self.last_scroll.is_some_and(|t| now.duration_since(t) < std::time::Duration::from_millis(40));
-        self.last_scroll = Some(now);
-        if fast { 1 } else { 3 }
     }
 
     pub fn pane_key(f: Focus) -> Option<&'static str> {
@@ -167,7 +166,7 @@ impl App {
     /// Change a pane width by `by` columns, from its width in the last frame.
     pub fn resize(&mut self, pane: Focus, by: i32) {
         let Some(key) = App::pane_key(pane) else { return };
-        let now = self.pane_rects.iter().find(|(p, _)| *p == pane).map(|(_, r)| r.width).unwrap_or(40);
+        let now = self.frame.pane_rects().iter().find(|(p, _)| *p == pane).map(|(_, r)| r.width).unwrap_or(40);
         let w = (now as i32 + by).clamp(20, self.max_width(pane) as i32) as u16;
         self.state.widths.insert(key.into(), w);
         self.state.save(&self.cfg.root);
@@ -175,28 +174,26 @@ impl App {
 
     /// The widest a pane can get: the note keeps 50 columns, the other panes keep theirs.
     pub(crate) fn max_width(&self, pane: Focus) -> u16 {
-        let total: u16 = self.pane_rects.iter().map(|(_, r)| r.width).sum();
-        let others: u16 = self.pane_rects.iter().filter(|(p, _)| *p != pane && *p != Focus::Note).map(|(_, r)| r.width).sum();
-        let note = if self.pane_rects.iter().any(|(p, _)| *p == Focus::Note) { 50 } else { 0 };
+        let total: u16 = self.frame.pane_rects().iter().map(|(_, r)| r.width).sum();
+        let others: u16 = self.frame.pane_rects().iter().filter(|(p, _)| *p != pane && *p != Focus::Note).map(|(_, r)| r.width).sum();
+        let note = if self.frame.pane_rects().iter().any(|(p, _)| *p == Focus::Note) { 50 } else { 0 };
         total.saturating_sub(others + note).max(20)
     }
 
-    /// A press on the edge between two panes starts a drag; returns true when it did.
+    /// A press on the edge between two panes, or one column beside it, starts a drag; returns true
+    /// when it did (PANES-10).
     pub(crate) fn start_drag(&mut self, x: u16, y: u16) -> bool {
-        for i in 1..self.pane_rects.len() {
-            let (left, lr) = self.pane_rects[i - 1];
-            let (right, rr) = self.pane_rects[i];
-            if x == rr.x && y >= rr.y && y < rr.bottom() {
-                // The note fills the rest: resize the other pane of the edge.
-                self.drag = Some(if right == Focus::Note { (left, lr.x, true) } else { (right, rr.right(), false) });
-                return true;
-            }
-        }
-        false
+        let hit = self.frame.pane_rects().windows(2).find(|w| x.abs_diff(w[1].1.x) <= 1 && y >= w[1].1.y && y < w[1].1.bottom());
+        let Some(&[(left, lr), (right, rr)]) = hit else { return false };
+        // The anchor moves with the grab, so the width changes only as far as the mouse moves.
+        let shift = |a: u16| (a + x).saturating_sub(rr.x);
+        // The note fills the rest: resize the other pane of the edge.
+        self.pointer.grab(if right == Focus::Note { (left, shift(lr.x), true) } else { (right, shift(rr.right()), false) });
+        true
     }
 
     pub(crate) fn drag_to(&mut self, x: u16) {
-        let Some((pane, anchor, grows_right)) = self.drag else { return };
+        let Some((pane, anchor, grows_right)) = self.pointer.grabbed() else { return };
         let Some(key) = App::pane_key(pane) else { return };
         let w = if grows_right { x.saturating_sub(anchor) } else { anchor.saturating_sub(x) };
         let max = self.max_width(pane);

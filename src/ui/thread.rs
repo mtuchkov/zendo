@@ -160,7 +160,7 @@ fn tool_lines(app: &App, uses: &[crate::app::ToolUse], took: std::time::Duration
     let mut s: Vec<String> = counts.iter().map(|(k, n)| if *n == 1 { k.clone() } else { format!("{k} {n}") }).collect();
     s.push(format!("{:.0} s", took.as_secs_f32()));
     let mut out = vec![Line::styled(s.join(" · "), dim)];
-    if app.details {
+    if app.threads.details() {
         for u in uses {
             out.extend(markdown::wrap(vec![Span::styled(u.title.clone(), dim)], w, "  · ", "    "));
         }

@@ -1,10 +1,12 @@
 //! The terminal loop: input on its own thread, one draw for all waiting input, the output of the
 //! Claude Code sessions, and the terminal modes.
 
+mod caret;
+mod sound;
+
 use crate::app::App;
-use crate::ui;
 use anyhow::Result;
-use ratatui::crossterm::event::{self, DisableBracketedPaste, DisableFocusChange, DisableMouseCapture, EnableBracketedPaste, EnableFocusChange, EnableMouseCapture, Event, KeyEventKind};
+use ratatui::crossterm::event::{self, DisableBracketedPaste, DisableFocusChange, DisableMouseCapture, EnableBracketedPaste, EnableFocusChange, EnableMouseCapture, Event};
 use ratatui::crossterm::execute;
 use std::time::Duration;
 use tokio::sync::mpsc;
@@ -40,19 +42,21 @@ pub async fn run(
     let mut pulse = tokio::time::interval(Duration::from_millis(100));
     pulse.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let printed = app.cli.notify.clone();
+    // The lofi music opens its output here, not in App::new, so tests play nothing (LOFI-11).
+    app.start_music(crate::music::Output::System);
     loop {
-        term.draw(|f| ui::draw(f, app))?;
+        term.draw(|f| app.draw(f))?;
         cursor_shape(app);
         if std::mem::take(&mut app.attention.bells) > 0 {
-            bell();
+            sound::ring();
         }
-        if let Some(text) = app.to_chat.take() {
+        if let Some(text) = app.pointer.take_to_chat() {
             app.mouse_to_chat(text);
             continue;
         }
-        if let Some(text) = app.clip.take() {
+        if let Some(text) = app.pointer.take_clip() {
             crate::text::select::copy(&text);
-            app.last_copy = Some(text.clone());
+            app.pointer.copied(text.clone());
             let n = text.chars().count();
             app.flash(format!("copied {n} character{}", if n == 1 { "" } else { "s" }));
             continue;
@@ -65,7 +69,7 @@ pub async fn run(
                 on_input(app, e);
                 // A trackpad sends a burst of scroll events: take all that are here, then draw once.
                 let until = std::time::Instant::now() + Duration::from_millis(12);
-                while !app.quit && app.clip.is_none() && std::time::Instant::now() < until {
+                while !app.quit && app.pointer.clip().is_none() && std::time::Instant::now() < until {
                     match keys.try_recv() {
                         Ok(e) => on_input(app, e),
                         Err(_) => break,
@@ -73,14 +77,14 @@ pub async fn run(
                 }
             },
             Some(e) = async {
-                match app.agent_events.as_mut() {
+                match app.link.events_mut() {
                     Some(rx) => rx.recv().await,
                     None => std::future::pending().await,
                 }
             } => {
                 app.on_agent(e);
                 // Drain what else arrived so streaming text draws in one frame.
-                while let Some(rx) = app.agent_events.as_mut() {
+                while let Some(rx) = app.link.events_mut() {
                     match rx.try_recv() {
                         Ok(e) => app.on_agent(e),
                         Err(_) => break,
@@ -97,7 +101,8 @@ pub async fn run(
 
 fn on_input(app: &mut App, e: Event) {
     match e {
-        Event::Key(k) if k.kind != KeyEventKind::Release => app.on_key(k),
+        // A key that goes up ends `m` or `u` held in read mode (FILES-45, FILES-47).
+        Event::Key(k) => app.on_key(k),
         Event::Paste(s) => app.on_paste(s),
         Event::Mouse(m) => app.on_mouse(m),
         Event::FocusGained => app.on_focus(true),
@@ -112,7 +117,7 @@ pub fn terminal_on() {
     use ratatui::crossterm::event::{KeyboardEnhancementFlags, PushKeyboardEnhancementFlags};
     let _ = execute!(std::io::stdout(), EnableBracketedPaste, EnableMouseCapture, EnableFocusChange);
     if ratatui::crossterm::terminal::supports_keyboard_enhancement().unwrap_or(false) {
-        let _ = execute!(std::io::stdout(), PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES));
+        let _ = execute!(std::io::stdout(), PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES | KeyboardEnhancementFlags::REPORT_EVENT_TYPES));
         KITTY.store(true, std::sync::atomic::Ordering::Relaxed);
     }
 }
@@ -123,15 +128,8 @@ pub fn terminal_off() {
     if KITTY.swap(false, std::sync::atomic::Ordering::Relaxed) {
         let _ = execute!(std::io::stdout(), PopKeyboardEnhancementFlags);
     }
-    let _ = execute!(std::io::stdout(), DisableBracketedPaste, DisableMouseCapture, DisableFocusChange, SetCursorStyle::DefaultUserShape);
-    SHAPE.store(0, std::sync::atomic::Ordering::Relaxed);
-}
-
-/// The terminal bell: the terminal plays its sound (ATTN-1).
-fn bell() {
-    use std::io::Write;
-    let mut out = std::io::stdout();
-    let _ = out.write_all(b"\x07").and_then(|_| out.flush());
+    let _ = execute!(std::io::stdout(), DisableBracketedPaste, DisableMouseCapture, DisableFocusChange, SetCursorStyle::DefaultUserShape, ratatui::crossterm::style::Print(caret::RESET_COLOR));
+    *SHAPE.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = None;
 }
 
 /// The terminal has the kitty keyboard protocol: ctrl-shift-s is not ctrl-s.
@@ -140,16 +138,18 @@ pub fn kitty() -> bool {
 }
 
 static KITTY: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-static SHAPE: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+static SHAPE: std::sync::Mutex<Option<caret::Caret>> = std::sync::Mutex::new(None);
 
-/// A blinking block on the char in read mode; a blinking bar where you type.
+/// The cursor: its shape and color for the pane with the keys and the float (FLOAT-16); written
+/// only when it changes.
 fn cursor_shape(app: &App) {
-    use ratatui::crossterm::cursor::SetCursorStyle;
     use crate::keys::Pane;
-    let block = app.key_pane() == Pane::Read && app.mode == crate::app::Mode::Read;
-    let want = if block { 1 } else { 2 };
-    if SHAPE.swap(want, std::sync::atomic::Ordering::Relaxed) != want {
-        let style = if block { SetCursorStyle::BlinkingBlock } else { SetCursorStyle::BlinkingBar };
-        let _ = execute!(std::io::stdout(), style);
+    use std::io::Write;
+    let read = app.key_pane() == Pane::Read && app.mode == crate::app::Mode::Read;
+    let want = caret::look(read, app.writer.float().is_some());
+    let mut last = SHAPE.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    if last.replace(want) != Some(want) {
+        let mut out = std::io::stdout();
+        let _ = out.write_all(caret::seq(want).as_bytes()).and_then(|()| out.flush());
     }
 }

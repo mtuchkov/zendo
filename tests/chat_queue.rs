@@ -29,7 +29,7 @@ async fn a_question_while_the_agent_answers_waits_in_the_queue() {
     key(&mut a, KeyCode::Enter);
     assert_eq!(users(&a), 1, "the second question waits");
     assert_eq!(a.threads[CHAT_KEY].queue.len(), 1);
-    assert_eq!(a.input.text(), "", "the input is free for the next one");
+    assert_eq!(a.composer.input().text(), "", "the input is free for the next one");
     let screen = draw(&mut a, 160, 30).join("\n");
     assert!(screen.contains("queued") && screen.contains("second"), "the queue shows:\n{screen}");
     until(&mut a, |a| users(a) == 2).await;
@@ -47,7 +47,7 @@ async fn esc_stops_and_puts_the_queue_back_in_the_input() {
     typ(&mut a, "second");
     key(&mut a, KeyCode::Enter);
     key(&mut a, KeyCode::Esc);
-    assert_eq!(a.input.text(), "second", "the queued question is back in the input");
+    assert_eq!(a.composer.input().text(), "second", "the queued question is back in the input");
     assert!(a.threads[CHAT_KEY].queue.is_empty());
     until(&mut a, |a| a.threads[CHAT_KEY].busy.is_none()).await;
     assert_eq!(users(&a), 1, "nothing more went");

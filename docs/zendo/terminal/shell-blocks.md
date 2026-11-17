@@ -66,5 +66,5 @@ The tests are in `tests/terminal.rs`. They put answers with ` ```sh ` blocks int
 | TERM-11 | Event      | When the user presses `F5` outside a shell block, or in another pane, the system shall show the `F5` terminal. | User, 2026-11-12 |
 
 Tests that verify detailed requirements: `play_button_and_terminal_buttons` in `tests/terminal.rs`
-(TERM-8, TERM-11, TERM-14, TERM-16), `shell_blocks_are_shell_fences_and_prompt_blocks` and
+(TERM-8, TERM-11, TERM-14), `shell_blocks_are_shell_fences_and_prompt_blocks` and
 `a_prompt_block_gives_only_the_commands` in `src/text/shell_tests.rs` (TERM-7, TERM-9).

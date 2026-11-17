@@ -5,6 +5,9 @@ mod chat;
 pub(crate) mod cli;
 mod code_pane;
 mod delta_pane;
+mod find;
+mod float;
+pub mod frame;
 mod layout;
 mod lists;
 mod overlays;
@@ -20,6 +23,9 @@ use chat::*;
 use cli::*;
 use code_pane::*;
 use delta_pane::*;
+use find::*;
+use float::*;
+use frame::Frame as Cache;
 pub use layout::*;
 use lists::*;
 use overlays::*;
@@ -50,24 +56,38 @@ use unicode_width::UnicodeWidthStr;
 pub const COLUMN: u16 = 76;
 const SPIN: [&str; 4] = ["·  ", "·· ", "···", " ··"];
 
-pub fn draw(f: &mut Frame, app: &mut App) {
+/// Draw the screen. The result is the frame for the mouse and the keys, built from `last`: what a
+/// draw does not show keeps its last value.
+pub fn draw(f: &mut Frame, app: &mut App, last: Cache) -> Cache {
+    let mut fr = last;
+    draw_into(f, app, &mut fr);
+    fr
+}
+
+fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
+    if app.writer.float().is_some() {
+        return draw_float(f, app, fr);
+    }
     app.drop_old_review();
     let t = *app.theme();
     let area = f.area();
     app.cli.resize(area.height.saturating_sub(1), area.width);
-    app.attention.button = None;
+    fr.sound_button = None;
+    fr.music_button = None;
+    fr.spec_button = None;
+    fr.upgrade_button = None;
     if app.hold.is_some() {
-        app.regions.clear();
+        fr.regions.clear();
         draw_hold(f, app, &t, area);
         return draw_selection(f, app, &t);
     }
     if let Some(n) = app.cli.view {
-        app.regions.clear();
-        draw_cli(f, app, &t, n, area);
+        fr.regions.clear();
+        draw_cli(f, app, fr, &t, n, area);
         return draw_selection(f, app, &t);
     }
     f.render_widget(Block::new().style(Style::new().bg(t.bg).fg(t.fg)), area);
-    let ask = u16::from(app.file_prompt.is_some());
+    let ask = u16::from(app.files.prompt().is_some());
     let [top, _, main, rule, status, prompt] = Layout::vertical([
         Constraint::Length(1),
         Constraint::Length(1),
@@ -78,23 +98,25 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     ])
     .areas(area);
 
-    app.regions.clear();
-    app.session_buttons.clear();
-    app.play_buttons.clear();
+    fr.regions.clear();
+    fr.session_buttons.clear();
+    fr.play_buttons.clear();
+    fr.tree_fold.clear();
     f.render_widget(Paragraph::new("─".repeat(rule.width as usize)).style(Style::new().fg(t.line)), rule);
-    app.view_height = main.height as usize;
+    fr.view_height = main.height as usize;
 
     match app.mode {
         Mode::Notes => draw_notes(f, app, &t, main),
         Mode::Search => draw_search(f, app, &t, main),
+        Mode::Find => draw_find(f, app, &t, main),
         Mode::Theme => {
             let w = 40.min(main.width / 2);
             let [left, right] = Layout::horizontal([Constraint::Min(1), Constraint::Length(w)]).areas(main);
-            draw_read(f, app, &t, left);
+            draw_read(f, app, fr, &t, left);
             draw_themes(f, app, &t, right);
         }
         Mode::Read | Mode::Write | Mode::Help => {
-            draw_panes(f, app, &t, main);
+            draw_panes(f, app, fr, &t, main);
             if app.mode == Mode::Help {
                 // Over the panes and the top line, not over the status bar.
                 draw_help(f, app, &t, Rect { height: rule.y - area.y, ..area });
@@ -102,36 +124,36 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         }
     }
     // After the panes: the top line shows the blinking sessions whose buttons are not on the screen.
-    draw_top(f, app, &t, top);
-    draw_status(f, app, &t, status);
+    draw_top(f, app, fr, &t, top);
+    draw_status(f, app, fr, &t, status);
     draw_file_prompt(f, app, &t, prompt);
+    draw_confirm(f, app, &t, area);
+    draw_music_question(f, app, fr, &t, area);
 
     draw_selection(f, app, &t);
 }
 
 /// The mouse selection on top of the frame; after the release, its text goes to the clipboard.
 fn draw_selection(f: &mut Frame, app: &mut App, t: &Theme) {
-    let Some(sel) = app.sel else { return };
-    if std::mem::take(&mut app.copy_pending) {
+    let Some(sel) = app.pointer.sel() else { return };
+    if app.pointer.take_copy_request() {
         let text = sel.text(f.buffer_mut());
         if sel.chat {
             // After the frame, the text goes to the chat input as a chip (PANES-44).
-            app.to_chat = Some(text);
+            app.pointer.send_to_chat(text);
             return;
         } else if !text.is_empty() {
-            app.clip = Some(text);
+            app.pointer.copy(text);
         }
     }
     sel.paint(f.buffer_mut(), t.acc2, t.bg);
 }
 
 /// The panes side by side: the note fills what the others leave; their edges can be dragged.
-fn draw_panes(f: &mut Frame, app: &mut App, t: &Theme, main: Rect) {
+fn draw_panes(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, main: Rect) {
     let panes = panes(app, main.width);
-    app.visible = panes.clone();
-    if !panes.contains(&app.focus) {
-        app.focus = panes[0];
-    }
+    fr.visible = panes.clone();
+    app.keep_focus_in(&panes);
     let cons: Vec<Constraint> = panes
         .iter()
         .map(|p| match p {
@@ -140,17 +162,17 @@ fn draw_panes(f: &mut Frame, app: &mut App, t: &Theme, main: Rect) {
         })
         .collect();
     let areas = Layout::horizontal(cons).split(main);
-    app.pane_rects = panes.iter().copied().zip(areas.iter().copied()).collect();
+    fr.pane_rects = panes.iter().copied().zip(areas.iter().copied()).collect();
     for (i, (p, a)) in panes.iter().zip(areas.iter()).enumerate() {
         match p {
-            Focus::Tree => draw_tree(f, app, t, *a),
-            Focus::Note => draw_left(f, app, t, *a),
-            Focus::Delta => draw_delta(f, app, t, *a),
-            Focus::Claude => draw_panel(f, app, t, *a),
+            Focus::Tree => draw_tree(f, app, fr, t, *a),
+            Focus::Note => draw_left(f, app, fr, t, *a),
+            Focus::Delta => draw_delta(f, app, fr, t, *a),
+            Focus::Claude => draw_panel(f, app, fr, t, *a),
         }
         // The edge between panes: drag it to resize.
         if i > 0 {
-            let dragging = app.drag.is_some_and(|(d, _, _)| d == *p || (d == panes[i - 1] && *p == Focus::Note));
+            let dragging = app.pointer.grabbed().is_some_and(|(d, _, _)| d == *p || (d == panes[i - 1] && *p == Focus::Note));
             let style = Style::new().fg(if dragging { t.acc2 } else { t.line }).bg(t.bg);
             let rule: Vec<Line> = (0..a.height).map(|_| Line::styled("│", style)).collect();
             f.render_widget(Paragraph::new(rule), Rect { width: 1, ..*a });

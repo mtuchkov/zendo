@@ -18,3 +18,27 @@ jobs:
         BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
       run: sh .githooks/version-bump.sh "$BASE" "$HEAD"
+    - name: Check the head against main as it is now, not only as it was when the pull request changed
+      if: github.event_name == 'pull_request'
+      env:
+        HEAD: ${{ github.event.pull_request.head.sha }}
+      run: |
+        git fetch -q origin main
+        sh .githooks/version-bump.sh above "$HEAD" origin/main
+
+  # After a push to main, an open pull request can have a version that is not above main any more.
+  open-pulls:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      statuses: write
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Check the version of each open pull request against the new main
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: sh .githooks/pull-versions.sh "${{ github.sha }}"

@@ -1,4 +1,4 @@
-//! Every action of every pane, by group, in the order of the help. The keys are in resources/keymap.toml.
+//! Every action of every pane, by group, in the order of the help. The keys are in resources/keymap-linux.toml and keymap-mac.toml.
 use super::*;
 
 const fn a(pane: Pane, group: Group, name: &'static str, help: &'static str) -> Action {
@@ -12,12 +12,15 @@ use Pane::*;
 pub const ACTIONS: &[Action] = &[
     // global
     a(Global, Navigation, "next_pane", "next pane"),
+    a(Global, Navigation, "find", "find a file: the recent files, by path and by text"),
+    a(Global, Editing, "new_note", "a new note in a float"),
     a(Global, Sessions, "session_1", "agent session 1"),
     a(Global, Sessions, "session_2", "agent session 2"),
     a(Global, Sessions, "session_3", "agent session 3"),
     a(Global, Sessions, "session_4", "agent session 4"),
     a(Global, Sessions, "session_5", "agent session 5"),
     a(Global, Sessions, "next_session", "the next agent session"),
+    a(Global, Sessions, "prev_session", "the previous agent session or terminal"),
     a(Global, Sessions, "terminal", "put the shell block under the cursor into a terminal; elsewhere the F5 terminal"),
     a(Global, Sessions, "terminal_run", "put the shell block under the cursor into a terminal and run it"),
     a(Global, View, "toggle_tree", "file tree"),
@@ -25,6 +28,7 @@ pub const ACTIONS: &[Action] = &[
     a(Global, View, "narrower", "a narrower text column"),
     a(Global, View, "edge_left", "move the edge of the pane in focus"),
     a(Global, View, "edge_right", "move the edge of the pane in focus"),
+    a(Global, App, "music", "lofi music on or off"),
     a(Global, App, "help", "the keys of this pane"),
     a(Global, App, "quit", "quit"),
     // read
@@ -38,7 +42,7 @@ pub const ACTIONS: &[Action] = &[
     a(Read, Navigation, "bottom", "bottom"),
     a(Read, Navigation, "next_note", "next note"),
     a(Read, Navigation, "prev_note", "previous note"),
-    a(Read, Navigation, "search", "search"),
+    a(Read, Navigation, "search", "find a file: the recent files, by path and by text"),
     a(Read, Selection, "select", "start / stop a selection"),
     a(Read, Selection, "select_down", "select down"),
     a(Read, Selection, "select_up", "select up"),
@@ -53,9 +57,12 @@ pub const ACTIONS: &[Action] = &[
     a(Read, Features, "add_to_chat", "add the selection to the chat"),
     a(Read, Features, "say", "here is what I want to say: the agent writes it here, or writes the selection again"),
     a(Read, Features, "split", "over the word limit: Claude splits it, keeps the altitude"),
+    a(Read, Features, "to_spec", "turn the note into specifications: the agent updates them or writes new ones"),
     a(Read, Features, "recap", "recap now"),
     a(Read, Features, "recap_toggle", "show / hide the recap"),
     a(Read, Features, "review", "twice: Claude marks the confusing lines and sums up the file"),
+    a(Read, Features, "peek_main", "hold: the version of main"),
+    a(Read, Features, "peek_disk", "hold: the version of the main checkout on disk"),
     a(Read, View, "chat", "chat on / off"),
     a(Read, View, "delta", "delta"),
     a(Read, View, "tree", "file tree"),
@@ -145,6 +152,8 @@ pub const ACTIONS: &[Action] = &[
     a(Tree, Navigation, "bottom", "bottom"),
     a(Tree, Navigation, "unfold", "unfold [+]"),
     a(Tree, Navigation, "fold", "fold [-]"),
+    a(Tree, Navigation, "expand_all", "open every folder"),
+    a(Tree, Navigation, "collapse_all", "close every folder"),
     a(Tree, Navigation, "close_folder", "close the folder / go to the parent"),
     a(Tree, Navigation, "search", "filter by file name"),
     a(Tree, Editing, "rename", "rename the file"),
@@ -155,7 +164,7 @@ pub const ACTIONS: &[Action] = &[
     a(Tree, Features, "add_to_chat", "add the file to the chat"),
     a(Tree, View, "open", "open in the note"),
     a(Tree, View, "preview", "open, stay in the tree"),
-    a(Tree, View, "view", "structure, docs, all .md, text files, folders"),
+    a(Tree, View, "view", "structure, docs, text files, worktree, worktree Δ"),
     a(Tree, View, "layout", "standard / wide screen"),
     a(Tree, View, "delta", "delta"),
     a(Tree, View, "chat", "chat"),

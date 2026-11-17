@@ -2,9 +2,12 @@
 
 mod paths;
 mod profile;
+mod read;
+mod write;
 
 pub use paths::*;
 pub use profile::*;
+pub use read::Problem;
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -40,6 +43,17 @@ pub struct UserConfig {
     /// default on. The sound button of zendo changes it (docs/zendo/attention.md).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sound: Option<bool>,
+    /// The lofi music at the start; default on. Without it, zendo asks once at the start; the
+    /// music button changes it (docs/zendo/lofi.md, LOFI-11, LOFI-12).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub music: Option<bool>,
+    /// The usage counts in the data folder; default on (docs/zendo/usage.md, USAGE-14).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub usage: Option<bool>,
+    /// The model that names the agent sessions, for each agent: `claude`, `codex` or `other`; an
+    /// empty name: the default model of the agent (docs/zendo/session-names/session-names.md, NAMES-12).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub name_models: BTreeMap<String, String>,
     /// The private notes repo, when the user turned it on.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notes: Option<NotesRepo>,
@@ -104,31 +118,70 @@ impl UserConfig {
         problems.extend(read_problem);
         (map, problems)
     }
+    /// The model that names the agent sessions of an agent of `kind`: the one of `[name_models]`,
+    /// else `haiku` for Claude and `luna` for Codex (NAMES-12, NAMES-13).
+    pub fn name_model(&self, kind: Kind) -> Option<String> {
+        let (id, default) = match kind {
+            Kind::Claude => ("claude", Some("haiku")),
+            Kind::Codex => ("codex", Some("luna")),
+            Kind::Other => ("other", None),
+        };
+        let name = self.name_models.get(id).map(String::as_str).or(default)?;
+        (!name.trim().is_empty()).then(|| name.trim().to_string())
+    }
+
     pub fn load() -> Self {
         Self::load_from(&config_path())
     }
 
-    /// The config in `path`; the defaults when there is no file or it does not parse.
+    /// The config in `path`: every setting without an error; the defaults when there is no file
+    /// (CMD-17).
     pub fn load_from(path: &Path) -> Self {
-        Self::read_from(path).ok().flatten().unwrap_or_default()
+        Self::read_from(path).0
     }
 
-    /// The config, `None` when there is no file, or what is wrong with the file.
-    pub fn read() -> Result<Option<Self>, String> {
-        Self::read_from(&config_path())
-    }
-
-    fn read_from(path: &Path) -> Result<Option<Self>, String> {
-        match std::fs::read_to_string(path) {
-            Err(_) => Ok(None),
-            Ok(s) => toml::from_str(&s).map(Some).map_err(|e| e.to_string()),
+    /// The config in `path`, and the lines with an error (CMD-17, CMD-18). A file that zendo cannot
+    /// read is one problem without a line.
+    pub fn read_from(path: &Path) -> (Self, Vec<Problem>) {
+        match std::fs::read(path) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => (Self::default(), Vec::new()),
+            Err(e) => (Self::default(), vec![Problem { line: None, error: e.to_string() }]),
+            Ok(bytes) => read::read_text(&String::from_utf8_lossy(&bytes)),
         }
     }
 
-    pub fn save(&self) -> std::io::Result<()> {
-        self.save_to(&config_path())
+    /// A copy, to compare with after a change (`save_changes`).
+    pub fn copy(&self) -> Self {
+        write::copy(self)
     }
 
+    /// Change settings in `path` with `change` and save them: only their lines change (CMD-19).
+    pub fn update(path: &Path, change: impl FnOnce(&mut Self)) -> Result<(), String> {
+        let mut cfg = Self::load_from(path);
+        let before = cfg.copy();
+        change(&mut cfg);
+        cfg.save_changes(path, &before)
+    }
+
+    /// Save in `path` the settings that differ from `before`: only their lines change, every other
+    /// line stays as it is (CMD-19). Without a file, a new one.
+    pub fn save_changes(&self, path: &Path, before: &Self) -> Result<(), String> {
+        let bytes = match std::fs::read(path) {
+            Ok(bytes) => bytes,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => CONFIG_HEAD.as_bytes().to_vec(),
+            Err(e) => return Err(format!("cannot read {}: {e}", path.display())),
+        };
+        let write = || -> std::io::Result<()> {
+            if let Some(dir) = path.parent() {
+                std::fs::create_dir_all(dir)?;
+            }
+            std::fs::write(path, write::edit_bytes(&bytes, before, self))
+        };
+        write().map_err(|e| format!("cannot write {}: {e}", path.display()))
+    }
+
+    /// Write the whole file: only for a new file. To change a file of the user, use `update` or
+    /// `save_changes` (CMD-19).
     pub fn save_to(&self, path: &Path) -> std::io::Result<()> {
         if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir)?;

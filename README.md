@@ -65,6 +65,8 @@ beside it when you need them.
   rest of the document: the same style, the same level of detail.
 - **Review.** `ctrl-r` twice: the agent marks the lines that confuse a reader,
   and says why.
+- **From a note to a spec.** `[ → spec ]` on a note, or `s`: the agent decides
+  which specifications to update and which to write, says its plan, then edits.
 - **Documents that stay short.** Past the word limit (1,000 by default) the text
   turns red. `S` asks the agent to split the document and keep each part at one
   level of detail.
@@ -96,8 +98,10 @@ are a few keys away. Agents read the same file, so they know where a new
 document goes.
 
 ```sh
-zendo doctor          # makes the file from a template when there is none
-zendo doctor --fix    # the agent repairs a file that zendo does not understand
+zendo init                     # makes the file from a template when there is none
+zendo doctor                   # checks the file, and changes nothing
+zendo doctor --fix             # repairs what needs no judgement
+zendo doctor --fix --claude    # the agent repairs what zendo does not understand
 ```
 
 **From notes to a specification.** `ctrl-t` in the chat adds a template. The
@@ -132,7 +136,7 @@ curl -fsSL https://raw.githubusercontent.com/mtuchkov/zendo/main/install.sh | sh
 
 You need Node.js 22 LTS (18+ works), and Claude Code or Codex logged in.
 `zendo doctor` checks each step of the setup. When a new version is out, the
-top bar says so: press `U`. For proxies and certificates, see
+top bar says so: click `[upgrade]`. For proxies and certificates, see
 [INSTALLATION.md](INSTALLATION.md).
 
 ## More

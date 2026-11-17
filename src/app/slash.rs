@@ -1,6 +1,7 @@
 //! `/` at the start of the chat input: the slash commands of the agent. zendo passes them through:
 //! the list comes from the agent, and the command goes to the agent as the user typed it.
-use super::*;
+use super::Composer;
+use super::super::*;
 use crate::agent::Command;
 
 /// The commands of the agent, and the open suggestions.
@@ -21,7 +22,12 @@ pub fn matches(commands: &[Command], q: &str) -> Vec<Command> {
     starts.chain(has).cloned().collect()
 }
 
-impl App {
+impl Composer {
+    /// The commands of the agent, as it sent them.
+    pub fn set_commands(&mut self, commands: Vec<Command>) {
+        self.slash.commands = commands;
+    }
+
     /// The name after `/` when the cursor is in the first word of the input and it starts with `/`.
     fn slash_token(&self) -> Option<String> {
         let e = &self.input;
@@ -31,7 +37,7 @@ impl App {
     }
 
     /// After a key in the chat input: open, update or close the suggestions.
-    pub(crate) fn update_slash(&mut self) {
+    pub fn update_slash(&mut self) {
         let token = self.slash_token().filter(|_| !self.slash.commands.is_empty());
         let Some(q) = token else {
             self.slash.open = false;
@@ -47,7 +53,7 @@ impl App {
 
     /// The keys of the open suggestions: the arrows choose, `tab` takes one, `esc` closes. `enter`
     /// takes one when the name is not complete yet; else it sends. True when the key was used.
-    pub(crate) fn key_slash(&mut self, k: KeyEvent) -> bool {
+    pub fn key_slash(&mut self, k: KeyEvent) -> bool {
         let n = self.slash.hits.len();
         let exact = self.slash_token().is_some_and(|q| self.slash.hits.iter().any(|c| c.name == q));
         match k.code {

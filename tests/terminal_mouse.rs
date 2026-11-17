@@ -106,7 +106,7 @@ fn drag_copies(name: &str, full: bool) {
     assert!(screen.iter().any(|r| r.contains("line-199")), "the terminal stays on the screen");
     mouse(&mut a, MouseEventKind::Up(MouseButton::Left), x + 7, y);
     draw(&mut a, W, H);
-    assert_eq!(a.clip.as_deref(), Some("line-199"), "the release copies the selection");
+    assert_eq!(a.pointer.clip(), Some("line-199"), "the release copies the selection");
     done(root, a);
 }
 
@@ -125,7 +125,7 @@ fn the_program_gets_the_mouse(name: &str, full: bool) {
     let want = "^[[<0;1;1M^[[<32;3;2M^[[<0;3;2m^[[<64;2;1M^[[<65;2;1M";
     assert!(got(&mut a, want).contains(want), "the program gets the press, the drag, the release and the wheel:\n{}", got(&mut a, want));
     draw(&mut a, W, H);
-    assert!(a.sel.is_none() && a.clip.is_none(), "zendo does not select text itself");
+    assert!(a.pointer.sel().is_none() && a.pointer.clip().is_none(), "zendo does not select text itself");
     done(root, a);
 }
 

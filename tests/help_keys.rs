@@ -14,7 +14,7 @@ async fn f1_shows_the_keys_of_the_pane_from_everywhere() {
     let bar = |a: &mut zendo::app::App| draw(a, 160, 30).into_iter().rev().find(|r| r.contains("   ")).unwrap_or_default();
     for (setup, pane) in [(0, Pane::Read), (1, Pane::Write), (2, Pane::Chat), (3, Pane::Notes), (4, Pane::Global)] {
         a.mode = Mode::Read;
-        a.panel = false;
+        a.threads.hide();
         a.focus = Focus::Note;
         match setup {
             1 => key(&mut a, KeyCode::Char('i')),
@@ -29,7 +29,7 @@ async fn f1_shows_the_keys_of_the_pane_from_everywhere() {
         let b = bar(&mut a);
         assert!(b.contains("alt-? keys"), "{pane:?}: {b}");
         key(&mut a, KeyCode::F(1));
-        assert_eq!((a.mode, a.help_pane), (Mode::Help, pane), "{pane:?}");
+        assert_eq!((a.mode, a.key_help.pane()), (Mode::Help, pane), "{pane:?}");
         key(&mut a, KeyCode::Esc);
         assert_ne!(a.mode, Mode::Help, "any key closes the help");
         if a.mode == Mode::Write {
@@ -41,17 +41,17 @@ async fn f1_shows_the_keys_of_the_pane_from_everywhere() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// STRUCT-19, PANES-27: without project-structure.toml, the status bar asks the user to run zendo doctor.
+// STRUCT-19, PANES-27: without project-structure.toml, the status bar asks the user to run zendo init.
 #[test]
-fn the_status_bar_asks_for_zendo_doctor_without_a_structure_file() {
+fn the_status_bar_asks_for_zendo_init_without_a_structure_file() {
     let root = repo("no-structure", &[("docs/notes/2026-11-12-a.md", "# A\n")]);
     let mut a = app(&root);
     let bar = draw(&mut a, 160, 30).into_iter().rev().find(|r| r.contains("READ")).unwrap();
-    assert!(bar.contains("no project-structure.toml · run zendo doctor"), "{bar}");
+    assert!(bar.contains("no project-structure.toml · run zendo init"), "{bar}");
     std::fs::write(root.join("project-structure.toml"), "[project]\nname = \"x\"\n").unwrap();
     a.load_structure();
     let bar = draw(&mut a, 160, 30).into_iter().rev().find(|r| r.contains("READ")).unwrap();
-    assert!(!bar.contains("zendo doctor"), "{bar}");
+    assert!(!bar.contains("zendo init"), "{bar}");
     let _ = std::fs::remove_dir_all(&root);
 }
 

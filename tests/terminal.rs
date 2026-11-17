@@ -21,14 +21,18 @@ fn app_with_shell(name: &str) -> (std::path::PathBuf, App) {
 fn answer(a: &mut App, command: &str) {
     a.thread(&session_key(0)).items.push(Item::Agent(format!("Run this:\n\n```sh\n{command}\n```\n")));
     a.focus = Focus::Claude;
-    a.transcript.on = true;
+    a.threads.transcript_mut().focus(true);
     draw(a, 120, 40);
-    a.transcript.row = a.transcript.blocks.last().expect("a shell block").0 + 1;
+    let row = a.threads.transcript().blocks().last().expect("a shell block").0 + 1;
+    a.threads.transcript_mut().place(row, 0);
 }
 
 fn f5(a: &mut App, alt: bool) {
     a.on_key(KeyEvent::new(KeyCode::F(5), if alt { KeyModifiers::ALT } else { KeyModifiers::NONE }));
 }
+
+/// The key of the previous session: alt-[ on Linux, alt-} on the Mac (TERM-49).
+const PREV: char = if cfg!(target_os = "macos") { '}' } else { '[' };
 
 fn alt(a: &mut App, c: char) {
     a.on_key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::ALT));
@@ -148,8 +152,9 @@ async fn five_busy_terminals_take_nothing() {
     done(&root, &mut a);
 }
 
-// TERM-8, TERM-11, TERM-14, TERM-16: the play button on the block; F5 outside a block shows the F5
-// terminal; the terminal buttons come under F10, after a line.
+// TERM-8, TERM-11, TERM-14: the play button on the block; F5 outside a block shows the F5
+// terminal; while the agent buttons are in the row above the chat, the terminal buttons start at
+// the top of the right edge, with no line.
 #[tokio::test(flavor = "multi_thread")]
 async fn play_button_and_terminal_buttons() {
     let (root, mut a) = app_with_shell("term-buttons");
@@ -158,17 +163,18 @@ async fn play_button_and_terminal_buttons() {
     assert!(screen.iter().any(|l| l.contains("▶")), "the play button:\n{}", screen.join("\n"));
     let col = |s: &str| screen.iter().position(|l| l.contains(s));
     let (f10, f5_row) = (col("F10").unwrap(), col(" F5 ").unwrap());
-    assert!(f5_row > f10 + 2, "F5 comes under F10 with a gap");
-    assert!(screen[f10 + 2].trim_end().ends_with("────"), "a line between them:\n{}", screen.join("\n"));
+    assert!(screen[f10].contains("F6"), "the agent buttons in a row:\n{}", screen.join("\n"));
+    assert!(f5_row == f10 + 2 && screen[f5_row].trim_end().ends_with("F5"), "F5 at the top of the right edge:\n{}", screen.join("\n"));
+    assert!(!screen[..f5_row].iter().any(|l| l.trim_end().ends_with("────")), "no line above it:\n{}", screen.join("\n"));
     a.focus = Focus::Note;
-    a.transcript.on = false;
+    a.threads.transcript_mut().focus(false);
     f5(&mut a, false);
     assert_eq!(a.cli.pane, Some(SESSIONS), "F5 elsewhere shows the F5 terminal");
     a.cli.put(0, "sleep 30", true);
     wait(&mut a, 10, |a| a.cli.busy(0));
     alt_q(&mut a);
     let screen = draw(&mut a, 120, 40).join("\n");
-    assert!(screen.contains("F5•"), "the busy mark:\n{screen}");
+    assert!(screen.contains("F5") && !screen.contains("F5•"), "the button has no dot:\n{screen}");
     done(&root, &mut a);
 }
 
@@ -212,11 +218,11 @@ async fn ctrl_o_makes_the_terminal_full_screen() {
     done(&root, &mut a);
 }
 
-// TERM-41: alt-n goes from the last agent session to F5, to each [>] terminal, then to agent
-// session 1.
+// TERM-41, TERM-49: alt-] goes from the last agent session to F5, to each [>] terminal, then to
+// agent session 1; alt-[ (alt-} on the Mac) goes the same way back.
 #[tokio::test(flavor = "multi_thread")]
-async fn alt_n_goes_through_the_terminals() {
-    let (root, mut a) = app_with_shell("term-alt-n");
+async fn alt_bracket_goes_through_the_terminals() {
+    let (root, mut a) = app_with_shell("term-alt-bracket");
     answer(&mut a, "sleep 30");
     f5(&mut a, true);
     wait(&mut a, 10, |a| a.cli.busy(0));
@@ -225,11 +231,79 @@ async fn alt_n_goes_through_the_terminals() {
     assert_eq!(a.cli.pane, Some(shell(1)), "a [>] terminal runs");
     a.switch_session(SESSIONS - 1);
     assert_eq!(a.cli.pane, None, "the chat shows agent session 5");
-    alt(&mut a, 'n');
+    alt(&mut a, ']');
     assert_eq!(a.cli.pane, Some(shell(0)), "after the last agent session: F5");
-    alt(&mut a, 'n');
+    alt(&mut a, ']');
     assert_eq!(a.cli.pane, Some(shell(1)), "then the [>] terminal");
-    alt(&mut a, 'n');
+    alt(&mut a, ']');
     assert_eq!((a.cli.pane, a.state.session), (None, 0), "then agent session 1");
+    alt(&mut a, PREV);
+    assert_eq!(a.cli.pane, Some(shell(1)), "back: the [>] terminal");
+    alt(&mut a, PREV);
+    assert_eq!(a.cli.pane, Some(shell(0)), "then F5");
+    alt(&mut a, PREV);
+    assert_eq!((a.cli.pane, a.state.session), (None, SESSIONS - 1), "then agent session 5");
+    done(&root, &mut a);
+}
+
+// FLOAT-14, TERM-13: alt-n on the full screen of a terminal opens the float over it, and the shell
+// does not get the key; esc gives back the full screen.
+#[tokio::test(flavor = "multi_thread")]
+async fn alt_n_opens_the_float_over_a_full_screen_session() {
+    let (root, mut a) = app_with_shell("term-float");
+    f5(&mut a, false);
+    ctrl(&mut a, 'o');
+    assert_eq!(a.cli.view, Some(shell(0)));
+    alt(&mut a, 'n');
+    assert!(a.writer.float().is_some(), "the float is open");
+    let screen = draw(&mut a, 120, 40).join("\n");
+    assert!(screen.contains("new note"), "the float is on the screen:\n{screen}");
+    typ(&mut a, "x");
+    assert_eq!(a.writer.editor().text(), "# \n\nx", "the keys go to the float");
+    key(&mut a, KeyCode::Esc);
+    assert_eq!((a.writer.float().is_none(), a.cli.view), (true, Some(shell(0))), "back on the full screen");
+    done(&root, &mut a);
+}
+
+// FIND-15, TERM-13: alt-/ on the full screen of a terminal opens the find panel over it; esc gives
+// back the full screen.
+#[tokio::test(flavor = "multi_thread")]
+async fn alt_slash_opens_find_over_a_full_screen_session() {
+    let (root, mut a) = app_with_shell("term-find");
+    f5(&mut a, false);
+    ctrl(&mut a, 'o');
+    assert_eq!(a.cli.view, Some(shell(0)));
+    alt(&mut a, '/');
+    assert_eq!(a.mode, zendo::app::Mode::Find, "the find panel is open");
+    let screen = draw(&mut a, 120, 40).join("\n");
+    assert!(screen.contains(" FIND "), "the panel is on the screen:\n{screen}");
+    key(&mut a, KeyCode::Esc);
+    assert_eq!((a.mode, a.cli.view), (zendo::app::Mode::Read, Some(shell(0))), "back on the full screen");
+    done(&root, &mut a);
+}
+
+// TERM-51: on the full screen, alt-] and alt-[ (alt-} on the Mac) show the next or the previous terminal that
+// runs on the full screen, and no agent session is left out: one without Claude Code shows its chat.
+#[tokio::test(flavor = "multi_thread")]
+async fn alt_bracket_keeps_the_full_screen() {
+    let (root, mut a) = app_with_shell("term-full-ring");
+    answer(&mut a, "sleep 30");
+    f5(&mut a, true);
+    wait(&mut a, 10, |a| a.cli.busy(0));
+    answer(&mut a, "true");
+    f5(&mut a, false);
+    assert_eq!(a.cli.pane, Some(shell(1)), "a [>] terminal runs");
+    alt(&mut a, PREV);
+    assert_eq!(a.cli.pane, Some(shell(0)), "F5 in the chat pane");
+    ctrl(&mut a, 'o');
+    assert_eq!(a.cli.view, Some(shell(0)), "F5 on the full screen");
+    alt(&mut a, ']');
+    assert_eq!(a.cli.view, Some(shell(1)), "the [>] terminal on the full screen");
+    alt(&mut a, PREV);
+    assert_eq!(a.cli.view, Some(shell(0)), "back: F5 on the full screen");
+    alt(&mut a, PREV);
+    assert_eq!((a.cli.view, a.cli.pane, a.state.session), (None, None, SESSIONS - 1), "agent session 5 runs no Claude Code: its chat");
+    alt(&mut a, PREV);
+    assert_eq!((a.cli.view, a.cli.pane, a.state.session), (None, None, SESSIONS - 2), "from the chat: the ring of the chat");
     done(&root, &mut a);
 }

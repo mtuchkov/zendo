@@ -15,26 +15,26 @@ impl App {
         }
         let (front, body) = split_front(&text);
         let title = !body.lines().find(|l| !l.trim().is_empty()).is_some_and(|l| l.starts_with("# "));
-        let note = path.starts_with(&self.store.dir);
+        let note = path.starts_with(&self.files.store().dir);
         let meta = Meta { title, front: front.is_none() && !note };
         (meta.title || meta.front).then_some(meta)
     }
 
     /// After write mode: ask the agent in the background for what the file lacks.
     pub fn ask_for_meta(&mut self) {
-        let Some(path) = self.current.clone().or_else(|| self.editor_path.clone()) else { return };
+        let Some(path) = self.files.current().cloned().or_else(|| self.writer.path().cloned()) else { return };
         if self.cfg.offline || self.meta_needs(&path).is_none() {
             return;
         }
         let rel = self.rel(&path);
-        if !self.meta_queue.contains(&rel) {
+        if !self.writer.meta_waits(&rel) {
             self.ensure_agent();
-            self.meta_queue.push_back(rel);
+            self.writer.ask_meta(rel);
         }
     }
 
     pub(super) fn meta_tick(&mut self) -> bool {
-        let Some(rel) = self.meta_queue.pop_front() else { return false };
+        let Some(rel) = self.writer.next_meta() else { return false };
         let path = self.cfg.root.join(&rel);
         let Some(meta) = self.meta_needs(&path) else { return true };
         let Ok(text) = std::fs::read_to_string(&path) else { return true };
@@ -51,10 +51,8 @@ impl App {
             .replace("{{FILE}}", &rel)
             .replace("{{TEXT}}", &text);
         let key = format!("{RECAP_PREFIX}meta {rel}");
-        self.recap_job = Some(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto: true, failed: None, meta: Some(meta), review: false });
-        if let Some(a) = &self.agent {
-            a.send(Cmd::Prompt { key, known: None, text: prompt, attach: vec![] });
-        }
+        self.work.start(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto: true, failed: None, meta: Some(meta), review: false, name: None, title: None });
+        self.link.send(Cmd::Prompt { key, known: None, text: prompt, attach: vec![] });
         true
     }
 

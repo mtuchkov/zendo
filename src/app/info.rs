@@ -5,11 +5,20 @@ impl App {
     /// Fill the file tree. In a repo: the repo. Outside a repo (the home folder): only the notes.
     pub fn scan_tree(&mut self) {
         if self.cfg.root.join(".git").exists() {
-            self.tree.scan(&self.cfg.root);
+            // FILES-25: the notes of the notes repo live outside the repository.
+            let notes = self.repo_notes_outside();
+            // FILES-32: the worktree views show the worktree of the active agent session.
+            let worktree = crate::docs::tree::worktree::of(&self.cfg.root, self.state.session);
+            self.files.scan(&self.cfg.root, notes, worktree);
         } else {
-            let under = self.cfg.notes_dir.clone();
-            self.tree.scan_in(&self.cfg.root, &under);
+            self.files.scan_in(&self.cfg.root, &self.cfg.notes_dir);
         }
+    }
+
+    /// The notes folder in the notes repo, while the notes repo is on and the folder is outside the
+    /// repository (FILES-25, FIND-18).
+    pub fn repo_notes_outside(&self) -> Option<PathBuf> {
+        self.cfg.notes_repo.as_ref().map(|_| self.cfg.notes_dir.clone()).filter(|d| !d.starts_with(&self.cfg.root))
     }
 
     /// The agent profile, when zendo knows the agent.
@@ -19,8 +28,8 @@ impl App {
 
     /// "note" for a file of the notes folder, "document" for any other file.
     pub fn file_word(&self) -> &'static str {
-        match &self.current {
-            Some(p) if !p.starts_with(&self.store.dir) => "document",
+        match self.files.current() {
+            Some(p) if !p.starts_with(&self.files.store().dir) => "document",
             _ => "note",
         }
     }
@@ -29,7 +38,7 @@ impl App {
     pub fn agent_short(&self) -> String {
         match self.profile() {
             Some(p) => p.name.to_lowercase(),
-            None => self.agent_name.clone().unwrap_or_default(),
+            None => self.link.name().unwrap_or_default().to_string(),
         }
     }
 
@@ -54,30 +63,30 @@ impl App {
     /// The word limit of a file: from project-structure.toml, else 1,000.
     pub fn word_limit_for(&self, path: &Path) -> usize {
         let rel = path.strip_prefix(&self.cfg.root).unwrap_or(path);
-        self.tree.structure.as_ref().and_then(|s| s.words_for(rel)).unwrap_or(DEFAULT_WORDS)
+        self.files.structure().and_then(|s| s.words_for(rel)).unwrap_or(DEFAULT_WORDS)
     }
 
     /// `S`: ask Claude to split the open document, and keep the altitude.
     pub fn split_document(&mut self) {
-        if self.over_limit.is_none() {
-            self.flash(format!("{} words: within the limit of {}", self.word_count, self.word_limit));
+        if self.frame.over_limit().is_none() {
+            self.flash(format!("{} words: within the limit of {}", self.frame.word_count(), self.frame.word_limit()));
             return;
         }
-        let Some(path) = self.current.clone() else { return };
+        let Some(path) = self.files.current().cloned() else { return };
         let rel = self.rel(&path);
-        let ctx = SPLIT_PROMPT.replace("{{FILE}}", &rel).replace("{{WORDS}}", &self.word_count.to_string()).replace("{{LIMIT}}", &self.word_limit.to_string());
+        let ctx = SPLIT_PROMPT.replace("{{FILE}}", &rel).replace("{{WORDS}}", &self.frame.word_count().to_string()).replace("{{LIMIT}}", &self.frame.word_limit().to_string());
         self.open_panel();
-        if !self.panel {
+        if !self.threads.shown() {
             return;
         }
-        self.ask_context = Some(ctx);
+        self.composer.set_context(ctx);
         let scope = self.scope();
-        self.ask(format!("Split {rel}: {} words, the limit is {}. Keep the altitude.", self.word_count, self.word_limit), scope);
+        self.ask(format!("Split {rel}: {} words, the limit is {}. Keep the altitude.", self.frame.word_count(), self.frame.word_limit()), scope);
     }
 
     /// What the notes sync wants the user to know, if anything.
     pub fn sync_label(&self) -> Option<String> {
-        self.syncer.as_ref().and_then(|s| s.state().label())
+        self.files.sync_label()
     }
 
     pub fn theme(&self) -> &Theme {
@@ -85,17 +94,15 @@ impl App {
     }
 
     pub fn note(&self) -> Option<&Note> {
-        let p = self.current.as_ref()?;
-        self.notes.iter().find(|n| &n.path == p)
+        self.files.note()
     }
 
     pub fn note_index(&self) -> Option<usize> {
-        let p = self.current.as_ref()?;
-        self.notes.iter().position(|n| &n.path == p)
+        self.files.note_index()
     }
 
     pub fn rel(&self, p: &Path) -> String {
-        self.store.rel(p).display().to_string()
+        self.files.rel(p)
     }
 
     /// The key of the chat thread: the thread of the active agent session, for every file.
@@ -105,13 +112,13 @@ impl App {
 
     /// What a question is about: the file on screen, a new note, or all notes.
     pub fn scope(&self) -> String {
-        if let Some(p) = &self.pinned {
-            return p.clone();
+        if let Some(p) = self.threads.pinned() {
+            return p.to_string();
         }
-        if self.mode == Mode::Write && self.editor_path.is_none() {
+        if self.mode == Mode::Write && self.writer.path().is_none() {
             return NEW_KEY.into();
         }
-        match &self.current {
+        match self.files.current() {
             Some(p) => self.rel(p),
             None => ALL_KEY.into(),
         }
@@ -126,9 +133,9 @@ impl App {
         self.state.column.unwrap_or(self.width_default)
     }
 
-    /// The repository has no project structure file, and zendo doctor can make one.
+    /// The repository has no project structure file, and zendo init can make one.
     pub fn structure_missing(&self) -> bool {
-        self.tree.structure.is_none() && self.structure_error.is_none() && self.cfg.root.join(".git").exists() && !self.cfg.root.join(crate::docs::structure::FILE).exists()
+        self.files.structure().is_none() && self.files.structure_error().is_none() && self.cfg.root.join(".git").exists() && !self.cfg.root.join(crate::docs::structure::FILE).exists()
     }
 
     /// The width of the code column: the one of this repository, else 120.
@@ -139,7 +146,7 @@ impl App {
     /// `alt-=` and `alt--`: a wider or a narrower column, kept for the repository: the code column
     /// on a code file, else the text column.
     pub fn change_width(&mut self, by: i16) {
-        let code = self.current.as_deref().is_some_and(crate::text::code::is_code);
+        let code = self.files.current_path().is_some_and(crate::text::code::is_code);
         let w = ((if code { self.code_width() } else { self.column_width() }) as i16 + by).clamp(30, 300) as u16;
         *(if code { &mut self.state.code_column } else { &mut self.state.column }) = Some(w);
         self.state.save(&self.cfg.root);

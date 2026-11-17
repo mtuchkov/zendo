@@ -84,7 +84,7 @@ fn turn(a: &mut App) {
 /// Draw one frame; the buffer, with the styles.
 fn frame(a: &mut App, w: u16, h: u16) -> Buffer {
     let mut term = Terminal::new(TestBackend::new(w, h)).unwrap();
-    term.draw(|f| zendo::ui::draw(f, a)).unwrap();
+    term.draw(|f| a.draw(f)).unwrap();
     term.backend().buffer().clone()
 }
 
@@ -187,16 +187,19 @@ async fn a_blinking_button_fades_to_the_accent_and_back() {
     let t = *a.theme();
     let normal = button_bg(&mut a, " F7");
     assert_eq!(normal, t.acc2);
+    // The blink reads a fixed time, not the clock: a slow frame does not shift the shade.
+    let now = Instant::now();
+    a.attention.clock = Some(now);
     let colors: Vec<Color> = (0..=10)
         .map(|i| {
-            a.attention.blink_since(1, Instant::now() - Duration::from_millis(100 * i));
+            a.attention.blink_since(1, now - Duration::from_millis(100 * i));
             button_bg(&mut a, " F7")
         })
         .collect();
     assert_eq!(colors[0], t.acc2, "the blink starts at the normal color");
     assert_eq!(colors[10], t.acc, "after 1 s the button has the accent color");
     assert!(colors.windows(2).all(|w| w[0] != w[1]), "a new shade each 100 ms: {colors:?}");
-    a.attention.blink_since(1, Instant::now() - Duration::from_millis(2000));
+    a.attention.blink_since(1, now - Duration::from_millis(2000));
     assert_eq!(button_bg(&mut a, " F7"), t.acc2, "after 2 s the normal color again");
     done(&root, &mut a);
 }
@@ -206,20 +209,23 @@ async fn a_blinking_button_fades_to_the_accent_and_back() {
 #[tokio::test(flavor = "multi_thread")]
 async fn the_sound_button_turns_the_bell_off_and_saves_it() {
     let (root, mut a) = app_here("attn-sound");
-    a.branch = Some("main".into());
+    a.files.set_branch(Some("main".into()));
     chat_on(&mut a, 0);
     let buf = frame(&mut a, 160, 40);
     let at = find(&buf, "[sound]").expect("the sound button");
     let branch = find(&buf, "main").expect("the branch");
     assert_eq!(at.1, branch.1, "on the line of the branch");
     assert!(at.0 < branch.0, "left of the branch");
+    let (blue, gray) = (a.theme().ext.doc, a.theme().dim);
+    assert_eq!(buf[at].fg, blue, "blue while the sound is on");
     assert!(!buf[at].modifier.contains(Modifier::CROSSED_OUT));
     click(&mut a, at);
     assert!(!a.attention.sound);
     let saved = std::fs::read_to_string(root.join("config.toml")).unwrap();
     assert!(saved.contains("sound = false"), "{saved}");
     let buf = frame(&mut a, 160, 40);
-    assert!(buf[at].modifier.contains(Modifier::CROSSED_OUT), "struck through while silent");
+    assert_eq!(buf[at].fg, gray, "gray while silent: Apple Terminal shows no strike-through");
+    assert!(!buf[at].modifier.contains(Modifier::CROSSED_OUT));
     a.on_agent(Event::TurnEnd { key: session_key(3), stop: "end_turn".into() });
     assert_eq!(a.attention.bells, 0, "no bell while silent");
     assert!(a.blink(3).is_some(), "but the button blinks");
@@ -229,12 +235,24 @@ async fn the_sound_button_turns_the_bell_off_and_saves_it() {
     done(&root, &mut a);
 }
 
+// ATTN-8, CMD-19: in a config with a line with an error, the sound button changes only the line
+// of the sound.
+#[tokio::test(flavor = "multi_thread")]
+async fn the_sound_button_changes_only_its_line() {
+    let (root, mut a) = app_here("attn-broken-config");
+    let broken = "agent = \"my-agent\"\nwidth = \"wide\"\nsound = true\n[name_models\n";
+    std::fs::write(root.join("config.toml"), broken).unwrap();
+    a.toggle_sound();
+    assert_eq!(std::fs::read_to_string(root.join("config.toml")).unwrap(), broken.replace("sound = true", "sound = false"));
+    done(&root, &mut a);
+}
+
 // ATTN-10: while the chat is closed, a blinking session shows in the top line; a click opens it.
 #[tokio::test(flavor = "multi_thread")]
 async fn a_blinking_session_shows_in_the_top_line_while_the_chat_is_closed() {
     let (root, mut a) = app_here("attn-top");
     chat_on(&mut a, 0);
-    a.panel = false;
+    a.threads.hide();
     a.on_agent(Event::TurnEnd { key: session_key(1), stop: "end_turn".into() });
     assert!(a.blink(1).is_some());
     let buf = frame(&mut a, 160, 40);
@@ -242,7 +260,7 @@ async fn a_blinking_session_shows_in_the_top_line_while_the_chat_is_closed() {
     let chip = find(&buf, " F7 ").expect("the F7 chip in the top line");
     assert_eq!(chip.1, sound.1);
     click(&mut a, (chip.0 + 1, chip.1));
-    assert!(a.panel && a.state.session == 1, "the click opens the chat of session 2");
+    assert!(a.threads.shown() && a.state.session == 1, "the click opens the chat of session 2");
     idle(&mut a, 300);
     assert_eq!(a.blink(1), None);
     done(&root, &mut a);

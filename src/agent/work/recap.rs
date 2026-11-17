@@ -14,9 +14,14 @@ const COMMIT_MAX: usize = 8000;
 impl App {
     /// The last commit that changed the file: its id, date, message and diff, shortened.
     pub fn last_commit(&self, rel: &str) -> Option<String> {
+        // A file of a worktree: the branch of the worktree (FILES-34).
+        let (dir, rel) = match crate::docs::tree::worktree::split(rel) {
+            Some((wt, rest)) => (self.cfg.root.join(wt), rest),
+            None => (self.cfg.root.clone(), rel),
+        };
         let out = std::process::Command::new("git")
             .args(["log", "-1", "--date=short", "--format=%h %ad %s%n%b", "-p", "--", rel])
-            .current_dir(&self.cfg.root)
+            .current_dir(dir)
             .stderr(std::process::Stdio::null())
             .output()
             .ok()?;
@@ -28,9 +33,9 @@ impl App {
 impl App {
     /// Recap the note on screen now.
     pub fn recap_now(&mut self) {
-        let Some(path) = self.current.clone() else { return };
+        let Some(path) = self.files.current().cloned() else { return };
         let rel = self.rel(&path);
-        if self.recap_job.as_ref().is_some_and(|j| j.rel == rel) || self.recap_queue.contains(&rel) {
+        if self.work.recap_waits(&rel) {
             self.flash("the recap is on its way");
             return;
         }
@@ -39,16 +44,18 @@ impl App {
             return;
         }
         self.ensure_agent();
-        self.recap_queue.push_back(rel);
+        self.work.ask_recap(rel);
         self.state.show_recap = true;
         self.flash("writing a recap");
     }
 
+    /// The agent runs and has no job in the background.
+    fn agent_free(&self) -> bool {
+        self.link.running() && self.link.ready() && self.work.free()
+    }
+
     pub(super) fn agent_idle(&self) -> bool {
-        self.agent.is_some()
-            && self.agent_name.is_some()
-            && self.recap_job.is_none()
-            && self.threads.iter().all(|(_, t)| t.busy.is_none())
+        self.agent_free() && self.threads.values().all(|t| t.busy.is_none())
     }
 
     /// The next file for an automatic recap: worked on in the last week, changed since its recap.
@@ -56,7 +63,7 @@ impl App {
     pub(super) fn next_auto(&self) -> Option<String> {
         let week = chrono::Duration::days(7);
         let mut cands: Vec<(chrono::DateTime<Local>, String)> = Vec::new();
-        let here = self.visit.as_ref().filter(|_| self.visit_counts()).map(|v| self.rel(&v.path));
+        let here = self.work.visit().filter(|_| self.visit_counts()).map(|v| self.rel(&v.path));
         let mut rels: Vec<String> = self.state.files.keys().cloned().collect();
         if let Some(h) = &here
             && !rels.contains(h) {
@@ -77,24 +84,34 @@ impl App {
         cands.pop().map(|(_, r)| r)
     }
 
-    /// Called on every tick: start a requested recap, or an automatic one when all is idle.
+    /// Called on every tick: start a requested recap, or an automatic one when all is idle. A
+    /// question for a name does not wait for the turns of the chat (NAMES-1).
     pub fn recap_tick(&mut self) {
-        if !self.agent_idle() {
+        // A title does not wait for the user: the agent starts for it, where no API answers
+        // (FLOAT-18, FLOAT-19, NAMES-16).
+        let no_api = self.link.api().is_none() && !self.link.api_pending();
+        if self.wants_title() && no_api && self.link.down().is_none() {
+            self.ensure_agent();
+        }
+        if !self.agent_free() {
             return;
         }
-        if self.review_tick() || self.meta_tick() {
+        let idle = self.agent_idle();
+        if idle && (self.review_tick() || self.meta_tick()) {
             return;
         }
-        let (rel, auto) = if let Some(r) = self.recap_queue.pop_front() {
+        if self.title_tick() || self.name_tick() || !idle {
+            return;
+        }
+        let (rel, auto) = if let Some(r) = self.work.next_recap() {
             (r, false)
         } else {
-            self.auto_recaps.retain(|t| t.elapsed() < Duration::from_secs(3600));
-            if self.last_input.elapsed() < IDLE || self.auto_recaps.len() >= AUTO_PER_HOUR {
+            if !self.work.auto_allowed() {
                 return;
             }
             match self.next_auto() {
                 Some(r) => {
-                    self.auto_recaps.push(Instant::now());
+                    self.work.count_auto();
                     (r, true)
                 }
                 None => return,
@@ -104,10 +121,8 @@ impl App {
         let Ok(text) = std::fs::read_to_string(&path) else { return };
         let prompt = self.recap_prompt(&rel, &path, &text);
         let key = format!("{RECAP_PREFIX}{rel}");
-        self.recap_job = Some(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto, failed: None, meta: None, review: false });
-        if let Some(a) = &self.agent {
-            a.send(Cmd::Prompt { key, known: None, text: prompt, attach: vec![] });
-        }
+        self.work.start(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto, failed: None, meta: None, review: false, name: None, title: None });
+        self.link.send(Cmd::Prompt { key, known: None, text: prompt, attach: vec![] });
     }
 
     /// The recap prompt: the file, and its changes against git HEAD, or else its last commit.
@@ -126,12 +141,16 @@ impl App {
 
     /// The recap turn ended: keep the text, drop the throwaway session.
     pub fn recap_done(&mut self, key: String) {
-        let Some(job) = self.recap_job.take() else { return };
-        if let Some(a) = &self.agent {
-            a.send(Cmd::Forget { key });
-        }
+        let Some(job) = self.work.take_job() else { return };
+        self.link.send(Cmd::Forget { key });
         if job.meta.is_some() {
             return self.meta_done(job);
+        }
+        if job.title.is_some() {
+            return self.title_done(job);
+        }
+        if job.name.is_some() {
+            return self.name_done(job);
         }
         if job.review {
             return self.review_done(job);
@@ -147,7 +166,7 @@ impl App {
         let rel = job.rel.clone();
         self.state.file(&rel).recap = Some(Recap { text, of_hash: job.hash, of_text: job.text, at: Local::now(), auto: job.auto });
         self.state.save(&self.cfg.root);
-        let title = self.notes.iter().find(|n| self.rel(&n.path) == rel).map(|n| n.title.clone()).unwrap_or(rel);
+        let title = self.files.notes().iter().find(|n| self.rel(&n.path) == rel).map(|n| n.title.clone()).unwrap_or(rel);
         self.flash(format!("recap ready: {title}"));
     }
 }

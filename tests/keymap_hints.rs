@@ -1,4 +1,4 @@
-//! Key hints and messages take their keys from the keymap in effect (docs/zendo/panes.md: PANES-28,
+//! Key hints and messages take their keys from the keymap in effect (docs/zendo/panes/keymap.md: PANES-28,
 //! PANES-29): with other keys in the config, no hint shows a default key.
 
 mod common;
@@ -67,19 +67,6 @@ fn the_review_names_its_key() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// PANES-28: a newer zendo names the upgrade key of the keymap, not U.
-#[tokio::test]
-async fn the_upgrade_message_names_its_key() {
-    let (root, mut a) = with_notes("hints-upgrade");
-    let (tx, rx) = tokio::sync::oneshot::channel();
-    tx.send(Some("abc1234".to_string())).unwrap();
-    a.update_rx = Some(rx);
-    a.tick();
-    let f = flash(&a);
-    assert!(f.contains("^u upgrades now") && !f.contains("U upgrades"), "{f}");
-    let _ = std::fs::remove_dir_all(&root);
-}
-
 // PANES-28: while the chat answers, the input names the send key and the stop key of the keymap.
 #[tokio::test]
 async fn the_busy_chat_names_its_keys() {
@@ -99,7 +86,7 @@ async fn the_question_about_a_selection_names_the_send_key() {
     let (root, mut a) = with_notes("hints-ask");
     a.open_panel();
     a.focus = Focus::Claude;
-    a.ask_context = Some("Text.".into());
+    a.composer.set_context("Text.".into());
     let s = screen(&mut a);
     assert!(s.contains("or press ^s"), "{s}");
     assert!(!s.contains("press enter"), "{s}");
@@ -125,7 +112,7 @@ fn the_screen_without_notes_names_its_keys() {
 fn the_empty_docs_view_names_the_view_key() {
     let (root, mut a) = without_notes("hints-tree");
     a.state.tree = true;
-    a.tree.view = View::Docs;
+    a.files.set_view(View::Docs);
     a.focus = Focus::Tree;
     let s = screen(&mut a);
     assert!(s.contains("Press V to show all."), "{s}");
@@ -176,4 +163,55 @@ async fn other_session_keys_name_the_buttons_1_to_5_and_the_terminal_by_its_mark
         assert!(!screen.contains(s), "{s}:\n{screen}");
     }
     let _ = std::fs::remove_dir_all(&root);
+}
+
+// TERM-41, TERM-49: the Linux keymap gives the next session alt-], the previous session alt-[,
+// and leaves alt-n to the new note.
+#[test]
+fn the_linux_keymap_gives_alt_brackets_to_the_sessions() {
+    let keys = keymap_of(zendo::keys::LINUX_KEYMAP);
+    assert_eq!(keys.local(Pane::Global, &alt(']')), Some("next_session"));
+    assert_eq!(keys.local(Pane::Global, &alt('[')), Some("prev_session"));
+    assert_ne!(keys.local(Pane::Global, &alt('}')), Some("prev_session"), "alt-}} is the key of the Mac");
+    assert_ne!(keys.local(Pane::Global, &alt('n')), Some("next_session"), "alt-n is the new note");
+}
+
+// TERM-41, TERM-49: the Mac keymap gives the previous session alt-}, because Apple Terminal sends
+// alt-[ as ESC [, the start of a CSI sequence. A legacy terminal sends alt-} as ESC }; the kitty
+// keyboard protocol sends `]` with alt and shift, and that must not be alt-], the next session.
+#[test]
+fn the_mac_keymap_gives_alt_brace_to_the_previous_session() {
+    use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    let keys = keymap_of(zendo::keys::MAC_KEYMAP);
+    let kitty = KeyEvent::new(KeyCode::Char(']'), KeyModifiers::ALT | KeyModifiers::SHIFT);
+    assert_eq!(keys.local(Pane::Global, &alt(']')), Some("next_session"));
+    assert_eq!(keys.local(Pane::Global, &alt('}')), Some("prev_session"));
+    assert_eq!(keys.local(Pane::Global, &kitty), Some("prev_session"));
+    assert_ne!(keys.local(Pane::Global, &alt('[')), Some("prev_session"), "alt-[ does not reach zendo");
+}
+
+// TERM-19: the Mac keymap and the Linux keymap differ only in the keys of prev_session.
+#[test]
+fn the_mac_and_linux_keymaps_differ_only_in_the_previous_session() {
+    let without_prev = |text: &str| {
+        let mut cfg: KeyConfig = toml::from_str(text).unwrap();
+        cfg.values_mut().for_each(|pane| drop(pane.remove("prev_session")));
+        cfg
+    };
+    assert_eq!(without_prev(zendo::keys::MAC_KEYMAP), without_prev(zendo::keys::LINUX_KEYMAP));
+    let default = if cfg!(target_os = "macos") { zendo::keys::MAC_KEYMAP } else { zendo::keys::LINUX_KEYMAP };
+    assert_eq!(zendo::keys::DEFAULT_KEYMAP, default, "zendo takes the keymap of its system");
+}
+
+/// The keymap of this file, with no problems.
+fn keymap_of(text: &str) -> Keymap {
+    let file: KeyConfig = toml::from_str(text).unwrap();
+    let (keys, problems) = Keymap::new(Some(&file), &KeyConfig::new());
+    assert!(problems.is_empty(), "{problems:?}");
+    keys
+}
+
+fn alt(c: char) -> ratatui::crossterm::event::KeyEvent {
+    use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    KeyEvent::new(KeyCode::Char(c), KeyModifiers::ALT)
 }

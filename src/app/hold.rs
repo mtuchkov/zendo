@@ -33,14 +33,16 @@ impl App {
     /// terminal; no other key goes anywhere (HANDOFF-4, HANDOFF-9, HANDOFF-10).
     pub(crate) fn key_hold(&mut self, k: KeyEvent) {
         if self.keys.local(Pane::Chat, &k) == Some("handoff") {
+            self.did(Pane::Chat, "handoff");
             return self.hold_again();
         }
         if self.keys.local(Pane::Session, &k) == Some("leave") {
+            self.did(Pane::Session, "leave");
             self.hold = None;
             return;
         }
         let global = self.keys.local(Pane::Global, &k);
-        if global.is_some_and(|a| a == "next_session" || a == "terminal" || a.starts_with("session_")) {
+        if global.is_some_and(|a| a != "terminal_run" && count::session_action(a)) {
             self.hold = None;
             self.on_key(k);
         }
@@ -55,9 +57,7 @@ impl App {
             return;
         }
         h.stopped = Some(Instant::now());
-        if let Some(a) = &self.agent {
-            a.send(Cmd::Cancel { key: session_key(h.n) });
-        }
+        self.link.send(Cmd::Cancel { key: session_key(h.n) });
     }
 
     /// The waiting view is on the thread `key`.
@@ -76,6 +76,11 @@ impl App {
     /// Each tick: a stopped turn that did not end within 5 s; Claude Code starts anyway (HANDOFF-6).
     pub(crate) fn hold_tick(&mut self) {
         let Some(h) = self.hold.filter(|h| h.stopped.is_some_and(|t| t.elapsed() > HOLD_AGAIN)) else { return };
+        let t = self.thread(&session_key(h.n));
+        t.busy = None;
+        t.thinking = false;
+        t.dropped = true;
+        t.push(Item::Info("stopped".into()));
         self.hold_turn_ended(&session_key(h.n));
         self.flash("the turn did not stop within 5 s: Claude Code started anyway");
     }

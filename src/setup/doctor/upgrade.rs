@@ -76,15 +76,19 @@ pub(super) fn git_env() -> BTreeMap<String, String> {
 
 /// `zendo --version`: the version, the commit, uncommitted changes, and the local copy it came from.
 pub fn version_line() -> String {
+    version_line_in(&std::env::var("HOME").unwrap_or_default())
+}
+
+/// The version line for the home folder `home`, which shows as `~`.
+pub(super) fn version_line_in(home: &str) -> String {
     let Some(c) = installed_commit() else { return format!("zendo {}", env!("CARGO_PKG_VERSION")) };
     let mut parts = vec![c[..7.min(c.len())].to_string()];
     if built_dirty() {
         parts[0].push_str("+changes");
     }
     if let Some(src) = local_clone() {
-        let home = std::env::var("HOME").unwrap_or_default();
         let shown = src.display().to_string();
-        let shown = match shown.strip_prefix(&home).filter(|_| !home.is_empty()) {
+        let shown = match shown.strip_prefix(home).filter(|_| !home.is_empty()) {
             Some(rest) => format!("~{rest}"),
             None => shown,
         };
@@ -96,11 +100,11 @@ pub fn version_line() -> String {
 /// The version for the help: only the version, and the details of `version_line` only for a build
 /// with uncommitted changes (PANES-31).
 pub fn help_version() -> String {
-    help_version_for(built_dirty())
+    help_version_for(built_dirty(), &std::env::var("HOME").unwrap_or_default())
 }
 
-pub(super) fn help_version_for(dirty: bool) -> String {
-    if dirty { version_line() } else { format!("zendo {}", env!("CARGO_PKG_VERSION")) }
+pub(super) fn help_version_for(dirty: bool, home: &str) -> String {
+    if dirty { version_line_in(home) } else { format!("zendo {}", env!("CARGO_PKG_VERSION")) }
 }
 
 /// For a build from your clone: the clone has `head` and it is in the history of the build.
@@ -150,6 +154,9 @@ pub async fn update_available() -> Option<String> {
     Some(head[..7.min(head.len())].to_string())
 }
 
+/// What the new program runs after an upgrade, to bring the state to its version (CMD-8).
+pub(super) const AFTER_UPGRADE: [&str; 2] = ["doctor", "--fix"];
+
 /// Built from your clone: pull it (fast-forward only) and build it again.
 pub(super) async fn upgrade_clone(src: &Path, force: bool, o: &mut Out) -> bool {
     let exe = std::env::current_exe().unwrap_or_else(|_| PathBuf::from("zendo"));
@@ -192,10 +199,10 @@ pub(super) async fn upgrade_clone(src: &Path, force: bool, o: &mut Out) -> bool 
     let _ = std::fs::remove_file(config::data_dir().join("update.json"));
     let new = std::process::Command::new(&exe).arg("--version").output().map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string()).unwrap_or_default();
     o.ok("upgraded", new);
-    std::process::Command::new(&exe).arg("setup").status().is_ok_and(|s| s.success())
+    std::process::Command::new(&exe).args(AFTER_UPGRADE).status().is_ok_and(|s| s.success())
 }
 
-/// `zendo upgrade`: build the latest `main` from GitHub when it is newer, then run setup.
+/// `zendo upgrade`: build the latest `main` from GitHub when it is newer, then run `zendo doctor --fix`.
 pub async fn upgrade(force: bool) -> bool {
     let mut o = Out::new();
     o.head("zendo upgrade");
@@ -252,5 +259,5 @@ pub async fn upgrade(force: bool) -> bool {
     let new = std::process::Command::new(&exe).arg("--version").output().map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string()).unwrap_or_default();
     let _ = std::fs::remove_file(config::data_dir().join("update.json"));
     o.ok("upgraded", format!("zendo {} → {}", env!("CARGO_PKG_VERSION"), new.trim_start_matches("zendo ")));
-    std::process::Command::new(&exe).arg("setup").status().is_ok_and(|s| s.success())
+    std::process::Command::new(&exe).args(AFTER_UPGRADE).status().is_ok_and(|s| s.success())
 }

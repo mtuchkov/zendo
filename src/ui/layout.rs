@@ -20,8 +20,8 @@ pub fn pane_width(app: &App, p: Focus, total: u16) -> u16 {
 /// Standard: one main pane (delta replaces the note while reading) and the chat.
 /// Wide screen: every open pane side by side.
 pub fn panes(app: &App, width: u16) -> Vec<Focus> {
-    let chat = app.panel;
-    let delta = app.delta_open && app.current.is_some() && app.pinned.is_none();
+    let chat = app.threads.shown();
+    let delta = app.work.delta_open() && app.files.current().is_some() && app.threads.pinned().is_none();
     let mut p = Vec::new();
     if app.state.wide() {
         // Wide: note | chat | delta.
@@ -78,11 +78,11 @@ pub fn hide_to_fit(mut p: Vec<Focus>, focus: Focus, fits: impl Fn(&[Focus]) -> b
     p
 }
 
-pub(crate) fn draw_left(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
+pub(crate) fn draw_left(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) {
     if app.mode == Mode::Write {
-        draw_write(f, app, t, area);
+        draw_write(f, app, fr, t, area);
     } else {
-        draw_read(f, app, t, area);
+        draw_read(f, app, fr, t, area);
     }
 }
 
@@ -91,48 +91,69 @@ pub(crate) fn column(area: Rect, width: u16) -> Rect {
     Rect { x: area.x + (area.width.saturating_sub(w)) / 2, width: w, ..area }
 }
 
-pub(crate) fn draw_top(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
+pub(crate) fn draw_top(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) {
     let left = match app.mode {
-        Mode::Write => match &app.editor_path {
+        Mode::Write => match app.writer.path() {
             Some(p) => app.rel(p),
             None => {
-                let title = crate::docs::notes::title_of(&app.editor.text()).unwrap_or_default();
-                let p = app.store.path_for(if title.is_empty() { "note" } else { &title }, Local::now().date_naive());
+                let title = crate::docs::notes::title_of(&app.writer.editor().text()).unwrap_or_default();
+                let p = app.new_note_path(if title.is_empty() { "note" } else { &title });
                 format!("new note → {}", app.rel(&p))
             }
         },
-        _ => match app.pinned.as_deref() {
+        _ => match app.threads.pinned() {
             Some(ALL_KEY) => format!("{} · all notes", app.rel(&app.cfg.notes_dir)),
-            _ => app.note().map(|n| app.rel(&n.path)).unwrap_or_else(|| app.rel(&app.cfg.notes_dir)),
+            // FILES-45, FILES-47: a held key names the version that it shows.
+            _ if app.files.peek().on.is_some() => {
+                let doc = app.files.current().and_then(|p| app.doc_rel(p)).unwrap_or_default();
+                format!("{} · {doc}", app.files.peek().on.map_or("", |o| o.name()))
+            }
+            // FILES-34: a file of a worktree names its worktree.
+            _ => app.note().map(|n| crate::docs::tree::worktree::label(&app.rel(&n.path))).unwrap_or_else(|| app.rel(&app.cfg.notes_dir)),
         },
     };
     f.render_widget(Paragraph::new(Line::from(vec![Span::raw("  "), Span::raw(left.clone())])).style(Style::new().fg(t.dim)), area);
-    let right = draw_top_right(f, app, t, area);
+    let right = draw_top_right(f, app, fr, t, area);
 
-    // A newer zendo shows as a quiet hint with its key.
-    if let Some(v) = app.update.as_ref().filter(|_| matches!(app.mode, Mode::Read | Mode::Write)) {
-        let hint = format!("zendo {v} is out · {} to upgrade", app.keys.first(crate::keys::Pane::Read, "upgrade"));
-        let w = hint.width() as u16;
+    // CMD-11: a newer zendo shows as a message and the upgrade button, left of the other buttons.
+    if app.update.latest().is_some() && matches!(app.mode, Mode::Read | Mode::Write) {
+        let w = (UPGRADE_HINT.width() + 1 + UPGRADE.width()) as u16;
         let x = area.right().saturating_sub(right + 5 + w);
         if x > area.x + left.width() as u16 + 4 {
-            f.render_widget(Paragraph::new(Line::styled(hint, Style::new().fg(t.acc))), Rect { x, width: w, ..area });
+            let line = Line::from(vec![Span::styled(format!("{UPGRADE_HINT} "), Style::new().fg(t.acc)), Span::styled(UPGRADE, switch(t, true))]);
+            f.render_widget(Paragraph::new(line), Rect { x, width: w, ..area });
+            let b = UPGRADE.width() as u16;
+            fr.upgrade_button = Some(Rect { x: x + w - b, width: b, ..area });
         }
     }
 }
 
+/// The message of a newer zendo in the top line (CMD-11).
+const UPGRADE_HINT: &str = "new version available";
+/// The upgrade button in the top line (CMD-11).
+pub const UPGRADE: &str = "[upgrade]";
+
 /// The sound button in the top line (ATTN-7).
 pub const SOUND: &str = "[sound]";
+/// The music button in the top line (LOFI-10).
+pub const MUSIC: &str = "[music]";
+
+/// A button of the top line: blue while on, gray while off. Not struck through: Apple Terminal does
+/// not show it (ATTN-7, LOFI-10).
+fn switch(t: &Theme, on: bool) -> Style {
+    Style::new().fg(if on { t.ext.doc } else { t.dim })
+}
 
 /// The right of the top line: the sessions that blink while their buttons are not on the screen
-/// (ATTN-10), the sound button, struck through while the sound is off (ATTN-7), and the branch.
-/// Returns its width.
-fn draw_top_right(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) -> u16 {
-    let chips: Vec<usize> = if app.session_buttons.is_empty() { app.attention.blinks().collect() } else { Vec::new() };
+/// (ATTN-10), the music button (LOFI-10), the sound button (ATTN-7), and the branch. Returns its
+/// width.
+fn draw_top_right(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) -> u16 {
+    let chips: Vec<usize> = if fr.session_buttons.is_empty() { app.attention.blinks().collect() } else { Vec::new() };
     let chip = |n: usize| Style::new().fg(t.bg).bg(pulse_bg(app, t, n, if n >= crate::app::SESSIONS { t.fg } else { t.acc2 }));
-    let mut pieces: Vec<(String, Style)> = chips.iter().map(|n| (format!(" {} ", name(app, *n)), chip(*n))).collect();
-    let silent = if app.attention.sound { Modifier::empty() } else { Modifier::CROSSED_OUT };
-    pieces.push((SOUND.into(), Style::new().fg(t.dim).add_modifier(silent)));
-    pieces.extend(app.branch.clone().filter(|b| !b.is_empty()).map(|b| (b, Style::new().fg(t.dim))));
+    let mut pieces: Vec<(String, Style)> = chips.iter().map(|n| (format!(" {} ", titled(app, *n)), chip(*n))).collect();
+    pieces.push((MUSIC.into(), switch(t, app.music.state() == crate::music::State::Plays)));
+    pieces.push((SOUND.into(), switch(t, app.attention.sound)));
+    pieces.extend(app.files.branch().filter(|b| !b.is_empty()).map(str::to_string).map(|b| (b, Style::new().fg(t.dim))));
     let width = (pieces.iter().map(|(s, _)| s.width() + 2).sum::<usize>() - 2) as u16;
     let mut x = area.right().saturating_sub(width + 2);
     for (i, (text, style)) in pieces.into_iter().enumerate() {
@@ -140,8 +161,9 @@ fn draw_top_right(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) -> u16 {
         x += r.width + 2;
         f.render_widget(Paragraph::new(Span::styled(text, style)), r);
         match chips.get(i) {
-            Some(n) => app.session_buttons.push((r, *n)),
-            None if i == chips.len() => app.attention.button = Some(r),
+            Some(n) => fr.session_buttons.push((r, *n)),
+            None if i == chips.len() => fr.music_button = Some(r),
+            None if i == chips.len() + 1 => fr.sound_button = Some(r),
             None => {}
         }
     }

@@ -24,44 +24,61 @@ pub fn build_dir() -> PathBuf {
     std::env::var_os("XDG_CACHE_HOME").map(PathBuf::from).unwrap_or_else(|| home().join(".cache")).join("zendo/target")
 }
 
+/// The folders and the config file of zendo of one user.
+pub(super) struct Dirs {
+    pub legacy_config: PathBuf,
+    pub data: PathBuf,
+    pub cache: PathBuf,
+    pub config: PathBuf,
+}
+
+impl Dirs {
+    /// The folders of this user, from the environment.
+    fn of_user() -> Self {
+        let cache = build_dir().parent().map(Path::to_path_buf).unwrap_or_default();
+        Self { legacy_config: legacy_config_dir(), data: data_dir(), cache, config: config_path() }
+    }
+}
+
 /// Move the folders of the old name to the new ones: config, data, build cache, and `.dawn` in the
 /// repository. A folder moves only when the new one does not exist. Returns what moved.
 pub fn move_old_folders(repo: &Path) -> Vec<(PathBuf, PathBuf)> {
-    let cache = build_dir().parent().map(Path::to_path_buf).unwrap_or_default();
+    move_old_folders_in(repo, &Dirs::of_user())
+}
+
+/// `move_old_folders` for the folders `dirs`.
+pub(super) fn move_old_folders_in(repo: &Path, dirs: &Dirs) -> Vec<(PathBuf, PathBuf)> {
+    let old_of = |new: &Path| new.with_file_name(OLD_NAME);
     let pairs = [
-        (legacy_config_dir().with_file_name(OLD_NAME), legacy_config_dir()),
-        (data_dir().with_file_name(OLD_NAME), data_dir()),
-        (cache.with_file_name(OLD_NAME), cache),
+        (old_of(&dirs.legacy_config), dirs.legacy_config.clone()),
+        (old_of(&dirs.data), dirs.data.clone()),
+        (old_of(&dirs.cache), dirs.cache.clone()),
         (repo.join(format!(".{OLD_NAME}")), crate::setup::state::dir(repo)),
     ];
-    let mut moved = Vec::new();
-    for (old, new) in pairs {
-        if old.is_dir() && !new.exists() && std::fs::rename(&old, &new).is_ok() {
-            moved.push((old, new));
-        }
-    }
+    let mut moved: Vec<_> = pairs.into_iter().filter(|(old, new)| old.is_dir() && !new.exists() && std::fs::rename(old, new).is_ok()).collect();
     // The saved agent command can name the adapter in the old data folder.
-    let json = legacy_config_dir().join("config.json");
-    for file in [json.clone(), config_path()] {
-        if let Ok(text) = std::fs::read_to_string(&file) {
-            let (old, new) = (data_dir().with_file_name(OLD_NAME), data_dir());
-            let (old, new) = (old.display().to_string(), new.display().to_string());
-            if text.contains(&old) {
-                let _ = std::fs::write(&file, text.replace(&old, &new));
-            }
+    let json = dirs.legacy_config.join("config.json");
+    let (old, new) = (old_of(&dirs.data).display().to_string(), dirs.data.display().to_string());
+    for file in [&json, &dirs.config] {
+        let text = std::fs::read_to_string(file).unwrap_or_default();
+        if text.contains(&old) {
+            let _ = std::fs::write(file, text.replace(&old, &new));
         }
     }
-    // The JSON config of before 0.11.1 becomes `~/.zendo/config.toml`.
-    if json.is_file() && !config_path().exists() {
-        let cfg = std::fs::read_to_string(&json).ok().and_then(|s| serde_json::from_str::<UserConfig>(&s).ok());
-        if let Some(cfg) = cfg
-            && cfg.save().is_ok() {
-                let _ = std::fs::remove_file(&json);
-                let _ = std::fs::remove_dir(legacy_config_dir());
-                moved.push((json, config_path()));
-            }
-    }
+    moved.extend(json_config_to_toml(&json, dirs));
     moved
+}
+
+/// The JSON config of before 0.11.1 becomes `~/.zendo/config.toml`. Returns the move, if it happened.
+fn json_config_to_toml(json: &Path, dirs: &Dirs) -> Option<(PathBuf, PathBuf)> {
+    if !json.is_file() || dirs.config.exists() {
+        return None;
+    }
+    let cfg: UserConfig = serde_json::from_str(&std::fs::read_to_string(json).ok()?).ok()?;
+    cfg.save_to(&dirs.config).ok()?;
+    let _ = std::fs::remove_file(json);
+    let _ = std::fs::remove_dir(&dirs.legacy_config);
+    Some((json.to_path_buf(), dirs.config.clone()))
 }
 
 pub fn config_path() -> PathBuf {

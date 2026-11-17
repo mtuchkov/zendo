@@ -3,8 +3,11 @@ use super::*;
 
 pub async fn setup(paths: &Paths, agent_flag: Option<String>, notes_repo: Option<String>) -> bool {
     let mut o = Out::new();
-    let mut cfg = UserConfig::load();
     o.head("zendo setup");
+    // Every setting without an error; the save changes only the lines of what setup changes
+    // (CMD-17, CMD-19).
+    let mut cfg = UserConfig::load();
+    let before = cfg.copy();
     let Some(turned_on) = set_notes_repo(&mut cfg, notes_repo.as_deref(), &mut o) else { return false };
 
     // 1. Node and npm.
@@ -36,10 +39,13 @@ pub async fn setup(paths: &Paths, agent_flag: Option<String>, notes_repo: Option
         cfg.agent = keep; // use the installed adapter
     }
 
-    if let Err(e) = cfg.save() {
-        o.fail("config", format!("cannot write {}: {e}", config::config_path().display()));
+    if let Err(e) = cfg.save_changes(&config::config_path(), &before) {
+        o.fail("config", e);
         return false;
     }
+
+    // The zendo section in the instructions of the user (SESSIONS-22).
+    apply(user_changes(&user_files()), &mut o);
 
     // 4. Check the whole path.
     let ok = checks(paths, None, false, true, &mut o).await;
@@ -54,6 +60,23 @@ pub async fn setup(paths: &Paths, agent_flag: Option<String>, notes_repo: Option
         println!("  Ready. Run `zendo` in a repository.");
     }
     ok && moved
+}
+
+/// `zendo doctor --fix`: install the pinned adapter of the agent of the user when it is not there
+/// (CMD-15). The config changes only when the install does.
+pub(super) async fn fix_adapter(o: &mut Out) -> bool {
+    // The save changes only the lines of the adapter (CMD-19).
+    let mut cfg = UserConfig::load();
+    let before = cfg.copy();
+    // A command of the user in the config is not a profile: zendo installs nothing for it.
+    let Some(profile) = cfg.agent.as_deref().map_or(Some(&config::CLAUDE), config::Profile::by_id) else { return true };
+    let env = config::agent_env(&cfg);
+    // Without Node.js the checks report it, with the fix.
+    if profile.installed() || !matches!(run("node", &["--version"], &env, 20).await, Some((true, _))) {
+        return true;
+    }
+    let system_ca = matches!(run("node", &[SYSTEM_CA, "-e", "0"], &BTreeMap::new(), 20).await, Some((true, _)));
+    install_adapter(profile, &env, system_ca, &mut cfg, o).await && cfg.save_changes(&config::config_path(), &before).is_ok()
 }
 
 /// `--notes-repo`: turn the notes repo on or off. `Some(true)` when it was turned on now; `None` on an error.

@@ -23,6 +23,9 @@ fn running(name: &str) -> (std::path::PathBuf, App) {
     a.focus = Focus::Claude;
     ctrl(&mut a, 'o');
     wait(&mut a, 10, |a| a.cli.text(0).contains("tick 1"));
+    // The mock writes the input of the "session start" hook before `tick 1`: one more tick reads it
+    // now. Read later, with the first turn, it would open the transcript after the steps of the turn.
+    a.tick();
     (root, a)
 }
 
@@ -97,5 +100,40 @@ async fn the_end_of_the_session_replaces_the_messages() {
     a.cli.write(0, b"q");
     wait(&mut a, 5, |a| !a.cli.running(0));
     assert!(!answered(&a, "answer: hello"), "the messages go: {:?}", items(&a));
+    done(&root, &mut a);
+}
+
+// CLIMSG-8, CLIMSG-9: the text between the tool calls and the tool calls of a turn show in the
+// chat, in their order, and the final answer shows once.
+#[tokio::test(flavor = "multi_thread")]
+async fn the_steps_of_a_turn_show_in_the_chat() {
+    let (root, mut a) = running("climsg-steps");
+    typ(&mut a, "hello");
+    key(&mut a, KeyCode::Enter);
+    leave(&mut a);
+    wait(&mut a, 5, |a| answered(a, "answer: hello"));
+    let seen: Vec<String> = items(&a)
+        .iter()
+        .filter_map(|i| match i {
+            Item::User(s) => Some(format!("user {s}")),
+            Item::Agent(s) => Some(format!("agent {s}")),
+            Item::Tools { uses, .. } => Some(format!("tools {}", uses.iter().map(|u| u.title.as_str()).collect::<Vec<_>>().join(", "))),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(seen, ["user hello", "agent step: hello", "tools Bash: run hello", "agent answer: hello"]);
+    done(&root, &mut a);
+}
+
+// CLIMSG-10: after `/clear` in Claude Code, the steps of the next turn still show.
+#[tokio::test(flavor = "multi_thread")]
+async fn the_steps_show_after_a_clear() {
+    let (root, mut a) = running("climsg-clear");
+    a.cli.write(0, &[0x0c]);
+    typ(&mut a, "next");
+    key(&mut a, KeyCode::Enter);
+    leave(&mut a);
+    wait(&mut a, 5, |a| answered(a, "answer: next"));
+    assert!(answered(&a, "step: next"), "{:?}", items(&a));
     done(&root, &mut a);
 }

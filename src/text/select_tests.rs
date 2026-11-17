@@ -21,6 +21,21 @@ fn dropped_files_are_paths_and_nothing_else() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+// CLAUDE-16: macOS names a screenshot `Screenshot … at 9.12.18\u{202f}PM.png`. A terminal escapes
+// the spaces of a dropped path but not the narrow no-break space, so it is part of the name.
+#[test]
+fn a_dropped_macos_screenshot_is_one_file() {
+    let dir = std::env::temp_dir().join(format!("zendo-drop-nbsp-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let shot = dir.join("Screenshot 2026-11-14 at 9.12.18\u{202f}PM.png");
+    std::fs::write(&shot, b"png").unwrap();
+    let escaped = shot.display().to_string().replace(' ', "\\ ");
+    assert_eq!(dropped_files(&escaped), Some(vec![shot.clone()]), "escaped spaces, a narrow no-break space");
+    assert_eq!(dropped_files(&format!("{escaped} ")), Some(vec![shot.clone()]), "with the space a terminal adds");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn base64_matches_known_values() {
     assert_eq!(base64(b"Man"), "TWFu");

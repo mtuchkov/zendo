@@ -11,20 +11,21 @@ pub struct Attention {
     pub sound: bool,
     /// The config file that the sound button writes.
     pub config: PathBuf,
-    /// The sound button in the last frame, for the mouse.
-    pub button: Option<Rect>,
     /// The terminal has the focus; without focus events, always (ATTN-11).
     pub focused: bool,
     /// The bells to ring after the next frame.
     pub bells: usize,
     /// For each session slot: since when its button blinks.
     blink: Vec<Option<Instant>>,
+    /// The time that the blinks read: the clock when none. A test fixes it, so that the time a
+    /// frame takes does not change the shade of a button.
+    pub clock: Option<Instant>,
 }
 
 impl Default for Attention {
     fn default() -> Self {
         let config = crate::setup::config::config_path();
-        Attention { sound: true, config, button: None, focused: true, bells: 0, blink: vec![None; SESSIONS + TERMINALS] }
+        Attention { sound: true, config, focused: true, bells: 0, blink: vec![None; SESSIONS + TERMINALS], clock: None }
     }
 }
 
@@ -71,7 +72,7 @@ impl App {
     /// The user sees session slot `n`: it is on the screen, or the chat of its agent session is,
     /// and the terminal has the focus (ATTN-11).
     pub fn sees(&self, n: usize) -> bool {
-        let chat = self.panel && matches!(self.mode, Mode::Read | Mode::Write | Mode::Help);
+        let chat = self.threads.shown() && matches!(self.mode, Mode::Read | Mode::Write | Mode::Help);
         let shown = match self.cli.view {
             Some(v) => v == n,
             None => chat && self.cli.pane.map_or(n == self.state.session, |p| p == n),
@@ -81,7 +82,8 @@ impl App {
 
     /// The pulse of the button of slot `n`, 0 to 1, while it blinks (ATTN-3).
     pub fn blink(&self, n: usize) -> Option<f32> {
-        self.attention.since(n).map(|t| crate::ui::theme::pulse(t.elapsed()))
+        let now = self.attention.clock.unwrap_or_else(Instant::now);
+        self.attention.since(n).map(|t| crate::ui::theme::pulse(now.saturating_duration_since(t)))
     }
 
     /// The turn or the command of slot `n` ended: the bell and the blink, if the user does not see
@@ -90,7 +92,8 @@ impl App {
         if self.sees(n) {
             return;
         }
-        if self.attention.sound {
+        // While the music plays, the call is a chime in the music (LOFI-13).
+        if self.attention.sound && !self.music.chime() {
             self.attention.bells += 1;
         }
         self.attention.start(n);
@@ -115,21 +118,21 @@ impl App {
         seen.into_iter().for_each(|n| self.attention.stop(n));
     }
 
-    /// The terminal got or lost the focus (ATTN-11).
+    /// The terminal got or lost the focus (ATTN-11); the music pauses without it (LOFI-15).
     pub fn on_focus(&mut self, focused: bool) {
         self.attention.focused = focused;
+        self.music.focus(focused);
     }
 
     /// The sound button: turn the bell off or on, and save it in the config (ATTN-8).
     pub fn toggle_sound(&mut self) {
         self.attention.sound = !self.attention.sound;
-        let path = self.attention.config.clone();
-        let mut user = UserConfig::load_from(&path);
-        user.sound = Some(self.attention.sound);
-        let word = if self.attention.sound { "on" } else { "off" };
-        match user.save_to(&path) {
+        let sound = self.attention.sound;
+        let word = if sound { "on" } else { "off" };
+        // Only the line of the sound changes (CMD-19).
+        match UserConfig::update(&self.attention.config, |user| user.sound = Some(sound)) {
             Ok(()) => self.flash(format!("sound {word}")),
-            Err(e) => self.flash(format!("sound {word}; could not save it in {}: {e}", path.display())),
+            Err(e) => self.flash(format!("sound {word}; not saved: {e}")),
         }
     }
 }

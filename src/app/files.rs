@@ -3,63 +3,46 @@ use super::*;
 
 impl App {
     pub fn reload(&mut self) {
-        if let Ok(mut n) = self.store.load_all() {
-            self.extra.retain(|p| p.exists());
-            for p in &self.extra {
-                if !n.iter().any(|x| &x.path == p)
-                    && let Ok(note) = notes::load(p) {
-                        n.push(note);
-                    }
-            }
-            n.sort_by_key(|b| std::cmp::Reverse(b.modified));
-            self.notes = n;
-        }
-        if self.current.as_ref().is_some_and(|p| !p.exists()) {
-            self.current = self.notes.first().map(|n| n.path.clone());
-        }
+        self.files.reload();
     }
 
     pub fn start_write(&mut self, new: bool) {
-        self.pinned = None;
+        self.threads.unpin();
         if new {
-            self.editor = Editor::new("# ");
-            self.editor.move_to_end();
-            self.editor_path = None;
+            self.writer.start_new();
         } else if let Some(n) = self.note() {
             let body = n.body.clone();
             let path = n.path.clone();
-            self.editor = Editor::new(body.trim_end_matches('\n'));
-            self.editor_path = Some(path);
+            self.writer.start_on(body.trim_end_matches('\n'), path);
             self.cursor_to_editor();
-            self.keep_y = Some(self.cursor_y);
+            self.reader.keep_screen_row();
         } else {
             return self.start_write(true);
         }
-        self.saved_at = None;
+        self.writer.not_saved();
         self.mode = Mode::Write;
         self.focus = Focus::Note;
     }
 
     /// Save the editor. A new note gets its file name from the title.
     pub fn save(&mut self) {
-        let text = self.editor.text();
+        let text = self.writer.editor_mut().text();
         let body = format!("{}\n", text.trim_end());
         let empty = text.trim().is_empty() || text.trim() == "#";
-        let path = match &self.editor_path {
+        let path = match self.writer.path() {
             Some(p) => p.clone(),
             None if empty => return,
             None => {
-                let title = notes::title_of(&body).unwrap_or_else(|| text.lines().next().unwrap_or("note").to_string());
-                self.store.path_for(&title, Local::now().date_naive())
+                // Without a title: the first line of the body (FLOAT-17).
+                let first = crate::agent::work::body_of(&text).lines().next().unwrap_or("note").to_string();
+                let title = notes::title_of(&body).unwrap_or(first);
+                self.new_note_path(&title)
             }
         };
         match notes::save(&path, &body) {
             Ok(()) => {
-                self.editor.dirty = false;
-                self.saved_at = Some(Local::now());
-                self.editor_path = Some(path.clone());
-                self.current = Some(path);
-                self.reload();
+                self.writer.saved(path.clone());
+                self.files.saved(path);
                 self.mark_edited();
             }
             Err(e) => self.flash(format!("not saved: {e}")),
@@ -72,73 +55,47 @@ impl App {
         self.mode = Mode::Read;
         // The read cursor on the char of the write cursor, at the same height on the screen.
         self.cursor_to_read();
-        self.keep_y = Some(self.cursor_y);
+        self.reader.keep_screen_row();
     }
 
     /// Pick up changes made outside zendo: Claude Code, git pull, another editor.
     pub(crate) fn check_disk(&mut self) {
-        if self.disk_checked.elapsed() < Duration::from_secs(1) {
-            return;
-        }
-        self.disk_checked = Instant::now();
-        let st = std::fs::metadata(self.cfg.root.join(crate::docs::structure::FILE)).and_then(|m| m.modified()).ok();
-        if st != self.structure_seen {
+        let Some(structure) = self.files.disk_due(&self.cfg.root) else { return };
+        if structure {
             self.load_structure();
-            self.tree.scanned = None;
+            self.files.scan_again();
         }
-        let Ok(dir) = std::fs::read_dir(&self.store.dir) else { return };
-        let mut n = 0;
-        let mut newest = None;
-        for e in dir.flatten() {
-            if e.path().extension().is_some_and(|x| x == "md") {
-                n += 1;
-                let m = e.metadata().and_then(|m| m.modified()).ok();
-                if m > newest {
-                    newest = m;
-                }
-            }
-        }
-        if let Some(m) = self.current.as_ref().and_then(|p| std::fs::metadata(p).ok()).and_then(|m| m.modified().ok())
-            && Some(m) > newest {
-                newest = Some(m);
-            }
-        let now = (n, newest);
-        if now != self.disk {
-            let first = self.disk.1.is_none() && self.disk.0 == 0;
-            self.disk = now;
-            if !first {
-                self.reload_after_agent();
-                self.mark_tree();
-            }
+        if self.files.disk_changed() {
+            self.reload_after_agent();
+            self.mark_tree();
         }
     }
 
     pub fn tick(&mut self) {
-        if let Some(rx) = self.update_rx.as_mut() {
-            match rx.try_recv() {
-                Ok(found) => {
-                    self.update_rx = None;
-                    if let Some(sha) = found {
-                        let how = self.keys.key(crate::keys::Pane::Read, "upgrade").map(|k| format!(" · {k} upgrades now")).unwrap_or_default();
-                        self.flash(format!("a newer zendo is on GitHub ({sha}){how}"));
-                        self.update = Some(sha);
-                    }
-                }
-                Err(tokio::sync::oneshot::error::TryRecvError::Closed) => self.update_rx = None,
-                Err(_) => {}
-            }
+        self.music_tick();
+        self.peek_tick();
+        // CMD-11: the message names no commit and no key; the top line has the button.
+        if self.update.poll().is_some() {
+            self.flash("a new version of zendo is available".to_string());
         }
+        self.usage.tick(Instant::now());
         self.check_disk();
-        if self.state.tree && self.tree.stale() {
+        if self.state.tree && self.files.tree_stale() {
             self.scan_tree();
             self.mark_tree();
         }
+        if self.files.poll_tree() {
+            self.mark_tree();
+        }
         self.sync_visit();
+        self.track_recent();
+        self.worktree_recap_tick();
+        self.api_tick();
         self.recap_tick();
         self.cli_tick();
         self.hold_tick();
         self.attention_tick();
-        if self.mode == Mode::Write && self.editor.dirty && self.last_edit.elapsed() > Duration::from_millis(1500) {
+        if self.mode == Mode::Write && self.writer.editor().dirty && self.writer.idle() > Duration::from_millis(1500) {
             self.save();
         }
         if self.flash.as_ref().is_some_and(|(_, t)| t.elapsed() > Duration::from_secs(4)) {
@@ -151,26 +108,23 @@ impl App {
         if self.mode == Mode::Write {
             self.save();
         }
-        self.upgrade_now = true;
+        self.update.upgrade();
         self.quit = true;
     }
 
-    /// Open any markdown file of the repo.
+    /// Open any file of the repo, in the version of the active agent session (FILES-42).
     pub fn open_file(&mut self, path: PathBuf) {
         if self.mode == Mode::Write {
             self.save();
             self.mode = Mode::Read;
         }
-        if !self.notes.iter().any(|n| n.path == path) && !self.extra.contains(&path) {
-            self.extra.push(path.clone());
-            self.reload();
-        }
-        self.current = Some(path);
-        self.scroll = 0;
-        self.read_cursor = 0;
-        self.read_anchor = None;
-        self.delta_scroll = 0;
-        self.pinned = None;
+        let path = self.session_path(&path);
+        self.files.open(path);
+        // FILES-58: the tree shows the file, also when it was open before.
+        self.follow_open_file();
+        self.reader.to_top();
+        self.work.delta_top();
+        self.threads.unpin();
         if !matches!(self.mode, Mode::Read | Mode::Write) {
             self.mode = Mode::Read;
         }

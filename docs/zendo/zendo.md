@@ -3,24 +3,32 @@ status: "draft"
 revision: "1"
 date: "2026-11-11"
 children:
-  - "panes.md"
+  - "panes/panes.md"
   - "notes.md"
   - "write.md"
   - "say.md"
   - "notes-list.md"
+  - "float.md"
+  - "find.md"
   - "notes-repo.md"
   - "length.md"
-  - "files.md"
+  - "files/files.md"
   - "work.md"
   - "claude.md"
+  - "threads.md"
   - "sessions.md"
+  - "session-names/session-names.md"
   - "handoff.md"
   - "cli-messages.md"
+  - "zendo-session.md"
   - "chat.md"
   - "terminal/terminal.md"
   - "attention.md"
   - "project-structure.md"
-  - "commands.md"
+  - "cli/cli.md"
+  - "site.md"
+  - "lofi.md"
+  - "usage.md"
 level: "what zendo is, its parts, and the qualities that hold for all parts"
 note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
@@ -32,24 +40,33 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 
 | Document                                     | Topic                                                         |
 | -------------------------------------------- | ------------------------------------------------------------- |
-| [Panes and layouts](panes.md)                | The panes, the two layouts, resizing, hiding, mouse selection |
+| [Panes and layouts](panes/panes.md)          | The panes, the two layouts, resizing, hiding; text selection; keys, hints and help |
 | [Notes](notes.md)                            | The note pane: read mode and write mode                       |
 | [Write mode](write.md)                       | The live view, hard wrap, the cursor between modes            |
 | [Say it here](say.md)                        | `ctrl-shift-s`: the agent writes an idea at a place in the note |
 | [Notes list and search](notes-list.md)       | Titles, tags, links, the notes list, search                   |
+| [Note to spec](note-to-spec.md)              | `[ → spec ]` or `s`: the agent turns a note into specifications |
+| [New note in a float](float.md)              | `alt-n`: a new note in a float over the open file, without distraction |
+| [Title of a new note](float-title.md)        | The name model writes the title of the note in the float      |
+| [Find](find.md)                              | `alt-/`: recent files, search by path and text, the preview   |
 | [Notes repo](notes-repo.md)                  | Notes in a private git repo, in sync between machines         |
 | [Length](length.md)                          | The word limit, the red area, the split with Claude            |
-| [File tree](files.md)                        | The files of the repository and their views                   |
+| [File tree](files/files.md)                  | The files of the repository and their views                   |
 | [Work, delta and recaps](work.md)            | Visits that count, the delta pane, recaps                     |
-| [Claude](claude.md)                          | The connection to Claude, threads, edits                      |
+| [Claude](claude.md)                          | The connection to Claude, edits                               |
+| [Threads](threads.md)                        | The five agent sessions, their keys and buttons, session IDs and resume |
 | [Sessions](sessions.md)                      | Claude Code sessions in the background, more than one at a time |
 | [Hand-off during a turn](handoff.md)         | `ctrl-o` while the chat answers: wait, or stop and continue    |
 | [Claude Code messages in the chat](cli-messages.md) | The prompts and answers of a running Claude Code session in its chat |
+| [zendo session](zendo-session.md)            | What a zendo session is, its id, and what zendo tells its agent |
 | [Chat](chat.md)                              | The chat input: chips, attachments, `@` file suggestions        |
 | [Terminal](terminal/terminal.md)             | Shell blocks in the chat, the `F5` and `[>]` terminals in the chat pane, their output for the agent |
 | [Attention](attention.md)                    | The bell and the blinking button when a turn ends; `[sound]`   |
 | [Project structure](project-structure.md)    | `project-structure.toml`: use and repair                      |
-| [Commands](commands.md)                      | Install, `zendo setup`, `zendo doctor`, `zendo upgrade`          |
+| [Commands](cli/cli.md)                       | Install, `zendo setup`, `zendo init`, `zendo doctor`, `zendo upgrade` |
+| [Landing page](site.md)                      | The page in `site/`: the pixel garden, the demo, the lofi music  |
+| [Lofi music](lofi.md)                        | Calm music that zendo makes itself: `[music]` and `alt-m`        |
+| [Usage counts](usage.md)                     | Local counts of the actions of the user, by pane, for the choice of key hints |
 
 ## Scope
 

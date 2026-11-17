@@ -16,13 +16,15 @@ fn files() -> Vec<(&'static str, &'static str)> {
     ]
 }
 
-/// An app with the file tree open and in focus, and the row of `rel` selected.
+/// An app with the file tree open and in focus, every folder open (FILES-57), and the row of
+/// `rel` selected.
 fn in_tree(root: &std::path::Path, rel: &str) -> zendo::app::App {
     let mut a = app(root);
     a.toggle_tree();
     draw(&mut a, 140, 30);
     a.focus = Focus::Tree;
-    a.tree.sel = a.tree.rows().iter().position(|r| r.rel.ends_with(rel)).unwrap_or_else(|| panic!("{rel} in the tree"));
+    a.files.expand_all();
+    a.files.select_row(a.files.tree().rows().iter().position(|r| r.rel.ends_with(rel)).unwrap_or_else(|| panic!("{rel} in the tree")));
     a
 }
 
@@ -32,7 +34,7 @@ fn m_moves_a_file_to_a_folder() {
     let root = repo("flow-move", &files());
     let mut a = in_tree(&root, "zendo/notes.md");
     key(&mut a, KeyCode::Char('m'));
-    assert!(matches!(a.file_prompt, Some(FilePrompt::Move(..))));
+    assert!(matches!(a.files.prompt(), Some(FilePrompt::Move(..))));
     let screen = draw(&mut a, 140, 30);
     assert!(screen[29].contains("MOVE") && screen[29].contains("docs/zendo"), "the last row: {}", screen[29]);
     (0..10).for_each(|_| key(&mut a, KeyCode::Backspace));
@@ -48,13 +50,13 @@ fn f4_starts_in_the_folder_of_the_selection_and_tab_completes() {
     let root = repo("flow-new", &files());
     let mut a = in_tree(&root, "zendo/notes.md");
     key(&mut a, KeyCode::F(4));
-    assert_eq!(a.file_prompt, Some(FilePrompt::NewFolder("docs/zendo/".into())));
+    assert_eq!(a.files.prompt().cloned(), Some(FilePrompt::NewFolder("docs/zendo/".into())));
     key(&mut a, KeyCode::Esc);
     key(&mut a, KeyCode::F(3));
     (0..11).for_each(|_| key(&mut a, KeyCode::Backspace));
     typ(&mut a, "docs/zen");
     key(&mut a, KeyCode::Tab);
-    assert_eq!(a.file_prompt, Some(FilePrompt::NewFile("docs/zendo/".into())));
+    assert_eq!(a.files.prompt().cloned(), Some(FilePrompt::NewFile("docs/zendo/".into())));
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -66,10 +68,10 @@ fn esc_in_the_filter_keeps_the_match_selected() {
     key(&mut a, KeyCode::Char('/'));
     typ(&mut a, "notes");
     key(&mut a, KeyCode::Down);
-    let picked = a.tree.rows()[a.tree.sel].rel.clone();
+    let picked = a.files.tree().rows()[a.files.tree().sel].rel.clone();
     key(&mut a, KeyCode::Esc);
-    assert!(a.tree.find.is_none());
-    assert_eq!(a.tree.rows()[a.tree.sel].rel, picked);
+    assert!(a.files.tree().find.is_none());
+    assert_eq!(a.files.tree().rows()[a.files.tree().sel].rel, picked);
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -80,8 +82,8 @@ async fn a_in_the_tree_adds_the_file_to_the_chat() {
     let mut a = in_tree(&root, "zendo/zendo.md");
     key(&mut a, KeyCode::Char('a'));
     assert_eq!(a.focus, Focus::Tree);
-    assert!(a.chips.last().is_some_and(|c| c.attach.is_some()));
-    assert!(a.input.text().contains("endo/zendo.md"), "{}", a.input.text());
+    assert!(a.composer.chips().last().is_some_and(|c| c.attach.is_some()));
+    assert!(a.composer.input().text().contains("endo/zendo.md"), "{}", a.composer.input().text());
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -95,8 +97,8 @@ fn the_delta_closes_the_tree_when_it_does_not_fit() {
     a.focus = Focus::Note;
     key(&mut a, KeyCode::Char('d'));
     draw(&mut a, 90, 30);
-    assert!(a.delta_open && !a.state.tree, "tree {}", a.state.tree);
-    assert!(a.visible.contains(&Focus::Delta));
+    assert!(a.work.delta_open() && !a.state.tree, "tree {}", a.state.tree);
+    assert!(a.frame.visible().contains(&Focus::Delta));
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -123,17 +125,17 @@ async fn at_adds_a_file_chip_that_moves_and_goes_as_one() {
     a.open_panel();
     a.focus = Focus::Claude;
     typ(&mut a, "see @zend");
-    assert!(a.at.as_ref().is_some_and(|p| p.hits[0].ends_with("zendo/zendo.md")), "{:?}", a.at);
+    assert!(a.composer.at().as_ref().is_some_and(|p| p.hits[0].ends_with("zendo/zendo.md")), "{:?}", a.composer.at());
     key(&mut a, KeyCode::Tab);
-    let text = a.input.text();
+    let text = a.composer.input().text();
     assert!(text.starts_with("see ⟦endo/zendo.md⟧ "), "{text}");
     key(&mut a, KeyCode::Left);
     key(&mut a, KeyCode::Left);
-    assert_eq!(a.input.col, 4, "one left over the space, one over the whole chip");
+    assert_eq!(a.composer.input().col, 4, "one left over the space, one over the whole chip");
     key(&mut a, KeyCode::Right);
     key(&mut a, KeyCode::Backspace);
-    assert_eq!(a.input.text(), "see  ");
-    assert!(a.chips.is_empty());
+    assert_eq!(a.composer.input().text(), "see  ");
+    assert!(a.composer.chips().is_empty());
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -143,21 +145,21 @@ async fn say_marks_the_place_until_the_answer_ends() {
     let root = repo("flow-say", &files());
     let mut a = app(&root);
     draw(&mut a, 120, 30);
-    a.read_cursor = a.read_text.iter().position(|r| r.starts_with("The first")).unwrap();
+    a.reader.to_row(a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap());
     ctrl_shift(&mut a, 's');
-    assert_eq!(a.input.text(), "⟦write here :3⟧ ", "a chip with the line of the mark");
-    assert!(a.chips[0].context.as_deref().is_some_and(|c| c.contains("line 3")));
+    assert_eq!(a.composer.input().text(), "⟦write here :3⟧ ", "a chip with the line of the mark");
+    assert!(a.composer.chips()[0].context.as_deref().is_some_and(|c| c.contains("line 3")));
     a.focus = Focus::Note;
     let screen = draw(&mut a, 120, 30);
     let row = screen.iter().find(|r| r.contains("The first paragraph")).unwrap();
     assert!(row.find('→').unwrap() < row.find("The first").unwrap(), "the arrow is left of the line: {row}");
-    let key_of = a.say.as_ref().unwrap().key.clone();
+    let key_of = a.writer.say().unwrap().key.clone();
     a.on_agent(Event::TurnEnd { key: key_of, stop: "end_turn".into() });
-    assert!(a.say.is_none());
+    assert!(a.writer.say().is_none());
     ctrl(&mut a, 'h');
     a.focus = Focus::Note;
     key(&mut a, KeyCode::Esc);
-    assert!(a.say.is_none(), "esc in the note");
+    assert!(a.writer.say().is_none(), "esc in the note");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -168,24 +170,24 @@ fn write_mode_keeps_the_char_and_shows_only_the_cursor_line_as_source() {
     let root = repo("flow-write", &files());
     let mut a = app(&root);
     draw(&mut a, 120, 30);
-    let row = a.read_text.iter().position(|r| r.starts_with("The second bold")).unwrap();
-    a.read_cursor = row;
-    a.read_col = "The second ".len();
+    let row = a.frame.read_text().iter().position(|r| r.starts_with("The second bold")).unwrap();
+    let col = "The second ".len();
+    a.reader.place(row, col);
     key(&mut a, KeyCode::Char('i'));
     assert_eq!(a.mode, Mode::Write);
-    let line = &a.editor.lines[a.editor.row];
-    assert_eq!(&line[a.editor.col..a.editor.col + 4], "bold", "{line}");
+    let line = &a.writer.editor().lines[a.writer.editor().row];
+    assert_eq!(&line[a.writer.editor().col..a.writer.editor().col + 4], "bold", "{line}");
     let screen = draw(&mut a, 120, 30);
     assert!(screen.iter().any(|r| r.contains("The second **bold** paragraph.")), "the cursor line is source");
     assert!(screen.iter().any(|r| r.contains("│ one │ two │")), "the table keeps its borders");
-    a.editor.row = a.editor.lines.iter().position(|l| l.starts_with("| one")).unwrap();
+    a.writer.editor_mut().row = a.writer.editor().lines.iter().position(|l| l.starts_with("| one")).unwrap();
     let screen = draw(&mut a, 120, 30);
     assert!(screen.iter().any(|r| r.contains("| one | two |")) && screen.iter().any(|r| r.contains("│ A   │ B   │")), "only the row of the cursor is source");
-    a.editor.row = a.editor.lines.iter().position(|l| l.starts_with("The second")).unwrap();
-    a.editor.col = "The second **".len();
+    a.writer.editor_mut().row = a.writer.editor().lines.iter().position(|l| l.starts_with("The second")).unwrap();
+    a.writer.editor_mut().col = "The second **".len();
     key(&mut a, KeyCode::Esc);
     draw(&mut a, 120, 30);
-    assert_eq!(&a.read_text[a.read_cursor][a.read_col..a.read_col + 4], "bold");
+    assert_eq!(&a.frame.read_text()[a.reader.row()][a.reader.col()..a.reader.col() + 4], "bold");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -195,15 +197,15 @@ fn typing_past_the_column_breaks_the_line() {
     let root = repo("flow-wrap", &files());
     let mut a = app(&root);
     draw(&mut a, 120, 30);
-    a.read_cursor = a.read_text.iter().position(|r| r.starts_with("The first")).unwrap();
+    a.reader.to_row(a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap());
     key(&mut a, KeyCode::Char('i'));
     draw(&mut a, 120, 30);
-    a.editor.end();
+    a.writer.editor_mut().end();
     typ(&mut a, " And it goes on with more words, so many that the line is longer than the text column.");
     key(&mut a, KeyCode::Esc);
     let text = std::fs::read_to_string(root.join(NOTE)).unwrap();
     let longest = text.lines().map(|l| l.chars().count()).max().unwrap();
-    assert!(longest <= a.text_width, "{longest} > {}: {text}", a.text_width);
+    assert!(longest <= a.frame.text_width(), "{longest} > {}: {text}", a.frame.text_width());
     assert!(text.contains("The first paragraph of the idea. And it goes on"));
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -219,8 +221,8 @@ fn write_mode_wraps_as_read_mode_and_keeps_the_head() {
     let recap = zendo::setup::state::Recap { text: "- Decides: the hall.".into(), of_hash: String::new(), of_text: String::new(), at: chrono::Local::now(), auto: true };
     a.state.file(rel).recap = Some(recap);
     let read = draw(&mut a, 100, 30);
-    let row = a.read_text.iter().position(|r| r.starts_with("A zendo is")).unwrap();
-    a.read_cursor = row;
+    let row = a.frame.read_text().iter().position(|r| r.starts_with("A zendo is")).unwrap();
+    a.reader.to_row(row);
     key(&mut a, KeyCode::Char('i'));
     let write = draw(&mut a, 100, 30);
     let trim = |s: &Vec<String>| s.iter().map(|l| l.trim_end().to_string()).collect::<Vec<_>>();
@@ -245,20 +247,20 @@ async fn say_and_add_to_chat_work_in_write_mode() {
     let root = repo("flow-write-keys", &files());
     let mut a = app(&root);
     draw(&mut a, 120, 30);
-    a.read_cursor = a.read_text.iter().position(|r| r.starts_with("The first")).unwrap();
+    a.reader.to_row(a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap());
     key(&mut a, KeyCode::Char('i'));
     draw(&mut a, 120, 30);
     ctrl_shift(&mut a, 's');
-    assert!(a.input.text().starts_with("⟦write here :3⟧"), "{}", a.input.text());
+    assert!(a.composer.input().text().starts_with("⟦write here :3⟧"), "{}", a.composer.input().text());
     a.focus = Focus::Note;
     let screen = draw(&mut a, 120, 30);
     let row = screen.iter().find(|r| r.contains("The first paragraph")).unwrap();
     assert!(row.find('→').unwrap() < row.find("The first").unwrap(), "the arrow in write mode: {row}");
-    a.say = None;
-    a.input.take();
-    a.chips.clear();
+    a.writer.end_say();
+    a.composer.input_mut().take();
+    a.composer.clear_chips();
     ctrl_shift(&mut a, 'a');
-    let chip = a.chips.last().expect("the line as a chip");
+    let chip = a.composer.chips().last().expect("the line as a chip");
     assert!(chip.label.contains("The first parag"), "{}", chip.label);
     assert!(chip.context.as_deref().unwrap_or_default().contains("> The first paragraph of the idea."));
     let _ = std::fs::remove_dir_all(&root);
@@ -293,19 +295,20 @@ async fn alt_shift_selects_words_in_read_mode_and_the_chat() {
     let root = repo("flow-words", &files());
     let mut a = app(&root);
     draw(&mut a, 120, 30);
-    a.read_cursor = a.read_text.iter().position(|r| r.starts_with("The first")).unwrap();
-    a.read_col = 0;
+    let row = a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap();
+    let col = 0;
+    a.reader.place(row, col);
     let alt_shift = KeyModifiers::ALT | KeyModifiers::SHIFT;
     a.on_key(KeyEvent::new(KeyCode::Char('L'), alt_shift));
     a.on_key(KeyEvent::new(KeyCode::Char('L'), alt_shift));
-    assert_eq!(a.read_col, "The first ".len(), "two words to the right");
+    assert_eq!(a.reader.col(), "The first ".len(), "two words to the right");
     a.on_key(KeyEvent::new(KeyCode::Char('y'), KeyModifiers::NONE));
-    assert_eq!(a.clip.as_deref(), Some("The first p"), "the selection ends on the cursor char");
+    assert_eq!(a.pointer.clip(), Some("The first p"), "the selection ends on the cursor char");
     a.open_panel();
     a.focus = Focus::Claude;
     typ(&mut a, "one two");
     a.on_key(KeyEvent::new(KeyCode::Char('H'), alt_shift));
-    assert_eq!(a.input.selected_text().as_deref(), Some("two"));
+    assert_eq!(a.composer.input().selected_text().as_deref(), Some("two"));
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -319,15 +322,31 @@ async fn ctrl_shift_c_opens_the_chat_in_write_mode() {
     draw(&mut a, 140, 30);
     ctrl_shift(&mut a, 'c');
     let screen = draw(&mut a, 140, 30);
-    assert!(a.panel, "the chat is open");
+    assert!(a.threads.shown(), "the chat is open");
     assert_eq!(a.focus, Focus::Claude);
     assert!(screen.iter().any(|r| r.contains("The first paragraph")), "the text stays: {screen:#?}");
     assert!(screen.iter().rev().any(|r| r.contains("AGENT")), "the chat pane: {screen:#?}");
     key(&mut a, KeyCode::Esc);
     assert_eq!(a.focus, Focus::Note, "esc goes back to the text");
     assert_eq!(a.mode, zendo::app::Mode::Write, "still writing");
-    assert!(!a.panel, "esc with an empty input closes the chat");
+    assert!(!a.threads.shown(), "esc with an empty input closes the chat");
     ctrl(&mut a, 'g');
-    assert!(a.panel && a.focus == Focus::Claude, "ctrl-g opens it in any terminal");
+    assert!(a.threads.shown() && a.focus == Focus::Claude, "ctrl-g opens it in any terminal");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// ADR 0008: a draw writes only what it shows. Write mode does not render the read rows, so the
+// frame keeps the rows of the last draw of read mode, and each draw gives the panes again.
+#[test]
+fn a_draw_keeps_what_it_does_not_show_from_the_last_frame() {
+    let root = repo("flow-frame-carry", &files());
+    let mut a = app(&root);
+    draw(&mut a, 120, 30);
+    let read: Vec<String> = a.frame.read_text().to_vec();
+    assert!(!read.is_empty() && a.frame.write_rows().is_empty());
+    key(&mut a, KeyCode::Char('i'));
+    draw(&mut a, 120, 30);
+    assert_eq!(a.frame.read_text(), read, "the read rows stay");
+    assert!(!a.frame.write_rows().is_empty() && !a.frame.pane_rects().is_empty());
     let _ = std::fs::remove_dir_all(&root);
 }

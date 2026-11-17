@@ -1,47 +1,44 @@
-//! Delete, rename and move a file, from the file tree or the notes list. The thread of the file
-//! goes with it.
-use super::*;
+//! Delete, rename and move a file, from the file tree or the notes list. The files do the work on
+//! disk; the thread and the session of the file follow through an `Effect`.
+use super::{Effect, FilePrompt, Files};
+use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use std::path::{Path, PathBuf};
 
-impl App {
+impl Files {
     /// The selected row of the tree, when it is a file.
-    pub(crate) fn tree_file(&self) -> Option<PathBuf> {
+    pub fn tree_file(&self) -> Option<PathBuf> {
         let rows = self.tree.rows();
         rows.get(self.tree.sel).filter(|r| r.kind == crate::docs::tree::Kind::File).map(|r| r.rel.clone())
     }
 
-    /// The selected note of the notes list, from the repository root.
-    pub(crate) fn notes_file(&self) -> Option<PathBuf> {
-        let n = self.notes.get(self.notes_sel)?;
-        Some(n.path.strip_prefix(&self.cfg.root).unwrap_or(&n.path).to_path_buf())
-    }
-
     /// Ask about a file: `d` delete, `r` rename, `m` move.
-    pub(crate) fn ask_file(&mut self, rel: Option<PathBuf>, what: char) {
-        let Some(rel) = rel else { return self.flash("select a file first") };
+    pub fn ask_file(&mut self, rel: Option<PathBuf>, what: char) -> Option<Effect> {
+        let Some(rel) = rel else { return Effect::flash("select a file first") };
         let name = rel.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         let dir = rel.parent().map(|p| p.display().to_string()).unwrap_or_default();
-        self.file_prompt = Some(match what {
+        self.prompt = Some(match what {
             'd' => FilePrompt::Delete(rel),
             'r' => FilePrompt::Rename(rel, name),
             _ => FilePrompt::Move(rel, dir),
         });
+        None
     }
 
     /// The keys while a question is open: `y` or not for a delete; typing, `tab`, `enter` and `esc`
-    /// for a name or a folder.
-    pub(crate) fn key_file_prompt(&mut self, k: KeyEvent) {
-        let Some(mut prompt) = self.file_prompt.take() else { return };
+    /// for a name or a folder. `root` is the repository.
+    pub fn key_prompt(&mut self, k: KeyEvent, root: &Path) -> Option<Effect> {
+        let mut prompt = self.prompt.take()?;
         let Some(text) = prompt.field_mut() else {
-            if let (FilePrompt::Delete(rel), KeyCode::Char('y' | 'Y')) = (&prompt, k.code) {
-                self.delete_file(&rel.clone());
-            }
-            return;
+            return match (&prompt, k.code) {
+                (FilePrompt::Delete(rel), KeyCode::Char('y' | 'Y')) => self.delete(root, rel),
+                _ => None,
+            };
         };
         match k.code {
-            KeyCode::Esc => return,
-            KeyCode::Enter => return self.finish_prompt(prompt),
+            KeyCode::Esc => return None,
+            KeyCode::Enter => return self.finish(prompt, root),
             KeyCode::Tab => {
-                if let Some(t) = self.complete_folder(text) {
+                if let Some(t) = complete_folder(root, text) {
                     *text = t;
                 }
             }
@@ -51,97 +48,97 @@ impl App {
             KeyCode::Char(c) if !k.modifiers.intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) => text.push(c),
             _ => {}
         }
-        self.file_prompt = Some(prompt);
+        self.prompt = Some(prompt);
+        None
     }
 
-    fn finish_prompt(&mut self, prompt: FilePrompt) {
+    fn finish(&mut self, prompt: FilePrompt, root: &Path) -> Option<Effect> {
         match prompt {
-            FilePrompt::Delete(rel) => self.delete_file(&rel),
-            FilePrompt::Rename(rel, name) => self.rename_file(&rel, &name),
-            FilePrompt::Move(rel, folder) => self.move_to(&rel, &folder),
-            FilePrompt::NewFile(path) => self.make_file(&path),
-            FilePrompt::NewFolder(path) => self.make_folder(&path),
+            FilePrompt::Delete(rel) => self.delete(root, &rel),
+            FilePrompt::Rename(rel, name) => self.rename(root, &rel, &name),
+            FilePrompt::Move(rel, folder) => self.move_to(root, &rel, &folder),
+            FilePrompt::NewFile(path) => self.make_file(root, &path),
+            FilePrompt::NewFolder(path) => self.make_folder(root, &path),
         }
     }
 
-    fn delete_file(&mut self, rel: &Path) {
-        let path = self.cfg.root.join(rel);
+    fn delete(&mut self, root: &Path, rel: &Path) -> Option<Effect> {
+        let path = root.join(rel);
         if let Err(e) = std::fs::remove_file(&path) {
-            return self.flash(format!("delete failed: {e}"));
+            return Effect::flash(format!("delete failed: {e}"));
         }
         let key = self.rel(&path);
-        self.state.take_session(&self.cfg.agent, &key);
-        self.state.save(&self.cfg.root);
-        self.threads.remove(&key);
         if self.current.as_ref() == Some(&path) {
             self.current = None;
         }
         self.reload();
-        self.scan_tree();
-        self.notes_sel = self.notes_sel.min(self.notes.len().saturating_sub(1));
-        self.flash(format!("deleted {key}"));
+        Some(Effect::Deleted(key))
     }
 
-    fn rename_file(&mut self, rel: &Path, name: &str) {
-        let old = self.cfg.root.join(rel);
+    fn rename(&mut self, root: &Path, rel: &Path, name: &str) -> Option<Effect> {
+        let old = root.join(rel);
         match rename_target(&old, name) {
             Ok(target) => self.relocate(&old, &target, "renamed"),
-            Err(e) => self.flash(e),
+            Err(e) => Effect::flash(e),
         }
     }
 
     /// Move a file to a folder of the repository; a folder that is not there yet is made.
-    fn move_to(&mut self, rel: &Path, folder: &str) {
-        let old = self.cfg.root.join(rel);
+    fn move_to(&mut self, root: &Path, rel: &Path, folder: &str) -> Option<Effect> {
+        let old = root.join(rel);
         let folder = folder.trim().trim_matches('/');
         if folder.split('/').any(|p| p == "..") {
-            return self.flash("give a folder inside the repository");
+            return Effect::flash("give a folder inside the repository");
         }
-        let dir = self.cfg.root.join(folder);
+        let dir = root.join(folder);
         if let Err(e) = std::fs::create_dir_all(&dir) {
-            return self.flash(format!("move failed: {e}"));
+            return Effect::flash(format!("move failed: {e}"));
         }
         let target = dir.join(old.file_name().unwrap_or_default());
-        self.relocate(&old, &target, "moved");
+        self.relocate(&old, &target, "moved")
     }
 
-    /// Rename or move a file, then show it in the tree and the notes list.
-    pub(crate) fn relocate(&mut self, old: &Path, target: &Path, done: &str) {
+    /// Rename or move a file on disk; `done` is the word for the message.
+    fn relocate(&mut self, old: &Path, target: &Path, done: &'static str) -> Option<Effect> {
         if target == old {
-            return;
+            return None;
         }
         if target.exists() {
-            return self.flash("a file with that name exists");
+            return Effect::flash("a file with that name exists");
         }
-        if let Err(e) = self.move_file(old, target) {
-            return self.flash(format!("{done} failed: {e}"));
+        match self.move_file(old, target) {
+            Ok(()) => Some(Effect::Moved { old: old.to_path_buf(), target: target.to_path_buf(), done }),
+            Err(e) => Effect::flash(format!("{done} failed: {e}")),
         }
-        self.scan_tree();
-        // Show the file under its new name, also when a name filter found it.
-        self.tree.find = None;
-        let new_rel = target.strip_prefix(&self.cfg.root).unwrap_or(target).to_path_buf();
-        self.tree.reveal(&new_rel);
-        self.notes_sel = self.notes.iter().position(|n| n.path == target).unwrap_or(self.notes_sel);
-        self.flash(format!("{done} to {}", self.rel(target)));
     }
 
-    /// Move a file, and its thread and session with it.
-    pub(crate) fn move_file(&mut self, old: &Path, target: &Path) -> std::io::Result<()> {
+    /// Move a file on disk; the open document follows it.
+    pub fn move_file(&mut self, old: &Path, target: &Path) -> std::io::Result<()> {
         std::fs::rename(old, target)?;
-        let (ok, nk) = (self.rel(old), self.rel(target));
-        if let Some(id) = self.state.take_session(&self.cfg.agent, &ok) {
-            self.state.set_session(&self.cfg.agent, &nk, id);
-            self.state.save(&self.cfg.root);
-        }
-        if let Some(t) = self.threads.remove(&ok) {
-            self.threads.insert(nk, t);
-        }
         if self.current.as_deref() == Some(old) {
             self.current = Some(target.to_path_buf());
         }
         self.reload();
         Ok(())
     }
+}
+
+/// The best folder for the last part of a typed path: `docs/zen` → `docs/zendo/`.
+pub fn complete_folder(root: &Path, text: &str) -> Option<String> {
+    let (parent, part) = text.rsplit_once('/').unwrap_or(("", text));
+    if part.is_empty() {
+        return None;
+    }
+    let names: Vec<PathBuf> = std::fs::read_dir(root.join(parent))
+        .ok()?
+        .flatten()
+        .filter(|e| e.file_type().is_ok_and(|t| t.is_dir()))
+        .map(|e| PathBuf::from(e.file_name()))
+        .filter(|n| !n.to_string_lossy().starts_with('.'))
+        .collect();
+    let best = crate::app::at::rank(&names, part).into_iter().next()?;
+    let best = best.display();
+    Some(if parent.is_empty() { format!("{best}/") } else { format!("{parent}/{best}/") })
 }
 
 /// The new path of `old` for a typed name: in the same folder, with the old extension when the

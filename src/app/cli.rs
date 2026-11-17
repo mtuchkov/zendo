@@ -47,6 +47,7 @@ impl App {
     /// SESSIONS-11).
     pub(crate) fn key_cli(&mut self, n: usize, k: KeyEvent) {
         if self.keys.local(Pane::Session, &k) == Some("leave") {
+            self.did(Pane::Session, "leave");
             // A terminal on the full screen leaves the chat pane too (TERM-22, TERM-42).
             if self.cli.pane == Some(n) {
                 self.cli.pane = None;
@@ -54,14 +55,15 @@ impl App {
             self.cli.view = None;
             return;
         }
-        if self.keys.local(Pane::Global, &k) == Some("next_session") {
-            self.cli.view = None;
-            return self.next_in_chat();
+        let global = self.keys.local(Pane::Global, &k).filter(|a| *a != "terminal_run" && count::session_action(a));
+        self.did_some(Pane::Global, global);
+        if let Some(a @ ("next_session" | "prev_session")) = global {
+            return self.step_full_screen(a == "next_session");
         }
-        if self.keys.local(Pane::Global, &k) == Some("terminal") {
+        if global == Some("terminal") {
             return self.open_terminal(0);
         }
-        let session = self.keys.local(Pane::Global, &k).and_then(|a| a.strip_prefix("session_")).and_then(|s| s.parse::<usize>().ok());
+        let session = global.and_then(|a| a.strip_prefix("session_")).and_then(|s| s.parse::<usize>().ok());
         if let Some(m) = session.and_then(|m| m.checked_sub(1)) {
             self.cli.view = self.cli.running(m).then_some(m);
             return self.switch_session(m);
@@ -82,29 +84,37 @@ impl App {
         self.cli_messages();
         for n in self.cli.tick().into_iter().filter(|n| *n < SESSIONS) {
             let key = session_key(n);
-            if let Some(a) = &self.agent {
-                a.send(Cmd::Forget { key: key.clone() });
-            }
+            self.link.send(Cmd::Forget { key: key.clone() });
             self.threads.remove(&key);
-            if self.panel && self.active() == n {
+            if self.threads.shown() && self.active() == n {
                 self.open_session();
             }
             self.flash(format!("Claude Code session {} ended", n + 1));
         }
     }
 
-    /// The prompts and answers of the Claude Code sessions go to the chats of their agent sessions;
-    /// a question that the chat sent shows once (CLIMSG-1, CLIMSG-4).
+    /// The prompts, the steps and the answers of the Claude Code sessions go to the chats of their
+    /// agent sessions; a question that the chat sent shows once (CLIMSG-1, CLIMSG-4, CLIMSG-8).
     fn cli_messages(&mut self) {
         use crate::session::{Message, plain};
         for (n, m) in self.cli.messages() {
+            if let Message::Session { id, clear } = m {
+                self.claude_session_started(n, id, clear);
+                continue;
+            }
             let t = self.thread(&session_key(n));
             match m {
                 Message::Prompt(p) => match t.sent_to_cli.iter().position(|s| *s == plain(&p)) {
                     Some(i) => drop(t.sent_to_cli.remove(i)),
                     None => t.push(Item::User(plain(&p))),
                 },
-                Message::Answer(a) => t.push(Item::Agent(a)),
+                Message::Answer(a) | Message::Text(a) => t.push(Item::Agent(a)),
+                // The tool calls between two texts are one item, as the tools of the agent (CLIMSG-9).
+                Message::Tool { id, title, kind } => match t.items.last_mut() {
+                    Some(Item::Tools { uses, .. }) => uses.push(ToolUse { id, title, kind }),
+                    _ => t.push(Item::Tools { uses: vec![ToolUse { id, title, kind }], started: Instant::now(), took: None }),
+                },
+                Message::Session { .. } => {}
             }
         }
     }
@@ -114,8 +124,7 @@ impl App {
     /// as `@path`, a selection chip as its text after the question.
     pub(crate) fn send_to_cli(&mut self) {
         let n = self.active();
-        let q = self.input.take();
-        let chips: Vec<Chip> = std::mem::take(&mut self.chips).into_iter().filter(|c| q.contains(c.label.as_str())).collect();
+        let (q, chips) = self.composer.take_message();
         let mut text = q.clone();
         let mut after = Vec::new();
         for c in &chips {
@@ -144,7 +153,7 @@ impl App {
         t.sent_to_cli.push(sent);
         t.push(Item::User(q));
         t.push(Item::Info("sent to Claude Code; it queues the message while it works".into()));
-        self.panel_scroll = 0;
+        self.threads.to_end();
     }
 
     /// Other questions of the chat of an agent session whose Claude Code session runs, such as a
@@ -159,6 +168,13 @@ impl App {
         true
     }
 
+    /// zendo quits: the state keeps the place in the last document of the session (FILES-54).
+    fn quit_now(&mut self) -> bool {
+        self.track_recent();
+        self.state.save(&self.cfg.root);
+        true
+    }
+
     /// True when zendo can quit now. While Claude Code sessions run, the first quit asks, and a
     /// second one within 5 s stops them (SESSIONS-6, SESSIONS-19).
     pub fn settle_quit(&mut self) -> bool {
@@ -166,11 +182,11 @@ impl App {
             return false;
         }
         if !self.cli.any_running() {
-            return true;
+            return self.quit_now();
         }
         if self.cli.quit_asked.is_some_and(|t| t.elapsed() < QUIT_AGAIN) {
             self.cli.stop_all();
-            return true;
+            return self.quit_now();
         }
         self.quit = false;
         self.cli.quit_asked = Some(Instant::now());

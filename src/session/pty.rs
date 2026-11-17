@@ -71,6 +71,14 @@ impl Cli {
         let settings = dir.join("hooks.json");
         std::fs::write(&settings, hooks::settings())?;
         let mut b = CommandBuilder::new(&cmd.program);
+        // The MCP server of this zendo session (SESSIONS-21). `--mcp-config` takes several files, so
+        // the option `--settings` must follow it, not a prompt.
+        if let Ok(exe) = std::env::current_exe() {
+            let mcp = dir.join(format!("{}.mcp.json", n + 1));
+            std::fs::write(&mcp, crate::mcp::config_json(&exe, n + 1))?;
+            b.arg("--mcp-config");
+            b.arg(&mcp);
+        }
         b.arg("--settings");
         b.arg(&settings);
         b.args(&cmd.args);

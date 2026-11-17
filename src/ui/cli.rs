@@ -35,9 +35,9 @@ fn paint(s: &vt100::Screen, buf: &mut Buffer, area: Rect) -> Option<(u16, u16)> 
 
 /// A session on the full screen: its screen, which the mouse can select from (TERM-46), and the
 /// bottom line.
-pub(crate) fn draw_cli(f: &mut Frame, app: &mut App, t: &Theme, n: usize, area: Rect) {
+pub(crate) fn draw_cli(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, n: usize, area: Rect) {
     let [screen, bar] = Layout::vertical([Constraint::Min(1), Constraint::Length(1)]).areas(area);
-    app.regions.push((Region::Panel, screen));
+    fr.regions.push((Region::Panel, screen));
     f.render_widget(Block::new().style(Style::reset()), screen);
     if let Some(Some(pos)) = app.cli.with_screen(n, |s| paint(s, f.buffer_mut(), screen)) {
         f.set_cursor_position(pos);
@@ -65,7 +65,7 @@ pub(crate) fn draw_hold(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
 }
 
 /// A terminal in the chat pane: a head line with its name and keys, and its screen (TERM-37).
-pub(crate) fn draw_pane_terminal(f: &mut Frame, app: &mut App, t: &Theme, n: usize, head: Rect, body: Rect) {
+pub(crate) fn draw_pane_terminal(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, n: usize, head: Rect, body: Rect) {
     use crate::keys::Pane;
     let dim = Style::new().fg(t.dim);
     let keys = [app.keys.hint(Pane::Chat, "handoff", " full screen"), app.keys.hint(Pane::Session, "leave", " back")];
@@ -76,7 +76,7 @@ pub(crate) fn draw_pane_terminal(f: &mut Frame, app: &mut App, t: &Theme, n: usi
     if let Some(pos) = pos.filter(|_| app.focus == Focus::Claude) {
         f.set_cursor_position(pos);
     }
-    app.regions.push((crate::text::select::Region::Panel, body));
+    fr.regions.push((crate::text::select::Region::Panel, body));
 }
 
 /// The name of session `n`: the F key of an agent session or of the `F5` terminal, `[>]` for
@@ -93,6 +93,24 @@ pub(crate) fn name(app: &App, n: usize) -> String {
     }
 }
 
+/// The name of session `n` with the name of its Claude session after the key, if it has one
+/// (NAMES-6).
+pub(crate) fn titled(app: &App, n: usize) -> String {
+    let key = name(app, n);
+    match app.session_name(n).filter(|_| n < crate::app::SESSIONS) {
+        Some(s) => format!("{key} {s}"),
+        None => key,
+    }
+}
+
+/// The text of the button of agent session `n`: its key, `name` if not empty, and `!` while its
+/// Claude Code session waits for the user (CLAUDE-32, NAMES-6, SESSIONS-14).
+pub(crate) fn agent_label(app: &App, n: usize, name_part: &str) -> String {
+    let key = name(app, n);
+    let mark = if app.cli.state(n) == Some(crate::session::State::Waits) { "!" } else { "" };
+    if name_part.is_empty() { format!("{key}{mark}") } else { format!("{key} {name_part}{mark}") }
+}
+
 /// The sessions on the bottom line and the buttons: the agent sessions, the `F5` terminal, and the
 /// `[>]` terminals that run.
 fn shown(app: &App) -> impl Iterator<Item = usize> + '_ {
@@ -105,7 +123,7 @@ fn draw_cli_bar(f: &mut Frame, app: &App, t: &Theme, n: usize, area: Rect) {
     let badge = if n < crate::app::SESSIONS { " CLAUDE CODE " } else { " TERMINAL " };
     let mut spans = vec![Span::raw(" "), Span::styled(badge, Style::new().bg(t.acc).fg(t.bg).add_modifier(Modifier::BOLD)), Span::raw("  ")];
     for m in shown(app) {
-        let key = name(app, m);
+        let key = titled(app, m);
         let (text, style) = match app.cli.state(m) {
             Some(s) if m == n => (format!(" {key} {} ", s.word()), Style::new().bg(t.acc2).fg(t.bg).add_modifier(Modifier::BOLD)),
             Some(s) => (format!(" {key} {} ", s.word()), Style::new().fg(if s == crate::session::State::Waits { t.acc } else { t.fg })),
@@ -134,14 +152,13 @@ fn key_spans(app: &App, t: &Theme, action: &str, text: &str) -> Vec<Span<'static
     vec![Span::styled(format!("   {k}"), Style::new().fg(t.fg)), Span::styled(text.to_string(), Style::new().fg(t.dim))]
 }
 
-/// The text of a session button: its name, and the mark of the state of its program; a terminal
-/// has the mark while it runs a command (TERM-16).
+/// The text of a session button: its name, and `!` while its Claude Code session waits for the
+/// user (SESSIONS-14). A session that works or is idle, and a terminal, have only the name.
 pub(crate) fn button_label(app: &App, n: usize) -> String {
     let key = name(app, n);
     match app.cli.state(n) {
-        Some(crate::session::State::Idle) if n >= crate::app::SESSIONS => key,
-        Some(s) => format!("{key}{}", s.mark()),
-        None => key,
+        Some(crate::session::State::Waits) if n < crate::app::SESSIONS => format!("{key}!"),
+        _ => key,
     }
 }
 

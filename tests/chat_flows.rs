@@ -65,11 +65,11 @@ async fn alt_enter_is_a_new_line_and_the_status_bar_says_so() {
     typ(&mut a, "one");
     a.on_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::ALT));
     typ(&mut a, "two");
-    assert_eq!(a.input.text(), "one\ntwo");
+    assert_eq!(a.composer.input().text(), "one\ntwo");
     key(&mut a, KeyCode::Left);
     key(&mut a, KeyCode::Left);
     typ(&mut a, "x");
-    assert_eq!(a.input.text(), "one\ntxwo", "left moves back one char");
+    assert_eq!(a.composer.input().text(), "one\ntxwo", "left moves back one char");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -81,15 +81,15 @@ async fn slash_commands_come_from_the_agent_and_go_to_it_as_typed() {
     let mut a = app(&root);
     a.open_file(root.join(A));
     a.open_panel();
-    until(&mut a, |a| !a.slash.commands.is_empty()).await;
+    until(&mut a, |a| !a.composer.slash().commands.is_empty()).await;
     a.focus = Focus::Claude;
     typ(&mut a, "/rev");
-    assert!(a.slash.open, "`/` and a part of a name show the commands");
+    assert!(a.composer.slash().open, "`/` and a part of a name show the commands");
     let screen = draw(&mut a, 160, 30);
     assert!(screen.iter().any(|r| r.contains("/review") && r.contains("review the note")), "{screen:#?}");
     key(&mut a, KeyCode::Tab);
-    assert_eq!(a.input.text(), "/review ");
-    assert!(!a.slash.open);
+    assert_eq!(a.composer.input().text(), "/review ");
+    assert!(!a.composer.slash().open);
     typ(&mut a, "the risks");
     key(&mut a, KeyCode::Enter);
     until(&mut a, |a| a.threads[CHAT_KEY].busy.is_none() && last_answer(a).contains("ran the command")).await;
@@ -98,12 +98,13 @@ async fn slash_commands_come_from_the_agent_and_go_to_it_as_typed() {
 }
 
 // CLAUDE-27, CLAUDE-6: the chat shows the last session when it opens, before the first question.
+// The last session got a question, so its ID is kept (CLAUDE-40).
 #[tokio::test]
 async fn the_chat_shows_the_last_session_when_it_opens() {
     let root = repo("chat-resume", &files());
     let mut a = app(&root);
     a.open_panel();
-    until(&mut a, |a| a.threads.get(CHAT_KEY).is_some_and(|t| t.session.is_some())).await;
+    ask(&mut a, "first").await;
     drop(a);
     let mut b = app(&root);
     b.open_panel();
@@ -125,31 +126,32 @@ async fn tab_goes_to_the_transcript_to_select_copy_and_add() {
     ask(&mut a, "what is in it").await;
     draw(&mut a, 160, 30);
     key(&mut a, KeyCode::Tab);
-    assert!(a.transcript.on && a.focus == Focus::Claude, "tab: the transcript");
+    assert!(a.threads.transcript().on() && a.focus == Focus::Claude, "tab: the transcript");
     let bar = draw(&mut a, 160, 30).into_iter().rev().find(|r| r.contains("TRANSCRIPT")).unwrap_or_default();
     assert!(bar.contains("y copy") && bar.contains("a to chat"), "{bar}");
-    while !a.transcript.rows[a.transcript.row].trim_start().starts_with("› what is in it") {
+    while !a.threads.transcript().rows()[a.threads.transcript().cursor().0].trim_start().starts_with("› what is in it") {
         key(&mut a, KeyCode::Char('k'));
     }
     key(&mut a, KeyCode::Char('y'));
-    assert_eq!(a.clip.as_deref(), Some("what is in it"), "no selection: the message");
-    a.clip = None;
+    assert_eq!(a.pointer.clip(), Some("what is in it"), "no selection: the message");
+    a.pointer.take_clip();
     let alt_shift = KeyModifiers::ALT | KeyModifiers::SHIFT;
-    let row = a.transcript.rows[a.transcript.row].clone();
-    a.transcript.col = row[..row.find("what").unwrap()].chars().count();
+    let row = a.threads.transcript().rows()[a.threads.transcript().cursor().0].clone();
+    let at = a.threads.transcript().cursor().0;
+    a.threads.transcript_mut().place(at, row[..row.find("what").unwrap()].chars().count());
     a.on_key(KeyEvent::new(KeyCode::Char('L'), alt_shift));
     key(&mut a, KeyCode::Char('h'));
     key(&mut a, KeyCode::Char('h'));
     key(&mut a, KeyCode::Char('a'));
-    assert!(a.input.text().contains("⟦↩ what⟧"), "a chip of the chat: {}", a.input.text());
-    assert!(a.chips.iter().any(|c| c.context.as_deref().is_some_and(|x| x.contains("> what"))));
+    assert!(a.composer.input().text().contains("⟦↩ what⟧"), "a chip of the chat: {}", a.composer.input().text());
+    assert!(a.composer.chips().iter().any(|c| c.context.as_deref().is_some_and(|x| x.contains("> what"))));
     let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(160, 30)).unwrap();
-    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
+    term.draw(|f| a.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();
     let at = (0..30u16).flat_map(|y| (0..160u16).map(move |x| (x, y))).find(|p| buf[*p].symbol() == "↩").expect("the chip on the screen");
     assert_eq!(buf[at].bg, a.theme().add, "a chip of the chat has its own color");
     key(&mut a, KeyCode::Esc);
-    assert!(!a.transcript.on, "esc: back to the input");
+    assert!(!a.threads.transcript().on(), "esc: back to the input");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -161,9 +163,9 @@ async fn say_here_is_a_chip_with_the_line_and_sends_a_default_question() {
     let mut a = app(&root);
     a.open_file(root.join(A));
     draw(&mut a, 140, 30);
-    a.read_cursor = a.read_text.iter().position(|r| r.contains("one")).unwrap();
+    a.reader.to_row(a.frame.read_text().iter().position(|r| r.contains("one")).unwrap());
     a.on_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::ALT));
-    assert_eq!(a.input.text(), "⟦write here :3⟧ ");
+    assert_eq!(a.composer.input().text(), "⟦write here :3⟧ ");
     key(&mut a, KeyCode::Enter);
     until(&mut a, |a| a.threads.get(CHAT_KEY).is_some_and(|t| !t.items.is_empty())).await;
     let asked = a.threads[CHAT_KEY].items.iter().find_map(|i| if let Item::User(s) = i { Some(s.clone()) } else { None }).unwrap();
@@ -171,11 +173,11 @@ async fn say_here_is_a_chip_with_the_line_and_sends_a_default_question() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// CLAUDE-31, CLAUDE-32, TERM-41: five agent sessions; F6 to F10 choose one, alt-n the next, after
-// the last the F5 terminal, then the first; each has its own thread; the buttons show the active one
-// in the accent color.
+// CLAUDE-31, CLAUDE-32, TERM-41: five agent sessions; F6 to F10 choose one, alt-] the next, after
+// the last the F5 terminal, then the first; each has its own thread; the buttons stand in a row and
+// show the active one in the accent color.
 #[tokio::test]
-async fn five_agent_sessions_with_f6_to_f10_and_alt_n() {
+async fn five_agent_sessions_with_f6_to_f10_and_alt_bracket() {
     let root = repo("chat-sessions", &files());
     let mut a = app(&root);
     a.cli.shell = Some("/bin/sh".into());
@@ -184,16 +186,16 @@ async fn five_agent_sessions_with_f6_to_f10_and_alt_n() {
     ask(&mut a, "first session").await;
     key(&mut a, KeyCode::F(8));
     assert_eq!((a.state.session, a.key()), (2, "(chat 3)".to_string()));
-    assert!(a.panel && a.threads.get("(chat 3)").is_none_or(|t| !t.items.iter().any(|i| matches!(i, Item::User(_)))), "its own thread");
+    assert!(a.threads.shown() && a.threads.get("(chat 3)").is_none_or(|t| !t.items.iter().any(|i| matches!(i, Item::User(_)))), "its own thread");
     let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(160, 30)).unwrap();
-    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
+    term.draw(|f| a.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();
     let find = |s: &str| (0..30u16).flat_map(|y| (0..159u16).map(move |x| (x, y))).find(|p| buf[*p].symbol() == &s[..1] && buf[(p.0 + 1, p.1)].symbol() == &s[1..]).unwrap_or_else(|| panic!("{s}"));
     let (f6, f8) = (find("F6"), find("F8"));
-    assert_eq!(f6.0, f8.0, "one under the other");
+    assert!(f6.1 == f8.1 && f6.0 < f8.0, "in one row");
     assert_eq!((buf[f8].bg, buf[f6].bg), (a.theme().acc, a.theme().acc2), "the active one in the accent color");
     for want in [(3, None), (4, None), (4, Some(zendo::session::shell(0))), (0, None)] {
-        a.on_key(KeyEvent::new(KeyCode::Char('n'), KeyModifiers::ALT));
+        a.on_key(KeyEvent::new(KeyCode::Char(']'), KeyModifiers::ALT));
         assert_eq!((a.state.session, a.cli.pane), want);
     }
     a.cli.stop_all();
@@ -228,7 +230,7 @@ async fn edit_is_applied_without_a_question() {
     let text = std::fs::read_to_string(root.join(A)).unwrap();
     assert!(text.contains("- WHEN the mock agent"), "the edit is in the file: {text}");
     draw(&mut a, 160, 50);
-    let chat = a.transcript.rows.join("\n");
+    let chat = a.threads.transcript().rows().join("\n");
     assert!(!chat.contains("WHEN the mock agent") && !chat.contains("discard"), "no diff and no question in the chat:\n{chat}");
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -236,7 +238,7 @@ async fn edit_is_applied_without_a_question() {
 /// Where the keys go: the chat input, its transcript, or another pane.
 fn place(a: &App) -> &'static str {
     match a.focus {
-        Focus::Claude if a.transcript.on => "transcript",
+        Focus::Claude if a.threads.transcript().on() => "transcript",
         Focus::Claude => "chat",
         Focus::Note => "note",
         Focus::Delta => "delta",
@@ -273,5 +275,75 @@ async fn the_first_tab_goes_to_the_sister_pane_of_the_chat() {
     tabs(&mut a, &["chat", "transcript"]);
     a.tab_run.at = a.tab_run.at.map(|t| t - zendo::app::TAB_PAUSE);
     tabs(&mut a, &["chat", "note", "transcript"]);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// The session ID that zendo keeps in the repository for the active thread.
+fn kept(a: &App) -> Option<String> {
+    zendo::setup::state::State::load(&a.cfg.root).session(&a.cfg.agent, &a.key())
+}
+
+// CLAUDE-40: a session that the chat opens and that gets no question leaves no session ID, so the
+// next start does not try to resume a thread that has no messages. The first question keeps it.
+#[tokio::test]
+async fn a_session_id_is_kept_only_after_the_first_question() {
+    let root = repo("chat-keep-after-question", &files());
+    let mut a = app(&root);
+    a.open_panel();
+    until(&mut a, |a| a.threads.get(&a.key()).is_some_and(|t| t.session.is_some())).await;
+    assert_eq!(kept(&a), None, "an opened session without a question is not kept");
+    let k = a.key();
+    a.focus = Focus::Claude;
+    typ(&mut a, "hello");
+    key(&mut a, KeyCode::Enter);
+    until(&mut a, |a| a.threads.get(&a.key()).is_some_and(|t| t.busy.is_none() && t.items.iter().any(|i| matches!(i, Item::Agent(_))))).await;
+    assert_eq!(kept(&a), a.threads[&k].session.clone(), "the first question keeps the session ID");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// CLAUDE-17: an image pasted from the clipboard is the chip `Image #n`, n the lowest number that no
+// chip in the input has.
+#[tokio::test]
+async fn pasted_images_are_numbered_chips() {
+    let root = repo("chat-image-chips", &files());
+    let mut a = app(&root);
+    a.open_panel();
+    a.focus = Focus::Claude;
+    let png = |n: &str| root.join(format!("docs/{n}.png"));
+    a.attach_pasted_image(png("paste-1"));
+    a.attach_pasted_image(png("paste-2"));
+    assert_eq!(a.composer.input().text(), "⟦Image #1⟧ ⟦Image #2⟧ ");
+    // Delete the first chip with the key, as the user does.
+    a.composer.input_mut().home();
+    assert!(a.composer.chip_key(KeyCode::Delete));
+    a.composer.input_mut().move_to_end();
+    a.attach_pasted_image(png("paste-3"));
+    assert!(a.composer.input().text().ends_with("⟦Image #1⟧ "), "the free number: {}", a.composer.input().text());
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// CLAUDE-37, CLAUDE-38, CLAUDE-39: the chip of a pasted image says `Image #n` until the name model
+// names the image, then `Image: <name>`; the mock agent names an image `red button`. An agent without images gets no
+// question for a name.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_pasted_image_gets_its_name_from_the_name_model() {
+    let root = repo("chat-image-name", &files());
+    let mut a = app(&root);
+    a.open_panel();
+    a.focus = Focus::Claude;
+    until(&mut a, |a| a.link.images()).await;
+    let png = root.join("docs/paste.png");
+    std::fs::write(&png, [0x89, b'P', b'N', b'G']).unwrap();
+    a.attach_pasted_image(png.clone());
+    assert_eq!(a.composer.input().text(), "⟦Image #1⟧ ", "the number until the name comes");
+    typ(&mut a, "what is it");
+    until(&mut a, |a| a.composer.input().text().contains("red button")).await;
+    assert_eq!(a.composer.input().text(), "⟦Image: red button⟧ what is it");
+    assert_eq!(a.composer.chips().iter().map(|c| c.label.as_str()).collect::<Vec<_>>(), ["⟦Image: red button⟧"]);
+    assert!(a.threads.values().all(|t| t.items.is_empty()), "no message in a thread");
+    a.link.set_images(false);
+    a.attach_pasted_image(png);
+    assert!(a.link.no_image_waits(), "no question without images");
+    assert!(a.composer.input().text().ends_with("⟦Image #1⟧ "), "{}", a.composer.input().text());
     let _ = std::fs::remove_dir_all(&root);
 }

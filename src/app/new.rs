@@ -4,42 +4,41 @@ use super::*;
 impl App {
     pub fn new(cfg: Config) -> anyhow::Result<Self> {
         let store = Store::new(cfg.root.clone(), cfg.notes_dir.clone());
-        let notes = store.load_all()?;
+        let mut files = Files::start(store)?;
+        files.set_branch(notes::git_branch(&cfg.root));
         let state = State::load(&cfg.root);
         let theme = theme::index_of(&state.theme);
-        let branch = notes::git_branch(&cfg.root);
-        let current = notes.first().map(|n| n.path.clone());
         let user = crate::setup::config::UserConfig::load();
         let (keys, key_problems) = user.keymap();
+        let kind = crate::setup::config::kind_of(&cfg.agent);
+        let name_model = user.name_model(kind);
+        let env = |k: &str| cfg.agent_env.get(k).cloned().or_else(|| std::env::var(k).ok());
+        let api = crate::agent::api::Api::find(kind, name_model.clone(), &env, &crate::agent::api::on_path);
         crate::text::highlight::init(user.highlight.as_ref());
         let mut app = Self {
             cfg,
-            store,
-            notes,
-            current,
+            files,
             theme,
             theme_before: theme,
             state,
-            branch,
-            editor: Editor::new(""),
-            input: Editor::new(""),
-            input_width: 40,
             keys,
-            key_problems,
-            keymap_file: user.keymap.clone(),
-            ask_about: "",
-            word_limit: DEFAULT_WORDS,
-            view_height: 20,
-            text_width: 70,
+            key_help: KeyHelp::new(key_problems, user.keymap.clone()),
+            frame: crate::ui::frame::Frame::sized(20, 70, DEFAULT_WORDS),
             width_default: user.width.unwrap_or(crate::ui::COLUMN).clamp(30, 300),
             attention: Attention::from_config(&user),
+            music: crate::music::Music::from_config(&user),
+            link: AgentLink::with_name_model(name_model),
             ..Default::default()
         };
+        app.link.start_api(api);
+        // The last document of the active session, where the user left it (FILES-55).
+        app.open_session_doc();
+        app.files.find.seen = app.files.current().cloned();
         app.load_structure();
         // The tree was open last time: fill it; with no note on screen, start in it.
         if app.state.tree {
             app.scan_tree();
-            if app.current.is_none() {
+            if app.files.current().is_none() {
                 app.focus = Focus::Tree;
             }
         }

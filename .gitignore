@@ -1,4 +1,5 @@
 /target
+/.worktrees/
 .zendo/
 
 # Working files of agents: only the folder is in git.

@@ -24,15 +24,15 @@ fn the_keys_of_read_mode_select_in_a_column() {
     let root = repo("table-keys", &files());
     let mut a = app(&root);
     draw(&mut a, 120, 30);
-    a.read_cursor = a.read_text.iter().position(|r| r.contains("keep it")).expect("the table row");
-    a.read_col = a.read_text[a.read_cursor].chars().position(|c| c == 'k').unwrap();
-    a.read_want = a.read_col;
+    let row = a.frame.read_text().iter().position(|r| r.contains("keep it")).expect("the table row");
+    let col = a.frame.read_text()[row].chars().position(|c| c == 'k').unwrap();
+    a.reader.place(row, col);
     key(&mut a, KeyCode::Char('v'));
     key(&mut a, KeyCode::Char('j'));
     key(&mut a, KeyCode::Char('j'));
     draw(&mut a, 120, 30);
     key(&mut a, KeyCode::Char('y'));
-    let clip = a.clip.clone().unwrap_or_default();
+    let clip = a.pointer.clip().unwrap_or_default().to_string();
     assert_eq!(clip, "keep it\nmain\nt");
     assert!(!clip.contains("Branch") && !clip.contains('│'), "{clip:?}");
     let _ = std::fs::remove_dir_all(&root);
@@ -50,7 +50,7 @@ fn a_drag_in_a_table_copies_the_column() {
     mouse(&mut a, MouseEventKind::Drag(MouseButton::Left), x + 3, y + 2);
     mouse(&mut a, MouseEventKind::Up(MouseButton::Left), x + 3, y + 2);
     draw(&mut a, 120, 30);
-    assert_eq!(a.clip.as_deref(), Some("keep it\nmain\nthe"));
+    assert_eq!(a.pointer.clip(), Some("keep it\nmain\nthe"));
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -66,7 +66,7 @@ fn a_drag_from_before_a_table_goes_line_by_line() {
     mouse(&mut a, MouseEventKind::Drag(MouseButton::Left), x + 6, y + 3);
     mouse(&mut a, MouseEventKind::Up(MouseButton::Left), x + 6, y + 3);
     draw(&mut a, 120, 30);
-    let clip = a.clip.clone().unwrap_or_default();
+    let clip = a.pointer.clip().unwrap_or_default().to_string();
     assert!(clip.starts_with("Before the table.") && clip.contains('┌') && clip.contains("│ Field"), "{clip:?}");
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -78,19 +78,19 @@ fn the_keys_stop_at_the_edge_of_a_cell_and_two_quick_presses_go_on() {
     let root = repo("table-soft", &files());
     let mut a = app(&root);
     draw(&mut a, 120, 30);
-    a.read_cursor = a.read_text.iter().position(|r| r.contains("keep it")).expect("the table row");
-    a.read_col = a.read_text[a.read_cursor].chars().position(|c| c == 'N').unwrap();
-    a.read_want = a.read_col;
+    let row = a.frame.read_text().iter().position(|r| r.contains("keep it")).expect("the table row");
+    let col = a.frame.read_text()[row].chars().position(|c| c == 'N').unwrap();
+    a.reader.place(row, col);
     key(&mut a, KeyCode::Char('v'));
     for _ in 0..12 {
         key(&mut a, KeyCode::Char('l'));
     }
-    let one = a.read_table().expect("a selection in the table").cols;
-    let row = a.read_text[a.read_cursor].clone();
-    assert_eq!(row.chars().nth(a.read_col + 1), Some('│'), "the cursor stops before the line: {row}");
+    let one = a.reader.table(a.frame.read_text()).expect("a selection in the table").cols;
+    let row = a.frame.read_text()[a.reader.row()].clone();
+    assert_eq!(row.chars().nth(a.reader.col() + 1), Some('│'), "the cursor stops before the line: {row}");
     std::thread::sleep(std::time::Duration::from_millis(150));
     key(&mut a, KeyCode::Char('l'));
-    let two = a.read_table().expect("a selection in the table").cols;
+    let two = a.reader.table(a.frame.read_text()).expect("a selection in the table").cols;
     assert!(two.unwrap().1 > one.unwrap().1, "the next column: {one:?} {two:?}");
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -115,13 +115,13 @@ async fn alt_and_a_drag_put_the_selection_into_the_chat() {
     assert!(bar.contains("alt-release to chat") && bar.contains("ctrl whole lines"), "{bar}");
     mouse_with(&mut a, MouseEventKind::Up(MouseButton::Left), x + 9, y, KeyModifiers::ALT);
     draw(&mut a, 140, 30);
-    let text = a.to_chat.take().expect("the text for the chat");
+    let text = a.pointer.take_to_chat().expect("the text for the chat");
     a.mouse_to_chat(text);
-    assert_eq!(a.clip, None, "not on the clipboard");
-    let chip = a.chips.last().expect("a chip");
+    assert_eq!(a.pointer.clip(), None, "not on the clipboard");
+    let chip = a.composer.chips().last().expect("a chip");
     assert!(chip.label.contains("Before the"), "{}", chip.label);
     let ctx = chip.context.clone().unwrap_or_default();
     assert!(ctx.contains(NOTE) && ctx.contains("> Before the"), "{ctx}");
-    assert!(a.panel && a.focus == zendo::app::Focus::Claude, "the focus goes to the input");
+    assert!(a.threads.shown() && a.focus == zendo::app::Focus::Claude, "the focus goes to the input");
     let _ = std::fs::remove_dir_all(&root);
 }

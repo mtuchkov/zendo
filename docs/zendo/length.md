@@ -4,7 +4,7 @@ revision: "1"
 date: "2026-11-11"
 parent: "zendo.md"
 prev: "notes-repo.md"
-next: "files.md"
+next: "files/files.md"
 level: "the word limit of a document and the help to split it"
 note: "Agent draft of the design that the user decided on 2026-11-11. Not reviewed by the user."
 ---

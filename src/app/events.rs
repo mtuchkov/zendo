@@ -7,10 +7,16 @@ impl App {
         if event_key(&e).as_deref().is_some_and(|k| k.starts_with(RECAP_PREFIX)) {
             return self.on_recap_event(e);
         }
+        if event_key(&e).is_some_and(|k| self.threads.get(&k).is_some_and(|t| t.dropped)) {
+            return self.on_dropped(e);
+        }
+        if event_key(&e).as_deref().is_some_and(|k| k.starts_with(crate::agent::work::IMAGE_PREFIX)) {
+            return self.on_image_event(e);
+        }
         match e {
             Event::Ready { agent, can_image, .. } => {
-                self.agent_name = Some(agent);
-                self.agent_images = can_image;
+                self.link.set_name(agent);
+                self.link.set_images(can_image);
             }
             Event::Session { key, id, resumed } => self.on_session(key, id, resumed),
             Event::Replay { key, user, text } => self.on_replay(key, user, text),
@@ -33,9 +39,7 @@ impl App {
             // The agent edits without a question to the user (CLAUDE-33); the tool line shows it.
             Event::Permission { request, choices, .. } => {
                 let allow = choices.iter().find(|c| c.allow && !c.always).or_else(|| choices.iter().find(|c| c.allow));
-                if let Some(a) = &self.agent {
-                    a.send(Cmd::Answer { request, option: allow.map(|c| c.id.clone()) });
-                }
+                self.link.send(Cmd::Answer { request, option: allow.map(|c| c.id.clone()) });
             }
             Event::Blocked { key, title } => self.thread(&key).push(Item::Blocked(title)),
             Event::TurnEnd { key, stop } => self.on_turn_end(key, stop),
@@ -50,8 +54,8 @@ impl App {
             }
             Event::Exited { text } => self.on_exited(text),
             Event::Commands { list } => {
-                self.slash.commands = list;
-                self.update_slash();
+                self.composer.set_commands(list);
+                self.composer.update_slash();
             }
         }
     }
@@ -59,17 +63,15 @@ impl App {
     fn on_recap_event(&mut self, e: Event) {
         match e {
             Event::Text { text, .. } => {
-                if let Some(j) = self.recap_job.as_mut() {
+                if let Some(j) = self.work.job_mut() {
                     j.buf.push_str(&text);
                 }
             }
             Event::Permission { request, .. } => {
-                if let Some(a) = &self.agent {
-                    a.send(Cmd::Answer { request, option: None });
-                }
+                self.link.send(Cmd::Answer { request, option: None });
             }
             Event::Error { text, .. } => {
-                if let Some(j) = self.recap_job.as_mut() {
+                if let Some(j) = self.work.job_mut() {
                     j.failed = Some(text);
                 }
             }
@@ -79,12 +81,25 @@ impl App {
     }
 
     fn on_session(&mut self, key: String, id: String, resumed: bool) {
-        self.state.set_session(&self.cfg.agent, &key, id.clone());
-        self.state.save(&self.cfg.root);
         let t = self.thread(&key);
         t.session = Some(id);
+        // A session without a question has no messages to resume: it is kept with its first one
+        // (CLAUDE-40).
+        let asked = t.busy.is_some();
         if resumed {
             t.items.insert(0, Item::Info("resumed the earlier thread".into()));
+        }
+        if asked {
+            self.keep_session(&key);
+        }
+    }
+
+    /// Keep the session ID of the thread `key` in the repository (CLAUDE-5).
+    pub(crate) fn keep_session(&mut self, key: &str) {
+        let Some(id) = self.threads.get(key).and_then(|t| t.session.clone()) else { return };
+        if self.state.session(&self.cfg.agent, key).as_ref() != Some(&id) {
+            self.state.set_session(&self.cfg.agent, key, id);
+            self.state.save(&self.cfg.root);
         }
     }
 
@@ -129,8 +144,8 @@ impl App {
     }
 
     fn on_turn_end(&mut self, key: String, stop: String) {
-        if self.say.as_ref().is_some_and(|s| s.key == key) {
-            self.say = None;
+        if self.writer.say().is_some_and(|s| s.key == key) {
+            self.writer.end_say();
         }
         let held = self.holds(&key);
         let t = self.thread(&key);
@@ -156,16 +171,27 @@ impl App {
         }
     }
 
+    /// A late message of a turn that the chat ended (HANDOFF-6): it does not show, the agent may not
+    /// edit, and the end of the turn makes the thread take messages again.
+    fn on_dropped(&mut self, e: Event) {
+        match e {
+            Event::Permission { request, .. } => {
+                self.link.send(Cmd::Answer { request, option: None });
+            }
+            Event::TurnEnd { key, .. } => self.thread(&key).dropped = false,
+            _ => {}
+        }
+    }
+
     fn on_exited(&mut self, text: String) {
-        self.recap_job = None;
-        self.agent = None;
-        self.agent_events = None;
+        self.work.take_job();
         for t in self.threads.values_mut() {
             t.busy = None;
+            t.dropped = false;
             t.primed = false;
             t.opened = false;
         }
-        self.agent_down = Some(text);
+        self.link.disconnect(text);
         let key = self.key();
         if self.holds(&key) {
             return self.hold_turn_ended(&key);

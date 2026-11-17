@@ -3,7 +3,8 @@
 //! zendo starts Claude Code with `--settings <file>`: hooks of that run only, which Claude Code
 //! merges with the settings of the user (SESSIONS-18). Each hook writes a state word to the file
 //! in `$ZENDO_STATE`; zendo reads it on each tick. The hooks of "prompt sent" and "stop" also append
-//! their input to the file in `$ZENDO_MESSAGES`, for the chat (CLIMSG-2).
+//! their input to the file in `$ZENDO_MESSAGES`, for the chat (CLIMSG-2); the hook of "session start"
+//! only appends, so that zendo sees a new Claude session (NAMES-4).
 
 use super::State;
 use std::path::Path;
@@ -40,6 +41,7 @@ pub fn settings() -> String {
             }
             (event.to_string(), serde_json::json!([group]))
         })
+        .chain(std::iter::once(("SessionStart".to_string(), serde_json::json!([{ "hooks": [{ "type": "command", "command": MESSAGE_HOOK }] }]))))
         .collect();
     serde_json::json!({ "hooks": hooks }).to_string()
 }

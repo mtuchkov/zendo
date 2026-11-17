@@ -16,15 +16,15 @@ fn the_text_view_opens_a_code_file_with_its_colors() {
     let mut a = app(&root);
     a.toggle_tree();
     a.focus = Focus::Tree;
-    while a.tree.view != View::Text {
+    while a.files.tree().view != View::Text {
         key(&mut a, KeyCode::Char('v'));
     }
     draw(&mut a, 140, 30);
-    a.tree.reveal(std::path::Path::new("src/main.rs"));
+    a.files.reveal(std::path::Path::new("src/main.rs"));
     key(&mut a, KeyCode::Enter);
-    assert!(a.current.as_ref().is_some_and(|p| p.ends_with("src/main.rs")), "{:?}", a.current);
+    assert!(a.files.current().is_some_and(|p| p.ends_with("src/main.rs")), "{:?}", a.files.current());
     let mut term = Terminal::new(TestBackend::new(140, 30)).unwrap();
-    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
+    term.draw(|f| a.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();
     let cells: Vec<_> = (0..30u16).flat_map(|y| (0..140u16).map(move |x| (x, y))).collect();
     let at = cells.windows(2).find(|w| buf[w[0]].symbol() == "f" && buf[w[1]].symbol() == "n").map(|w| w[0]).expect("fn on the screen");
@@ -64,12 +64,12 @@ fn the_extensions_have_the_colors_of_the_theme() {
     let mut a = app(&root);
     a.toggle_tree();
     a.focus = Focus::Tree;
-    while a.tree.view != View::Text {
+    while a.files.tree().view != View::Text {
         key(&mut a, KeyCode::Char('v'));
     }
-    a.tree.reveal(std::path::Path::new("src/main.rs"));
+    a.files.reveal(std::path::Path::new("src/main.rs"));
     let mut term = Terminal::new(TestBackend::new(140, 30)).unwrap();
-    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
+    term.draw(|f| a.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();
     let color_of = |text: &str| {
         let cells: Vec<_> = (2..30u16).flat_map(|y| (0..60u16).map(move |x| (x, y))).collect();

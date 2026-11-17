@@ -28,3 +28,9 @@ The version of zendo is the package version in `Cargo.toml`, in the format `MAJO
 - The workflow `.github/workflows/version.yml` runs `.githooks/version-bump.sh <base> <head>`: it
   checks every commit of a push and of a pull request, and the head of a pull request against its
   base. Merge commits are not checked.
+- In a pull request, the same workflow also checks the head against `main` as it is at the time of
+  the run (`.githooks/version-bump.sh above <head> origin/main`).
+- After each push to `main`, the job `open-pulls` runs `.githooks/pull-versions.sh`: it checks each
+  open pull request against the new `main` and sets the commit status `version against main` on its
+  head. Two branches can raise the version to the same number; git merges the equal lines without a
+  conflict, and this status fails before the second branch merges.

@@ -3,7 +3,7 @@ status: "draft"
 revision: "1"
 date: "2026-11-11"
 parent: "zendo.md"
-prev: "panes.md"
+prev: "panes/panes.md"
 next: "write.md"
 level: "the note pane: read mode and write mode"
 note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user."
@@ -22,7 +22,7 @@ In read mode, a blinking block cursor stands on one char of a bright cursor line
 `ctrl-shift-h j k l` or `ctrl-shift` and the arrows (or `H J K L`, or Shift and the arrows) select;
 `alt-shift-h` and `alt-shift-l` (or `alt-shift` and an arrow) select a word, also in write mode and
 the chat. Every key comes from the keymap
-(see [Panes](panes.md)); `alt-?` (or `f1`) shows the keys of the pane. Write mode is in
+(see [Panes](panes/panes.md)); `alt-?` (or `f1`) shows the keys of the pane. Write mode is in
 [Write mode](write.md).
 
 `ctrl-shift-s` or `alt-s` asks the agent to write an idea into the note: see [Say it here](say.md).

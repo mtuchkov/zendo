@@ -73,6 +73,13 @@ The project structure is the set of top-level folders, the folders of `docs/`, a
   check again what each affected test means and whether it still makes sense, and change, add or
   remove tests until the tests and the requirements agree.
 - Tests shall name the requirements that they verify.
+- Each test shall be able to run in parallel with every other test. A test shall not change state
+  that tests share: the environment variables of the process, the current directory, or a path
+  that another test uses. A test shall keep its files in a folder of its own.
+- IF a test cannot run in parallel, THEN the agent shall mark it with `#[serial]` of the crate
+  `serial_test`, so that it runs sequentially, and shall state the reason in a comment at the test.
+- Each test that writes files or changes shared state, parallel or sequential, shall start with a
+  setup step that removes what an interrupted earlier run of the test left behind.
 
 ## Code review
 
@@ -97,3 +104,9 @@ The project structure is the set of top-level folders, the folders of `docs/`, a
   pull request, and the title of a pull request.
 - Each commit shall increase the package version in `Cargo.toml`. The agent shall choose the new
   version with the rules of [VERSION.md](VERSION.md).
+- Before the agent merges a pull request, the agent shall fetch `main` and run
+  `.githooks/version-bump.sh above <head> origin/main`. Git merges two equal version lines without a
+  conflict, so only this check shows that `main` got the same version in the meantime.
+- IF `main` changed since the last checks of the pull request, THEN the agent shall merge `main`
+  into the branch, set a version above `main`, and merge the pull request only after its checks
+  pass again.

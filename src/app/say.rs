@@ -98,21 +98,20 @@ impl App {
     /// `ctrl-shift-s` in read mode or write mode: the arrow, the context, and the chat with the
     /// start of the sentence.
     pub(crate) fn start_say(&mut self) {
-        let Some(path) = self.current.clone() else { return self.flash("open a note first") };
+        let Some(path) = self.files.current().cloned() else { return self.flash("open a note first") };
         let (mark, range, picked, lines) = if self.mode == Mode::Write { self.say_in_editor() } else { self.say_in_read() };
         let refs: Vec<&str> = lines.iter().map(String::as_str).collect();
         let rel = self.rel(&path);
         let ctx = format!("{}\n{}", cursor_place(&rel, mark), say_context(&rel, &refs, range, picked.as_deref()));
         let rewrite = picked.is_some();
-        self.read_anchor = None;
+        self.reader.unselect();
         self.open_panel();
-        self.say = Some(Say { path, line: mark.0, col: mark.1, key: self.key(), rewrite });
-        self.ask_about = if rewrite { "the selection" } else { "the mark" };
-        self.ask_default = Some((if rewrite { SAY_DIFFERENTLY } else { SAY_HERE }).to_string());
-        self.input.take();
-        self.chips.clear();
+        let key = self.key();
+        self.writer.start_say(Say { path, line: mark.0, col: mark.1, key, rewrite });
+        self.composer.set_default((if rewrite { SAY_DIFFERENTLY } else { SAY_HERE }).to_string(), if rewrite { "the selection" } else { "the mark" });
+        self.composer.clear();
         // The chip brings the place and the task; the user writes the idea after it.
-        self.add_chip(say_label(rewrite, mark.0), Some(format!("{ctx}\nThe idea of the user is the question.")), None, false);
+        self.composer.add_chip(say_label(rewrite, mark.0), Some(format!("{ctx}\nThe idea of the user is the question.")), None, false);
         self.focus = Focus::Claude;
     }
 
@@ -120,11 +119,11 @@ impl App {
     fn say_in_read(&self) -> Place {
         let lines: Vec<String> = self.note_text().unwrap_or_default().lines().map(str::to_string).collect();
         let refs: Vec<&str> = lines.iter().map(String::as_str).collect();
-        let to_src = |p| cursor_map::shown_to_source(&self.read_text, &self.read_rows, &refs, p);
+        let to_src = |p| cursor_map::shown_to_source(self.frame.read_text(), self.frame.read_rows(), &refs, p);
         let (start, end) = match self.read_selection() {
             Some((a, b)) => (to_src(a), to_src(b)),
             None => {
-                let p = to_src((self.read_cursor, self.read_col));
+                let p = to_src(self.reader.cursor());
                 (p, p)
             }
         };
@@ -134,7 +133,7 @@ impl App {
 
     /// The same from the editor in write mode.
     fn say_in_editor(&self) -> Place {
-        let e = &self.editor;
+        let e = self.writer.editor();
         match e.selection() {
             Some((a, b)) => (a, (a.0, b.0), e.selected_text(), e.lines.clone()),
             None => ((e.row, e.col), (e.row, e.row), None, e.lines.clone()),

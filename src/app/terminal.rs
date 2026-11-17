@@ -9,8 +9,8 @@ impl App {
     /// terminal that does not run a command; without a block, the `F5` terminal shows (TERM-1,
     /// TERM-4, TERM-11, TERM-21).
     pub(crate) fn terminal_key(&mut self, run: bool) {
-        let on_block = self.panel && self.focus == Focus::Claude && self.transcript.on;
-        match self.transcript.block().filter(|_| on_block).map(str::to_string) {
+        let on_block = self.threads.shown() && self.focus == Focus::Claude && self.threads.transcript().on();
+        match self.threads.transcript().block().filter(|_| on_block).map(str::to_string) {
             Some(command) => self.put_into_terminal(&command, run),
             None => self.open_terminal(0),
         }
@@ -41,7 +41,8 @@ impl App {
         if self.mode != Mode::Write {
             self.mode = Mode::Read;
         }
-        (self.panel, self.focus) = (true, Focus::Claude);
+        self.threads.show();
+        self.focus = Focus::Claude;
         self.cli.pane = Some(shell(i));
         self.cli.touch(shell(i));
     }
@@ -50,26 +51,19 @@ impl App {
     /// `alt-o` again takes the next terminal instead (TERM-24, TERM-28, TERM-31).
     pub(crate) fn insert_output(&mut self) {
         let order = self.cli.results();
-        let pick = self.output_pick.take();
         if order.is_empty() {
+            self.composer.drop_pick();
             return self.flash("no terminal has the result of a command yet");
         }
-        let next = match pick {
-            Some((i, lines, row, col)) => {
-                (self.input.lines, self.input.row, self.input.col) = (lines, row, col);
-                (i + 1) % order.len()
-            }
-            None => 0,
-        };
-        self.output_pick = Some((next, self.input.lines.clone(), self.input.row, self.input.col));
+        let next = self.composer.next_pick(order.len());
         let Some(o) = self.cli.result(order[next]) else { return };
         let name = crate::ui::cli::name(self, order[next]);
-        self.input.type_str(&output_text(&name, &o));
+        self.composer.input_mut().type_str(&output_text(&name, &o));
     }
 
     /// The terminal in the chat pane has the keys: the chat pane is on the screen and has the focus.
     pub(crate) fn pane_terminal(&self) -> Option<usize> {
-        let shown = self.panel && self.focus == Focus::Claude && matches!(self.mode, Mode::Read | Mode::Write);
+        let shown = self.threads.shown() && self.focus == Focus::Claude && matches!(self.mode, Mode::Read | Mode::Write);
         self.cli.pane.filter(|_| shown && self.cli.view.is_none())
     }
 
@@ -78,17 +72,17 @@ impl App {
     pub(crate) fn key_pane_terminal(&mut self, n: usize, k: KeyEvent) {
         use crate::keys::Pane;
         if self.keys.local(Pane::Session, &k) == Some("leave") {
+            self.did(Pane::Session, "leave");
             self.cli.pane = None;
             return;
         }
         if self.keys.local(Pane::Chat, &k) == Some("handoff") {
+            self.did(Pane::Chat, "handoff");
             self.cli.view = Some(n);
             return;
         }
         match self.keys.local(Pane::Global, &k) {
-            Some("next_session") => self.next_in_chat(),
-            Some(a @ ("terminal" | "terminal_run")) => self.terminal_key(a == "terminal_run"),
-            Some(a) if a.starts_with("session_") => self.switch_session(a[8..].parse::<usize>().map_or(0, |m| m - 1)),
+            Some(a) if count::session_action(a) => drop(self.global_key(a, Pane::Chat)),
             _ => {
                 let app_cursor = self.cli.with_screen(n, |s| s.application_cursor()).unwrap_or(false);
                 self.cli.write(n, &crate::session::keys::encode(&k, app_cursor));
@@ -96,17 +90,42 @@ impl App {
         }
     }
 
-    /// `alt-n`: the next item for the chat pane: the agent sessions, the `F5` terminal, the `[>]`
-    /// terminals that run, then the first agent session again (TERM-41).
-    pub(crate) fn next_in_chat(&mut self) {
+    /// `alt-]` and `alt-[`: the next or the previous item for the chat pane, in a ring: the agent
+    /// sessions, the `F5` terminal, the `[>]` terminals that run (TERM-41, TERM-49).
+    pub(crate) fn step_in_chat(&mut self, forward: bool) {
         let all: Vec<usize> = (0..SESSIONS + TERMINALS).filter(|n| *n <= SESSIONS || self.cli.running(*n)).collect();
-        let now = self.cli.pane.unwrap_or(self.state.session);
-        let next = all.iter().position(|n| *n == now).map_or(0, |i| all[(i + 1) % all.len()]);
+        let next = ring_step(&all, self.cli.pane.unwrap_or(self.state.session), forward);
         match next.checked_sub(SESSIONS) {
             Some(i) => self.open_terminal(i),
             None => self.switch_session(next),
         }
     }
+
+    /// `alt-]` and `alt-[` on the full screen: the next or the previous agent session or terminal
+    /// that runs. One that runs shows on the full screen; an agent session without Claude Code
+    /// shows its chat, so the step leaves no agent session out (TERM-51).
+    pub(crate) fn step_full_screen(&mut self, forward: bool) {
+        let all: Vec<usize> = (0..SESSIONS + TERMINALS).filter(|n| *n < SESSIONS || self.cli.running(*n)).collect();
+        let Some(now) = self.cli.view else { return };
+        let next = ring_step(&all, now, forward);
+        if self.cli.pane == Some(now) {
+            self.cli.pane = None;
+        }
+        match next.checked_sub(SESSIONS) {
+            Some(i) => self.open_terminal(i),
+            None => self.switch_session(next),
+        }
+        self.cli.view = self.cli.running(next).then_some(next);
+    }
+}
+
+/// The item after `now` in the ring, or before it; the first item when `now` is not in it.
+fn ring_step(all: &[usize], now: usize, forward: bool) -> usize {
+    let step = if forward { 1 } else { all.len().saturating_sub(1) };
+    all.iter().position(|n| *n == now).map_or(all.first().copied().unwrap_or(0), |i| all[(i + step) % all.len()])
+}
+
+impl App {
 }
 
 /// A result as text for the input: the terminal, the command, the exit code, the output

@@ -44,6 +44,36 @@ pub struct State {
     /// Per file, keyed by the repo-relative path.
     #[serde(default)]
     pub files: BTreeMap<String, FileState>,
+    /// The files that the user opened in the note pane, the most recent first (FIND-2, FIND-4).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub recent: Vec<Opened>,
+    /// The last document that the user opened in each agent session, and the place in it
+    /// (FILES-50, FILES-52, FILES-54).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub session_docs: BTreeMap<usize, LastDoc>,
+    /// The name of each Claude session that has one, keyed by its session ID (NAMES-3).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub names: BTreeMap<String, String>,
+}
+
+/// A file that the user opened in the note pane, and when.
+#[derive(Clone, Serialize, Deserialize)]
+pub struct Opened {
+    pub path: String,
+    pub at: DateTime<Local>,
+}
+
+/// The last document of an agent session: its path without the worktree, and where the user left
+/// it in read mode, in rendered rows.
+#[derive(Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct LastDoc {
+    pub path: String,
+    #[serde(default)]
+    pub scroll: usize,
+    #[serde(default)]
+    pub row: usize,
+    #[serde(default)]
+    pub col: usize,
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
@@ -151,9 +181,12 @@ impl State {
 pub const DEFAULT_PROMPT: &str = "\
 You are helping me think through architecture notes in this repository.
 I am working with the specifications and want a sharp second opinion.
-Keep answers short and concrete. Ask one question when something is unclear.
-When you propose a change, edit the note file directly: I review each edit afterwards.";
+Keep answers short and concrete. Ask one question when something is unclear.";
 
 pub fn prompt(root: &Path) -> String {
     fs::read_to_string(dir(root).join("prompt.md")).unwrap_or_else(|_| DEFAULT_PROMPT.to_string())
 }
+
+#[cfg(test)]
+#[path = "state_tests.rs"]
+mod tests;

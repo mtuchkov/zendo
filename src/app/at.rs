@@ -1,6 +1,7 @@
 //! `@` in the chat input: file suggestions under the input. A name matches by its start, by a
 //! part, or with a typo or two (edit distance).
-use super::*;
+use super::Composer;
+use super::super::*;
 
 /// The open suggestions: what follows `@`, the matches, and the selected one.
 #[derive(Clone, Debug, Default)]
@@ -70,7 +71,7 @@ pub fn template_files(named: &[PathBuf], files: &[PathBuf]) -> Vec<PathBuf> {
 }
 
 /// The files of the repository, from its root; what git ignores is left out.
-fn repo_files(root: &Path) -> Vec<PathBuf> {
+pub(crate) fn repo_files(root: &Path) -> Vec<PathBuf> {
     let walk = ignore::WalkBuilder::new(root).hidden(true).git_ignore(true).require_git(false).build();
     walk.flatten()
         .filter(|e| e.file_type().is_some_and(|t| t.is_file()))
@@ -79,7 +80,17 @@ fn repo_files(root: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
-impl App {
+/// What a key did in the open suggestions.
+#[derive(Debug, PartialEq)]
+pub enum AtKey {
+    /// The key is not one of the suggestions.
+    Unused,
+    Used,
+    /// The user took a file, from the root of the repository; true for a template.
+    Taken(PathBuf, bool),
+}
+
+impl Composer {
     /// The `@word` before the cursor: its column and the word.
     fn at_token(&self) -> Option<(usize, String)> {
         let before: Vec<char> = self.input.lines[self.input.row].chars().take(self.input.col).collect();
@@ -89,8 +100,9 @@ impl App {
         (starts && !word.contains(char::is_whitespace)).then_some((at, word))
     }
 
-    /// After a key in the chat input: open, update or close the suggestions.
-    pub(crate) fn update_at(&mut self) {
+    /// After a key in the chat input: open, update or close the suggestions. `root` is the
+    /// repository, `named` the templates that project-structure.toml names.
+    pub fn update_at(&mut self, root: &Path, named: &[PathBuf]) {
         let Some((at, query)) = self.at_token() else {
             self.at = None;
             self.at_files = None;
@@ -101,48 +113,41 @@ impl App {
             return;
         }
         let templates = self.at.as_ref().map_or(self.at_templates, |p| p.templates);
-        let root = self.cfg.root.clone();
-        let named: Vec<PathBuf> = self.tree.structure.as_ref().map(|st| st.templates().map(|(t, _)| PathBuf::from(t)).collect()).unwrap_or_default();
         let files = self.at_files.get_or_insert_with(|| {
-            let all = repo_files(&root);
-            if templates { template_files(&named, &all) } else { all }
+            let all = repo_files(root);
+            if templates { template_files(named, &all) } else { all }
         });
         let hits = rank(files, &query);
         self.at = Some(AtPick { query, hits, sel: 0, at, templates });
     }
 
     /// The keys of the open suggestions: the arrows choose, tab or enter takes one, esc closes.
-    pub(crate) fn key_at(&mut self, k: KeyEvent) -> bool {
-        let Some(p) = self.at.as_mut() else { return false };
+    pub fn key_at(&mut self, k: KeyEvent) -> AtKey {
+        let Some(p) = self.at.as_mut() else { return AtKey::Unused };
         match k.code {
             KeyCode::Down => p.sel = (p.sel + 1).min(p.hits.len().saturating_sub(1)),
             KeyCode::Up => p.sel = p.sel.saturating_sub(1),
             KeyCode::Esc => self.at = None,
-            KeyCode::Tab | KeyCode::Enter => self.take_at(),
-            _ => return false,
+            KeyCode::Tab | KeyCode::Enter => return self.take_at().map_or(AtKey::Used, |(rel, templates)| AtKey::Taken(rel, templates)),
+            _ => return AtKey::Unused,
         }
-        true
+        AtKey::Used
     }
 
-    /// Put the selected file into the chat as an attachment, in place of `@word`.
-    fn take_at(&mut self) {
-        let Some(p) = self.at.take() else { return };
-        let Some(rel) = p.hits.get(p.sel).cloned() else { return };
+    /// Take the selected file: `@word` leaves the input, and the suggestions close.
+    fn take_at(&mut self) -> Option<(PathBuf, bool)> {
+        let p = self.at.take()?;
+        let rel = p.hits.get(p.sel).cloned()?;
         let line = &mut self.input.lines[self.input.row];
         *line = line.chars().take(p.at).chain(line.chars().skip(self.input.col)).collect();
         self.input.col = p.at;
         self.at_files = None;
         self.at_templates = false;
-        if !p.templates {
-            return self.attach(Attachment::of(self.cfg.root.join(rel)));
-        }
-        let ctx = self.template_context(&rel);
-        let label = self.add_chip(chips::file_label(&rel), Some(ctx), Some(Attachment::of(self.cfg.root.join(&rel))), false);
-        self.flash(format!("template {}", label.trim_matches([chips::OPEN, chips::CLOSE])));
+        Some((rel, p.templates))
     }
 
-    /// `ctrl-t` in the chat: the suggestions show only templates.
-    pub(crate) fn pick_template(&mut self) {
+    /// `ctrl-t` in the chat: an `@` whose suggestions show only templates.
+    pub fn pick_template(&mut self) {
         let before = self.input.lines[self.input.row].chars().nth(self.input.col.wrapping_sub(1));
         if self.input.col > 0 && before.is_some_and(|c| !c.is_whitespace()) {
             self.input.type_str(" ");
@@ -151,15 +156,6 @@ impl App {
         self.at_files = None;
         self.at_templates = true;
         self.input.type_str("@");
-        self.update_at();
-    }
-
-    /// What the agent gets with a template: where it is used, and how to use it.
-    fn template_context(&self, rel: &Path) -> String {
-        let t = rel.display().to_string();
-        let used: Vec<&str> = self.tree.structure.as_ref().map(|st| st.templates().filter(|(x, _)| *x == t).map(|(_, at)| at).collect()).unwrap_or_default();
-        let place = if used.is_empty() { String::new() } else { format!(" project-structure.toml uses it for new documents in: {}.", used.join(", ")) };
-        format!("Template: {t}.{place} Write the new document from this template: keep its front matter, its headings and their order, and fill them from what the user gives (notes, files, the chat). Put the new file where project-structure.toml says, and propose it as an edit.")
     }
 }
 

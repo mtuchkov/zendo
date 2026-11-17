@@ -30,7 +30,7 @@ async fn until(app: &mut App, done: impl Fn(&App) -> bool) {
     while !done(app) {
         assert!(Instant::now() < end, "timeout");
         app.tick();
-        if let Some(rx) = app.agent_events.as_mut() {
+        if let Some(rx) = app.link.events_mut() {
             if let Ok(Some(e)) = tokio::time::timeout(Duration::from_millis(50), rx.recv()).await {
                 app.on_agent(e);
             }
@@ -88,7 +88,7 @@ async fn recaps_on_request_and_when_idle() {
     git(&root, &["commit", "-q", "-m", "add the event log"]);
     let mut a = app(&root);
     a.ensure_agent();
-    until(&mut a, |a| a.agent_name.is_some()).await;
+    until(&mut a, |a| a.link.ready()).await;
 
     // On request.
     a.recap_now();
@@ -105,7 +105,7 @@ async fn recaps_on_request_and_when_idle() {
     a.interact(ENGAGED);
     std::fs::write(root.join(REL), "# Event log\n\n- a\n- WHEN x, the log shall y.\n").unwrap();
     a.reload();
-    a.last_input = Instant::now() - Duration::from_secs(120);
+    a.work.input_at(Instant::now() - Duration::from_secs(120));
     until(&mut a, |a| a.state.files[REL].recap.as_ref().is_some_and(|r| r.auto)).await;
     let r = a.state.files[REL].recap.clone().unwrap();
     assert!(r.text.contains("Changes against git HEAD"), "{}", r.text);
@@ -116,7 +116,7 @@ async fn recaps_on_request_and_when_idle() {
         a.tick();
         tokio::time::sleep(Duration::from_millis(30)).await;
     }
-    assert!(a.recap_job.is_none());
+    assert!(a.work.free());
     assert_eq!(a.state.files[REL].recap.as_ref().unwrap().at, at);
 }
 
@@ -125,14 +125,14 @@ async fn no_auto_recap_while_the_user_is_active() {
     let root = repo("active");
     let mut a = app(&root);
     a.ensure_agent();
-    until(&mut a, |a| a.agent_name.is_some()).await;
+    until(&mut a, |a| a.link.ready()).await;
     a.interact(ENGAGED);
-    a.last_input = Instant::now();
+    a.work.input_at(Instant::now());
     for _ in 0..10 {
         a.tick();
         tokio::time::sleep(Duration::from_millis(30)).await;
     }
-    assert!(a.recap_job.is_none());
+    assert!(a.work.free());
 }
 
 // WORK-13: ctrl-r twice asks for a review; the summary shows at the top and the confusing line is
@@ -146,16 +146,16 @@ async fn ctrl_r_twice_marks_the_confusing_lines() {
     a.reload();
     a.open_file(root.join(REL));
     a.ensure_agent();
-    until(&mut a, |a| a.agent_name.is_some()).await;
+    until(&mut a, |a| a.link.ready()).await;
     let ctrl_r = KeyEvent::new(KeyCode::Char('r'), KeyModifiers::CONTROL);
     a.on_key(ctrl_r);
-    assert!(a.reviews.queue.is_empty(), "one ctrl-r waits for the second");
+    assert!(!a.work.review_waits(REL), "one ctrl-r waits for the second");
     a.on_key(ctrl_r);
-    until(&mut a, |a| a.reviews.shown.is_some()).await;
-    let r = a.reviews.shown.clone().unwrap();
+    until(&mut a, |a| a.work.review().is_some()).await;
+    let r = a.work.review().cloned().unwrap();
     assert_eq!(r.lines, vec![(3, "\"soon\" says no time.".to_string())]);
     let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 30)).unwrap();
-    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
+    term.draw(|f| a.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();
     let rows: Vec<String> = (0..30).map(|y| (0..120).map(|x| buf[(x, y)].symbol().to_string()).collect()).collect();
     assert!(rows.iter().any(|r| r.contains("REVIEW") && r.contains("1 confusing line")), "{rows:#?}");
@@ -166,10 +166,10 @@ async fn ctrl_r_twice_marks_the_confusing_lines() {
     let other = root.join("docs/notes/2026-11-12-other.md");
     std::fs::write(&other, "# Other\n").unwrap();
     a.open_file(other);
-    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
-    assert!(a.reviews.shown.is_none(), "the review goes when another file opens");
+    term.draw(|f| a.draw(f)).unwrap();
+    assert!(a.work.review().is_none(), "the review goes when another file opens");
     a.open_file(root.join(REL));
-    term.draw(|f| zendo::ui::draw(f, &mut a)).unwrap();
+    term.draw(|f| a.draw(f)).unwrap();
     let rows: Vec<String> = (0..30).map(|y| (0..120).map(|x| term.backend().buffer()[(x, y)].symbol().to_string()).collect()).collect();
     assert!(!rows.iter().any(|r| r.contains("REVIEW")), "zendo does not keep it: {rows:#?}");
 }

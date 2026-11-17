@@ -1,6 +1,7 @@
 //! Chips in the chat input: `⟦label⟧` tokens for a selection or a file. The arrows and the delete
 //! keys take a chip as one unit.
-use super::*;
+use super::Composer;
+use super::super::*;
 
 pub const OPEN: char = '⟦';
 pub const CLOSE: char = '⟧';
@@ -39,11 +40,10 @@ pub fn chip_ranges(line: &str) -> Vec<(usize, usize)> {
         .collect()
 }
 
-impl App {
+impl Composer {
     /// Put a chip into the chat input: at the cursor, or at the end. The label is unique.
-    pub(crate) fn add_chip(&mut self, base: String, context: Option<String>, attach: Option<Attachment>, at_end: bool) -> String {
-        let taken = |l: &str| self.chips.iter().any(|c| c.label == l);
-        let label = (1..).map(|n| if n == 1 { format!("{OPEN}{base}{CLOSE}") } else { format!("{OPEN}{base} {n}{CLOSE}") }).find(|l| !taken(l)).expect("a free label");
+    pub fn add_chip(&mut self, base: String, context: Option<String>, attach: Option<Attachment>, at_end: bool) -> String {
+        let label = self.free_label(&base);
         if at_end {
             self.input.move_to_end();
         }
@@ -56,6 +56,26 @@ impl App {
         label
     }
 
+    /// `⟦base⟧`, or `⟦base 2⟧`, `⟦base 3⟧`… when a chip in the input has it.
+    fn free_label(&self, base: &str) -> String {
+        let taken = |l: &str| self.chips.iter().any(|c| c.label == l);
+        (1..).map(|n| if n == 1 { format!("{OPEN}{base}{CLOSE}") } else { format!("{OPEN}{base} {n}{CLOSE}") }).find(|l| !taken(l)).expect("a free label")
+    }
+
+    /// Label the chip `old` with a free label from `base`, in the input and in the chips; the
+    /// cursor stays at its place in the text.
+    pub fn rename_chip(&mut self, old: &str, base: &str) {
+        let new = self.free_label(base);
+        let Some(row) = self.input.lines.iter().position(|l| l.contains(old)) else { return };
+        let line = &self.input.lines[row];
+        let start = line[..line.find(old).unwrap_or(0)].chars().count();
+        if row == self.input.row && self.input.col > start {
+            self.input.col = (self.input.col + new.chars().count()).saturating_sub(old.chars().count()).max(start);
+        }
+        self.input.lines[row] = line.replacen(old, &new, 1);
+        self.chips.iter_mut().filter(|c| c.label == old).for_each(|c| c.label = new.clone());
+    }
+
     /// The chip that ends at the cursor, or starts at it.
     fn chip_at(&self, before: bool) -> Option<(usize, usize)> {
         let col = self.input.col;
@@ -63,7 +83,7 @@ impl App {
     }
 
     /// Left, right, backspace and delete in the chat input: a chip is one unit. True when it was a chip.
-    pub(crate) fn chip_key(&mut self, code: KeyCode) -> bool {
+    pub fn chip_key(&mut self, code: KeyCode) -> bool {
         let range = match code {
             KeyCode::Left | KeyCode::Backspace => self.chip_at(true),
             KeyCode::Right | KeyCode::Delete => self.chip_at(false),

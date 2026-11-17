@@ -22,16 +22,44 @@ async fn writing_saves_after_a_pause() {
     let root = repo("flow-autosave", &files());
     let mut a = app(&root);
     draw(&mut a, 120, 30);
-    a.read_cursor = a.read_text.iter().position(|r| r.starts_with("The first")).unwrap();
+    a.reader.to_row(a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap());
     key(&mut a, KeyCode::Char('i'));
     draw(&mut a, 120, 30);
     typ(&mut a, "New ");
     assert_eq!(a.keys.action(zendo::keys::Pane::Write, &KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL)), None, "no save key");
     a.tick();
     assert!(!std::fs::read_to_string(root.join(NOTE)).unwrap().contains("New "), "not while typing");
-    a.last_edit = Instant::now() - Duration::from_secs(2);
+    a.writer.edited_at(Instant::now() - Duration::from_secs(2));
     a.tick();
     assert!(std::fs::read_to_string(root.join(NOTE)).unwrap().contains("New "), "saved after a pause");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// NOTE-3: the save does not come back from the disk as a change from outside: the empty lines at
+// the end and the cursor stay where the user put them.
+#[tokio::test]
+async fn the_save_keeps_the_empty_lines_at_the_end() {
+    let root = repo("flow-keep-end", &files());
+    let mut a = app(&root);
+    // The first look at the disk: the next look sees what changed since.
+    a.files.look_again();
+    a.tick();
+    draw(&mut a, 120, 30);
+    a.reader.to_row(a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap());
+    key(&mut a, KeyCode::Char('i'));
+    draw(&mut a, 120, 30);
+    a.writer.editor_mut().move_to_end();
+    typ(&mut a, " New");
+    key(&mut a, KeyCode::Enter);
+    key(&mut a, KeyCode::Enter);
+    let before = (a.writer.editor().text(), a.writer.editor().row, a.writer.editor().col);
+    a.writer.edited_at(Instant::now() - Duration::from_secs(2));
+    a.tick();
+    assert!(std::fs::read_to_string(root.join(NOTE)).unwrap().contains(" New"), "saved");
+    a.files.look_again();
+    a.tick();
+    let after = (a.writer.editor().text(), a.writer.editor().row, a.writer.editor().col);
+    assert_eq!(after, before);
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -43,21 +71,21 @@ async fn alt_a_s_b_work_in_read_and_write_mode() {
     for write in [false, true] {
         let mut a = app(&root);
         draw(&mut a, 120, 30);
-        a.read_cursor = a.read_text.iter().position(|r| r.starts_with("The first")).unwrap();
+        a.reader.to_row(a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap());
         if write {
             key(&mut a, KeyCode::Char('i'));
             draw(&mut a, 120, 30);
         }
         let mode = a.mode;
         alt(&mut a, 'a');
-        assert!(a.chips.last().is_some_and(|c| c.label.contains("The first")), "alt-a, write {write}");
-        a.chips.clear();
-        a.input.take();
+        assert!(a.composer.chips().last().is_some_and(|c| c.label.contains("The first")), "alt-a, write {write}");
+        a.composer.clear_chips();
+        a.composer.input_mut().take();
         a.focus = Focus::Note;
         alt(&mut a, 's');
-        assert!(a.say.is_some() && a.input.text().starts_with("⟦write here :"), "alt-s, write {write}");
-        a.say = None;
-        a.input.take();
+        assert!(a.writer.say().is_some() && a.composer.input().text().starts_with("⟦write here :"), "alt-s, write {write}");
+        a.writer.end_say();
+        a.composer.input_mut().take();
         a.focus = Focus::Note;
         let tree = a.state.tree;
         alt(&mut a, 'b');
@@ -76,7 +104,7 @@ async fn the_cursor_row_keeps_its_words() {
     let root = repo("flow-cursor-row", &[(rel, long)]);
     let mut a = app(&root);
     let read = draw(&mut a, 100, 30);
-    a.read_cursor = a.read_text.iter().position(|r| r.contains("architecture")).unwrap();
+    a.reader.to_row(a.frame.read_text().iter().position(|r| r.contains("architecture")).unwrap());
     key(&mut a, KeyCode::Char('i'));
     let write = draw(&mut a, 100, 30);
     let body = |s: &Vec<String>| s[..s.len() - 2].iter().map(|l| l.trim_end().to_string()).collect::<Vec<_>>();
@@ -86,12 +114,12 @@ async fn the_cursor_row_keeps_its_words() {
     let row = diff[0];
     assert!(write[row].contains("**architecture**"), "{}", write[row]);
     assert_eq!(write[row].replace("**", "").trim(), read[row].trim(), "the same words on the row");
-    let y = a.cursor_y;
+    let y = a.reader.cursor_y();
     key(&mut a, KeyCode::Down);
     draw(&mut a, 100, 30);
-    assert_eq!(a.cursor_y, y + 1, "down goes to the next row of the paragraph");
+    assert_eq!(a.reader.cursor_y(), y + 1, "down goes to the next row of the paragraph");
     key(&mut a, KeyCode::Up);
     draw(&mut a, 100, 30);
-    assert_eq!(a.cursor_y, y);
+    assert_eq!(a.reader.cursor_y(), y);
     let _ = std::fs::remove_dir_all(&root);
 }

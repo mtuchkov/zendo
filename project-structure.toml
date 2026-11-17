@@ -34,7 +34,7 @@ main = true
 
 [[entry]]
 path = ".github/workflows"
-about = "CI: cargo build and cargo test for each push and pull request to main."
+about = "The GitHub Actions workflows of the repository."
 
 [[entry]]
 path = ".skills"
@@ -57,8 +57,19 @@ claude = "For each code review, write a report here. Name it <YYYY-MM-DD>-<scope
 template = "docs/guides/templates/code-review.md"
 
 [[entry]]
+path = ".worktrees"
+label = "Worktrees"
+about = "One git worktree for each zendo session: .worktrees/<zendo session id>. Not in git."
+claude = "Change code only in the worktree of your zendo session (the tool `session` of the MCP server `zendo`). Do not create, use or remove other worktrees."
+
+[[entry]]
 path = ".githooks"
 about = "Git hooks of the repository: commit-msg checks each message; pre-commit checks project-structure.toml; lint-range.sh checks a range in CI. Turn on with `git config core.hooksPath .githooks`."
+
+[[entry]]
+path = "site"
+about = "The landing page of zendo: one self-contained index.html with the pixel garden, the demo and the lofi music. Not documentation."
+claude = "Keep the page one file with no build step. A file lofi.mp3 beside it replaces the music made in the browser; only a CC0 track goes there."
 
 # ----- Documentation -------------------------------------------------------------------------
 
@@ -75,8 +86,24 @@ main = true
 template = "docs/guides/templates/specification.md"
 
 [[entry]]
+path = "docs/zendo/cli"
+about = "The commands of zendo: cli.md is the parent; its children are setup, init, doctor, and upgrade."
+
+[[entry]]
+path = "docs/zendo/panes"
+about = "The panes of zendo: panes.md is the parent; its children are the text selection, and the keys, hints and help."
+
+[[entry]]
 path = "docs/zendo/terminal"
 about = "The terminals of zendo: terminal.md is the parent; its children are the shell blocks, the terminal view, and the output of a command for the agent."
+
+[[entry]]
+path = "docs/zendo/session-names"
+about = "The names of the agent sessions: session-names.md is the parent; its children are the rename and the buttons."
+
+[[entry]]
+path = "docs/zendo/files"
+about = "The file tree of zendo: files.md is the parent; its children are the views, the actions on a file, the code files, the views of the worktree of an agent session, and its recap."
 
 [[entry]]
 path = "docs/architecture/decisions"

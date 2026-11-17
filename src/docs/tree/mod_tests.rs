@@ -25,7 +25,7 @@ fn repo(name: &str) -> PathBuf {
 #[test]
 fn find_filters_files_by_name() {
     let root = repo("find");
-    let mut t = Tree { view: View::All, ..Default::default() };
+    let mut t = Tree { view: View::Text, ..Default::default() };
     t.scan(&root);
     t.find = Some("DES".into());
     let rows: Vec<String> = t.rows().iter().map(|r| r.name.clone()).collect();
@@ -48,7 +48,7 @@ fn docs_filter_and_gitignore() {
     t.scan(&root);
     let files: Vec<String> = t.files.iter().map(|p| p.display().to_string()).collect();
     assert_eq!(files, vec!["docs/adr/0001-x.md", "docs/notes/a.md", "docs/notes/b.md", "svc/orders/docs/design.md"]);
-    t.view = View::All;
+    t.view = View::Text;
     t.scan(&root);
     assert!(t.files.iter().any(|p| p == Path::new("README.md")));
     assert!(!t.files.iter().any(|p| p.starts_with("build") || p.starts_with("node_modules")));
@@ -75,41 +75,71 @@ fn structure_view_lists_main_materials_in_file_order() {
     t.next_view();
     assert_eq!(t.view, View::Docs);
     t.next_view();
-    assert_eq!(t.view, View::All);
-    t.next_view();
     assert_eq!(t.view, View::Text);
     t.next_view();
-    assert_eq!(t.view, View::Folders);
-    t.next_view();
     assert_eq!(t.view, View::Structure);
+    for gone in ["all", "folders"] {
+        assert_eq!(View::from_name(gone), None, "the {gone} view is gone (FILES-4)");
+    }
 }
 
+// FILES-5, FILES-6, FILES-56: the folders start closed; a folder that holds only one folder is
+// one row; reveal opens the folders above a file.
 #[test]
 fn rows_join_single_folders_and_collapse() {
     let root = repo("rows");
     let mut t = Tree::default();
     t.scan(&root);
-    let names: Vec<String> = t.rows().iter().map(|r| format!("{}{}", "  ".repeat(r.depth), r.name)).collect();
-    assert_eq!(names, vec!["docs", "  adr", "    0001-x.md", "  notes", "    a.md", "    b.md", "svc/orders/docs", "  design.md"]);
-    t.toggle(Path::new("docs"));
-    let names: Vec<String> = t.rows().iter().map(|r| r.name.clone()).collect();
-    assert_eq!(names, vec!["docs", "svc/orders/docs", "design.md"]);
+    let names = |t: &Tree| -> Vec<String> { t.rows().iter().map(|r| format!("{}{}", "  ".repeat(r.depth), r.name)).collect() };
+    assert_eq!(names(&t), vec!["docs", "svc/orders/docs"], "every folder starts closed");
     t.reveal(Path::new("docs/notes/b.md"));
+    assert_eq!(names(&t), vec!["docs", "  adr", "  notes", "    a.md", "    b.md", "svc/orders/docs"]);
     assert_eq!(t.rows()[t.sel].rel, Path::new("docs/notes/b.md"));
+    t.toggle(Path::new("docs"));
+    assert_eq!(names(&t), vec!["docs", "svc/orders/docs"]);
+    t.toggle(Path::new("svc/orders/docs"));
+    assert_eq!(names(&t), vec!["docs", "svc/orders/docs", "  design.md"]);
+    let _ = std::fs::remove_dir_all(&root);
 }
 
-// FILES-17: the folders view shows every folder, also an empty one.
+// FILES-57: expand all opens every folder and main material; collapse all closes them.
 #[test]
-fn the_folders_view_shows_empty_folders() {
+fn expand_all_and_collapse_all() {
+    let root = repo("all-folders");
+    std::fs::write(root.join("project-structure.toml"), "[[entry]]\npath = \"docs/adr\"\nlabel = \"Decisions\"\nmain = true\n").unwrap();
+    let mut t = Tree::default();
+    t.scan(&root);
+    t.expand_all();
+    let names: Vec<String> = t.rows().iter().map(|r| format!("{}{}", "  ".repeat(r.depth), r.name)).collect();
+    assert_eq!(names, vec!["docs", "  adr", "    0001-x.md", "  notes", "    a.md", "    b.md", "svc/orders/docs", "  design.md"]);
+    t.sel = 5;
+    t.collapse_all();
+    assert_eq!(t.rows().len(), 2, "every folder closes");
+    assert_eq!((t.sel, t.scroll), (0, 0), "the selection goes to the top");
+    t.structure = Some(Structure::load(&root).unwrap().unwrap());
+    t.view = View::Structure;
+    t.scan(&root);
+    t.expand_all();
+    let names: Vec<String> = t.rows().iter().map(|r| format!("{}{}", "  ".repeat(r.depth), r.name)).collect();
+    assert_eq!(names, vec!["Decisions", "  0001-x.md"], "a main material opens too");
+    t.collapse_all();
+    assert_eq!(t.rows().len(), 1);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FILES-17: the text view shows every folder, also an empty one or one without a text file.
+#[test]
+fn the_text_view_shows_every_folder() {
     let root = repo("folders");
     std::fs::create_dir_all(root.join("docs/empty")).unwrap();
-    let mut t = Tree { view: View::Folders, ..Default::default() };
+    let mut t = Tree { view: View::Text, ..Default::default() };
     t.scan(&root);
+    t.expand_all();
     let rows: Vec<String> = t.rows().iter().map(|r| r.rel.display().to_string()).collect();
     assert!(rows.iter().any(|r| r == "docs/empty"), "{rows:?}");
-    assert!(rows.iter().any(|r| r == "svc/orders/src"), "a folder without .md: {rows:?}");
     t.view = View::Docs;
     t.scan(&root);
+    t.expand_all();
     assert!(!t.rows().iter().any(|r| r.rel.ends_with("empty")));
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -154,4 +184,80 @@ fn an_entry_with_more_paths_shows_its_files_as_one_flat_list() {
     t.toggle(Path::new("docs/adr"));
     assert_eq!(t.rows().len(), 1, "the row closes the list");
     let _ = std::fs::remove_dir_all(&root);
+}
+
+/// A notes folder outside the repository, as in a notes repo, with one note.
+fn notes_folder(name: &str) -> PathBuf {
+    let d = std::env::temp_dir().join(format!("zendo-tree-notes-{name}-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&d);
+    std::fs::create_dir_all(&d).unwrap();
+    std::fs::write(d.join("2026-11-13-idea.md"), "# Idea\n").unwrap();
+    std::fs::write(d.join(".zendo-location.toml"), "root = \"x\"\n").unwrap();
+    d
+}
+
+// FILES-25: while the notes repo is on, the structure view, or the docs view without main
+// materials, shows the notes of the notes repo as a `notes` folder at the top.
+#[test]
+fn the_tree_shows_the_notes_of_the_notes_repo() {
+    let root = repo("notes-repo");
+    let notes = notes_folder("structure");
+    std::fs::write(root.join("project-structure.toml"), "[[entry]]\npath = \"docs/adr\"\nlabel = \"Decisions\"\nmain = true\n").unwrap();
+    let mut t = Tree { structure: Some(Structure::load(&root).unwrap().unwrap()), view: View::Structure, notes: Some(notes.clone()), ..Tree::default() };
+    t.scan(&root);
+    assert_eq!(t.rows().len(), 2, "the notes folder starts closed");
+    t.toggle(&notes);
+    let rows = t.rows();
+    let names: Vec<String> = rows.iter().map(|r| format!("{}{}", "  ".repeat(r.depth), r.name)).collect();
+    assert_eq!(names, vec!["notes", "  2026-11-13-idea.md", "Decisions"]);
+    assert_eq!(rows[0].rel, notes);
+    assert_eq!(root.join(&rows[1].rel), notes.join("2026-11-13-idea.md"), "opening the row opens the file in the notes repo");
+    t.toggle(&notes);
+    assert_eq!(t.rows().len(), 2, "the notes folder closes");
+    t.reveal(&notes.join("2026-11-13-idea.md"));
+    assert_eq!(t.rows()[t.sel].rel, notes.join("2026-11-13-idea.md"), "reveal opens the notes folder");
+    t.next_view();
+    t.scan(&root);
+    assert!(!t.rows().iter().any(|r| r.rel.starts_with(&notes)), "the docs view has main materials elsewhere");
+
+    // Without main materials, the docs view shows the notes first.
+    let _ = std::fs::remove_file(root.join("project-structure.toml"));
+    let mut t = Tree { notes: Some(notes.clone()), ..Tree::default() };
+    t.scan(&root);
+    t.toggle(&notes);
+    let rows = t.rows();
+    assert_eq!((rows[0].name.as_str(), rows[1].rel.clone()), ("notes", notes.join("2026-11-13-idea.md")));
+    t.view = View::Text;
+    assert!(!t.rows().iter().any(|r| r.rel.starts_with(&notes)), "only the structure or the docs view");
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&notes);
+}
+
+// FILES-4, FILES-31: the two worktree views come after text, and only while the session has a
+// worktree.
+#[test]
+fn the_worktree_views_follow_text_only_with_a_worktree() {
+    let mut t = Tree { view: View::Text, ..Default::default() };
+    t.next_view();
+    assert_eq!(t.view, View::Docs, "no worktree: v skips both worktree views");
+    t.view = View::Text;
+    t.worktree = Some(PathBuf::from(".worktrees/1"));
+    t.next_view();
+    assert_eq!(t.view, View::Worktree);
+    t.next_view();
+    assert_eq!(t.view, View::WorktreeChanged);
+    t.next_view();
+    assert_eq!(t.view, View::Docs);
+    for v in [View::Worktree, View::WorktreeChanged] {
+        assert_eq!(View::from_name(v.name()), Some(v), "the view is kept by its name (FILES-10)");
+    }
+}
+
+// FILES-34: the head of the note names the worktree of a file.
+#[test]
+fn a_worktree_path_names_its_worktree() {
+    assert_eq!(worktree::label(".worktrees/3/src/main.rs"), "worktree 3 · src/main.rs");
+    assert_eq!(worktree::label("docs/zendo/files/files.md"), "docs/zendo/files/files.md");
+    assert_eq!(worktree::split(".worktrees/12/a/b.md"), Some((".worktrees/12", "a/b.md")));
+    assert_eq!(worktree::split(".worktrees/12"), None);
 }

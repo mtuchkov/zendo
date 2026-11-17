@@ -4,6 +4,9 @@ use super::*;
 impl Tree {
     /// Walk the repo. `.gitignore`, `.git/info/exclude`, the global gitignore and hidden files are skipped.
     pub fn scan(&mut self, root: &Path) {
+        if self.view.is_worktree() {
+            return self.scan_worktree(root);
+        }
         self.scan_in(root, root);
     }
 
@@ -16,7 +19,7 @@ impl Tree {
         let walk = ignore::WalkBuilder::new(under).hidden(true).git_ignore(true).git_global(true).git_exclude(true).require_git(false).parents(true).build();
         for entry in walk.flatten() {
             let p = entry.path();
-            if self.view == View::Folders
+            if self.view == View::Text
                 && entry.file_type().is_some_and(|t| t.is_dir())
                 && let Ok(rel) = p.strip_prefix(root)
                 && !rel.as_os_str().is_empty()
@@ -33,14 +36,17 @@ impl Tree {
             }
         }
         files.sort();
+        self.drop_changes();
         self.files = files;
         self.dirs = dirs;
         self.root = root.to_path_buf();
+        self.scan_notes();
         self.scanned = Some(Instant::now());
     }
 
+    /// Older than the scan interval, or never filled; not while git reads the changes (ADR 0009).
     pub fn stale(&self) -> bool {
-        self.scanned.is_none_or(|t| t.elapsed() > Duration::from_secs(5))
+        !self.scanning() && self.scanned.is_none_or(|t| t.elapsed() > Duration::from_secs(5))
     }
 
     /// The files whose path has every word of `q`, in any case; more words in the file name come first.

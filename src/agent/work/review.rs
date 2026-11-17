@@ -50,10 +50,9 @@ pub fn parse_review(s: &str) -> (String, Vec<(usize, String)>) {
 impl App {
     /// `ctrl-r`, or the review key of the keymap: the first press waits for the second; the second asks for the review.
     pub fn review_key(&mut self) {
-        if self.reviews.armed.take().is_some_and(|t| t.elapsed() < REVIEW_CHORD) {
+        if self.work.review_chord(REVIEW_CHORD) {
             return self.review_now();
         }
-        self.reviews.armed = Some(Instant::now());
         let pane = if self.mode == crate::app::Mode::Write { crate::keys::Pane::Write } else { crate::keys::Pane::Read };
         if let Some(k) = self.keys.key(pane, "review") {
             self.flash(format!("{k} again: Claude marks the confusing lines"));
@@ -62,32 +61,30 @@ impl App {
 
     /// Ask Claude to review the open file now.
     pub fn review_now(&mut self) {
-        let Some(path) = self.current.clone() else { return };
+        let Some(path) = self.files.current().cloned() else { return };
         if self.cfg.offline {
             return self.flash("offline: start zendo without --offline to use Claude");
         }
-        if self.mode == Mode::Write && self.editor.dirty {
+        if self.mode == Mode::Write && self.writer.editor_mut().dirty {
             self.save();
         }
         let rel = self.rel(&path);
-        if !self.reviews.queue.contains(&rel) {
+        if !self.work.review_waits(&rel) {
             self.ensure_agent();
-            self.reviews.queue.push_back(rel);
+            self.work.ask_review(rel);
         }
         self.flash("Claude reads the file for confusing lines");
     }
 
     /// Start a review that waits. True when one started.
     pub(super) fn review_tick(&mut self) -> bool {
-        let Some(rel) = self.reviews.queue.pop_front() else { return false };
+        let Some(rel) = self.work.next_review() else { return false };
         let Ok(text) = std::fs::read_to_string(self.cfg.root.join(&rel)) else { return true };
         let numbered: String = text.lines().enumerate().map(|(i, l)| format!("{:>4}| {l}\n", i + 1)).collect();
         let prompt = format!("{REVIEW_PROMPT}File: {rel}\n--- the file, with line numbers ---\n{numbered}");
         let key = format!("{RECAP_PREFIX}review {rel}");
-        self.recap_job = Some(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto: false, failed: None, meta: None, review: true });
-        if let Some(a) = &self.agent {
-            a.send(Cmd::Prompt { key, known: None, text: prompt, attach: vec![] });
-        }
+        self.work.start(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto: false, failed: None, meta: None, review: true, name: None, title: None });
+        self.link.send(Cmd::Prompt { key, known: None, text: prompt, attach: vec![] });
         true
     }
 
@@ -99,21 +96,19 @@ impl App {
             return self.flash(format!("review failed: {why}"));
         }
         let n = lines.len();
-        self.reviews.shown = Some(Review { rel: job.rel, summary, lines, at: Local::now() });
+        self.work.show_review(Review { rel: job.rel, summary, lines, at: Local::now() });
         self.flash(format!("review ready: {n} confusing line{}", if n == 1 { "" } else { "s" }));
     }
 
     /// The review of a file, while it is the open file.
     pub fn review_of(&self, rel: &str) -> Option<&Review> {
-        self.reviews.shown.as_ref().filter(|r| r.rel == rel)
+        self.work.review().filter(|r| r.rel == rel)
     }
 
     /// The user opened another file: the review goes.
     pub fn drop_old_review(&mut self) {
-        let here = self.current.as_deref().map(|p| self.rel(p));
-        if self.reviews.shown.as_ref().is_some_and(|r| Some(&r.rel) != here.as_ref()) {
-            self.reviews.shown = None;
-        }
+        let here = self.files.current_path().map(|p| self.rel(p));
+        self.work.keep_review_of(here.as_deref());
     }
 }
 

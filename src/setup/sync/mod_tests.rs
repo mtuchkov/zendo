@@ -18,6 +18,21 @@ fn location_is_machine_then_path_from_home() {
     assert_eq!(clean_name("  "), "machine");
 }
 
+// NOTESREP-1: a home behind a symlink (as /var → /private/var on macOS) is still the home, so a
+// repository under it keeps its folder of this machine and root.
+#[cfg(unix)]
+#[test]
+fn a_home_behind_a_symlink_is_still_the_home() {
+    let base = std::env::temp_dir().join(format!("zendo-sync-link-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(base.join("real/src/proj")).unwrap();
+    std::os::unix::fs::symlink(base.join("real"), base.join("home")).unwrap();
+    let root = base.join("real/src/proj").canonicalize().unwrap();
+    let got = location_dir(Path::new("/n"), "m1", &root, Some(&base.join("home")));
+    assert_eq!(got, Path::new("/n/m1/src/proj"));
+    let _ = std::fs::remove_dir_all(&base);
+}
+
 fn sh(dir: &Path, args: &[&str]) {
     let ok = Command::new("git").arg("-C").arg(dir).args(args).stdout(Stdio::null()).stderr(Stdio::null()).status().unwrap().success();
     assert!(ok, "git {args:?}");
@@ -92,5 +107,24 @@ fn syncer_commits_on_its_own_and_at_exit() {
     assert_eq!(s.finish(), State::Synced);
     let log = git(&base.join("remote.git"), &["log", "--format=%s", "main"], Duration::from_secs(5)).unwrap();
     assert!(log.lines().count() >= 2 && log.lines().all(|l| l == "notes: a ~"), "{log}");
+    let _ = std::fs::remove_dir_all(&base);
+}
+
+// FILES-27, ADR 0009: an output larger than the pipe buffer (64 KB on Linux) comes back whole and
+// at once, not after the time limit as an error.
+#[test]
+fn a_large_output_does_not_hang_git() {
+    let base = std::env::temp_dir().join(format!("zendo-sync-large-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(&base).unwrap();
+    sh(&base, &["init", "-q"]);
+    let big = "a line of a large file\n".repeat(20_000);
+    std::fs::write(base.join("big.txt"), &big).unwrap();
+    let limit = Duration::from_secs(5);
+    let hash = git(&base, &["hash-object", "-w", "big.txt"], limit).unwrap();
+    let start = Instant::now();
+    let out = git(&base, &["cat-file", "-p", &hash], limit);
+    assert!(start.elapsed() < Duration::from_secs(2), "git took {:?}", start.elapsed());
+    assert_eq!(out.map(|o| o.len()), Ok(big.trim().len()));
     let _ = std::fs::remove_dir_all(&base);
 }

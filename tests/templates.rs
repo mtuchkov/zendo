@@ -27,8 +27,8 @@ fn a_new_file_starts_from_the_template_of_its_folder() {
     a.toggle_tree();
     a.focus = Focus::Tree;
     draw(&mut a, 120, 30);
-    let row = a.tree.rows().iter().position(|r| r.rel.ends_with("docs/specs")).expect("the specs row");
-    a.tree.sel = row;
+    let row = a.files.tree().rows().iter().position(|r| r.rel.ends_with("docs/specs")).expect("the specs row");
+    a.files.select_row(row);
     key(&mut a, KeyCode::F(3));
     typ(&mut a, "audit-log");
     key(&mut a, KeyCode::Enter);
@@ -46,13 +46,13 @@ async fn ctrl_t_suggests_only_templates() {
     a.open_panel();
     a.focus = Focus::Claude;
     ctrl(&mut a, 't');
-    let hits: Vec<String> = a.at.as_ref().expect("the suggestions").hits.iter().map(|p| p.display().to_string()).collect();
+    let hits: Vec<String> = a.composer.at().as_ref().expect("the suggestions").hits.iter().map(|p| p.display().to_string()).collect();
     assert_eq!(hits.len(), 2, "{hits:?}");
     assert!(hits.iter().all(|h| h.starts_with("docs/templates/")), "{hits:?}");
     typ(&mut a, "spec");
     key(&mut a, KeyCode::Tab);
-    assert!(a.at.is_none());
-    let chip = a.chips.last().expect("a chip");
+    assert!(a.composer.at().is_none());
+    let chip = a.composer.chips().last().expect("a chip");
     let ctx = chip.context.as_deref().unwrap_or_default();
     assert!(ctx.contains("docs/templates/spec.md") && ctx.contains("docs/specs"), "{ctx}");
     assert!(chip.attach.is_some());

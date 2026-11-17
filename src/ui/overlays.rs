@@ -35,20 +35,20 @@ pub(crate) fn draw_themes(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
 /// groups (PANES-30); under them the keymap file and the version (PANES-31).
 pub(crate) fn draw_help(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     use crate::keys::Pane;
-    let mut groups = help_section(app, t, app.help_pane);
+    let mut groups = help_section(app, t, app.key_help.pane());
     // Where the user writes, the keys while text is selected (PANES-39).
-    if matches!(app.help_pane, Pane::Write | Pane::Chat) {
+    if matches!(app.key_help.pane(), Pane::Write | Pane::Chat) {
         let mut sel = help_section(app, t, Pane::Selected);
         sel[0].insert(0, Line::raw(""));
         groups.append(&mut sel);
     }
-    if app.help_pane != Pane::Global {
+    if app.key_help.pane() != Pane::Global {
         let mut global = help_section(app, t, Pane::Global);
         global[0].insert(0, Line::raw(""));
         groups.append(&mut global);
     }
     let dim = Style::new().fg(t.dim);
-    let keymap = match &app.keymap_file {
+    let keymap = match app.key_help.file() {
         Some(path) => format!("  keymap: {path}"),
         None => "  keymap: none · start one: zendo keymap > ~/.zendo/keymap.toml".to_string(),
     };
@@ -103,4 +103,43 @@ fn columns(groups: Vec<Vec<Line<'static>>>, height: usize) -> Vec<Vec<Line<'stat
         }
     }
     cols
+}
+
+/// FILES-37: the popup before a file action in a worktree while the agent of the session answers.
+pub(crate) fn draw_confirm(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
+    let Some(text) = app.confirm_text() else { return };
+    let w = 60.min(area.width);
+    let lines = markdown::wrap(vec![Span::styled(text, Style::new().fg(t.fg))], w.saturating_sub(4) as usize, "  ", "  ");
+    let h = (lines.len() as u16 + 2).min(area.height);
+    let r = Rect { x: area.x + (area.width - w) / 2, y: area.y + (area.height - h) / 2, width: w, height: h };
+    f.render_widget(Clear, r);
+    let block = Block::bordered().title(" the agent works ").border_style(Style::new().fg(t.acc2)).style(Style::new().bg(t.panel));
+    f.render_widget(Paragraph::new(lines).block(block), r);
+}
+
+/// The question of the first start, over the screen while the music plays: keep the lofi music on
+/// at each start, or turn it off (LOFI-12). Its two answers take a click.
+pub(crate) fn draw_music_question(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
+    fr.music_answers = None;
+    if !app.music.asking {
+        return;
+    }
+    let w = 58.min(area.width);
+    let text = "zendo plays calm lofi music that it makes itself. Keep it on at each start? The [music] button and alt-m stop and start it any time.";
+    let mut lines = markdown::wrap(vec![Span::styled(text, Style::new().fg(t.fg))], w.saturating_sub(4) as usize, "  ", "  ");
+    let (keep, off) = ("[ keep on · y ]", "[ turn off · n ]");
+    lines.push(Line::raw(""));
+    lines.push(Line::from(vec![Span::raw("  "), Span::styled(keep, Style::new().fg(t.ext.doc)), Span::raw("   "), Span::styled(off, Style::new().fg(t.dim))]));
+    let rows = lines.len() as u16;
+    let h = (rows + 2).min(area.height);
+    let r = Rect { x: area.x + (area.width - w) / 2, y: area.y + (area.height - h) / 2, width: w, height: h };
+    f.render_widget(Clear, r);
+    let block = Block::bordered().title(" lofi music ").border_style(Style::new().fg(t.ext.doc)).style(Style::new().bg(t.panel));
+    f.render_widget(Paragraph::new(lines).block(block), r);
+    // On a screen too small for the whole float, the answers take keys only: no rect points at a
+    // line that is not drawn.
+    let fits = h == rows + 2 && w as usize >= keep.width() + off.width() + 7;
+    let (y, x) = (r.bottom().saturating_sub(2), r.x + 3);
+    let button = |x: u16, s: &str| Rect { x, y, width: s.width() as u16, height: 1 };
+    fr.music_answers = fits.then(|| (button(x, keep), button(x + keep.width() as u16 + 3, off)));
 }

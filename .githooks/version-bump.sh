@@ -2,6 +2,7 @@
 # The version in Cargo.toml increases with every commit. A patch bump is enough for a small change.
 #   .githooks/version-bump.sh staged          the staged version is above the version of the parent
 #   .githooks/version-bump.sh <base> <head>   for CI: the same for every commit in a range
+#   .githooks/version-bump.sh above <head> <base>   the version of <head> is above the one of <base>
 # Merge commits are skipped. Exit 1 when a version does not increase.
 set -eu
 
@@ -29,7 +30,8 @@ is_above() {
 	}'
 }
 
-# Print the reason why revision $1 does not increase the version of revision $2. Print nothing if it does.
+# Print the reason why revision $1 does not increase the version of revision $2, named $3 (the parent
+# by default). Print nothing if it does.
 problem() {
 	new=$(version_of "$1")
 	old=$(version_of "$2")
@@ -39,7 +41,7 @@ problem() {
 	elif [ -z "$new" ]; then
 		echo "Cargo.toml has no package version."
 	elif ! is_above "$new" "$old"; then
-		echo "version $new is not above $old of the parent. Increase the version in Cargo.toml."
+		echo "version $new is not above $old of ${3:-the parent}. Increase the version in Cargo.toml."
 	elif [ "$lock" != "$new" ]; then
 		echo "Cargo.lock has zendo ${lock:-?}, Cargo.toml has $new. Run: cargo update --package zendo"
 	fi
@@ -118,7 +120,16 @@ check_range() {
 	fi
 }
 
+# Exit 0 when the version of revision $1 is above the version of revision $2; else print why.
+check_above() {
+	why=$(problem "$1" "$2" "main $(git rev-parse --short "$2")")
+	[ -z "$why" ] && return 0
+	echo "$why"
+	return 1
+}
+
 case "${1:-}" in
 staged) check_staged ;;
+above) check_above "${2:?usage: version-bump.sh above <head> <base>}" "${3:?usage: version-bump.sh above <head> <base>}" ;;
 *) check_range "${1:-}" "${2:?usage: version-bump.sh staged | <base> <head>}" ;;
 esac

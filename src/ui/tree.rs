@@ -2,53 +2,59 @@
 use super::*;
 use crate::docs::tree::{Kind, Row, View};
 
-pub(crate) fn draw_tree(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
-    app.tree_rows.clear();
+pub(crate) fn draw_tree(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) {
+    fr.tree_rows.clear();
+    fr.tree_fold.clear();
     f.render_widget(Block::new().style(Style::new().bg(t.panel)), area);
     let inner = Rect { x: area.x + 1, y: area.y, width: area.width.saturating_sub(2), height: area.height };
     let w = inner.width as usize;
     let dim = Style::new().fg(t.dim);
-    let foot = tree_foot(app, t, w);
+    let foot = if app.files.tree().view.is_worktree() { worktree_foot(app, t, w) } else { tree_foot(app, t, w) };
     let foot_h = if foot.is_empty() { 0 } else { foot.len() as u16 + 1 };
-    let [head, _, body, foot_area] = Layout::vertical([Constraint::Length(1), Constraint::Length(1), Constraint::Min(1), Constraint::Length(foot_h)]).areas(inner);
+    let [head, tools, body, foot_area] = Layout::vertical([Constraint::Length(1), Constraint::Length(1), Constraint::Min(1), Constraint::Length(foot_h)]).areas(inner);
     if foot_h > 0 {
         let mut lines = vec![Line::styled("─".repeat(w), Style::new().fg(t.line))];
         lines.extend(foot);
         f.render_widget(Paragraph::new(lines), foot_area);
     }
     tree_head(f, app, t, head);
+    if app.files.tree().find.is_none() {
+        fold_buttons(f, fr, t, Rect { x: tools.right().saturating_sub(7), width: 7, ..tools });
+    }
 
-    let rows = app.tree.rows();
-    if rows.is_empty() && app.tree.find.as_deref().is_some_and(|q| !q.trim().is_empty()) {
+    let rows = app.files.tree().rows();
+    if rows.is_empty() && app.files.tree().find.as_deref().is_some_and(|q| !q.trim().is_empty()) {
         f.render_widget(Paragraph::new(Line::styled(" No file name matches.", dim)), body);
         return;
     }
     if rows.is_empty() {
-        let msg = match app.tree.view {
-            View::All | View::Folders => "No .md files.".to_string(),
+        let msg = match app.files.tree().view {
             View::Text => "No text files.".to_string(),
             View::Docs => format!("No .md files under a docs folder.{}", app.keys.key(crate::keys::Pane::Tree, "view").map(|k| format!(" Press {k} to show all.")).unwrap_or_default()),
             View::Structure => "No main materials. Mark entries with main = true in project-structure.toml.".to_string(),
+            // FILES-31: the agent makes its worktree when it changes code the first time.
+            View::Worktree | View::WorktreeChanged if app.files.tree().worktree.is_none() => {
+                format!("Agent session {} has no worktree yet: .worktrees/{} comes when its agent changes code.", app.state.session + 1, app.state.session + 1)
+            }
+            View::Worktree => "No text files in the worktree.".to_string(),
+            // ADR 0009: git reads the changes on a thread, and its error shows.
+            View::WorktreeChanged if let Some(e) = app.files.tree().error() => format!("Cannot read the changes against main: {e}"),
+            View::WorktreeChanged if app.files.tree().scanning() => "Reading the changes against main…".to_string(),
+            View::WorktreeChanged => "No changes against main.".to_string(),
         };
         f.render_widget(Paragraph::new(markdown::wrap(vec![Span::styled(msg, dim)], w.saturating_sub(1), " ", " ")), body);
         return;
     }
-    app.tree.sel = app.tree.sel.min(rows.len() - 1);
     let h = body.height as usize;
-    // Keep the selection in view.
-    if app.tree.sel < app.tree.scroll {
-        app.tree.scroll = app.tree.sel;
-    } else if app.tree.sel >= app.tree.scroll + h {
-        app.tree.scroll = app.tree.sel + 1 - h;
-    }
-    app.tree.scroll = app.tree.scroll.min(rows.len().saturating_sub(h));
-    let current = app.current.as_ref().map(|p| app.store.rel(p).to_path_buf());
-    for (i, row) in rows.iter().enumerate().skip(app.tree.scroll).take(h) {
-        let r = Rect { x: inner.x, y: body.y + (i - app.tree.scroll) as u16, width: inner.width, height: 1 };
-        app.tree_rows.push((r, i));
+    // Keep the selection in the rows, and in view.
+    app.files.fit_tree(rows.len(), h);
+    let current = app.files.current_in_tree();
+    for (i, row) in rows.iter().enumerate().skip(app.files.tree().scroll).take(h) {
+        let r = Rect { x: inner.x, y: body.y + (i - app.files.tree().scroll) as u16, width: inner.width, height: 1 };
+        fr.tree_rows.push((r, i));
         let is_current = current.as_deref() == Some(row.rel.as_path());
         let mut line = tree_line(app, t, row, is_current, w);
-        if i == app.tree.sel && app.focus == Focus::Tree {
+        if i == app.files.tree().sel && app.focus == Focus::Tree {
             line = line.style(Style::new().bg(t.sel));
         }
         f.render_widget(Paragraph::new(line), r);
@@ -58,10 +64,10 @@ pub(crate) fn draw_tree(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
 /// The footer: what the selected item is, and the start of its rules for Claude.
 fn tree_foot(app: &App, t: &Theme, w: usize) -> Vec<Line<'static>> {
     let dim = Style::new().fg(t.dim);
-    let rows_now = app.tree.rows();
-    let picked = rows_now.get(app.tree.sel.min(rows_now.len().saturating_sub(1))).map(|r| r.rel.clone());
+    let rows_now = app.files.tree().rows();
+    let picked = rows_now.get(app.files.tree().sel.min(rows_now.len().saturating_sub(1))).map(|r| r.rel.clone());
     let mut foot: Vec<Line> = Vec::new();
-    let (Some(st), Some(rel)) = (app.tree.structure.as_ref(), picked.as_ref()) else { return foot };
+    let (Some(st), Some(rel)) = (app.files.tree().structure.as_ref(), picked.as_ref()) else { return foot };
     let fw = w.saturating_sub(2);
     if let Some(about) = st.about(rel) {
         foot.extend(markdown::wrap(vec![Span::styled(about.trim().to_string(), Style::new().fg(t.fg))], fw, " ", " ").into_iter().take(4));
@@ -75,12 +81,30 @@ fn tree_foot(app: &App, t: &Theme, w: usize) -> Vec<Line<'static>> {
     foot
 }
 
+/// The footer of a worktree view: the recap of the whole diff of the worktree (FILES-28).
+fn worktree_foot(app: &App, t: &Theme, w: usize) -> Vec<Line<'static>> {
+    let dim = Style::new().fg(t.dim);
+    let Some(wt) = app.files.tree().worktree.as_ref().map(|p| p.display().to_string()) else { return Vec::new() };
+    let recap = app.state.files.get(&wt).and_then(|f| f.recap.as_ref());
+    let writing = app.work.job().is_some_and(|j| j.rel == wt);
+    let head = match recap {
+        Some(r) => format!("RECAP · {}{}", r.at.format("%H:%M"), if writing { " · writing a new one" } else { "" }),
+        None if writing => "RECAP · writing it".to_string(),
+        None => "RECAP · comes when the worktree has changes".to_string(),
+    };
+    let mut foot = vec![Line::styled(format!(" {head}"), dim.add_modifier(Modifier::BOLD))];
+    let text = recap.map(|r| r.text.as_str()).unwrap_or_default();
+    let body = text.lines().flat_map(|l| markdown::wrap(vec![Span::styled(l.trim().to_string(), Style::new().fg(t.fg))], w.saturating_sub(2), " ", "   "));
+    foot.extend(body.take(10));
+    foot
+}
+
 /// The head line: the project and the view, or the file name filter while it is on.
 fn tree_head(f: &mut Frame, app: &App, t: &Theme, head: Rect) {
     let dim = Style::new().fg(t.dim);
     let w = head.width as usize;
-    if let Some(q) = app.tree.find.clone() {
-        let n = app.tree.rows().len();
+    if let Some(q) = app.files.tree().find.clone() {
+        let n = app.files.tree().rows().len();
         let count = if q.trim().is_empty() { "enter open · esc".to_string() } else { format!("{n} · esc") };
         let room = (w.saturating_sub(4 + count.width())).max(1);
         let shown: String = if q.width() > room { q.chars().rev().take(room).collect::<Vec<_>>().into_iter().rev().collect() } else { q.clone() };
@@ -92,13 +116,23 @@ fn tree_head(f: &mut Frame, app: &App, t: &Theme, head: Rect) {
         }
         return;
     }
-    let label = match app.tree.structured() {
+    let label = match app.files.tree().structured() {
         Some(st) => format!("{} · {}", st.project.name.clone().unwrap_or_else(|| "PROJECT".into()).to_uppercase(), st.main().count()),
-        None => format!("FILES · {}", app.tree.files.len()),
+        None => format!("FILES · {}", app.files.tree().files.len()),
     };
     f.render_widget(Paragraph::new(Line::styled(label, dim.add_modifier(Modifier::BOLD))), Rect { x: head.x + 1, width: head.width.saturating_sub(1), ..head });
-    let filt = format!("{} · {}", app.tree.filter_label(), app.keys.first(crate::keys::Pane::Tree, "view"));
+    let filt = format!("{} · {}", app.files.tree().filter_label(), app.keys.first(crate::keys::Pane::Tree, "view"));
     f.render_widget(Paragraph::new(Line::styled(filt.clone(), dim)), Rect { x: head.right().saturating_sub(filt.width() as u16), width: filt.width() as u16, ..head });
+}
+
+/// Under the head, on the right: `[+]` opens every folder, `[-]` closes every folder (FILES-57).
+fn fold_buttons(f: &mut Frame, fr: &mut Cache, t: &Theme, area: Rect) {
+    let style = Style::new().fg(t.dim);
+    for (i, (label, open)) in [("[+]", true), ("[-]", false)].into_iter().enumerate() {
+        let r = Rect { x: area.x + 4 * i as u16, width: 3, ..area };
+        f.render_widget(Paragraph::new(Line::styled(label, style)), r);
+        fr.tree_fold.push((r, open));
+    }
 }
 
 /// One row: the indent, the icon, the name, and `Δ` for a file that changed.
@@ -113,14 +147,16 @@ fn tree_line(app: &App, t: &Theme, row: &Row, is_current: bool, w: usize) -> Lin
         Kind::File => ("    ", Style::new().fg(t.fg)),
     };
     // Markdown is the default: its extension shows only in the text view, where files of every kind are.
-    let all = app.tree.view == View::Text;
+    let all = app.files.tree().view == View::Text || app.files.tree().view.is_worktree();
     let name = match row.kind {
         _ if row.section => row.name.clone(),
         Kind::Dir { .. } => format!("{}/", row.name),
         Kind::File if all => row.name.clone(),
         Kind::File => row.name.trim_end_matches(".md").to_string(),
     };
-    let changed = row.kind == Kind::File && app.tree.changed.contains(&row.rel);
+    // FILES-35: a file that the worktree deleted is struck through.
+    let name_style = if app.files.tree().deleted.contains(&row.rel) { Style::new().fg(t.dim).add_modifier(Modifier::CROSSED_OUT) } else { name_style };
+    let changed = row.kind == Kind::File && app.files.tree().changed.contains(&row.rel);
     let mark = if changed { " Δ" } else { "" };
     let room = w.saturating_sub(indent.width() + 5 + mark.width());
     let name = if name.width() > room { name.chars().take(room.saturating_sub(1)).collect::<String>() + "…" } else { name };

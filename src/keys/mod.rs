@@ -1,5 +1,5 @@
 //! The keymap: for each pane, the actions and their keys. The default keys are in
-//! resources/keymap.toml; a keymap file of the user (`keymap = "~/.zendo/keymap.toml"` in the config)
+//! resources/keymap-linux.toml or resources/keymap-mac.toml; a keymap file of the user (`keymap = "~/.zendo/keymap.toml"` in the config)
 //! changes them, and `[keys.<pane>]` in `~/.zendo/config.toml` changes single keys after the file:
 //!
 //! ```toml
@@ -101,13 +101,18 @@ pub struct Action {
     pub help: &'static str,
 }
 
-/// The default keys, as zendo ships them: `zendo keymap` prints the file.
-pub const DEFAULT_KEYMAP: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/keymap.toml"));
+/// The default keys on Linux.
+pub const LINUX_KEYMAP: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/keymap-linux.toml"));
+/// The default keys on the Mac: alt-} for the previous session, because Apple Terminal sends alt-[
+/// as ESC [, the start of a CSI sequence (TERM-49).
+pub const MAC_KEYMAP: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/keymap-mac.toml"));
+/// The default keys of this system, as zendo ships them: `zendo keymap` prints the file.
+pub const DEFAULT_KEYMAP: &str = if cfg!(target_os = "macos") { MAC_KEYMAP } else { LINUX_KEYMAP };
 
 /// The default keys, read once.
 fn default_keys() -> &'static KeyConfig {
     static KEYS: std::sync::OnceLock<KeyConfig> = std::sync::OnceLock::new();
-    KEYS.get_or_init(|| toml::from_str(DEFAULT_KEYMAP).expect("resources/keymap.toml parses"))
+    KEYS.get_or_init(|| toml::from_str(DEFAULT_KEYMAP).expect("the default keymap parses"))
 }
 
 

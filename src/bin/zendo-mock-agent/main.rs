@@ -15,7 +15,9 @@ use agent_client_protocol::v1::schema::{
     NewSessionResponse, PermissionOption, PermissionOptionKind, PromptRequest, PromptResponse,
     RequestPermissionOutcome, RequestPermissionRequest, SessionNotification, SessionUpdate,
     StopReason, TextContent, ToolCall, ToolCallContent, ToolCallStatus, ToolCallUpdate,
-    ToolCallUpdateFields, ToolKind,
+    ToolCallUpdateFields, ToolKind, SessionConfigOption, SessionConfigOptionCategory, SessionConfigSelectOption,
+    SetSessionConfigOptionRequest, SetSessionConfigOptionResponse, SessionCapabilities, SessionCloseCapabilities, CloseSessionRequest,
+    CloseSessionResponse,
 };
 use agent_client_protocol::{Agent, Client, Result, Stdio};
 use std::path::PathBuf;
@@ -77,6 +79,20 @@ fn propose(old: &str) -> String {
 }
 
 
+/// The model of each session that zendo set (NAMES-12).
+static MODELS: std::sync::Mutex<std::collections::BTreeMap<String, String>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// The models of the mock agent: `default` and `mock-light`, with `current` set.
+fn models(current: &str) -> Vec<SessionConfigOption> {
+    let values = vec![SessionConfigSelectOption::new("default", "Default"), SessionConfigSelectOption::new("mock-light", "Light")];
+    vec![SessionConfigOption::select("model", "Model", current.to_string(), values).category(SessionConfigOptionCategory::Model)]
+}
+
+/// The model that zendo set for session `sid`, if any.
+pub(crate) fn model_of(sid: &str) -> Option<String> {
+    MODELS.lock().unwrap().get(sid).cloned()
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     Agent
@@ -86,17 +102,32 @@ async fn main() -> Result<()> {
             async move |init: InitializeRequest, responder, _cx| {
                 responder.respond(
                     InitializeResponse::new(init.protocol_version)
-                        .agent_capabilities(AgentCapabilities::new().load_session(true).prompt_capabilities(PromptCapabilities::new().image(true)))
+                        .agent_capabilities(
+                            AgentCapabilities::new()
+                                .load_session(true)
+                                .prompt_capabilities(PromptCapabilities::new().image(true))
+                                .session_capabilities(SessionCapabilities::new().close(SessionCloseCapabilities::new())),
+                        )
                         .agent_info(Implementation::new("zendo-mock-agent", env!("CARGO_PKG_VERSION"))),
                 )
             },
             agent_client_protocol::on_receive_request!(),
         )
         .on_receive_request(
-            async move |_req: NewSessionRequest, responder, cx: Cx| {
+            async move |req: NewSessionRequest, responder, cx: Cx| {
+                // For the tests of SESSIONS-21: the MCP servers that zendo gave the session.
+                let _ = std::fs::write(req.cwd.join(".zendo/mock-mcp.json"), serde_json::to_string(&req.mcp_servers).unwrap_or_default());
                 let id = format!("mock-{}", std::process::id() as u64 * 1000 + NEXT.fetch_add(1, Ordering::Relaxed));
-                responder.respond(NewSessionResponse::new(id.clone()))?;
+                responder.respond(NewSessionResponse::new(id.clone()).config_options(models("default")))?;
                 commands(&cx, &id.into())
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            async move |req: SetSessionConfigOptionRequest, responder, _cx: Cx| {
+                let value = serde_json::to_value(&req.value).ok().and_then(|v| v["value"].as_str().map(str::to_string)).unwrap_or_default();
+                MODELS.lock().unwrap().insert(req.session_id.0.to_string(), value.clone());
+                responder.respond(SetSessionConfigOptionResponse::new(models(&value)))
             },
             agent_client_protocol::on_receive_request!(),
         )
@@ -111,6 +142,10 @@ async fn main() -> Result<()> {
                 commands(&cx, &sid)?;
                 responder.respond(LoadSessionResponse::new())
             },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            async move |_req: CloseSessionRequest, responder, _cx: Cx| responder.respond(CloseSessionResponse::new()),
             agent_client_protocol::on_receive_request!(),
         )
         .on_receive_request(

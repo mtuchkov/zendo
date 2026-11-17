@@ -1,6 +1,8 @@
 //! A zendo app in a test: a repository in a temp folder, the mock agent, a test terminal, keys.
 #![allow(dead_code)]
 
+pub mod http;
+
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -36,7 +38,7 @@ pub fn app(root: &Path) -> App {
 /// Draw one frame on a test terminal; the screen as text, one line for each row.
 pub fn draw(app: &mut App, w: u16, h: u16) -> Vec<String> {
     let mut term = Terminal::new(TestBackend::new(w, h)).unwrap();
-    term.draw(|f| zendo::ui::draw(f, app)).unwrap();
+    term.draw(|f| app.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();
     (0..h).map(|y| (0..w).map(|x| buf[(x, y)].symbol().to_string()).collect::<String>()).collect()
 }
@@ -62,7 +64,7 @@ pub async fn until(app: &mut App, done: impl Fn(&App) -> bool) {
     while !done(app) {
         assert!(Instant::now() < end, "timeout");
         app.tick();
-        match app.agent_events.as_mut() {
+        match app.link.events_mut() {
             Some(rx) => {
                 if let Ok(Some(e)) = tokio::time::timeout(Duration::from_millis(50), rx.recv()).await {
                     app.on_agent(e);

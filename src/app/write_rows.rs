@@ -81,9 +81,9 @@ impl App {
     /// Up or down by rows on the screen, as write mode shows them; the editor's own rows when the
     /// screen has none yet.
     pub(crate) fn write_vertical(&mut self, delta: isize) {
-        let spans = &self.write_rows;
-        let e = &mut self.editor;
-        let Some(k) = cursor_span(spans, (e.row, e.col)) else { return e.vertical(delta, self.text_width) };
+        let spans = self.frame.write_rows();
+        let e = self.writer.editor_mut();
+        let Some(k) = cursor_span(spans, (e.row, e.col)) else { return e.vertical(delta, self.frame.text_width()) };
         let x = *e.want_x.get_or_insert(spans[k].x_of((e.row, e.col)));
         let target = (k as isize + delta).clamp(0, spans.len() as isize - 1) as usize;
         (e.row, e.col) = spans[target].at_x(x);

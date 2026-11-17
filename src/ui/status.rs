@@ -1,9 +1,9 @@
 //! The status bar.
 use super::*;
 
-pub(crate) fn draw_status(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
-    let claude = app.panel && app.focus == Focus::Claude && matches!(app.mode, Mode::Read | Mode::Write);
-    let (badge, color, mut keys) = status_keys(app, t, claude);
+pub(crate) fn draw_status(f: &mut Frame, app: &App, fr: &Cache, t: &Theme, area: Rect) {
+    let claude = app.threads.shown() && app.focus == Focus::Claude && matches!(app.mode, Mode::Read | Mode::Write);
+    let (badge, color, mut keys) = status_keys(app, fr, t, claude);
     // The key of the help, in every pane and mode, first: it is always on the screen.
     // An action without a key has no hint (PANES-29).
     keys.retain(|(k, v)| v != "keys" && !k.is_empty());
@@ -11,7 +11,7 @@ pub(crate) fn draw_status(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
         keys.insert(0, (help, "keys".into()));
     }
     let mut spans = vec![Span::raw("  "), Span::styled(format!(" {badge} "), Style::new().bg(color).fg(t.bg).add_modifier(Modifier::BOLD)), Span::raw("  ")];
-    let right = status_right(app, claude);
+    let right = status_right(app, fr, claude);
     // The right side shows whole: the hints at the end give way, the help key stays.
     let room = (area.width as usize).saturating_sub(right.width() + 2 + spans.iter().map(|s| s.content.width()).sum::<usize>());
     let fit = keys.iter().scan(0, |w, (k, v)| {
@@ -33,9 +33,9 @@ pub(crate) fn draw_status(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
 type Hints = Vec<(String, String)>;
 
 /// The badge of the pane in focus and its key hints, from the keymap: the first key of each action.
-fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hints) {
+fn status_keys(app: &App, fr: &Cache, t: &Theme, claude: bool) -> (&'static str, Color, Hints) {
     use crate::keys::Pane;
-    let delta = app.delta_open && app.focus == Focus::Delta && matches!(app.mode, Mode::Read | Mode::Write);
+    let delta = app.work.delta_open() && app.focus == Focus::Delta && matches!(app.mode, Mode::Read | Mode::Write);
     let tree = app.state.tree && app.focus == Focus::Tree && matches!(app.mode, Mode::Read | Mode::Write);
     let hints = |p: Pane, list: &[(&str, &str)]| -> Hints {
         list.iter().filter(|(a, _)| app.agent_can(a)).map(|(a, text)| (app.keys.first(p, a), text.to_string())).collect()
@@ -45,7 +45,7 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
         v.push(next.clone());
         v
     };
-    if app.sel.is_some_and(|s| !s.done) {
+    if app.pointer.sel().is_some_and(|s| !s.done) {
         return mouse_selection(t);
     }
     if tree {
@@ -59,9 +59,9 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
         let v = [(Pane::Chat, "handoff", "full screen"), (Pane::Session, "leave", "back"), (Pane::Global, "next_session", "next session")];
         return ("SHELL", t.acc, v.iter().map(|(p, a, text)| (app.keys.first(*p, a), text.to_string())).collect());
     }
-    if claude && app.transcript.on {
+    if claude && app.threads.transcript().on() {
         let mut v = hints(Pane::Transcript, &[("down", "move"), ("select_down", "select"), ("copy", "copy"), ("add_to_chat", "to chat"), ("input", "input")]);
-        if app.transcript.block().is_some() {
+        if app.threads.transcript().block().is_some() {
             // The cursor is in a shell block: F5 puts it into a terminal, alt-F5 runs it (TERM-1, TERM-21).
             v.insert(0, (app.keys.first(Pane::Global, "terminal_run"), "run".into()));
             v.insert(0, (app.keys.first(Pane::Global, "terminal"), "to shell".into()));
@@ -71,13 +71,13 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
     // Text is selected where the user writes: the keys of `[selection]` first (PANES-37).
     let selected = |e: &crate::text::editor::Editor| if e.selection().is_some() { hints(Pane::Selected, &[("copy", "copy"), ("cut", "cut")]) } else { Vec::new() };
     if claude {
-        let mut v = selected(&app.input);
+        let mut v = selected(app.composer.input());
         v.extend(hints(Pane::Chat, &[("send", "send"), ("newline", "new line"), ("new_thread", "new thread"), ("handoff", "Claude Code"), ("back", "back")]));
         v.push((app.keys.first(Pane::Global, "next_session"), "next session".into()));
         return ("CHAT", t.acc, with_next(v));
     }
     match app.mode {
-        Mode::Read if app.read_anchor.is_some() => ("SELECT", t.acc2, hints(Pane::Read, &[("select_down", "extend"), ("ask", "ask claude"), ("add_to_chat", "add to chat"), ("copy", "copy"), ("back", "cancel")])),
+        Mode::Read if app.reader.anchor().is_some() => ("SELECT", t.acc2, hints(Pane::Read, &[("select_down", "extend"), ("ask", "ask claude"), ("add_to_chat", "add to chat"), ("copy", "copy"), ("back", "cancel")])),
         Mode::Read | Mode::Help => {
             let mut v = hints(Pane::Read, &[("down", "cursor"), ("select_down", "select"), ("ask", "ask"), ("say", "say here"), ("add_to_chat", "to chat"), ("chat", "chat"), ("write", "write"), ("search", "search"), ("help", "keys")]);
             // The four cursor keys and the four select keys, each with one label.
@@ -88,18 +88,18 @@ fn status_keys(app: &App, t: &Theme, claude: bool) -> (&'static str, Color, Hint
             v[0].0 = four(["left", "down", "up", "right"]);
             v[1].0 = four(["select_left", "select_down", "select_up", "select_right"]);
             v.insert(5, (app.keys.first(Pane::Global, "toggle_tree"), "files".into()));
-            if app.over_limit.is_some() {
-                v.insert(0, (app.keys.first(Pane::Read, "split"), format!("split: {} words", app.word_count)));
+            if fr.over_limit.is_some() {
+                v.insert(0, (app.keys.first(Pane::Read, "split"), format!("split: {} words", fr.word_count)));
             }
             ("READ", t.acc, v)
         }
         Mode::Write => {
-            let mut v = selected(&app.editor);
+            let mut v = selected(app.writer.editor());
             v.extend(hints(Pane::Write, &[("done", "read"), ("chat", "chat"), ("add_to_chat", "to chat"), ("say", "say here"), ("bold", "bold"), ("italic", "italic"), ("underline", "underline"), ("toggle_tree", "files"), ("delta", "delta")]));
             ("WRITE", t.acc2, v)
         }
         Mode::Notes => ("NOTES", t.acc, hints(Pane::Notes, &[("down", "move"), ("open", "open"), ("new", "new"), ("rename", "rename"), ("tags", "by tag"), ("close", "close")])),
-        Mode::Search => ("SEARCH", t.acc, vec![("↑ ↓".into(), "move".into()), ("enter".into(), "open at match".into()), ("esc".into(), "back".into())]),
+        m @ (Mode::Search | Mode::Find) => if m == Mode::Find { ("FIND", t.acc, list_keys("open")) } else { ("SEARCH", t.acc, list_keys("open at match")) },
         Mode::Theme => ("THEME", t.acc, vec![("j k".into(), "preview".into()), ("enter".into(), "keep".into()), ("esc".into(), "cancel".into())]),
     }
 }
@@ -111,7 +111,7 @@ fn mouse_selection(t: &Theme) -> (&'static str, Color, Hints) {
 }
 
 /// The right side: a flash, the sync, the agent, or the words of the note.
-fn status_right(app: &App, claude: bool) -> String {
+fn status_right(app: &App, fr: &Cache, claude: bool) -> String {
     if let Some((msg, _)) = &app.flash {
         return msg.clone();
     }
@@ -119,16 +119,16 @@ fn status_right(app: &App, claude: bool) -> String {
         return s;
     }
     if app.structure_missing() && !claude {
-        return format!("no {} · run zendo doctor", crate::docs::structure::FILE);
+        return format!("no {} · run zendo init", crate::docs::structure::FILE);
     }
     if claude {
-        return if app.agent_name.is_some() { app.agent_short() } else { String::new() };
+        return if app.link.ready() { app.agent_short() } else { String::new() };
     }
     match app.mode {
         Mode::Write => {
             // The words of prose, as the word limit counts them.
-            let words = app.word_count;
-            let saved = match (app.editor.dirty, app.saved_at, &app.editor_path) {
+            let words = fr.word_count;
+            let saved = match (app.writer.editor().dirty, app.writer.saved_at(), app.writer.path()) {
                 (true, _, _) => "editing".to_string(),
                 (false, Some(at), _) => format!("saved {}", at.format("%H:%M")),
                 (false, None, Some(_)) => "saved".into(),
@@ -136,10 +136,11 @@ fn status_right(app: &App, claude: bool) -> String {
             };
             format!("{words} words · {saved}")
         }
-        Mode::Notes | Mode::Search => format!("{} notes · {}", app.notes.len(), app.rel(&app.cfg.notes_dir)),
+        Mode::Notes | Mode::Search => format!("{} notes · {}", app.files.notes().len(), app.rel(&app.cfg.notes_dir)),
+        Mode::Find => format!("{} files", app.files.find().items.len()),
         Mode::Theme => THEMES[app.theme].name.to_string(),
-        _ if app.note().is_some() && app.word_limit > 0 => format!("{} / {} words", app.word_count, app.word_limit),
-        _ => app.note().map(|_| format!("{} words", app.word_count)).unwrap_or_default(),
+        _ if app.note().is_some() && fr.word_limit > 0 => format!("{} / {} words", fr.word_count, fr.word_limit),
+        _ => app.note().map(|_| format!("{} words", fr.word_count)).unwrap_or_default(),
     }
 }
 
@@ -147,7 +148,7 @@ fn status_right(app: &App, claude: bool) -> String {
 /// field for a name or a folder, with the folder that `tab` completes to.
 pub(crate) fn draw_file_prompt(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     use crate::app::FilePrompt;
-    let Some(p) = &app.file_prompt else { return };
+    let Some(p) = &app.files.prompt() else { return };
     let name = |rel: &std::path::Path| rel.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let (badge, ask) = match p {
         FilePrompt::Delete(rel) => ("DELETE", format!("delete {}? ", name(rel))),
@@ -181,4 +182,9 @@ pub fn group_label(labels: &[&str]) -> String {
     }
     let tails: Vec<String> = labels.iter().map(|l| l.chars().skip(prefix).collect()).collect();
     format!("{}{}", first[..prefix].iter().collect::<String>(), tails.join("/"))
+}
+
+/// The fixed keys of the search box and of the find panel.
+fn list_keys(open: &str) -> Vec<(String, String)> {
+    vec![("↑ ↓".into(), "move".into()), ("enter".into(), open.into()), ("esc".into(), "back".into())]
 }

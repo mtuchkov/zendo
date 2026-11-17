@@ -18,11 +18,15 @@ USAGE
   zendo notes move | consolidate [--agent CMD | --mock]
                                               Claude moves docs/notes into the notes repo, or merges
                                               the notes of this project from every machine (by origin)
-  zendo doctor [--live] [--fix] [--agent CMD | --mock]
-                                              check each step and say what to fix;
-                                              --fix repairs project-structure.toml (zendo, then Claude)
-  zendo upgrade [--force]                      build the newest main from GitHub, then run setup
+  zendo init                                   prepare this repository: project-structure.toml,
+                                              the zendo section for agents, .gitignore
+  zendo doctor [--live] [--fix [--claude]] [--agent CMD | --mock]
+                                              check each step and say what to fix; writes no file.
+                                              --fix repairs the machine and this repository;
+                                              --claude also gives project-structure.toml to Claude
+  zendo upgrade [--force]                      build the newest main, then run zendo doctor --fix
   zendo keymap                                 print the default keys: start ~/.zendo/keymap.toml from it
+  zendo mcp --session N                        the MCP server of zendo session N (zendo starts it)
 
 OPTIONS
   --notes DIR   notes folder, relative to the repo root (default: docs/notes, or $ZENDO_NOTES)
@@ -41,7 +45,8 @@ enum Run {
     Tui(Config),
     Setup(doctor::Paths, Option<String>, Option<String>),
     Notes(doctor::Paths, Option<String>, String),
-    Doctor(doctor::Paths, Option<String>, bool, bool),
+    Init(doctor::Paths, Option<String>),
+    Doctor(doctor::Paths, Option<String>, doctor::DoctorFlags),
     Upgrade(bool),
 }
 
@@ -68,6 +73,7 @@ struct Args {
     agent: Option<String>,
     live: bool,
     fix: bool,
+    claude: bool,
     offline: bool,
     notes_repo: Option<String>,
     action: String,
@@ -79,6 +85,7 @@ fn read_args() -> Result<Args> {
     if let Some(first) = args.peek() {
         o.sub = match first.as_str() {
             "setup" => "setup",
+            "init" => "init",
             "doctor" => "doctor",
             "upgrade" => "upgrade",
             "keymap" => "keymap",
@@ -94,6 +101,7 @@ fn read_args() -> Result<Args> {
         match a.as_str() {
             "--live" if sub == "doctor" => o.live = true,
             "--fix" if sub == "doctor" => o.fix = true,
+            "--claude" if sub == "doctor" => o.claude = true,
             "--force" if sub == "upgrade" => o.live = true,
             "--offline" if sub.is_empty() => o.offline = true,
             "-V" | "--version" | "version" => {
@@ -148,7 +156,9 @@ fn parse() -> Result<Run> {
         "setup" => Run::Setup(paths, a.agent, a.notes_repo),
         "notes" if a.action.is_empty() => bail!("zendo notes needs move or consolidate\n\n{HELP}"),
         "notes" => Run::Notes(paths, a.agent, a.action),
-        "doctor" => Run::Doctor(paths, a.agent, a.live, a.fix),
+        "init" => Run::Init(paths, a.agent),
+        "doctor" if a.claude && !a.fix => bail!("--claude needs --fix\n\n{HELP}"),
+        "doctor" => Run::Doctor(paths, a.agent, doctor::DoctorFlags { live: a.live, fix: a.fix, claude: a.claude }),
         "upgrade" => Run::Upgrade(a.live),
         "keymap" => {
             print!("{}", zendo::keys::DEFAULT_KEYMAP);
@@ -161,13 +171,27 @@ fn parse() -> Result<Run> {
     })
 }
 
+/// `zendo mcp --session N`: the MCP server of zendo session N (SESSIONS-21).
+fn mcp_session() -> Option<usize> {
+    let a: Vec<String> = std::env::args().skip(1).collect();
+    match a.as_slice() {
+        [m, s, n] if m == "mcp" && s == "--session" => n.parse().ok(),
+        _ => None,
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Before anything else: the server only answers on stdin and stdout.
+    if let Some(n) = mcp_session() {
+        return Ok(zendo::mcp::serve(std::io::stdin().lock(), std::io::stdout().lock(), n)?);
+    }
     let cfg = match parse()? {
         Run::Tui(cfg) => cfg,
         Run::Setup(paths, agent, notes_repo) => std::process::exit(if doctor::setup(&paths, agent, notes_repo).await { 0 } else { 1 }),
         Run::Notes(paths, agent, action) => std::process::exit(if doctor::notes(&paths, agent, &action).await { 0 } else { 1 }),
-        Run::Doctor(paths, agent, live, fix) => std::process::exit(if doctor::doctor(&paths, agent, live, fix).await { 0 } else { 1 }),
+        Run::Init(paths, agent) => std::process::exit(if doctor::init(&paths, agent) { 0 } else { 1 }),
+        Run::Doctor(paths, agent, flags) => std::process::exit(if doctor::doctor(&paths, agent, flags).await { 0 } else { 1 }),
         Run::Upgrade(force) => std::process::exit(if doctor::upgrade(force).await { 0 } else { 1 }),
     };
     // The path of this binary, before an upgrade replaces it.
@@ -185,14 +209,15 @@ async fn main() -> Result<()> {
         app.save();
     }
     app.end_visit();
+    app.usage.write();
     zendo::tui::terminal_off();
     ratatui::restore();
-    if let Some(s) = app.syncer.take()
+    if let Some(s) = app.files.take_syncer()
         && let Some(label) = s.finish().label() {
             eprintln!("zendo: {label}");
         }
     result?;
-    if app.upgrade_now {
+    if app.update.upgrade_now() {
         upgrade_and_restart(exe).await;
     }
     Ok(())
@@ -233,19 +258,19 @@ async fn open_app(cfg: Config) -> Result<App> {
         0
     };
     let mut app = App::new(cfg)?;
-    app.syncer = syncer;
+    app.files.set_syncer(syncer);
+    app.usage = zendo::usage::Usage::for_process(zendo::setup::config::UserConfig::load().usage.unwrap_or(true));
     app.keys.legacy = !zendo::tui::kitty();
-    if !app.key_problems.is_empty() {
-        app.flash(format!("[keys] {} problem(s) · zendo doctor", app.key_problems.len()));
+    if !app.key_help.problems().is_empty() {
+        app.flash(format!("[keys] {} problem(s) · zendo doctor", app.key_help.problems().len()));
     }
     if old_notes > 0 {
         app.flash(format!("{old_notes} note(s) in docs/notes are not in your notes repo · zendo notes move"));
     }
-    app.update_rx = Some(update_rx);
+    app.update.watch(update_rx);
     if let Some(l) = live {
-        app.agent = Some(l.handle);
-        app.agent_events = Some(l.events);
-        app.agent_name = Some(l.name);
+        app.link.connect(l.handle, l.events);
+        app.link.set_name(l.name);
     }
     Ok(app)
 }

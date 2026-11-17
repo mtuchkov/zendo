@@ -32,7 +32,7 @@ impl TabRun {
     /// A `tab` in `pane`: continue the run, or start a new one there. True when the run started
     /// in the transcript.
     fn step(&mut self, pane: Pane) -> bool {
-        if !self.last.is_some_and(|t| t.elapsed() < TAB_PAUSE) {
+        if self.last.is_none_or(|t| t.elapsed() >= TAB_PAUSE) {
             self.from_transcript = pane == Pane::Transcript;
         }
         self.at = Some(Instant::now());
@@ -49,7 +49,7 @@ impl App {
         if in_chat && (pane == Pane::Transcript) == from_transcript {
             return self.show_transcript(pane == Pane::Chat);
         }
-        self.transcript.on = false;
+        self.threads.transcript_mut().focus(false);
         self.next_pane();
         if self.focus != Focus::Claude {
             return;
@@ -63,9 +63,6 @@ impl App {
     }
 
     fn show_transcript(&mut self, on: bool) {
-        self.transcript.on = on;
-        if on {
-            self.transcript.to_end();
-        }
+        self.threads.transcript_mut().focus(on);
     }
 }

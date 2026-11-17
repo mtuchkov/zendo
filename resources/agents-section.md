@@ -9,4 +9,4 @@ documentation of `project-structure.toml`.
 - Follow the `claude` rules of the project and of each entry that covers the files that you change.
 - Do not change `project-structure.toml` unless the user asks for it.
 
-`zendo doctor` writes this section and replaces it when zendo changes. Write your own text outside it.
+`zendo init` writes this section and replaces it when zendo changes. Write your own text outside it.

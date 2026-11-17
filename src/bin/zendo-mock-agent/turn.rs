@@ -14,6 +14,11 @@ pub(super) async fn turn(cx: Cx, p: PromptRequest) -> Result<StopReason> {
         stream(&cx, &sid, &format!("ran the command: {text}")).await?;
         return Ok(StopReason::EndTurn);
     }
+    if text.starts_with("Name this image") {
+        let image = p.prompt.iter().any(|b| matches!(b, ContentBlock::Image(_)));
+        stream(&cx, &sid, if image { "Red Button" } else { "no image" }).await?;
+        return Ok(StopReason::EndTurn);
+    }
     if let Some(stop) = scripted(&cx, &sid, &text).await? {
         return Ok(stop);
     }
@@ -29,6 +34,9 @@ pub(super) async fn turn(cx: Cx, p: PromptRequest) -> Result<StopReason> {
     if question.to_lowercase().contains("shell") {
         return ask_shell(&cx, &sid, n).await;
     }
+    if question.contains("slow") {
+        return slow(&cx, &sid, n).await;
+    }
     answer(&cx, &sid, &p, &question).await?;
     let Some(path) = file else {
         stream(&cx, &sid, "No note file was in the prompt.").await?;
@@ -37,7 +45,8 @@ pub(super) async fn turn(cx: Cx, p: PromptRequest) -> Result<StopReason> {
     propose_edit(&cx, &sid, &path, n).await
 }
 
-/// The tasks of zendo that need no note: fix the structure, metadata, move notes, a recap.
+/// The tasks of zendo that need no note: fix the structure, metadata, a session name, move notes,
+/// a recap.
 async fn scripted(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, text: &str) -> Result<Option<StopReason>> {
     if text.contains("You are fixing the project structure file") {
         return fix_structure(cx, sid, text).await.map(Some);
@@ -45,7 +54,7 @@ async fn scripted(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, t
     if text.contains("Write metadata for the markdown document") {
         let mut out = String::new();
         if text.contains("TITLE: <the title>") {
-            out.push_str("TITLE: A mock title\n");
+            out.push_str(&format!("TITLE: Mock title of {} lines\n", text_lines(text)));
         }
         if text.contains("FRONT MATTER:") {
             out.push_str("FRONT MATTER:\nstatus: draft\ndate: 2026-11-12\nlevel: what the mock agent can see\n");
@@ -54,12 +63,22 @@ async fn scripted(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, t
         stream(cx, sid, &out).await?;
         return Ok(Some(StopReason::EndTurn));
     }
+    if text.starts_with("Name this conversation") {
+        let light = model_of(&sid.0).as_deref() == Some("mock-light");
+        stream(cx, sid, if light { "light, stub, fake" } else { "mock, stub, fake" }).await?;
+        return Ok(Some(StopReason::EndTurn));
+    }
     if text.contains("You are moving the notes") || text.contains("You are consolidating the notes") {
         return move_notes(cx, sid, text).await.map(Some);
     }
     if text.contains("that a reader will find confusing") {
         let line = text.lines().find(|l| l.contains("| ") && l.contains("soon")).and_then(|l| l.split('|').next()).map_or("1", str::trim).to_string();
         stream(cx, sid, &format!("SUMMARY: The mock agent read the file.\nLINE {line}: \"soon\" says no time.\nEND")).await?;
+        return Ok(Some(StopReason::EndTurn));
+    }
+    if text.contains("Recap the changes of the worktree") {
+        let n = text.lines().filter(|l| l.starts_with("diff --git ") || l.starts_with("--- new file ")).count();
+        stream(cx, sid, &format!("- The worktree changes {n} file{}.", if n == 1 { "" } else { "s" })).await?;
         return Ok(Some(StopReason::EndTurn));
     }
     if text.contains("Write a recap") {
@@ -74,6 +93,18 @@ async fn scripted(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, t
         return Ok(Some(StopReason::EndTurn));
     }
     Ok(None)
+}
+
+/// A slow question: one message, a tool call, and seconds of work before the end of the turn.
+async fn slow(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, n: u64) -> Result<StopReason> {
+    stream(cx, sid, "I start with the parser of the project. ").await?;
+    cx.send_notification(SessionNotification::new(
+        sid.clone(),
+        SessionUpdate::ToolCall(ToolCall::new(format!("slow-{n}"), "Read src/parser.rs").kind(ToolKind::Read).status(ToolCallStatus::InProgress)),
+    ))?;
+    tokio::time::sleep(Duration::from_secs(8)).await;
+    stream(cx, sid, "Done.").await?;
+    Ok(StopReason::EndTurn)
 }
 
 /// A question about the shell: the mock asks to run a command, and zendo must reject it.
@@ -151,4 +182,10 @@ async fn propose_edit(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionI
         stream(cx, sid, "\n\nOK, I left the note as it is.").await?;
     }
     Ok(StopReason::EndTurn)
+}
+
+/// The lines of the document in a question for metadata that have text and are no title.
+fn text_lines(text: &str) -> usize {
+    let doc = text.split_once("\nDocument ").map_or("", |(_, d)| d);
+    doc.lines().skip(1).filter(|l| !l.trim().is_empty() && !l.starts_with("# ")).count()
 }

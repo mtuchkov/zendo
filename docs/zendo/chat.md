@@ -1,12 +1,13 @@
 ---
-status: "draft"
-revision: "1"
-date: "2026-11-13"
+status: "approved"
+approved: "2026-11-14"
+revision: "2"
+date: "2026-11-14"
 parent: "zendo.md"
-prev: "cli-messages.md"
+prev: "zendo-session.md"
 next: "terminal/terminal.md"
 level: "the chat input: lines, chips, attachments and @ file suggestions"
-note: "Agent draft, split from claude.md. Not reviewed by the user."
+note: "Split from claude.md; the user approved the requirements in the chat on 2026-11-14, with CLAUDE-17 for `Image #n` chips and CLAUDE-37 to CLAUDE-39 for image names."
 ---
 
 # Chat
@@ -47,7 +48,8 @@ not complete) takes one. The command goes to the agent as the user typed it.
 
 **Attachments.** When the user drops files on the terminal, or pastes their paths, the chat input
 gets one chip for each file: `[image name]` for an image, `[file name]` for any other file. `ctrl-v`
-in the chat pastes an image from the clipboard as an `[image …]` chip. zendo sends an image as image
+in the chat pastes an image from the clipboard as an `Image #1` chip, then `Image #2`, and so on;
+when the name model has named the image, the chip says `Image: <name>`. zendo sends an image as image
 data when the agent takes images, and every other file as a link to it.
 
 ## Detailed requirements
@@ -57,7 +59,10 @@ data when the agent takes images, and every other file as a link to it.
 | CLAUDE-15 | Ubiquitous | The system shall let the user move and edit anywhere in the chat input, and show it on up to a quarter of the panel height. | User, 2026-11-11 |
 | CLAUDE-30 | Event      | When the user presses `alt-enter`, `shift-enter` or `ctrl-j` in the chat input, the system shall add a line, and the status bar shall name `alt-enter`. | User, 2026-11-12 |
 | CLAUDE-16 | Event      | When the user drops or pastes the paths of existing files into the chat input, the system shall show one chip for each file and send the files with the question. | User, 2026-11-12 |
-| CLAUDE-17 | Event      | When the user pastes an image from the clipboard into the chat input, the system shall save it and show it as an `[image …]` chip. | User, 2026-11-12 |
+| CLAUDE-17 | Event      | When the user pastes an image from the clipboard into the chat input, the system shall save it and show it as an `Image #n` chip, where n is the lowest number that no chip in the input has. | User, 2026-11-12 |
+| CLAUDE-37 | Event      | When the user pastes an image from the clipboard into the chat input, the system shall ask the model that `[name_models]` names (NAMES-12) for a name of 1 to 3 words of what the image shows, without a message in the thread. | User, 2026-11-14 |
+| CLAUDE-38 | Event      | When the name of a pasted image comes while its chip is in the chat input, the system shall label the chip `Image: <name>`, unique in the input. | User, 2026-11-14 |
+| CLAUDE-39 | Unwanted   | If the agent takes no images or gives no name, then the system shall keep the label `Image #n`. | User, 2026-11-14 |
 | CLAUDE-29 | Event      | When the user presses `tab` in the chat input, the system shall move the keys to the transcript, where the cursor and the selection keys of read mode work, `y` copies, and `a` adds the text to the input as a chip of its own color. | User, 2026-11-12 |
 | CLAUDE-36 | Event      | When the user presses `tab` in the chat input or the transcript after another key, a click, a paste, or a pause of 2 seconds, the system shall move the keys to the other pane of the two; when the user presses more `tab`s, the system shall move the focus around the panes and back into the chat at the pane where the `tab`s started. | User, 2026-11-13 |
 | CLAUDE-33 | Event      | When the user sends a question while the agent answers, the system shall show it in a queue under the answer, and send it when the turn ends. | User, 2026-11-12 |
@@ -72,7 +77,9 @@ data when the agent takes images, and every other file as a link to it.
 | CLAUDE-24 | Ubiquitous | The system shall show the messages of the user on a block of their own color, and the messages of the agent on the panel, with inline code that stands out from the panel. | User, 2026-11-12 |
 | CLAUDE-25 | Event      | When the user presses `ctrl-t` in the chat input, the system shall suggest only templates, as `@` suggests files, and add the chosen one as a chip that tells the agent to write a new document from it. | User, 2026-11-12 |
 
-Tests that verify detailed requirements: `dropped_files_are_paths_and_nothing_else` (CLAUDE-16),
+Tests that verify detailed requirements: `dropped_files_are_paths_and_nothing_else` and
+`a_dropped_macos_screenshot_is_one_file` (CLAUDE-16), `pasted_images_are_numbered_chips` (CLAUDE-17),
+`a_pasted_image_gets_its_name_from_the_name_model` (mock agent; CLAUDE-37, CLAUDE-38, CLAUDE-39),
 `images_and_files_go_with_the_prompt` (mock agent; CLAUDE-16, CLAUDE-18),
 `a_selection_chip_says_its_first_chars` (CLAUDE-20), `a_file_chip_says_its_folder_tail_and_name_head`
 (CLAUDE-21), `files_match_by_start_part_and_typo` (CLAUDE-22), `user_and_agent_messages_look_different` (CLAUDE-24), `templates_are_named_ones_and_those_of_templates_folders`,
