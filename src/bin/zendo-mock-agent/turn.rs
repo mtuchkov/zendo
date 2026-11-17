@@ -63,12 +63,6 @@ async fn scripted(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, t
         stream(cx, sid, &out).await?;
         return Ok(Some(StopReason::EndTurn));
     }
-    if text.starts_with("Does this name still fit") {
-        // The first check keeps the name, the next ones rename it (NAMES-14).
-        let kept = RENAMES.fetch_add(1, Ordering::Relaxed) == 0;
-        stream(cx, sid, if kept { "=" } else { "renamed, other, third" }).await?;
-        return Ok(Some(StopReason::EndTurn));
-    }
     if text.starts_with("Name this conversation") {
         let light = model_of(&sid.0).as_deref() == Some("mock-light");
         stream(cx, sid, if light { "light, stub, fake" } else { "mock, stub, fake" }).await?;
@@ -112,9 +106,6 @@ async fn slow(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, n: u6
     stream(cx, sid, "Done.").await?;
     Ok(StopReason::EndTurn)
 }
-
-/// The checks of a name so far.
-static RENAMES: AtomicU64 = AtomicU64::new(0);
 
 /// A question about the shell: the mock asks to run a command, and zendo must reject it.
 async fn ask_shell(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, n: u64) -> Result<StopReason> {

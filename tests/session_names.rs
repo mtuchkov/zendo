@@ -1,11 +1,13 @@
 //! The names of the agent sessions (docs/zendo/session-names/session-names.md), with the mock agent,
-//! which names each conversation `mock`, `stub` or `fake`, keeps the name at the first check and
-//! then renames it `renamed`, and the mock command line `zendo-mock-cli`.
+//! which names each conversation `mock`, `stub` or `fake`, and the mock command line
+//! `zendo-mock-cli`.
 
 mod common;
+use common::http::{mock_api, mock_api_status};
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::time::{Duration, Instant};
+use zendo::agent::api::{Api, Credential, Vendor, api_model};
 use zendo::app::{App, Focus, Item, session_key};
 use zendo::session::Command;
 
@@ -71,21 +73,24 @@ async fn the_first_agent_message_names_the_session() {
     done(&root, &mut a);
 }
 
-// NAMES-14, NAMES-3: after 200 more characters zendo asks whether the name still fits; the mock
-// agent keeps it once, which doubles the thresholds, and renames it at the next check. The unit
-// test `due_after_the_thresholds_doubled_by_each_kept_name` checks the doubled thresholds.
+// NAMES-3, NAMES-17: a name does not change while its Claude session lasts: after the first name,
+// zendo asks no more questions for it, however much the conversation grows.
 #[tokio::test(flavor = "multi_thread")]
-async fn a_changed_topic_renames_the_session() {
-    let root = repo("names-rename", &[("README.txt", "no notes\n")]);
+async fn a_named_session_keeps_its_name() {
+    let root = repo("names-keep", &[("README.txt", "no notes\n")]);
     let mut a = app(&root);
     assert_eq!(named(&mut a, 0).await, "mock");
     let id = a.threads[&session_key(0)].session.clone().unwrap();
-    ask(&mut a, 0, &"more about the topic ".repeat(10)).await;
-    until(&mut a, |a| a.link.asked(&id).is_some_and(|c| c.keeps == 1) && a.work.free()).await;
-    assert_eq!(a.session_name(0).as_deref(), Some("mock"), "the first check keeps the name");
+    let first = a.link.asked(&id).map(|c| c.size);
+    ask(&mut a, 0, &"more about the topic ".repeat(15)).await;
     ask(&mut a, 0, &"a new topic ".repeat(30)).await;
-    until(&mut a, |a| a.session_name(0).as_deref() == Some("renamed")).await;
-    assert!(buttons(&mut a, 220).contains("F6 renamed"));
+    for _ in 0..25 {
+        a.tick();
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    assert_eq!(a.link.asked(&id).map(|c| c.size), first, "no more questions for a name");
+    assert_eq!(a.session_name(0).as_deref(), Some("mock"));
+    assert!(buttons(&mut a, 220).contains("F6 mock"));
     done(&root, &mut a);
 }
 
@@ -245,5 +250,123 @@ async fn a_light_model_names_the_session() {
     assert_eq!(named(&mut a, 0).await, "light");
     a.link.set_name_model(Some("no-such-model".into()));
     assert_eq!(named(&mut a, 1).await, "mock");
+    done(&root, &mut a);
+}
+
+/// The API of `vendor` at the mock server `url`, with a test key and the model of `short`.
+fn api_at(vendor: Vendor, url: &str, short: &str) -> Api {
+    let base = match vendor {
+        Vendor::Anthropic => url.to_string(),
+        Vendor::OpenAi => format!("{url}/v1"),
+    };
+    Api { vendor, base, model: api_model(vendor, short), cred: Credential::Key("test-key".into()) }
+}
+
+// NAMES-15, NAMES-18: a Claude agent with a key names its sessions through the Anthropic Messages
+// API: one request with the key and the API model; the mock agent, which would say `mock`, gets no
+// question for the name.
+#[tokio::test(flavor = "multi_thread")]
+async fn the_anthropic_api_names_a_claude_session() {
+    let server = mock_api(serde_json::json!({"content": [{"type": "text", "text": "parser, lexer, tokens"}]}));
+    let root = repo("names-anthropic", &[("README.txt", "no notes\n")]);
+    let mut a = app(&root);
+    a.link.set_api(Some(api_at(Vendor::Anthropic, &server.url, "haiku")));
+    assert_eq!(named(&mut a, 0).await, "parser");
+    let reqs = server.requests.lock().unwrap().clone();
+    assert_eq!(reqs.len(), 1, "{reqs:#?}");
+    assert_eq!(reqs[0].path, "/v1/messages");
+    assert_eq!(reqs[0].header("x-api-key"), Some("test-key"));
+    assert_eq!(reqs[0].header("anthropic-version"), Some("2023-06-01"));
+    assert_eq!(reqs[0].body["model"], "claude-haiku-5-5");
+    let prompt = reqs[0].body["messages"][0]["content"][0]["text"].as_str().unwrap_or_default();
+    assert!(prompt.starts_with("Name this conversation") && prompt.contains("first question"), "{prompt}");
+    assert!(buttons(&mut a, 220).contains("F6 parser"));
+    done(&root, &mut a);
+}
+
+// NAMES-15, NAMES-18: a Codex agent with a key names its sessions through the OpenAI Responses API.
+#[tokio::test(flavor = "multi_thread")]
+async fn the_openai_api_names_a_codex_session() {
+    let answer = serde_json::json!({"output": [{"type": "reasoning", "summary": []}, {"type": "message", "content": [{"type": "output_text", "text": "cache, store"}]}]});
+    let server = mock_api(answer);
+    let root = repo("names-openai", &[("README.txt", "no notes\n")]);
+    let mut a = app(&root);
+    a.link.set_api(Some(api_at(Vendor::OpenAi, &server.url, "luna")));
+    assert_eq!(named(&mut a, 0).await, "cache");
+    let reqs = server.requests.lock().unwrap().clone();
+    assert_eq!(reqs.len(), 1, "{reqs:#?}");
+    assert_eq!(reqs[0].path, "/v1/responses");
+    assert_eq!(reqs[0].header("authorization"), Some("Bearer test-key"));
+    assert_eq!(reqs[0].body["model"], "gpt-6-luna");
+    done(&root, &mut a);
+}
+
+// NAMES-15, CLAUDE-37, CLAUDE-38: a pasted image goes to the API in base64, and its answer labels
+// the chip.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_pasted_image_gets_its_name_from_the_api() {
+    let server = mock_api(serde_json::json!({"content": [{"type": "text", "text": "Login form"}]}));
+    let root = repo("names-image-api", &[("README.txt", "no notes\n")]);
+    let mut a = app(&root);
+    a.link.set_api(Some(api_at(Vendor::Anthropic, &server.url, "haiku")));
+    a.open_panel();
+    a.focus = Focus::Claude;
+    let png = root.join("paste.png");
+    std::fs::write(&png, [0x89, b'P', b'N', b'G']).unwrap();
+    a.attach_pasted_image(png);
+    until(&mut a, |a| a.composer.input().text().contains("login form")).await;
+    assert_eq!(a.composer.input().text(), "⟦Image: login form⟧ ");
+    let reqs = server.requests.lock().unwrap().clone();
+    let source = &reqs[0].body["messages"][0]["content"][0]["source"];
+    assert_eq!((source["media_type"].as_str(), source["data"].as_str()), (Some("image/png"), Some("iVBORw==")));
+    assert!(a.link.no_image_waits(), "no throwaway session");
+    done(&root, &mut a);
+}
+
+// NAMES-19: an error of the API shows once in the flash line; the session has no name, and zendo
+// asks again after 200 more characters (NAMES-10).
+#[tokio::test(flavor = "multi_thread")]
+async fn an_error_of_the_api_shows_once() {
+    let server = mock_api_status(401, serde_json::json!({"type": "error", "error": {"type": "authentication_error", "message": "invalid x-api-key"}}));
+    let root = repo("names-api-error", &[("README.txt", "no notes\n")]);
+    let mut a = app(&root);
+    a.link.set_api(Some(api_at(Vendor::Anthropic, &server.url, "haiku")));
+    ask(&mut a, 0, "first question").await;
+    until(&mut a, |a| a.flash.as_ref().is_some_and(|(f, _)| f.contains("HTTP 401: invalid x-api-key"))).await;
+    assert_eq!(a.session_name(0), None);
+    a.flash = None;
+    ask(&mut a, 0, &"more about the topic ".repeat(15)).await;
+    until(&mut a, |_| server.requests.lock().unwrap().len() >= 2).await;
+    for _ in 0..10 {
+        a.tick();
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    assert!(a.flash.is_none(), "the error shows once: {:?}", a.flash);
+    done(&root, &mut a);
+}
+
+/// A mock `claude` in the folder `root`: `-p` reads one message and answers `words`.
+fn mock_claude(root: &std::path::Path, words: &str) -> std::path::PathBuf {
+    let path = root.join("mock-claude");
+    let result = format!("{{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"{words}\"}}");
+    std::fs::write(&path, format!("#!/bin/sh\nread line\necho \"$line\" > \"$0.in\"\necho '{result}'\n")).unwrap();
+    let mut p = std::fs::metadata(&path).unwrap().permissions();
+    std::os::unix::fs::PermissionsExt::set_mode(&mut p, 0o755);
+    std::fs::set_permissions(&path, p).unwrap();
+    path
+}
+
+// NAMES-21: a Claude user with a subscription only names the session through `claude -p`; the mock
+// agent, which would say `mock`, gets no question for the name.
+#[cfg(unix)]
+#[tokio::test(flavor = "multi_thread")]
+async fn claude_p_names_a_claude_session() {
+    let root = repo("names-claude-p", &[("README.txt", "no notes\n")]);
+    let cli = mock_claude(&root, "hooks, layout");
+    let mut a = app(&root);
+    a.link.set_api(Some(Api { cred: Credential::Claude(cli.clone()), ..api_at(Vendor::Anthropic, "unused", "haiku") }));
+    assert_eq!(named(&mut a, 0).await, "hooks");
+    let sent = std::fs::read_to_string(root.join("mock-claude.in")).unwrap();
+    assert!(sent.contains("Name this conversation") && sent.contains("first question"), "{sent}");
     done(&root, &mut a);
 }

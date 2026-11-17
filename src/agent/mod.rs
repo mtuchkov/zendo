@@ -4,6 +4,7 @@
 //! and talks to it on a background task. The UI sends `Cmd`s and gets `Event`s.
 
 mod acp;
+pub mod api;
 mod model;
 mod sessions;
 pub mod work;

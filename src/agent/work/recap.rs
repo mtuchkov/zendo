@@ -87,8 +87,10 @@ impl App {
     /// Called on every tick: start a requested recap, or an automatic one when all is idle. A
     /// question for a name does not wait for the turns of the chat (NAMES-1).
     pub fn recap_tick(&mut self) {
-        // A title does not wait for the user: the agent starts for it (FLOAT-18, FLOAT-19).
-        if self.wants_title() && self.link.down().is_none() {
+        // A title does not wait for the user: the agent starts for it, where no API answers
+        // (FLOAT-18, FLOAT-19, NAMES-16).
+        let no_api = self.link.api().is_none() && !self.link.api_pending();
+        if self.wants_title() && no_api && self.link.down().is_none() {
             self.ensure_agent();
         }
         if !self.agent_free() {

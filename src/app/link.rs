@@ -1,9 +1,12 @@
 //! The connection to the agent: its handle and events, its name and what it can do, and the
-//! questions for the names of sessions and images (ADR 0008). The link does not see the app.
+//! questions for the names of sessions and images, through the agent or its API (ADR 0008,
+//! ADR 0010). The link does not see the app.
+use crate::agent::api::{Answer, Api, Asker, Credential, Question};
 use crate::agent::work::Asked;
 use crate::agent::{AgentHandle, Cmd, Event};
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::mpsc::Receiver;
 use std::time::Instant;
 use tokio::sync::mpsc::UnboundedReceiver;
 
@@ -19,10 +22,27 @@ pub struct AgentLink {
     images: bool,
     /// The model that names the agent sessions; none: the default model of the agent (NAMES-12).
     name_model: Option<String>,
-    /// For each session ID: the last question for its name (NAMES-10, NAMES-14).
+    /// For each session ID: the last question for its name (NAMES-10).
     asked: HashMap<String, Asked>,
     /// The pasted images that the name model names: by session key, the file and the answer so far.
     image_names: HashMap<String, (PathBuf, String)>,
+    /// The API that names sessions and images, or the check of the `ant` sign-in (NAMES-15, NAMES-20).
+    api: ApiState,
+    asker: Asker,
+    /// An error of the API has shown in the flash line (NAMES-19).
+    api_failed: bool,
+}
+
+/// The API of the agent: known, or the check of the `ant` sign-in on a thread.
+enum ApiState {
+    Ready(Option<Api>),
+    Pending(Receiver<Option<Api>>),
+}
+
+impl Default for ApiState {
+    fn default() -> Self {
+        Self::Ready(None)
+    }
 }
 
 impl AgentLink {
@@ -102,15 +122,71 @@ impl AgentLink {
 
     /// zendo asks for the name of session `id` now, at a conversation of `size`.
     pub fn ask_name(&mut self, id: &str, size: usize) {
-        let keeps = self.asked.get(id).map_or(0, |a| a.keeps);
-        self.asked.insert(id.to_string(), Asked { size, at: Instant::now(), keeps });
+        self.asked.insert(id.to_string(), Asked { size, at: Instant::now() });
     }
 
-    /// The answer kept the name of session `id`: the thresholds double, up to `most` times.
-    pub fn name_kept(&mut self, id: &str, most: u32) {
-        if let Some(a) = self.asked.get_mut(id) {
-            a.keeps = (a.keeps + 1).min(most);
+    /// The API that `find` gave: a key is ready at once; the sign-in of `ant` or of `claude` waits
+    /// for a check on a thread, since the CLI may refresh its token over the network (NAMES-20,
+    /// NAMES-21).
+    pub fn start_api(&mut self, api: Option<Api>) {
+        self.api = match api {
+            Some(a) if !matches!(a.cred, Credential::Key(_)) => {
+                let (tx, rx) = std::sync::mpsc::channel();
+                std::thread::spawn(move || drop(tx.send(Some(a).filter(Api::usable))));
+                ApiState::Pending(rx)
+            }
+            a => ApiState::Ready(a),
+        };
+    }
+
+    /// Use `api` for the names from now on; none: the throwaway sessions (NAMES-16).
+    pub fn set_api(&mut self, api: Option<Api>) {
+        self.api = ApiState::Ready(api);
+    }
+
+    /// The check of the `ant` sign-in ended: its answer.
+    pub fn poll_api(&mut self) {
+        if let ApiState::Pending(rx) = &self.api {
+            match rx.try_recv() {
+                Ok(a) => self.api = ApiState::Ready(a),
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => self.api = ApiState::Ready(None),
+                Err(std::sync::mpsc::TryRecvError::Empty) => {}
+            }
         }
+    }
+
+    pub fn api(&self) -> Option<&Api> {
+        match &self.api {
+            ApiState::Ready(a) => a.as_ref(),
+            ApiState::Pending(_) => None,
+        }
+    }
+
+    /// zendo does not know yet whether the agent has an API.
+    pub fn api_pending(&self) -> bool {
+        matches!(self.api, ApiState::Pending(_))
+    }
+
+    /// Ask the API, when there is one, with `prompt` and the image at `image`.
+    pub fn ask_api(&mut self, q: Question, prompt: String, image: Option<PathBuf>) {
+        if let ApiState::Ready(Some(a)) = &self.api {
+            self.asker.ask(a, q, prompt, image);
+        }
+    }
+
+    /// The answers of the API that came.
+    pub fn api_answers(&mut self) -> Vec<Answer> {
+        self.asker.answers()
+    }
+
+    /// The questions to the API without an answer yet.
+    pub fn api_asks(&self) -> &[Question] {
+        self.asker.open()
+    }
+
+    /// True the first time only: an error of the API shows once (NAMES-19).
+    pub fn api_failed_once(&mut self) -> bool {
+        !std::mem::replace(&mut self.api_failed, true)
     }
 
     /// The name model names the image at `path` in the throwaway session `key`.

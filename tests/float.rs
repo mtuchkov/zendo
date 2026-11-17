@@ -2,8 +2,10 @@
 //! screen, esc saves and gives the screen back.
 
 mod common;
+use common::http::mock_api;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use zendo::agent::api::{Api, Credential, Vendor};
 use zendo::app::{App, Focus, Mode};
 
 const NOTE: &str = "docs/notes/2026-11-12-idea.md";
@@ -400,5 +402,51 @@ async fn closing_the_float_titles_or_updates_the_note() {
     assert!(note_with(&root, "mock-title-of-4-lines").unwrap().starts_with("# Mock title of 4 lines\n"));
     assert!(note_with(&root, "mine").is_some_and(|t| t.starts_with("# Mine\n")), "the title of the user stays: {:?}", notes(&root));
     a.cli.stop_all();
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// The Anthropic API at a mock server that answers `title` to each question.
+fn title_api(title: &str) -> (common::http::MockApi, Api) {
+    let server = mock_api(serde_json::json!({"content": [{"type": "text", "text": format!("TITLE: {title}")}]}));
+    let api = Api { vendor: Vendor::Anthropic, base: server.url.clone(), model: "claude-haiku-5-5".into(), cred: Credential::Key("test-key".into()) };
+    (server, api)
+}
+
+// FLOAT-18, FLOAT-23, NAMES-15: with an API, the title comes from one request to the API; the agent
+// does not start for it.
+#[tokio::test]
+async fn the_api_titles_the_note_after_three_lines() {
+    let root = repo("float-title-api", &files());
+    let mut a = app(&root);
+    let (server, api) = title_api("Kinds of tea");
+    a.link.set_api(Some(api));
+    alt(&mut a, 'n');
+    lines(&mut a, &["Green tea.", "Black tea.", "White"]);
+    a.save();
+    until(&mut a, |a| a.writer.editor().lines[0].len() > 2).await;
+    assert_eq!(a.writer.editor().lines[0], "# Kinds of tea");
+    let reqs = server.requests.lock().unwrap().clone();
+    assert_eq!(reqs.len(), 1, "{reqs:#?}");
+    let prompt = reqs[0].body["messages"][0]["content"][0]["text"].as_str().unwrap_or_default();
+    assert!(prompt.contains("TITLE: <the title>") && prompt.contains("Black tea."), "{prompt}");
+    assert!(!a.link.running(), "the agent does not start for a title");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FLOAT-19, NAMES-15: with an API, closing the float titles the note in its file through the API,
+// without the agent.
+#[tokio::test]
+async fn closing_the_float_titles_the_note_through_the_api() {
+    let root = repo("float-title-close-api", &files());
+    let mut a = app(&root);
+    let (server, api) = title_api("Single sentence");
+    a.link.set_api(Some(api));
+    alt(&mut a, 'n');
+    typ(&mut a, "Only one line.");
+    key(&mut a, KeyCode::Esc);
+    until(&mut a, |_| note_with(&root, "single-sentence").is_some()).await;
+    assert!(note_with(&root, "single-sentence").unwrap().starts_with("# Single sentence\n\nOnly one line."));
+    assert_eq!(server.requests.lock().unwrap().len(), 1);
+    assert!(!a.link.running(), "the agent does not start for a title");
     let _ = std::fs::remove_dir_all(&root);
 }

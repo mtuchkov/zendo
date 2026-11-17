@@ -10,7 +10,10 @@ impl App {
         let theme = theme::index_of(&state.theme);
         let user = crate::setup::config::UserConfig::load();
         let (keys, key_problems) = user.keymap();
-        let name_model = user.name_model(crate::setup::config::kind_of(&cfg.agent));
+        let kind = crate::setup::config::kind_of(&cfg.agent);
+        let name_model = user.name_model(kind);
+        let env = |k: &str| cfg.agent_env.get(k).cloned().or_else(|| std::env::var(k).ok());
+        let api = crate::agent::api::Api::find(kind, name_model.clone(), &env, &crate::agent::api::on_path);
         crate::text::highlight::init(user.highlight.as_ref());
         let mut app = Self {
             cfg,
@@ -27,6 +30,7 @@ impl App {
             link: AgentLink::with_name_model(name_model),
             ..Default::default()
         };
+        app.link.start_api(api);
         // The last document of the active session, where the user left it (FILES-55).
         app.open_session_doc();
         app.files.find.seen = app.files.current().cloned();

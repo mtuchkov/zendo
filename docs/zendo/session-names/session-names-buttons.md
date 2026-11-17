@@ -4,7 +4,7 @@ approved: "2026-11-17"
 revision: "2"
 date: "2026-11-17"
 parent: "session-names.md"
-prev: "session-names-rename.md"
+prev: "session-names-api.md"
 level: "where the name of an agent session shows: the row of buttons, the right edge, the bottom and the top line"
 note: "From the requests of the user on 2026-11-14, split from session-names.md in its revision 2 without a change of the requirements. Approved by the user on 2026-11-14. Revision 2 (the user, 2026-11-17): NAMES-11 is retired; only the width of the chat puts the buttons on the right edge (NAMES-8), also while a terminal shows."
 ---
