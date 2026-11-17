@@ -1,13 +1,13 @@
 ---
-status: "draft"
-approved: "2026-11-15"
+status: "approved"
+approved: "2026-11-17"
 revision: "5"
 date: "2026-11-17"
 parent: "zendo.md"
 prev: "note-to-spec.md"
 next: "float-title.md"
 level: "the new note in a float: how it opens, what it shows, how it closes"
-note: "Agent draft of the decisions of the user on 2026-11-13, approved by the user. Revision 2: the test names and kinds as in the code. Revision 3: FLOAT-16 (the float color of the theme), asked and reviewed by the user on 2026-11-14. Revision 4: FLOAT-16 states that the float stands out of the theme and that its text and code read on it, asked by the user on 2026-11-14 and approved on 2026-11-15. Revision 5: the note starts with an empty title line and the cursor on the body (FLOAT-17, FLOAT-22), and the title is in float-title.md, asked by the user on 2026-11-17; an agent draft, not reviewed by the user."
+note: "Agent draft of the decisions of the user on 2026-11-13, approved by the user. Revision 2: the test names and kinds as in the code. Revision 3: FLOAT-16 (the float color of the theme), asked and reviewed by the user on 2026-11-14. Revision 4: FLOAT-16 states that the float stands out of the theme and that its text and code read on it, asked by the user on 2026-11-14 and approved on 2026-11-15. Revision 5: the note starts with an empty title line and the cursor on the body (FLOAT-17, FLOAT-22), and the title is in float-title.md, asked by the user on 2026-11-17, approved by the user on 2026-11-17."
 ---
 
 # New note in a float

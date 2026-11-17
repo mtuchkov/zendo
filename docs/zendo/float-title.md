@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-17"
 revision: "1"
 date: "2026-11-17"
 parent: "zendo.md"
 prev: "float.md"
 next: "find.md"
 level: "the title of a new note in the float: when the agent writes it, where it goes, what it does not change"
-note: "Agent draft of the request of the user on 2026-11-17. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft of the request of the user on 2026-11-17. Approved by the user on 2026-11-17."
 ---
 
 # Title of a new note

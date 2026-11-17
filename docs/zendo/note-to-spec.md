@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-17"
 revision: "1"
 date: "2026-11-17"
 parent: "zendo.md"
 prev: "notes-list.md"
 next: "float.md"
 level: "turn a note into specifications: the button, the key, and the task that the agent gets"
-note: "Agent draft of the request of the user on 2026-11-17. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft of the request of the user on 2026-11-17. Approved by the user on 2026-11-17."
 ---
 
 # Note to spec
