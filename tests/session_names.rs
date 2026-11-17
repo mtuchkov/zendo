@@ -213,10 +213,11 @@ async fn narrow_chats_shorten_the_names_and_then_put_the_buttons_on_the_side() {
     done(&root, &mut a);
 }
 
-// CLAUDE-32, TERM-14: while a terminal shows in the chat pane, the buttons stand on the right edge,
-// one under the other, above the terminal buttons.
+// NAMES-8, CLAUDE-32, TERM-14: only the width of the chat puts the buttons on the side; while a
+// terminal shows in the chat pane, they stay in the row above it, and the terminal buttons start
+// at the top of the right edge, with no line.
 #[tokio::test(flavor = "multi_thread")]
-async fn a_terminal_in_the_chat_pane_puts_the_buttons_on_the_side() {
+async fn a_terminal_in_the_chat_pane_keeps_the_buttons_in_the_row() {
     let root = repo("names-terminal", &[("README.txt", "no notes\n")]);
     let mut a = app(&root);
     a.cli.shell = Some("/bin/sh".into());
@@ -225,9 +226,12 @@ async fn a_terminal_in_the_chat_pane_puts_the_buttons_on_the_side() {
     key(&mut a, KeyCode::F(5));
     assert!(a.cli.pane.is_some(), "the terminal is in the chat pane");
     let screen = draw(&mut a, 160, 30);
-    assert!(on_the_side(&screen), "{screen:#?}");
+    assert!(!on_the_side(&screen), "not on the side: {screen:#?}");
+    let row = screen.iter().position(|r| r.contains(" F6 ") && r.contains(" F10 "));
+    let head = screen.iter().position(|r| r.contains("full screen"));
+    assert!(matches!((row, head), (Some(r), Some(h)) if r < h), "one row above the terminal: {screen:#?}");
     let f5 = screen.iter().position(|r| r.trim_end().ends_with(" F5")).unwrap();
-    assert!(screen[f5 - 2].trim_end().ends_with("────"), "a line above the terminal buttons: {screen:#?}");
+    assert!(!screen[..f5].iter().any(|r| r.trim_end().ends_with("────")), "no line above the terminal buttons: {screen:#?}");
     done(&root, &mut a);
 }
 

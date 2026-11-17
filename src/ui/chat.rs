@@ -4,11 +4,11 @@ use super::*;
 pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) {
     f.render_widget(Block::new().style(Style::new().bg(t.panel)), area);
     // A thin rule on the left edge separates the panel from the note. The buttons of the agent
-    // sessions are in the first row, or on the right edge above the ones of the terminals.
+    // sessions are in the first row, also above a terminal; on the right edge above the ones of
+    // the terminals only when the row does not fit the width of the chat (NAMES-8).
     let width = area.width.saturating_sub(5 + BUTTON_W + 1);
     let side = Rect { x: area.right().saturating_sub(BUTTON_W + 1), width: BUTTON_W, ..area };
-    let row = app.cli.pane.is_none().then(|| agent_row(app, width as usize)).flatten();
-    let rows = match row {
+    let rows = match agent_row(app, width as usize) {
         Some(labels) => draw_agent_row(f, app, fr, t, labels, Rect { x: area.x + 3, width, height: 1, ..area }),
         None => draw_agent_column(f, app, fr, t, side),
     };
@@ -250,8 +250,8 @@ fn draw_agent_row(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, label
 }
 
 /// The buttons of the agent sessions on the right edge, one under the other, with their keys and
-/// the marks of the states: while a terminal shows in the chat pane, or the row does not fit
-/// (CLAUDE-32, NAMES-8). They take no row of the chat.
+/// the marks of the states: when the row does not fit (CLAUDE-32, NAMES-8). They take no row of
+/// the chat.
 fn draw_agent_column(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) -> u16 {
     let w = area.width as usize;
     for (y, n) in (0..crate::app::SESSIONS).map(|n| (area.y + 2 + 2 * n as u16, n)).filter(|(y, _)| *y < area.bottom()) {
