@@ -25,6 +25,7 @@ pub(crate) fn draw_float(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     fr.regions.clear();
     fr.pane_rects.clear();
     fr.spec_button = None;
+    fr.upgrade_button = None;
     f.render_widget(Clear, r);
     // The float has a background of its own (FLOAT-16).
     let t = t.on_float();

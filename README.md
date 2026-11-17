@@ -129,7 +129,7 @@ curl -fsSL https://raw.githubusercontent.com/mtuchkov/zendo/main/install.sh | sh
 
 You need Node.js 22 LTS (18+ works), and Claude Code or Codex logged in.
 `zendo doctor` checks each step of the setup. When a new version is out, the
-top bar says so: press `U`. For proxies and certificates, see
+top bar says so: click `[upgrade]`. For proxies and certificates, see
 [INSTALLATION.md](INSTALLATION.md).
 
 ## More

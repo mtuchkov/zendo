@@ -67,19 +67,6 @@ fn the_review_names_its_key() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// PANES-28: a newer zendo names the upgrade key of the keymap, not U.
-#[tokio::test]
-async fn the_upgrade_message_names_its_key() {
-    let (root, mut a) = with_notes("hints-upgrade");
-    let (tx, rx) = tokio::sync::oneshot::channel();
-    tx.send(Some("abc1234".to_string())).unwrap();
-    a.update.watch(rx);
-    a.tick();
-    let f = flash(&a);
-    assert!(f.contains("^u upgrades now") && !f.contains("U upgrades"), "{f}");
-    let _ = std::fs::remove_dir_all(&root);
-}
-
 // PANES-28: while the chat answers, the input names the send key and the stop key of the keymap.
 #[tokio::test]
 async fn the_busy_chat_names_its_keys() {

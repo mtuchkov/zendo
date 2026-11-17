@@ -75,6 +75,7 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     fr.sound_button = None;
     fr.music_button = None;
     fr.spec_button = None;
+    fr.upgrade_button = None;
     if app.hold.is_some() {
         fr.regions.clear();
         draw_hold(f, app, &t, area);
