@@ -1,13 +1,13 @@
 ---
 status: "approved"
-approved: "2026-11-14"
-revision: "4"
-date: "2026-11-14"
+approved: "2026-11-17"
+revision: "5"
+date: "2026-11-17"
 parent: "terminal.md"
 prev: "shell-blocks.md"
 next: "terminal-output.md"
 level: "the view of a terminal: the chat pane, the full screen, the keys to leave and to go to another session, the buttons"
-note: "From the requests of the user on 2026-11-12, split from terminal.md; the user approved the requirements in the chat on 2026-11-14, with TERM-14 for the terminal buttons at the top of the right edge."
+note: "From the requests of the user on 2026-11-12, split from terminal.md; the user approved the requirements in the chat on 2026-11-14, with TERM-14 for the terminal buttons at the top of the right edge. Revision 5 (the user, 2026-11-17): TERM-15 marks the terminal in the chat pane as the active button, in the accent color."
 ---
 
 # Terminal view
@@ -31,7 +31,8 @@ shell, except the keys that choose a session.
 
 **Buttons.** Under the agent buttons `F6` to `F10` come a gap with a horizontal line, `F5`, and the
 `[>]` buttons. Terminal buttons have the color of the text, whitish in a dark theme, so that they
-differ from agent sessions at once.
+differ from agent sessions at once. While a terminal shows in the chat pane, its button is the
+active one, in the accent color, and no agent button is.
 
 ```text
  F9
@@ -95,10 +96,11 @@ The tests are in `tests/terminal.rs`, with `/bin/sh` as the shell.
 | TERM-42 | Event      | When the user leaves a terminal that is on the full screen, or goes to a different terminal or session, the system shall stop the full screen mode of that terminal. | User, 2026-11-12 |
 | TERM-14 | Ubiquitous | The system shall show the terminal buttons on the right edge of the chat, first `F5`, then a `[>]` button for each open `[>]` terminal: while the agent buttons are on the right edge (NAMES-8), under them after a gap with a horizontal line; while the agent buttons are in the row above the chat header, from the top of the right edge with no line. | User, 2026-11-12; User, 2026-11-14 |
 | TERM-48 | Unwanted   | If the keymap in effect gives the first terminal another key than `F5`, then the system shall name it `[>]`, as the other terminals. | User, 2026-11-13 |
-| TERM-15 | Ubiquitous | The system shall show the terminal buttons in the color of the text of the theme, and mark the session on the screen in the bottom line of the full screen. | User, 2026-11-12 |
+| TERM-15 | Ubiquitous | The system shall show the terminal buttons in the color of the text of the theme, the button of the terminal in the chat pane in the accent color, and mark the session on the screen in the bottom line of the full screen. | User, 2026-11-12; User, 2026-11-17 |
 | TERM-19 | Ubiquitous | The system shall take the keys of the terminals from the keymap, with `f5`, `alt-f5`, `alt-q`, `alt-]`, `alt-[` on Linux or `alt-}` on macOS, and `ctrl-o` as the defaults. | PANES-17 |
 
 `play_button_and_terminal_buttons` in [Shell blocks](shell-blocks.md) verifies TERM-14.
+`the_terminal_in_the_chat_pane_is_the_active_button` in `tests/session_names.rs` verifies TERM-15.
 
 Retired in revision 3: TERM-16 (a busy mark on the button of a terminal that runs a command); the user removed the dots from the buttons on 2026-11-14. Revision 3 changed TERM-51: the step leaves no agent session out. Retired identifiers are never reused.
 `other_session_keys_name_the_buttons_1_to_5_and_the_terminal_by_its_mark` in `tests/keymap_hints.rs`

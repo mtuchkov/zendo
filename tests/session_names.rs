@@ -5,7 +5,10 @@
 mod common;
 use common::http::{mock_api, mock_api_status};
 use common::*;
+use ratatui::Terminal;
+use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use ratatui::style::Color;
 use std::time::{Duration, Instant};
 use zendo::agent::api::{Api, Credential, Vendor, api_model};
 use zendo::app::{App, Focus, Item, session_key};
@@ -237,6 +240,46 @@ async fn a_terminal_in_the_chat_pane_keeps_the_buttons_in_the_row() {
     assert!(matches!((row, head), (Some(r), Some(h)) if r < h), "one row above the terminal: {screen:#?}");
     let f5 = screen.iter().position(|r| r.trim_end().ends_with(" F5")).unwrap();
     assert!(!screen[..f5].iter().any(|r| r.trim_end().ends_with("────")), "no line above the terminal buttons: {screen:#?}");
+    done(&root, &mut a);
+}
+
+/// The background of the first cell of the button `key` (` F6`, ` F5`) in one frame: the last one on
+/// the screen, as the header of a terminal names `F5` too.
+fn button_bg(a: &mut App, key: &str) -> Color {
+    let mut term = Terminal::new(TestBackend::new(160, 30)).unwrap();
+    term.draw(|f| a.draw(f)).unwrap();
+    let buf = term.backend().buffer();
+    let at = (0..30u16).rev().find_map(|y| {
+        let row: String = (0..160u16).map(|x| buf[(x, y)].symbol().to_string()).collect();
+        row.rfind(&format!(" {key}")).map(|i| (row[..i].chars().count() as u16, y))
+    });
+    let (x, y) = at.unwrap_or_else(|| panic!("no button {key}"));
+    buf[(x, y)].bg
+}
+
+// CLAUDE-32, TERM-15: while a terminal shows in the chat pane, its button is the active one, in the
+// accent color, and no agent button is; when the user leaves the terminal, the agent session is the
+// active one again.
+#[tokio::test(flavor = "multi_thread")]
+async fn the_terminal_in_the_chat_pane_is_the_active_button() {
+    let root = repo("names-active-terminal", &[("README.txt", "no notes\n")]);
+    let mut a = app(&root);
+    a.cli.shell = Some("/bin/sh".into());
+    a.open_panel();
+    a.focus = Focus::Note;
+    let t = *a.theme();
+    assert_eq!(button_bg(&mut a, "F6"), t.acc, "the agent session is active");
+    assert_eq!(button_bg(&mut a, "F5"), t.fg, "the terminal is not");
+    key(&mut a, KeyCode::F(5));
+    assert!(a.cli.pane.is_some(), "the terminal is in the chat pane");
+    assert_eq!(button_bg(&mut a, "F5"), t.acc, "the terminal is active");
+    for k in ["F6", "F7", "F8", "F9", "F10"] {
+        assert_eq!(button_bg(&mut a, k), t.acc2, "{k} is not active");
+    }
+    a.on_key(KeyEvent::new(KeyCode::Char('q'), KeyModifiers::ALT));
+    assert!(a.cli.pane.is_none(), "the terminal left the chat pane");
+    assert_eq!(button_bg(&mut a, "F6"), t.acc, "the agent session is active again");
+    assert_eq!(button_bg(&mut a, "F5"), t.fg, "the terminal is not");
     done(&root, &mut a);
 }
 

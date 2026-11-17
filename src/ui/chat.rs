@@ -229,10 +229,16 @@ fn agent_row(app: &App, room: usize) -> Option<Vec<String>> {
     lengths.into_iter().map(labels).find(|l| l.iter().map(|s| s.width() + 1).sum::<usize>() <= room + 1)
 }
 
-/// The style of the button of agent session `n`: the active one in the accent color, the others in
-/// the second accent, as the badges of the modes.
+/// The session that the chat pane shows: the terminal in the chat pane, else the active agent
+/// session (CLAUDE-32, TERM-15).
+fn shown_session(app: &App) -> usize {
+    app.cli.pane.unwrap_or(app.state.session)
+}
+
+/// The style of the button of agent session `n`: the one that the chat shows in the accent color,
+/// the others in the second accent, as the badges of the modes.
 fn agent_style(app: &App, t: &Theme, n: usize) -> Style {
-    let bg = pulse_bg(app, t, n, if n == app.state.session { t.acc } else { t.acc2 });
+    let bg = pulse_bg(app, t, n, if n == shown_session(app) { t.acc } else { t.acc2 });
     Style::new().bg(bg).fg(t.bg).add_modifier(Modifier::BOLD)
 }
 
@@ -263,8 +269,8 @@ fn draw_agent_column(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, ar
     0
 }
 
-/// The buttons of the terminals on the right edge, in the color of the text: `F5`, then each `[>]`.
-/// Under the agent buttons when they are on the right edge, after a line; else from the top of the
+/// The buttons of the terminals on the right edge, in the color of the text, and the one in the chat
+/// pane in the accent color: `F5`, then each `[>]`. Under the agent buttons when they are on the right edge, after a line; else from the top of the
 /// edge (TERM-14, TERM-15).
 fn draw_terminals(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect, under_agents: bool) {
     let w = area.width as usize;
@@ -276,7 +282,7 @@ fn draw_terminals(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area:
     let terms = (0..crate::session::TERMINALS).filter(|i| *i == 0 || app.cli.running(crate::session::shell(*i)));
     for (y, n) in terms.enumerate().map(|(k, i)| (top + 2 * k as u16, crate::session::shell(i))).filter(|(y, _)| *y < area.bottom()) {
         let r = Rect { y, height: 1, ..area };
-        let bg = pulse_bg(app, t, n, t.fg);
+        let bg = pulse_bg(app, t, n, if n == shown_session(app) { t.acc } else { t.fg });
         let label = button_label(app, n);
         f.render_widget(Paragraph::new(Line::styled(format!("{label:^w$}"), Style::new().bg(bg).fg(t.bg).add_modifier(Modifier::BOLD))), r);
         fr.session_buttons.push((r, n));
