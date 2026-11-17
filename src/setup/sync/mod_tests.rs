@@ -109,3 +109,22 @@ fn syncer_commits_on_its_own_and_at_exit() {
     assert!(log.lines().count() >= 2 && log.lines().all(|l| l == "notes: a ~"), "{log}");
     let _ = std::fs::remove_dir_all(&base);
 }
+
+// FILES-27, issue #5: an output larger than the pipe buffer (64 KB on Linux) comes back whole and
+// at once, not after the time limit as an error.
+#[test]
+fn a_large_output_does_not_hang_git() {
+    let base = std::env::temp_dir().join(format!("zendo-sync-large-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(&base).unwrap();
+    sh(&base, &["init", "-q"]);
+    let big = "a line of a large file\n".repeat(20_000);
+    std::fs::write(base.join("big.txt"), &big).unwrap();
+    let limit = Duration::from_secs(5);
+    let hash = git(&base, &["hash-object", "-w", "big.txt"], limit).unwrap();
+    let start = Instant::now();
+    let out = git(&base, &["cat-file", "-p", &hash], limit);
+    assert!(start.elapsed() < Duration::from_secs(2), "git took {:?}", start.elapsed());
+    assert_eq!(out.map(|o| o.len()), Ok(big.trim().len()));
+    let _ = std::fs::remove_dir_all(&base);
+}

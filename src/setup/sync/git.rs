@@ -5,7 +5,8 @@ pub fn is_work_tree(dir: &Path) -> bool {
     git(dir, &["rev-parse", "--is-inside-work-tree"], Duration::from_secs(5)).is_ok_and(|o| o == "true")
 }
 
-/// Run git in `repo` with no prompts, and kill it after `limit`.
+/// Run git in `repo` with no prompts, and kill it after `limit`. Threads read its output while it
+/// runs: an output larger than the pipe buffer would else block git until the limit.
 pub fn git(repo: &Path, args: &[&str], limit: Duration) -> Result<String, String> {
     let mut child = Command::new("git")
         .arg("-C")
@@ -18,22 +19,33 @@ pub fn git(repo: &Path, args: &[&str], limit: Duration) -> Result<String, String
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| format!("git: {e}"))?;
+    let (stdout, stderr) = (drain(child.stdout.take()), drain(child.stderr.take()));
     let end = Instant::now() + limit;
-    loop {
+    let status = loop {
         match child.try_wait() {
-            Ok(Some(_)) => break,
+            Ok(Some(status)) => break status,
             Ok(None) if Instant::now() >= end => {
                 let _ = child.kill();
                 let _ = child.wait();
                 return Err(format!("git {} took more than {} s", args.first().copied().unwrap_or(""), limit.as_secs()));
             }
-            Ok(None) => std::thread::sleep(Duration::from_millis(50)),
+            Ok(None) => std::thread::sleep(Duration::from_millis(10)),
             Err(e) => return Err(e.to_string()),
         }
-    }
-    let out = child.wait_with_output().map_err(|e| e.to_string())?;
-    let text = |b: &[u8]| String::from_utf8_lossy(b).trim().to_string();
-    if out.status.success() { Ok(text(&out.stdout)) } else { Err(first_line(&text(&out.stderr))) }
+    };
+    let text = |h: std::thread::JoinHandle<Vec<u8>>| String::from_utf8_lossy(&h.join().unwrap_or_default()).trim().to_string();
+    if status.success() { Ok(text(stdout)) } else { Err(first_line(&text(stderr))) }
+}
+
+/// A thread that reads `pipe` to its end.
+fn drain(pipe: Option<impl std::io::Read + Send + 'static>) -> std::thread::JoinHandle<Vec<u8>> {
+    std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        if let Some(mut p) = pipe {
+            let _ = p.read_to_end(&mut buf);
+        }
+        buf
+    })
 }
 
 pub(super) fn first_line(s: &str) -> String {
