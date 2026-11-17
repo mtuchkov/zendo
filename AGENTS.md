@@ -104,3 +104,9 @@ The project structure is the set of top-level folders, the folders of `docs/`, a
   pull request, and the title of a pull request.
 - Each commit shall increase the package version in `Cargo.toml`. The agent shall choose the new
   version with the rules of [VERSION.md](VERSION.md).
+- Before the agent merges a pull request, the agent shall fetch `main` and run
+  `.githooks/version-bump.sh above <head> origin/main`. Git merges two equal version lines without a
+  conflict, so only this check shows that `main` got the same version in the meantime.
+- IF `main` changed since the last checks of the pull request, THEN the agent shall merge `main`
+  into the branch, set a version above `main`, and merge the pull request only after its checks
+  pass again.
