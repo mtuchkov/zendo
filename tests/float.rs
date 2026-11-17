@@ -178,6 +178,23 @@ async fn the_top_line_shows_the_path_after_the_first_save() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
+// FLOAT-24: a long path loses its first chars, so that it fits before the branch and the button.
+#[tokio::test]
+async fn a_long_path_loses_its_head_to_fit_the_buttons() {
+    let root = repo("float-long-path", &files());
+    let mut a = app(&root);
+    a.files.set_branch(Some("main".into()));
+    alt(&mut a, 'n');
+    typ(&mut a, "Empty new note with a very long title that does not fit into the top line at all");
+    a.save();
+    let screen = draw(&mut a, 80, 30);
+    let top = screen.iter().find(|l| l.contains("[ esc close ]")).unwrap_or_else(|| panic!("{}", screen.join("\n")));
+    let name = a.writer.path().unwrap().file_name().unwrap().to_string_lossy().to_string();
+    let tail: String = name.chars().rev().take(12).collect::<Vec<_>>().into_iter().rev().collect();
+    assert!(top.contains('…') && top.contains(&format!("{tail}  main  [ esc close ]  │")), "{top}");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
 /// The columns of the float: the first and the last column of its border on the row of its top line.
 fn float_box(screen: &[String]) -> (usize, usize) {
     let row = screen.iter().find(|l| l.contains("[ esc close ]")).unwrap();

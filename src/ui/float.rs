@@ -77,9 +77,22 @@ fn draw_float_top(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
         right.insert(0, Span::styled(format!("{b}  "), Style::new().fg(t.dim)));
     }
     let rw: u16 = right.iter().map(|s| s.content.width() as u16).sum();
-    f.render_widget(Paragraph::new(Line::styled(format!("  {path}"), Style::new().fg(t.dim))), area);
     let x = area.right().saturating_sub(rw + 2).max(area.x);
+    // Two spaces before the path and between the path and the branch (FLOAT-24).
+    let room = usize::from(x - area.x).saturating_sub(4);
+    f.render_widget(Paragraph::new(Line::styled(format!("  {}", fit_head(&path, room)), Style::new().fg(t.dim))), Rect { width: x - area.x, ..area });
     f.render_widget(Paragraph::new(Line::from(right)), Rect { x, width: area.right() - x, ..area });
+}
+
+/// The text in `width` columns: when it is longer, its first chars go, and `…` stands in their
+/// place (FLOAT-24).
+pub(crate) fn fit_head(text: &str, width: usize) -> String {
+    if text.width() <= width {
+        return text.to_string();
+    }
+    let mut w = 1;
+    let tail: Vec<char> = text.chars().rev().take_while(|c| { w += crate::text::editor::char_width(*c); w <= width }).collect();
+    std::iter::once('…').chain(tail.into_iter().rev()).filter(|_| width > 0).collect()
 }
 
 /// The date and the time when the user opened the float, under the title (FLOAT-7).

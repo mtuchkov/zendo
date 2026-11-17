@@ -1,13 +1,13 @@
 ---
-status: "approved"
+status: "draft"
 approved: "2026-11-17"
-revision: "5"
+revision: "6"
 date: "2026-11-17"
 parent: "zendo.md"
 prev: "note-to-spec.md"
 next: "float-title.md"
 level: "the new note in a float: how it opens, what it shows, how it closes"
-note: "Agent draft of the decisions of the user on 2026-11-13, approved by the user. Revision 2: the test names and kinds as in the code. Revision 3: FLOAT-16 (the float color of the theme), asked and reviewed by the user on 2026-11-14. Revision 4: FLOAT-16 states that the float stands out of the theme and that its text and code read on it, asked by the user on 2026-11-14 and approved on 2026-11-15. Revision 5: the note starts with an empty title line and the cursor on the body (FLOAT-17, FLOAT-22), and the title is in float-title.md, asked by the user on 2026-11-17, approved by the user on 2026-11-17."
+note: "Agent draft of the decisions of the user on 2026-11-13, approved by the user. Revision 2: the test names and kinds as in the code. Revision 3: FLOAT-16 (the float color of the theme), asked and reviewed by the user on 2026-11-14. Revision 4: FLOAT-16 states that the float stands out of the theme and that its text and code read on it, asked by the user on 2026-11-14 and approved on 2026-11-15. Revision 5: the note starts with an empty title line and the cursor on the body (FLOAT-17, FLOAT-22), and the title is in float-title.md, asked by the user on 2026-11-17, approved by the user on 2026-11-17. Revision 6: a long path loses its first chars to fit the buttons (FLOAT-24), asked by the user on 2026-11-17; not reviewed yet."
 ---
 
 # New note in a float
@@ -107,6 +107,7 @@ file, pane, mode, cursor and selection. The new note is in the notes list and in
 | FLOAT-15 | Event      | When the user opens a note that is already there, from the notes list or elsewhere, the system shall show it in the note pane as every other file, not in the float. | User, 2026-11-13 |
 | FLOAT-17 | Event      | When the user opens the float, the system shall start the note with an empty title line, `# `, and an empty line, with the cursor on the first line of the body. | User, 2026-11-17 |
 | FLOAT-22 | State      | While the title of the note in the float is empty, the system shall show `new note` in dim colors in place of the title.                         | User, 2026-11-17 |
+| FLOAT-24 | Ubiquitous | The system shall cut the first chars of a path that does not fit on the top line of the float, put `…` in their place, and keep two spaces before the branch and after `[ esc close ]`. | User, 2026-11-17 |
 | FLOAT-16 | Ubiquitous | The system shall paint the background of the float with the float color of the theme, a color of its own that stands out of the background of the theme: a light sand in a dark theme and a dark color in a light theme. The system shall paint the text, the border and the code of the float in colors that read on it. | User, 2026-11-14 |
 
 Tests that verify detailed requirements: `the_float_has_the_float_color_of_the_theme`, `each_theme_has_a_float_color_of_its_own`,
@@ -115,5 +116,6 @@ Tests that verify detailed requirements: `the_float_has_the_float_color_of_the_t
 `a_narrow_note_pane_centers_the_float` (FLOAT-8, FLOAT-9),
 `pane_keys_do_nothing_in_the_float` (FLOAT-10, FLOAT-11), `an_empty_float_makes_no_file` (FLOAT-12),
 `alt_n_opens_the_float_over_a_full_screen_session` in `tests/terminal.rs` (FLOAT-14), `n_opens_the_float`
-(FLOAT-15), `alt_n_opens_a_float_from_every_pane` (FLOAT-17), `the_float_shows_new_note_until_the_title` (FLOAT-22).
+(FLOAT-15), `alt_n_opens_a_float_from_every_pane` (FLOAT-17), `the_float_shows_new_note_until_the_title` (FLOAT-22),
+`a_long_path_loses_its_head_to_fit_the_buttons` (FLOAT-24).
 
