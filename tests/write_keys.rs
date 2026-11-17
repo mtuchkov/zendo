@@ -35,6 +35,34 @@ async fn writing_saves_after_a_pause() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
+// NOTE-3: the save does not come back from the disk as a change from outside: the empty lines at
+// the end and the cursor stay where the user put them.
+#[tokio::test]
+async fn the_save_keeps_the_empty_lines_at_the_end() {
+    let root = repo("flow-keep-end", &files());
+    let mut a = app(&root);
+    // The first look at the disk: the next look sees what changed since.
+    a.files.look_again();
+    a.tick();
+    draw(&mut a, 120, 30);
+    a.reader.to_row(a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap());
+    key(&mut a, KeyCode::Char('i'));
+    draw(&mut a, 120, 30);
+    a.writer.editor_mut().move_to_end();
+    typ(&mut a, " New");
+    key(&mut a, KeyCode::Enter);
+    key(&mut a, KeyCode::Enter);
+    let before = (a.writer.editor().text(), a.writer.editor().row, a.writer.editor().col);
+    a.writer.edited_at(Instant::now() - Duration::from_secs(2));
+    a.tick();
+    assert!(std::fs::read_to_string(root.join(NOTE)).unwrap().contains(" New"), "saved");
+    a.files.look_again();
+    a.tick();
+    let after = (a.writer.editor().text(), a.writer.editor().row, a.writer.editor().col);
+    assert_eq!(after, before);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
 // NOTE-18, NOTE-25, PANES: alt-a adds to the chat, alt-s says it here, alt-b opens the file tree, in
 // read mode and in write mode.
 #[tokio::test]

@@ -152,12 +152,14 @@ impl App {
         if rules.is_empty() { rules } else { rules + "\n" }
     }
 
-    /// The agent may have written a note. Pick up the change.
+    /// The agent may have written a note. Pick up the change. The file of the last save is no
+    /// change: the editor keeps the empty lines at the end and the cursor (NOTE-3).
     pub fn reload_after_agent(&mut self) {
         self.reload();
         if self.mode == Mode::Write && !self.writer.editor_mut().dirty
             && let Some(p) = self.writer.path()
-                && let Ok(body) = std::fs::read_to_string(p) {
+                && let Ok(body) = std::fs::read_to_string(p)
+                && body.trim_end() != self.writer.editor().text().trim_end() {
                     let (row, col) = (self.writer.editor_mut().row, self.writer.editor_mut().col);
                     *self.writer.editor_mut() = Editor::new(body.trim_end_matches('\n'));
                     self.writer.editor_mut().row = row.min(self.writer.editor_mut().lines.len() - 1);
