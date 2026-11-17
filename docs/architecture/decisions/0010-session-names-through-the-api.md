@@ -1,5 +1,6 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-17"
 date: "2026-11-17"
 sources:
   - "The user, 2026-11-17: a name shall not change while its session runs; use the AI API directly in place of agent sessions, since only one word comes back; the API depends on the configured agent, Claude or Codex; fall back to a session without a key; consider the sign-in of the `ant` CLI; Anthropic encourages local development with the Agent SDK and `claude -p`."
@@ -44,7 +45,7 @@ Claude or Codex. Three credentials exist on a machine of a user:
 
 ## Decision
 
-Proposal, not yet accepted: the direct API with a fallback to the throwaway session.
+Accepted: the direct API with a fallback to the throwaway session.
 
 - zendo shall choose the API from the kind of the configured agent: the Anthropic Messages API
   (`POST {ANTHROPIC_BASE_URL or https://api.anthropic.com}/v1/messages`) for Claude, the OpenAI
@@ -88,5 +89,6 @@ Proposal, not yet accepted: the direct API with a fallback to the throwaway sess
 
 ## Decision record
 
-Proposed by the agent on 2026-11-17 from the requests of the user in the chat. Waits for the review
-of the user.
+Proposed by the agent on 2026-11-17 from the requests of the user in the chat. The user chose the
+fallback to the throwaway session, the `ant` sign-in and `claude -p`, and approved the record on
+2026-11-17. zendo 0.82.0 to 0.84.0 implement it.

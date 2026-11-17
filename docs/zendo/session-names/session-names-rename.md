@@ -1,11 +1,12 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-17"
 revision: "2"
 date: "2026-11-17"
 parent: "session-names.md"
 next: "session-names-api.md"
 level: "when zendo asks again for the name of an agent session, and why a name does not change"
-note: "From the requests of the user on 2026-11-14, split from session-names.md in its revision 2. Revision 1 approved by the user on 2026-11-14, implemented in zendo 0.70.0. Revision 2 (draft, from the request of the user on 2026-11-17): a name does not change while its Claude session lasts; NAMES-14 is retired."
+note: "From the requests of the user on 2026-11-14, split from session-names.md in its revision 2. Revision 1 approved by the user on 2026-11-14, implemented in zendo 0.70.0. Revision 2 (from the request of the user on 2026-11-17, approved by the user on 2026-11-17, implemented in zendo 0.82.0): a name does not change while its Claude session lasts; NAMES-14 is retired."
 ---
 
 # Session names: rename

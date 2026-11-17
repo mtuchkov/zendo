@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-17"
 revision: "1"
 date: "2026-11-17"
 parent: "session-names.md"
 prev: "session-names-rename.md"
 next: "session-names-buttons.md"
 level: "who answers the questions for the names of agent sessions and pasted images: the API of the agent, `claude -p`, or a throwaway session"
-note: "Draft, from the requests of the user on 2026-11-17. ADR 0010 holds the decision."
+note: "From the requests of the user on 2026-11-17. Approved by the user on 2026-11-17, implemented in zendo 0.82.0 to 0.84.0. ADR 0010 holds the decision."
 ---
 
 # Session names: API

@@ -1,5 +1,6 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-17"
 revision: "3"
 date: "2026-11-17"
 parent: "../zendo.md"
@@ -10,7 +11,7 @@ children:
   - "session-names-api.md"
   - "session-names-buttons.md"
 level: "the names of the agent sessions: when they come, how long they stay, where they show"
-note: "From the requests of the user on 2026-11-14; the user approved the requirements in the chat. NAMES-8, NAMES-11 to NAMES-13 came later on the same day. Revision 2 (approved by the user on 2026-11-14, implemented in zendo 0.70.0) names a session from its first agent message, during the turn. Revision 3 (draft, 2026-11-17): a name stays for its Claude session (NAMES-17, NAMES-14 retired); the API of the agent answers (session-names-api.md, ADR 0010)."
+note: "From the requests of the user on 2026-11-14; the user approved the requirements in the chat. NAMES-8, NAMES-11 to NAMES-13 came later on the same day. Revision 2 (approved by the user on 2026-11-14, implemented in zendo 0.70.0) names a session from its first agent message, during the turn. Revision 3 (approved by the user on 2026-11-17, implemented in zendo 0.82.0 to 0.84.0): a name stays for its Claude session (NAMES-17, NAMES-14 retired); the API of the agent answers (session-names-api.md, ADR 0010)."
 ---
 
 # Session names
