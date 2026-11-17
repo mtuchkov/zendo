@@ -7,7 +7,7 @@ parent: "files.md"
 prev: "files-worktree-recap.md"
 next: "files-session-doc.md"
 level: "the open document and the agent session: which version of it the note pane shows and the agent gets"
-note: "From the request of the user on 2026-11-14: a question in agent session 2 named a file of .worktrees/1. The user approved the requirements in the chat on 2026-11-15, with `m` and `u` for the other versions. Implemented in zendo 0.71.0. FILES-49 (the user, 2026-11-15) came later. Revision 2 (agent draft, 2026-11-17, not reviewed): FILES-39 yields to the last document of the session (FILES-50, FILES-51)."
+note: "From the request of the user on 2026-11-14: a question in agent session 2 named a file of .worktrees/1. The user approved the requirements in the chat on 2026-11-15, with `m` and `u` for the other versions. Implemented in zendo 0.71.0. FILES-49 (the user, 2026-11-15) came later. Revision 2 (approved by the user on 2026-11-17): FILES-39 yields to the last document of the session (FILES-50, FILES-51)."
 ---
 
 # File tree: the document of the session
