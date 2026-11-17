@@ -16,38 +16,38 @@ are the default keys; the [keymap](#keymap) can change all of them.
 
 ### Stay in the flow
 
-- **No save key.** Write mode saves by itself after a pause and when you leave it.
+- **No save key.** Write mode and the note float save by themselves after a pause and when you
+  leave them.
 - **No question for each edit.** The agent edits the files at once. You check the result in the
   delta (`d`), word by word.
 - **Ask at any time.** A question that you send while the agent answers goes to a queue and goes
   when the turn ends. `esc` stops the answer and puts the queue back into the input.
 - **Work goes on in the background.** Claude Code sessions and terminal commands keep running
   when you go back to the document. `ctrl-o` works also while the chat answers: Claude Code starts
-  when the turn ends.
-- **zendo calls you back.** When a turn or a command ends while you look elsewhere, the terminal
-  bell rings once and the session button blinks until you look. `[sound]` turns the bell off.
+  when the turn ends. `ctrl-o` twice stops the turn, and Claude Code continues it.
+- **zendo calls you back.** When a turn or a command ends while you look elsewhere, zendo rings
+  once and the session button blinks until you look. On a Mac, zendo plays a system sound, also
+  where the bell of the terminal is off. `[sound]` in the top line turns the sound off.
 - **Where you left off.** A recap above the note says what the file is about and what changed.
-  zendo writes recaps while you are away, not while you work.
-- **The agent does the chores.** It adds the title of a new note and the front matter of a new
-  document when you leave write mode.
+  zendo writes recaps while you are away, not while you work. Each agent session opens its last
+  document again, at the same place, and zendo starts there.
+- **The agent does the chores.** It writes the title of a new note, the front matter of a new
+  document, and a one-word name for each agent session. A light model does this in the background.
 - **The same place in both modes.** Read mode and write mode keep the cursor on the same char, at
   the same height on the screen.
 - **A fast start.** The start, `zendo setup` and `zendo doctor` do not use the network when
   everything is installed. The check for a new version runs in the background.
+- **Quiet music.** zendo plays calm lofi music that it makes itself, with no network. The music
+  pauses while the terminal has no focus, and the call of a finished turn is a chime in its key.
+  `[music]` or `alt-m` stops and starts it. zendo asks one time, at the first start, whether to play
+  it at each start.
 
-### Read
+### Jot and write
 
-- The text reflows to the width of the pane, also when the file wraps lines by hand. The column is
-  76 chars by default; `alt-=` and `alt--` change it for the repository.
-- Tables get solid borders, and their rows have alternate backgrounds.
-- Code blocks, code files and the front matter show in colors. A language is a plugin file.
-- Files that change on disk, from an agent or from git, update on the screen without a restart.
-- Past the word limit, the text turns red. `S` asks the agent to split the document.
-- `j` `k` `g` `G`, `space` and `b` move as in a pager; `[` and `]` go to the previous and the next
-  note. `t` changes the theme; there are four.
-
-### Write
-
+- `alt-n` opens a new note in a float, from every pane and mode, also over a full-screen Claude
+  Code session or terminal. The screen behind goes dim, and the float shows no key hints.
+- Start with the text, not the title: the agent writes the title. `esc` saves the note and brings
+  back the screen as it was: the same file, pane, cursor and selection.
 - Write mode looks like read mode. Only the row with the cursor shows the markdown source, and it
   keeps the wrap of its paragraph.
 - A long line breaks at a word, under its list marker or quote mark.
@@ -57,12 +57,27 @@ are the default keys; the [keymap](#keymap) can change all of them.
   document.
 - In a code file, `enter` keeps the indent and long lines do not break.
 
+### Read
+
+- The text reflows to the width of the pane, also when the file wraps lines by hand. The column is
+  76 chars by default; `alt-=` and `alt--` change it for the repository.
+- Tables get solid borders, and their rows have alternate backgrounds.
+- Code blocks, code files and the front matter show in colors. A language is a plugin file.
+- Files that change on disk, from an agent or from git, update on the screen without a restart.
+- Past the word limit, the text turns red. `S` asks the agent to split the document.
+- `ctrl-r` twice: the agent marks the lines that confuse a reader, and says why.
+- Hold `m` to see the version of the document in `main`, and `u` to see the version on disk. Let
+  go, and the version of the session comes back.
+- `j` `k` `g` `G`, `space` and `b` move as in a pager; `[` and `]` go to the previous and the next
+  note. `t` changes the theme; there are four.
+
 ### Select and copy
 
 - A selection in a table keeps to its columns. A drag down a column copies only that column, with
   a tab between cells. The selection keys stop at the edge of a cell; two quick presses go on.
 - A mouse release copies, also over SSH (OSC 52). A drag with `alt` puts the selection into the
-  chat as a chip; a drag with `ctrl` selects whole lines.
+  chat as a chip; a drag with `ctrl` selects whole lines. While you drag, the status bar names
+  these keys.
 - A drag selects only in the pane where it started.
 - `ctrl-c` copies and never quits. While text is selected where you write, `c` copies and `x`
   cuts.
@@ -70,14 +85,20 @@ are the default keys; the [keymap](#keymap) can change all of them.
 ### Talk to the agent
 
 - The open file goes with the question, with the rules of the project for that file. You do not
-  attach it.
+  attach it. When the agent session has a worktree, the question takes the version of that
+  worktree.
 - `a` asks about the selection or the paragraph. `alt-a` adds the selection to the input as a
   chip.
 - `@` completes a file name, also with a typo. Pasted paths and dropped files become chips, and so
-  does a pasted image. Arrows and `backspace` move over a whole chip.
-- `tab` goes between the input and the transcript. The transcript has the keys of read mode.
-- Five sessions on `F6` to `F10`, each one thread for the whole repository. `alt-n` goes to the
-  next one.
+  does a pasted image; the image chip gets a short name of what it shows. Arrows and `backspace`
+  move over a whole chip.
+- `tab` goes between the input and the transcript. More presses go around the panes and come back
+  to the chat. The transcript has the keys of read mode.
+- Five agent sessions on `F6` to `F10`, each one thread for the whole repository. Each button shows
+  the name of its session. `alt-]` and `alt-[` (`alt-}` on a Mac) go to the next and the previous
+  session or terminal, also on the full screen.
+- `s` on a note: the agent decides which specifications to update or write, says its plan, then
+  edits.
 - `alt-enter`, `shift-enter`, `ctrl-j`, or `\` and `enter` add a line. `/` shows the commands of
   the agent; `ctrl-t` starts a document from a template.
 - When the agent cannot do a feature, only that key is off.
@@ -89,20 +110,29 @@ are the default keys; the [keymap](#keymap) can change all of them.
 - `alt-o` puts the result of the last command into the chat input: the command, the exit code and
   the output. `alt-o` again takes the next terminal.
 - A terminal shows in the chat pane, and the document stays on the screen. `ctrl-o` makes it full
-  screen; `alt-q` goes back.
+  screen; `alt-q` goes back. On the full screen, every key goes to the program, except `alt-q`,
+  `F5` to `F10`, the session keys, `alt-n` and `alt-/`.
+- Up to four `[>]` terminals beside the `F5` terminal. A command keeps running when you leave its
+  terminal.
 - The mouse and the wheel work in the programs of a terminal, also in full-screen programs.
 - No tmux and no server process. zendo does not change your shell files.
 
 ### Find files
 
+- `alt-/` opens the find panel in every pane and mode; `/` does the same in read mode. With no
+  query, it lists your recent files, so `alt-/` and `enter` go back to the previous file. A query
+  finds paths first, then text, with a preview. `#` finds a tag, and `?` asks the agent about all
+  notes.
 - The file tree shows the main materials of `project-structure.toml` first, in reading order, with
-  the `about` of each item.
-- `/` filters by the words of the path. `Δ` marks the files that changed since your last visit.
+  the `about` of each item. `v` shows the next view: structure, docs, text, the worktree of the
+  session, and its changed files.
+- Folders start closed, and the tree follows the open document: it opens the folders above it and
+  selects its row. `*` and `_` open and close every folder.
+- In the tree, `/` filters by file name. `Δ` marks the files that changed since your last visit.
 - `F2` renames, `m` moves, `F3` and `F4` make a file or a folder, with `tab` completion. A new
   document starts from the template of its folder.
-- In the notes list, `/` searches all notes, `#` searches tags, and `?` asks the agent about all
-  notes.
-- The view, the open folders, the widths and the layout stay for each repository.
+- The view, the open folders, the recent files, the widths and the layout stay for each
+  repository.
 
 ### Layout
 
@@ -115,9 +145,11 @@ are the default keys; the [keymap](#keymap) can change all of them.
 
 - One install line that never waits for input. It also installs Rust and sets the `PATH`.
 - Each failed check of `zendo setup` and `zendo doctor` says what failed and how to fix it.
-  `zendo doctor --fix` repairs `project-structure.toml` with the agent.
+  `zendo doctor` changes nothing. `zendo doctor --fix` repairs what needs no judgement and asks no
+  question; `--fix --claude` lets the agent repair the rest.
 - On a company network, setup tries the certificate store of the system by itself.
-- The top bar says when a new version is out; `U` upgrades and starts zendo again.
+- When a new version is out, the top bar shows `[upgrade]`. A click upgrades zendo and starts it
+  again.
 - The private notes repo commits and pushes in the background, and never delays the screen.
 
 ## Keymap
@@ -138,10 +170,22 @@ key configurable out of the box:
 - Without the kitty keyboard protocol, `ctrl-shift` keys fall back to `ctrl`, and most actions
   have a second key that works in every terminal. [INSTALLATION.md](INSTALLATION.md#keys) has the
   details.
+- The default keymaps of Linux and macOS differ in one key: the previous session is `alt-}` on a
+  Mac, because Apple Terminal sends `alt-[` as the start of an escape code.
 
 The defaults follow a few rules: letters as in a pager in the panes where you read, editor keys
 with `ctrl` where you type, `alt` for the actions that work in every pane, and the F keys for the
 sessions and the terminals.
+
+zendo counts how often you do each action, by pane, and by key or mouse. The counts stay on your
+disk and hold no text, file names or paths. They help to decide which key hints zendo shows, and
+where.
+`usage = false` in the config turns the counting off. See
+[INSTALLATION.md](INSTALLATION.md#usage-counts).
+
+Next: a keymap wizard, `zendo doctor --keys`, will find the keys that the OS or the terminal takes
+before zendo, and move each action to a free key
+([specification](docs/zendo/cli/keymap-wizard.md)).
 
 We accept a suggestion for the default keymap when you are confident that it makes zendo better
 for most of its users, not only for you. Try it in your own keymap first. In the issue, name the
