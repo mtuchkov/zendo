@@ -54,7 +54,7 @@ async fn scripted(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, t
     if text.contains("Write metadata for the markdown document") {
         let mut out = String::new();
         if text.contains("TITLE: <the title>") {
-            out.push_str("TITLE: A mock title\n");
+            out.push_str(&format!("TITLE: Mock title of {} lines\n", text_lines(text)));
         }
         if text.contains("FRONT MATTER:") {
             out.push_str("FRONT MATTER:\nstatus: draft\ndate: 2026-11-12\nlevel: what the mock agent can see\n");
@@ -191,4 +191,10 @@ async fn propose_edit(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionI
         stream(cx, sid, "\n\nOK, I left the note as it is.").await?;
     }
     Ok(StopReason::EndTurn)
+}
+
+/// The lines of the document in a question for metadata that have text and are no title.
+fn text_lines(text: &str) -> usize {
+    let doc = text.split_once("\nDocument ").map_or("", |(_, d)| d);
+    doc.lines().skip(1).filter(|l| !l.trim().is_empty() && !l.starts_with("# ")).count()
 }

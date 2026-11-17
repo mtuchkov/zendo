@@ -74,6 +74,7 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     app.cli.resize(area.height.saturating_sub(1), area.width);
     fr.sound_button = None;
     fr.music_button = None;
+    fr.spec_button = None;
     if app.hold.is_some() {
         fr.regions.clear();
         draw_hold(f, app, &t, area);

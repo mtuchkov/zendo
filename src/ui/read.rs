@@ -143,12 +143,41 @@ pub(crate) fn draw_read(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme,
     if let Some(row) = say_row_read(app, fr, &note) {
         say_arrow(f, app, t, area, col, row);
     }
+    let head: Vec<String> = fr.read_text.iter().take(HEAD_ROWS).cloned().collect();
+    draw_spec_button(f, app, fr, t, col, &note, &head);
     // The block cursor on the current char; the terminal makes it blink.
     if active && app.reader.row() >= app.reader.scroll() && app.reader.row() < app.reader.scroll() + h {
         let row = fr.read_text.get(app.reader.row()).cloned().unwrap_or_default();
         let x: usize = row.chars().take(app.reader.col()).map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
         f.set_cursor_position((col.x + (x as u16).min(col.width.saturating_sub(1)), col.y + (app.reader.row() - app.reader.scroll()) as u16));
     }
+}
+
+/// The rows at the top of a note in which the line of the date can be.
+pub(crate) const HEAD_ROWS: usize = 12;
+
+/// `[ → spec ]` at the right end of the line of the date of a note, in read mode and write mode,
+/// when it fits there (SPEC-1, SPEC-3). `rows`: the text of the first rows of the note.
+pub(crate) fn draw_spec_button(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, col: Rect, note: &Note, rows: &[String]) {
+    if !app.is_note(&note.path) {
+        return;
+    }
+    let date = date_label(note);
+    let Some(row) = rows.iter().position(|r| r.starts_with(&date)) else { return };
+    let Some(y) = row.checked_sub(app.reader.scroll()).filter(|y| *y < col.height as usize) else { return };
+    let used = rows[row].trim_end().width();
+    let w = crate::app::SPEC_BUTTON.width();
+    if used + 2 + w > col.width as usize {
+        return;
+    }
+    let r = Rect { x: col.right() - w as u16, y: col.y + y as u16, width: w as u16, height: 1 };
+    let button = Line::from(vec![
+        Span::styled("[ ", Style::new().fg(t.dim)),
+        Span::styled("→ spec", Style::new().fg(t.acc)),
+        Span::styled(" ]", Style::new().fg(t.dim)),
+    ]);
+    f.render_widget(Paragraph::new(button), r);
+    fr.spec_button = Some(r);
 }
 
 /// The first hint without notes: the key of a new note, and where notes go (PANES-28).

@@ -57,6 +57,7 @@ pub const ACTIONS: &[Action] = &[
     a(Read, Features, "add_to_chat", "add the selection to the chat"),
     a(Read, Features, "say", "here is what I want to say: the agent writes it here, or writes the selection again"),
     a(Read, Features, "split", "over the word limit: Claude splits it, keeps the altitude"),
+    a(Read, Features, "to_spec", "turn the note into specifications: the agent updates them or writes new ones"),
     a(Read, Features, "recap", "recap now"),
     a(Read, Features, "recap_toggle", "show / hide the recap"),
     a(Read, Features, "review", "twice: Claude marks the confusing lines and sums up the file"),

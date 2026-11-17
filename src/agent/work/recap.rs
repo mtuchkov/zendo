@@ -87,6 +87,10 @@ impl App {
     /// Called on every tick: start a requested recap, or an automatic one when all is idle. A
     /// question for a name does not wait for the turns of the chat (NAMES-1).
     pub fn recap_tick(&mut self) {
+        // A title does not wait for the user: the agent starts for it (FLOAT-18, FLOAT-19).
+        if self.wants_title() && self.link.down().is_none() {
+            self.ensure_agent();
+        }
         if !self.agent_free() {
             return;
         }
@@ -94,7 +98,7 @@ impl App {
         if idle && (self.review_tick() || self.meta_tick()) {
             return;
         }
-        if self.name_tick() || !idle {
+        if self.title_tick() || self.name_tick() || !idle {
             return;
         }
         let (rel, auto) = if let Some(r) = self.work.next_recap() {
@@ -115,7 +119,7 @@ impl App {
         let Ok(text) = std::fs::read_to_string(&path) else { return };
         let prompt = self.recap_prompt(&rel, &path, &text);
         let key = format!("{RECAP_PREFIX}{rel}");
-        self.work.start(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto, failed: None, meta: None, review: false, name: None });
+        self.work.start(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto, failed: None, meta: None, review: false, name: None, title: None });
         self.link.send(Cmd::Prompt { key, known: None, text: prompt, attach: vec![] });
     }
 
@@ -139,6 +143,9 @@ impl App {
         self.link.send(Cmd::Forget { key });
         if job.meta.is_some() {
             return self.meta_done(job);
+        }
+        if job.title.is_some() {
+            return self.title_done(job);
         }
         if job.name.is_some() {
             return self.name_done(job);

@@ -4,7 +4,7 @@ revision: "1"
 date: "2026-11-12"
 parent: "zendo.md"
 prev: "say.md"
-next: "float.md"
+next: "note-to-spec.md"
 level: "notes: titles, tags and links, the notes list, search"
 note: "Agent draft, split from notes.md. Not reviewed by the user."
 ---

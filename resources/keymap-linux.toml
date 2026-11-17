@@ -81,6 +81,7 @@ ask = ["a"]  # ask Claude about the selection
 add_to_chat = ["alt-a", "ctrl-shift-a", "+"]  # add the selection to the chat
 say = ["alt-s", "ctrl-shift-s"]  # here is what I want to say: the agent writes it here, or writes the selection again
 split = ["S"]  # over the word limit: Claude splits it, keeps the altitude
+to_spec = ["s"]  # turn the note into specifications: the agent updates them or writes new ones
 recap = ["r"]  # recap now
 recap_toggle = ["R"]  # show / hide the recap
 review = ["ctrl-r"]  # twice: Claude marks the confusing lines and sums up the file

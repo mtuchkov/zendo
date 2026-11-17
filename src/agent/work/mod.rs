@@ -5,11 +5,13 @@ mod meta;
 mod names;
 mod recap;
 mod review;
+mod title;
 
 pub use image_names::{IMAGE_PREFIX, image_name};
 pub use meta::*;
 pub use names::{Asked, pick};
 pub use review::*;
+pub use title::{TitleJob, Titling, body_of, ripe, with_title};
 
 use crate::agent::Cmd;
 use crate::app::{App, Base, ENGAGED, Focus, Mode, RecapJob};

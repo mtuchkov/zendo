@@ -29,4 +29,6 @@ pub struct RecapJob {
     pub review: bool,
     /// Not a recap: the name of an agent session and its session ID (NAMES-1).
     pub name: Option<(usize, String)>,
+    /// Not a recap: the title of the note of a float (FLOAT-18, FLOAT-19).
+    pub title: Option<crate::agent::work::TitleJob>,
 }

@@ -1,13 +1,13 @@
 ---
-status: "implemented"
-approved: "2026-11-15"
-revision: "4"
-date: "2026-11-14"
+status: "approved"
+approved: "2026-11-17"
+revision: "5"
+date: "2026-11-17"
 parent: "zendo.md"
-prev: "notes-list.md"
-next: "find.md"
+prev: "note-to-spec.md"
+next: "float-title.md"
 level: "the new note in a float: how it opens, what it shows, how it closes"
-note: "Agent draft of the decisions of the user on 2026-11-13, approved by the user. Revision 2: the test names and kinds as in the code. Revision 3: FLOAT-16 (the float color of the theme), asked and reviewed by the user on 2026-11-14. Revision 4: FLOAT-16 states that the float stands out of the theme and that its text and code read on it, asked by the user on 2026-11-14 and approved on 2026-11-15."
+note: "Agent draft of the decisions of the user on 2026-11-13, approved by the user. Revision 2: the test names and kinds as in the code. Revision 3: FLOAT-16 (the float color of the theme), asked and reviewed by the user on 2026-11-14. Revision 4: FLOAT-16 states that the float stands out of the theme and that its text and code read on it, asked by the user on 2026-11-14 and approved on 2026-11-15. Revision 5: the note starts with an empty title line and the cursor on the body (FLOAT-17, FLOAT-22), and the title is in float-title.md, asked by the user on 2026-11-17, approved by the user on 2026-11-17."
 ---
 
 # New note in a float
@@ -27,7 +27,11 @@ in [Notes list and search](notes-list.md); write mode is in [Write mode](write.m
 - The top line: the path of the note on the left, in dim colors; the branch and `[ esc close ]` on
   the right. Until the first save, the path is the notes folder and `new note`.
 - The text of the note in write mode, with the head of the note: the title in bold, and under it the
-  date and the time when the user opened the float, in dim colors.
+  date and the time when the user opened the float, in dim colors. While the title is empty,
+  `new note` stands in its place, in dim colors.
+
+The user starts with the text, not with the title: the new note has an empty title line, `# `, an
+empty line under it, and the cursor on the first line of the body. The agent writes the title: see [Title of a new note](float-title.md).
 
 Design: the float is as wide as the text column, with a margin of 4 chars on each side. It is as
 tall as the screen, less one row at the top and one at the bottom. It stands over the note pane.
@@ -42,8 +46,8 @@ keys of the float.
 The float saves as write mode does: after a pause, without a save key. At the first save, the file
 gets its name from the date and the title (NOTE-7). A note with no text makes no file.
 
-`esc` saves the note and closes the float. When the note has no `# ` title, the agent writes it, as
-when the user leaves write mode. After the float closes, the screen is as it was before: the same
+`esc` saves the note and closes the float. When the note has no `# ` title, the agent writes it
+([Title of a new note](float-title.md)). After the float closes, the screen is as it was before: the same
 file, pane, mode, cursor and selection. The new note is in the notes list and in the recent files
 ([Find](find.md)); zendo does not open it in the note pane.
 
@@ -63,7 +67,8 @@ file, pane, mode, cursor and selection. The new note is in the notes list and in
 - Given a repository with one note, open in read mode.
 - When the user presses `alt-n` in read mode, in write mode, in the chat, in the file tree and in the
   delta.
-- Then each time a float opens in write mode with an empty note and the cursor after `# `.
+- Then each time a float opens in write mode with an empty note: an empty title line, an empty
+  line, and the cursor on the first line of the body.
 
 **`the_float_hides_the_panes_and_the_hints`** (integration test on a test terminal of 120×40; verifies FLOAT-2)
 
@@ -100,6 +105,8 @@ file, pane, mode, cursor and selection. The new note is in the notes list and in
 | FLOAT-13 | Event      | When the user closes the float, the system shall not open the new note in the note pane.                                                            | Design           |
 | FLOAT-14 | State      | While a Claude Code session or a terminal is on the full screen, the system shall open the float over it when the user presses `alt-n`, and not send the key to the program. | User, 2026-11-13 |
 | FLOAT-15 | Event      | When the user opens a note that is already there, from the notes list or elsewhere, the system shall show it in the note pane as every other file, not in the float. | User, 2026-11-13 |
+| FLOAT-17 | Event      | When the user opens the float, the system shall start the note with an empty title line, `# `, and an empty line, with the cursor on the first line of the body. | User, 2026-11-17 |
+| FLOAT-22 | State      | While the title of the note in the float is empty, the system shall show `new note` in dim colors in place of the title.                         | User, 2026-11-17 |
 | FLOAT-16 | Ubiquitous | The system shall paint the background of the float with the float color of the theme, a color of its own that stands out of the background of the theme: a light sand in a dark theme and a dark color in a light theme. The system shall paint the text, the border and the code of the float in colors that read on it. | User, 2026-11-14 |
 
 Tests that verify detailed requirements: `the_float_has_the_float_color_of_the_theme`, `each_theme_has_a_float_color_of_its_own`,
@@ -108,5 +115,5 @@ Tests that verify detailed requirements: `the_float_has_the_float_color_of_the_t
 `a_narrow_note_pane_centers_the_float` (FLOAT-8, FLOAT-9),
 `pane_keys_do_nothing_in_the_float` (FLOAT-10, FLOAT-11), `an_empty_float_makes_no_file` (FLOAT-12),
 `alt_n_opens_the_float_over_a_full_screen_session` in `tests/terminal.rs` (FLOAT-14), `n_opens_the_float`
-(FLOAT-15).
+(FLOAT-15), `alt_n_opens_a_float_from_every_pane` (FLOAT-17), `the_float_shows_new_note_until_the_title` (FLOAT-22).
 
