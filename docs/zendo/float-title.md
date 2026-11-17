@@ -1,13 +1,13 @@
 ---
 status: "approved"
 approved: "2026-11-17"
-revision: "1"
+revision: "2"
 date: "2026-11-17"
 parent: "zendo.md"
 prev: "float.md"
 next: "find.md"
 level: "the title of a new note in the float: when the agent writes it, where it goes, what it does not change"
-note: "Agent draft of the request of the user on 2026-11-17. Approved by the user on 2026-11-17."
+note: "Agent draft of the request of the user on 2026-11-17. Approved by the user on 2026-11-17. Revision 2 (approved by the user on 2026-11-17): the question for a title goes through the API of the agent, else a background session (FLOAT-18, NAMES-15, NAMES-16)."
 ---
 
 # Title of a new note
@@ -16,7 +16,9 @@ The user starts a new note with the text, not with the title: the title line is 
 cursor is on the body (see [New note in a float](float.md)).
 The name model of the agent writes the title: `haiku` for Claude, or the model of `[name_models]`
 in the config (see [Session names](session-names/session-names.md)). It is cheap and fast, and it
-works in a background session without tools, so the chat does not see it.
+works outside the chat, without tools, so the chat does not see it: through the API of the agent,
+and without an API credential in a background session (see
+[Session names: API](session-names/session-names-api.md)).
 
 **When.** The name model writes the title when the body of the note has three lines with text, or
 200 chars of text. It writes it again when the float closes, if the title is still the one of the
@@ -36,7 +38,7 @@ zendo does not replace it, and does not ask for another.
 
 | ID       | Pattern | Requirement                                                                                                                                                                                       | Source           |
 | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| FLOAT-18 | Event   | When the body of the note in the float has three lines with text, or 200 chars of text, and the title of the note is empty, the system shall ask the name model for a title in a background session without tools, put it into the title line, `# <title>`, and keep the cursor on the same char. | User, 2026-11-17 |
+| FLOAT-18 | Event   | When the body of the note in the float has three lines with text, or 200 chars of text, and the title of the note is empty, the system shall ask the name model for a title without tools, through the API of the agent (NAMES-15) or else in a background session (NAMES-16), put it into the title line, `# <title>`, and keep the cursor on the same char. | User, 2026-11-17 |
 | FLOAT-19 | Event   | When the user closes the float, and the title of the note is empty, or the note has the title of the agent unchanged and a text that changed since that title, the system shall ask the name model for the title and put it into the file. | User, 2026-11-17 |
 
 ### Acceptance tests
