@@ -9,10 +9,19 @@ impl App {
             self.apply_tree_view();
             self.scan_tree();
             self.mark_tree();
-            self.files.reveal_current();
+            self.follow_open_file();
             self.focus = Focus::Tree;
         } else if self.focus == Focus::Tree {
             self.focus = Focus::Note;
+        }
+    }
+
+    /// While the tree shows, it shows the open document now, also when it did not change: the
+    /// pane opens, the session changes, a file opens (FILES-58). Each draw follows other changes.
+    pub fn follow_open_file(&mut self) {
+        self.files.follow_again();
+        if self.state.tree {
+            self.files.follow_current();
         }
     }
 
@@ -80,6 +89,13 @@ impl App {
                 self.focus = Focus::Note;
             }
         }
+    }
+
+    /// `[+]` or `[-]` in the head of the tree: open or close every folder (FILES-57).
+    pub fn fold_all(&mut self, open: bool) {
+        self.focus = Focus::Tree;
+        self.did_by_mouse(crate::keys::Pane::Tree, if open { "expand_all" } else { "collapse_all" });
+        if open { self.files.expand_all() } else { self.files.collapse_all() }
     }
 
     /// `a` in the tree: the file goes to the chat as an attachment; the focus stays in the tree.

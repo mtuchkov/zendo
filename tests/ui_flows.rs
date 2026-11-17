@@ -16,12 +16,14 @@ fn files() -> Vec<(&'static str, &'static str)> {
     ]
 }
 
-/// An app with the file tree open and in focus, and the row of `rel` selected.
+/// An app with the file tree open and in focus, every folder open (FILES-57), and the row of
+/// `rel` selected.
 fn in_tree(root: &std::path::Path, rel: &str) -> zendo::app::App {
     let mut a = app(root);
     a.toggle_tree();
     draw(&mut a, 140, 30);
     a.focus = Focus::Tree;
+    a.files.expand_all();
     a.files.select_row(a.files.tree().rows().iter().position(|r| r.rel.ends_with(rel)).unwrap_or_else(|| panic!("{rel} in the tree")));
     a
 }

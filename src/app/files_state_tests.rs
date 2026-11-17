@@ -28,7 +28,7 @@ fn typ(f: &mut Files, root: &Path, text: &str) -> Option<Effect> {
 }
 
 fn select(f: &mut Files, root: &Path, rel: &str) {
-    f.set_view(View::All);
+    f.set_view(View::Text);
     f.scan(root, None, None);
     f.reveal(Path::new(rel));
     assert_eq!(f.tree_file().as_deref(), Some(Path::new(rel)), "the row of {rel}");
@@ -103,7 +103,7 @@ fn a_new_file_and_a_new_folder_come_back_as_effects() {
     assert_eq!(f.key_prompt(key(KeyCode::Enter), &root), Effect::flash("give a path inside the repository"));
     f.ask(FilePrompt::NewFolder("docs/de".into()));
     assert_eq!(f.key_prompt(key(KeyCode::Enter), &root), Some(Effect::MadeFolder(root.join("docs/de"))));
-    assert!(root.join("docs/de").is_dir() && f.tree().view == View::Folders);
+    assert!(root.join("docs/de").is_dir() && f.tree().view == View::Text, "the text view shows a new folder (FILES-17)");
     f.ask(FilePrompt::NewFile("docs/d".into()));
     assert_eq!(f.key_prompt(key(KeyCode::Tab), &root), None);
     assert_eq!(f.prompt(), Some(&FilePrompt::NewFile("docs/de/".into())), "tab completes the folder");
@@ -182,7 +182,7 @@ fn a_structure_that_does_not_parse_leaves_its_reason() {
 #[test]
 fn the_tree_changes_through_the_files() {
     let (root, mut f) = repo("tree-methods");
-    f.set_view(View::All);
+    f.set_view(View::Text);
     assert!(f.tree_stale(), "a tree that was never filled");
     f.scan(&root, None, None);
     assert!(!f.tree_stale() && !f.tree().rows().is_empty());
@@ -206,5 +206,32 @@ fn the_tree_changes_through_the_files() {
     let name = f.next_view();
     assert_eq!((name, f.tree().sel, f.tree().scroll), (f.tree().view.name(), 0, 0), "the next view starts from its first row");
     assert!(!f.filtering());
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FILES-58: while the tree shows, it opens the folders above the open document and selects it:
+// when the document changes, and when the app asks again (the pane opens, the session changes, a
+// file opens). A document of the worktree shows at its place in the repository.
+#[test]
+fn the_tree_follows_the_open_document() {
+    let (root, mut f) = repo("follow");
+    f.set_view(View::Docs);
+    f.open(root.join("docs/b.md"));
+    f.follow_current();
+    assert_eq!(f.tree().rows().len(), 0, "a tree that was never filled does nothing");
+    f.scan(&root, None, None);
+    f.follow_current();
+    assert_eq!(f.tree_file().as_deref(), Some(Path::new("docs/b.md")));
+    f.collapse_all();
+    f.follow_current();
+    assert_eq!(f.tree().rows().len(), 1, "the same document: the tree stays as the user left it");
+    f.follow_again();
+    f.follow_current();
+    assert_eq!(f.tree_file().as_deref(), Some(Path::new("docs/b.md")), "the app asks again");
+    std::fs::create_dir_all(root.join(".worktrees/1/docs")).unwrap();
+    std::fs::write(root.join(".worktrees/1/docs/a.md"), "# A\n").unwrap();
+    f.open(root.join(".worktrees/1/docs/a.md"));
+    f.follow_current();
+    assert_eq!(f.tree_file().as_deref(), Some(Path::new("docs/a.md")), "the worktree file at its place in the repository");
     let _ = std::fs::remove_dir_all(&root);
 }

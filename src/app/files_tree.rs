@@ -1,7 +1,7 @@
 //! The file tree of the files: the app reads the tree, and changes it only through these methods.
 use super::Files;
 use crate::docs::structure::Structure;
-use crate::docs::tree::{Tree, View};
+use crate::docs::tree::{Tree, View, worktree};
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
@@ -91,10 +91,47 @@ impl Files {
 
     /// The tree shows the row of the open document.
     pub fn reveal_current(&mut self) {
-        if let Some(p) = self.current.clone() {
-            let rel = self.store.rel(&p).to_path_buf();
+        if let Some(rel) = self.current_in_tree() {
             self.tree.reveal(&rel);
         }
+    }
+
+    /// The row of the open document in the tree. Outside the worktree views, a file of a worktree
+    /// has the row of its place in the repository.
+    pub fn current_in_tree(&self) -> Option<PathBuf> {
+        let rel = self.store.rel(self.current.as_ref()?);
+        let text = rel.to_string_lossy();
+        match worktree::split(&text) {
+            Some((_, inner)) if !self.tree.view.is_worktree() => Some(PathBuf::from(inner)),
+            _ => Some(rel.to_path_buf()),
+        }
+    }
+
+    /// While the tree shows: when the open document changed since the tree showed it last, the
+    /// tree opens its folders and selects it (FILES-58). Not before the first scan, nor while the
+    /// name filter is on.
+    pub fn follow_current(&mut self) {
+        if self.tree.scanned.is_none() || self.tree.find.is_some() || self.followed == self.current {
+            return;
+        }
+        self.followed = self.current.clone();
+        self.reveal_current();
+    }
+
+    /// The next `follow_current` shows the open document, also when it did not change: the pane
+    /// opens, the session changes, a file opens (FILES-58).
+    pub fn follow_again(&mut self) {
+        self.followed = None;
+    }
+
+    /// `[+]` in the head of the tree (FILES-57).
+    pub fn expand_all(&mut self) {
+        self.tree.expand_all();
+    }
+
+    /// `[-]` in the head of the tree (FILES-57).
+    pub fn collapse_all(&mut self) {
+        self.tree.collapse_all();
     }
 
     /// The draw of the tree: the selection stays in the `rows` rows, and in the view of `h` rows.

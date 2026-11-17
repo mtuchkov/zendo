@@ -60,6 +60,8 @@ impl Files {
                     self.tree.toggle(&r.rel);
                 }
             }
+            "expand_all" => self.tree.expand_all(),
+            "collapse_all" => self.tree.collapse_all(),
             // Close the folder, or jump to the parent folder.
             "close_folder" => match row {
                 Some(r) if matches!(r.kind, Kind::Dir { open: true }) => self.tree.toggle(&r.rel),

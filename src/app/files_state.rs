@@ -38,6 +38,8 @@ pub struct Files {
     branch: Option<String>,
     /// Commits and pushes the notes repo in the background.
     syncer: Option<Syncer>,
+    /// The open document that the tree showed last (FILES-58); none: the tree shows it again.
+    followed: Option<PathBuf>,
 }
 
 impl Files {

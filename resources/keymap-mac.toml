@@ -215,6 +215,8 @@ top = ["g", "home"]  # top
 bottom = ["G", "end"]  # bottom
 unfold = ["+", "="]  # unfold [+]
 fold = ["-"]  # fold [-]
+expand_all = ["*"]  # open every folder
+collapse_all = ["_"]  # close every folder
 close_folder = ["h", "left"]  # close the folder / go to the parent
 search = ["/"]  # filter by file name
 
@@ -231,7 +233,7 @@ add_to_chat = ["a"]  # add the file to the chat
 # panes and view
 open = ["enter"]  # open in the note
 preview = ["l", "right", "space"]  # open, stay in the tree
-view = ["v"]  # structure, docs, all .md, text files, folders, worktree, worktree Δ
+view = ["v"]  # structure, docs, text files, worktree, worktree Δ
 layout = ["w"]  # standard / wide screen
 delta = ["d"]  # delta
 chat = ["c"]  # chat

@@ -42,7 +42,7 @@ impl Files {
         Some(Effect::MadeFile(path))
     }
 
-    /// A new folder. The folders view shows it, also while it is empty.
+    /// A new folder. The text view shows it, also while it is empty (FILES-17).
     pub(super) fn make_folder(&mut self, root: &Path, text: &str) -> Option<Effect> {
         let path = match inside(root, text) {
             Ok(p) => p,
@@ -53,7 +53,7 @@ impl Files {
         }
         // A worktree view stays: its files show the new folder when a file is in it.
         if !self.tree.view.is_worktree() {
-            self.tree.view = View::Folders;
+            self.tree.view = View::Text;
         }
         Some(Effect::MadeFolder(path))
     }

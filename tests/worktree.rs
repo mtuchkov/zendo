@@ -181,7 +181,7 @@ async fn the_worktree_views_follow_the_agent_session() {
     assert!(a.files.tree().files.is_empty(), "{:?}", a.files.tree().files);
     let screen = draw(&mut a, 120, 30).join("\n");
     assert!(screen.contains("has no") && screen.contains("worktree yet"), "{screen}");
-    a.files.set_view(View::Folders);
+    a.files.set_view(View::Text);
     key(&mut a, KeyCode::Char('v'));
     assert!(!a.files.tree().view.is_worktree(), "v skips the worktree views: {:?}", a.files.tree().view);
     a.switch_session(0);

@@ -1,7 +1,8 @@
 //! The file tree: markdown files of the repo, `.gitignore` respected.
 //! Views: the project structure (the main materials of `project-structure.toml`),
-//! files under a `docs` folder (`**/docs/**`), every `.md` file, every text file, or every folder;
+//! files under a `docs` folder (`**/docs/**`), or every text file and every folder;
 //! and the worktree of the active agent session: every text file, or the files that differ from `main`.
+//! Every folder starts closed (FILES-56).
 
 use crate::docs::structure::Structure;
 use globset::{Glob, GlobMatcher};
@@ -23,12 +24,8 @@ pub enum View {
     Structure,
     /// Files under a `docs` folder.
     Docs,
-    /// Every `.md` file.
-    All,
-    /// Every text file: markdown, code, config.
+    /// Every text file: markdown, code, config; and every folder, also an empty one (FILES-17).
     Text,
-    /// Every folder, also an empty one or one without `.md`, and every `.md` file.
-    Folders,
     /// Every text file of the worktree of the active agent session (FILES-26).
     Worktree,
     /// The files of that worktree that differ from the merge base with `main` (FILES-27).
@@ -40,9 +37,7 @@ impl View {
         match self {
             View::Structure => "structure",
             View::Docs => "docs",
-            View::All => "all",
             View::Text => "text",
-            View::Folders => "folders",
             View::Worktree => "worktree",
             View::WorktreeChanged => "worktree changed",
         }
@@ -51,9 +46,7 @@ impl View {
         match s {
             "structure" => Some(View::Structure),
             "docs" => Some(View::Docs),
-            "all" => Some(View::All),
             "text" => Some(View::Text),
-            "folders" => Some(View::Folders),
             "worktree" => Some(View::Worktree),
             "worktree changed" => Some(View::WorktreeChanged),
             _ => None,
@@ -83,15 +76,14 @@ pub struct Tree {
     pub files: Vec<PathBuf>,
     /// The repo root of the last scan.
     pub root: PathBuf,
-    pub closed: BTreeSet<PathBuf>,
-    /// Main materials that are open (they start closed).
+    /// The folders and main materials that are open; each one starts closed (FILES-56).
     pub opened: BTreeSet<PathBuf>,
     pub sel: usize,
     pub scroll: usize,
     pub scanned: Option<Instant>,
     /// Files changed since your last visit that counted (Δ).
     pub changed: BTreeSet<PathBuf>,
-    /// The folders of the repository, in the folders view.
+    /// The folders of the repository, in the text view.
     pub dirs: Vec<PathBuf>,
     /// The file name filter (`/` in the tree): while it is on, the tree is a flat list of matches.
     pub find: Option<String>,
@@ -115,7 +107,6 @@ impl Default for Tree {
             structure: None,
             files: Vec::new(),
             root: PathBuf::new(),
-            closed: BTreeSet::new(),
             opened: BTreeSet::new(),
             sel: 0,
             scroll: 0,
@@ -140,6 +131,7 @@ struct Node {
 }
 
 mod changes;
+mod fold;
 mod notes;
 mod scan;
 mod sections;
@@ -152,9 +144,7 @@ impl Tree {
         match self.view {
             View::Structure => "structure",
             View::Docs => DOCS_GLOB,
-            View::All => "*.md",
             View::Text => "text files",
-            View::Folders => "folders",
             View::Worktree => "worktree",
             View::WorktreeChanged => "worktree Δ",
         }
@@ -165,19 +155,17 @@ impl Tree {
         self.structure.as_ref().filter(|s| self.view == View::Structure && s.main().next().is_some())
     }
 
-    /// `v`: structure (if there is one) → docs → all → text → folders → worktree → worktree changed
-    /// → …; the worktree views only while the active agent session has a worktree (FILES-4, FILES-31).
+    /// `v`: structure (if there is one) → docs → text → worktree → worktree changed → …; the
+    /// worktree views only while the active agent session has a worktree (FILES-4, FILES-31).
     pub fn next_view(&mut self) {
         let has = self.structure.as_ref().is_some_and(|s| s.main().next().is_some());
         self.view = match self.view {
             View::Structure => View::Docs,
-            View::Docs => View::All,
-            View::All => View::Text,
-            View::Text => View::Folders,
-            View::Folders if self.worktree.is_some() => View::Worktree,
+            View::Docs => View::Text,
+            View::Text if self.worktree.is_some() => View::Worktree,
             View::Worktree => View::WorktreeChanged,
-            View::Folders | View::WorktreeChanged if has => View::Structure,
-            View::Folders | View::WorktreeChanged => View::Docs,
+            View::Text | View::WorktreeChanged if has => View::Structure,
+            View::Text | View::WorktreeChanged => View::Docs,
         };
     }
 
@@ -229,7 +217,7 @@ impl Tree {
                 rel = rel.join(n);
                 child = c;
             }
-            let open = !self.closed.contains(&rel);
+            let open = self.opened.contains(&rel);
             out.push(Row { rel: rel.clone(), name, depth, kind: Kind::Dir { open }, section: false });
             if open {
                 self.flatten(child, rel, depth + 1, out);
@@ -237,37 +225,6 @@ impl Tree {
         }
         for f in &node.files {
             out.push(Row { rel: at.join(f), name: f.clone(), depth, kind: Kind::File, section: false });
-        }
-    }
-
-    /// Open every folder on the way to `rel` and select it.
-    pub fn reveal(&mut self, rel: &Path) {
-        // In the structure view, open the most specific main material that holds the file.
-        let section = self.section_of(rel);
-        if let Some(p) = section {
-            self.opened.insert(p);
-        }
-        let mut p = rel.parent();
-        while let Some(d) = p.filter(|d| !d.as_os_str().is_empty()) {
-            self.closed.remove(d);
-            p = d.parent();
-        }
-        if let Some(i) = self.rows().iter().position(|r| r.rel == rel) {
-            self.sel = i;
-        }
-        self.reveal_later(rel);
-    }
-
-    pub fn toggle(&mut self, rel: &Path) {
-        let section = self.structured().is_some_and(|st| st.main().any(|e| section_id(e) == rel));
-        if section {
-            if !self.opened.remove(rel) {
-                self.opened.insert(rel.to_path_buf());
-            }
-            return;
-        }
-        if !self.closed.remove(rel) {
-            self.closed.insert(rel.to_path_buf());
         }
     }
 }

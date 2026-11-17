@@ -13,7 +13,7 @@ impl Files {
         self.tree.view = match View::from_name(saved) {
             Some(View::Structure) if !has => View::Docs,
             Some(v) => v,
-            None if all => View::All,
+            None if all => View::Text,
             None if has => View::Structure,
             None => View::Docs,
         };

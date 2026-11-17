@@ -19,7 +19,7 @@ impl Tree {
         let walk = ignore::WalkBuilder::new(under).hidden(true).git_ignore(true).git_global(true).git_exclude(true).require_git(false).parents(true).build();
         for entry in walk.flatten() {
             let p = entry.path();
-            if self.view == View::Folders
+            if self.view == View::Text
                 && entry.file_type().is_some_and(|t| t.is_dir())
                 && let Ok(rel) = p.strip_prefix(root)
                 && !rel.as_os_str().is_empty()

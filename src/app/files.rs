@@ -120,6 +120,8 @@ impl App {
         }
         let path = self.session_path(&path);
         self.files.open(path);
+        // FILES-58: the tree shows the file, also when it was open before.
+        self.follow_open_file();
         self.reader.to_top();
         self.work.delta_top();
         self.threads.unpin();

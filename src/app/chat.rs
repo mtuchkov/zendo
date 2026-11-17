@@ -40,6 +40,8 @@ impl App {
         if self.state.tree {
             self.scan_tree();
         }
+        // FILES-58: the tree shows the open document of the session.
+        self.follow_open_file();
         self.composer.close_picks();
         self.open_panel();
         let f = self.keys.hint(crate::keys::Pane::Global, &format!("session_{}", self.state.session + 1), "");

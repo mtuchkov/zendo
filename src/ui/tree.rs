@@ -4,19 +4,23 @@ use crate::docs::tree::{Kind, Row, View};
 
 pub(crate) fn draw_tree(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) {
     fr.tree_rows.clear();
+    fr.tree_fold.clear();
     f.render_widget(Block::new().style(Style::new().bg(t.panel)), area);
     let inner = Rect { x: area.x + 1, y: area.y, width: area.width.saturating_sub(2), height: area.height };
     let w = inner.width as usize;
     let dim = Style::new().fg(t.dim);
     let foot = if app.files.tree().view.is_worktree() { worktree_foot(app, t, w) } else { tree_foot(app, t, w) };
     let foot_h = if foot.is_empty() { 0 } else { foot.len() as u16 + 1 };
-    let [head, _, body, foot_area] = Layout::vertical([Constraint::Length(1), Constraint::Length(1), Constraint::Min(1), Constraint::Length(foot_h)]).areas(inner);
+    let [head, tools, body, foot_area] = Layout::vertical([Constraint::Length(1), Constraint::Length(1), Constraint::Min(1), Constraint::Length(foot_h)]).areas(inner);
     if foot_h > 0 {
         let mut lines = vec![Line::styled("─".repeat(w), Style::new().fg(t.line))];
         lines.extend(foot);
         f.render_widget(Paragraph::new(lines), foot_area);
     }
     tree_head(f, app, t, head);
+    if app.files.tree().find.is_none() {
+        fold_buttons(f, fr, t, Rect { x: tools.right().saturating_sub(7), width: 7, ..tools });
+    }
 
     let rows = app.files.tree().rows();
     if rows.is_empty() && app.files.tree().find.as_deref().is_some_and(|q| !q.trim().is_empty()) {
@@ -25,7 +29,6 @@ pub(crate) fn draw_tree(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme,
     }
     if rows.is_empty() {
         let msg = match app.files.tree().view {
-            View::All | View::Folders => "No .md files.".to_string(),
             View::Text => "No text files.".to_string(),
             View::Docs => format!("No .md files under a docs folder.{}", app.keys.key(crate::keys::Pane::Tree, "view").map(|k| format!(" Press {k} to show all.")).unwrap_or_default()),
             View::Structure => "No main materials. Mark entries with main = true in project-structure.toml.".to_string(),
@@ -45,7 +48,7 @@ pub(crate) fn draw_tree(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme,
     let h = body.height as usize;
     // Keep the selection in the rows, and in view.
     app.files.fit_tree(rows.len(), h);
-    let current = app.files.current().map(|p| app.files.store().rel(p).to_path_buf());
+    let current = app.files.current_in_tree();
     for (i, row) in rows.iter().enumerate().skip(app.files.tree().scroll).take(h) {
         let r = Rect { x: inner.x, y: body.y + (i - app.files.tree().scroll) as u16, width: inner.width, height: 1 };
         fr.tree_rows.push((r, i));
@@ -120,6 +123,16 @@ fn tree_head(f: &mut Frame, app: &App, t: &Theme, head: Rect) {
     f.render_widget(Paragraph::new(Line::styled(label, dim.add_modifier(Modifier::BOLD))), Rect { x: head.x + 1, width: head.width.saturating_sub(1), ..head });
     let filt = format!("{} · {}", app.files.tree().filter_label(), app.keys.first(crate::keys::Pane::Tree, "view"));
     f.render_widget(Paragraph::new(Line::styled(filt.clone(), dim)), Rect { x: head.right().saturating_sub(filt.width() as u16), width: filt.width() as u16, ..head });
+}
+
+/// Under the head, on the right: `[+]` opens every folder, `[-]` closes every folder (FILES-57).
+fn fold_buttons(f: &mut Frame, fr: &mut Cache, t: &Theme, area: Rect) {
+    let style = Style::new().fg(t.dim);
+    for (i, (label, open)) in [("[+]", true), ("[-]", false)].into_iter().enumerate() {
+        let r = Rect { x: area.x + 4 * i as u16, width: 3, ..area };
+        f.render_widget(Paragraph::new(Line::styled(label, style)), r);
+        fr.tree_fold.push((r, open));
+    }
 }
 
 /// One row: the indent, the icon, the name, and `Δ` for a file that changed.

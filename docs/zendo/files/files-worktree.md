@@ -26,7 +26,7 @@ so the user does not see what the agent session in the chat does. Two more views
 At the bottom, both views show a recap of the changes of the worktree; see
 [Worktree recap](files-worktree-recap.md).
 
-`v` shows the two views after the folders view (FILES-4 in [Views](files-views.md)). Both views follow the chat: when the user chooses
+`v` shows the two views after the text view (FILES-4 in [Views](files-views.md)). Both views follow the chat: when the user chooses
 another agent session, the tree shows the worktree of that session. A session has no worktree until
 its agent changes code the first time; then `v` skips the two views.
 

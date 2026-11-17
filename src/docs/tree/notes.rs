@@ -22,7 +22,7 @@ impl Tree {
         let main = self.structure.as_ref().is_some_and(|s| s.main().next().is_some());
         let shown = self.view == View::Structure && main || self.view == View::Docs && !main;
         let Some(dir) = self.notes.as_ref().filter(|_| shown) else { return Vec::new() };
-        let open = !self.closed.contains(dir);
+        let open = self.opened.contains(dir);
         let mut out = vec![Row { rel: dir.clone(), name: "notes".into(), depth: 0, kind: Kind::Dir { open }, section: true }];
         if open {
             out.extend(self.tree_rows(&self.notes_files, &[], dir, 1));

@@ -26,7 +26,7 @@ folder at the top, or the docs view when the repository has no main materials. T
 left of the screen and opens and closes with `ctrl-shift-b` or `alt-b` in every pane, or `e` in read
 mode.
 
-The tree has five views of the repository: structure, docs, all, text and folders, and two views of
+The tree has three views of the repository: structure, docs and text, and two views of
 the worktree of the active agent session. `v` shows the next view. `enter`
 opens the selected file in the note pane, where it works like a note.
 

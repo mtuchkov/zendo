@@ -15,7 +15,7 @@ impl App {
                 self.scan_tree();
                 let rel = path.strip_prefix(&self.cfg.root).unwrap_or(&path).to_path_buf();
                 self.files.reveal(&rel);
-                self.flash(format!("made {}/ · the folders view shows it", rel.display()));
+                self.flash(format!("made {}/ · the text view shows it", rel.display()));
             }
         }
     }

@@ -186,6 +186,10 @@ pub struct App {
 impl App {
     /// Draw the screen, and keep what the draw leaves for the mouse and the keys.
     pub fn draw(&mut self, f: &mut ratatui::Frame) {
+        // FILES-58: while the tree shows, it shows the open document, whatever changed it.
+        if self.state.tree {
+            self.files.follow_current();
+        }
         let last = std::mem::take(&mut self.frame);
         self.frame = crate::ui::draw(f, self, last);
     }

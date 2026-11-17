@@ -89,7 +89,10 @@ impl App {
             self.did_by_mouse(crate::keys::Pane::Global, "terminal");
             return self.put_into_terminal(&cmd, false);
         }
-        let row = self.frame.tree_rows().iter().find(|(r, _)| r.contains(ratatui::layout::Position::new(x, y))).map(|(_, i)| *i);
+        if let Some(open) = self.frame.tree_fold().iter().find(|(r, _)| hit(r)).map(|(_, o)| *o) {
+            return self.fold_all(open);
+        }
+        let row = self.frame.tree_rows().iter().find(|(r, _)| hit(r)).map(|(_, i)| *i);
         if let Some(i) = row {
             self.focus = Focus::Tree;
             self.files.select_row(i);
