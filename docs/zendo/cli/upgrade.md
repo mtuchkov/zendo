@@ -1,7 +1,7 @@
 ---
 status: "draft"
-revision: "1"
-date: "2026-11-14"
+revision: "2"
+date: "2026-11-17"
 parent: "cli.md"
 prev: "keymap-wizard.md"
 level: "what zendo upgrade builds and repairs, the version, and the update suggestion"
@@ -27,7 +27,8 @@ zendo builds that clone and not the main branch of GitHub.
 
 **Version and update suggestion.** `zendo --version` shows the version and the commit. While zendo
 starts, it looks for a newer version in the background (CMD-4). When there is one, the top bar
-shows a hint, and `U` upgrades zendo and starts it again.
+shows the message "new version available" and the button `[upgrade]`. A click on the button
+upgrades zendo and starts it again. The message names no commit and no key.
 
 ## Detailed requirements
 
@@ -36,10 +37,12 @@ shows a hint, and `U` upgrades zendo and starts it again.
 | CMD-8  | Event    | When the user runs `zendo upgrade`, the system shall build the newest zendo and then run `zendo doctor --fix` with the new program.     | User, 2026-11-11; User, 2026-11-14 |
 | CMD-9  | Optional | Where the installer or `zendo upgrade` runs from a clone of zendo, the system shall build that clone.                                    | User, 2026-11-11                   |
 | CMD-10 | Event    | When the user runs `zendo --version`, the system shall show the version and the commit of the build.                                     | User, 2026-11-11                   |
-| CMD-11 | Event    | When a newer version exists, the system shall show a hint in the top bar, and `U` shall upgrade zendo and start it again.                | User, 2026-11-11                   |
+| CMD-11 | Event    | When a newer version exists, the system shall show a message and an upgrade button in the top bar. When the user clicks the button, the system shall upgrade zendo and start it again. | User, 2026-11-11; User, 2026-11-17 |
 
 Tests that verify detailed requirements: `an_upgrade_ends_with_doctor_fix` (CMD-8),
 `this_checkout_is_the_zendo_repo` (CMD-9),
-`short_and_long_commits_match` (CMD-10).
+`short_and_long_commits_match` (CMD-10),
+`a_newer_version_shows_a_message_and_a_button` and `the_upgrade_button_upgrades` (CMD-11).
 
-Revision 1 changed CMD-8: before, the upgrade ran `zendo setup` with the new program.
+Revision 1 changed CMD-8: before, the upgrade ran `zendo setup` with the new program. Revision 2
+changed CMD-11: before, the hint named the commit and the key `U`; now the top bar has a button.

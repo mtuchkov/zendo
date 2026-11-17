@@ -74,9 +74,9 @@ impl App {
     pub fn tick(&mut self) {
         self.music_tick();
         self.peek_tick();
-        if let Some(sha) = self.update.poll() {
-            let how = self.keys.key(crate::keys::Pane::Read, "upgrade").map(|k| format!(" · {k} upgrades now")).unwrap_or_default();
-            self.flash(format!("a newer zendo is on GitHub ({sha}){how}"));
+        // CMD-11: the message names no commit and no key; the top line has the button.
+        if self.update.poll().is_some() {
+            self.flash("a new version of zendo is available".to_string());
         }
         self.usage.tick(Instant::now());
         self.check_disk();

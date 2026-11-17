@@ -115,16 +115,23 @@ pub(crate) fn draw_top(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, 
     f.render_widget(Paragraph::new(Line::from(vec![Span::raw("  "), Span::raw(left.clone())])).style(Style::new().fg(t.dim)), area);
     let right = draw_top_right(f, app, fr, t, area);
 
-    // A newer zendo shows as a quiet hint with its key.
-    if let Some(v) = app.update.latest().filter(|_| matches!(app.mode, Mode::Read | Mode::Write)) {
-        let hint = format!("zendo {v} is out · {} to upgrade", app.keys.first(crate::keys::Pane::Read, "upgrade"));
-        let w = hint.width() as u16;
+    // CMD-11: a newer zendo shows as a message and the upgrade button, left of the other buttons.
+    if app.update.latest().is_some() && matches!(app.mode, Mode::Read | Mode::Write) {
+        let w = (UPGRADE_HINT.width() + 1 + UPGRADE.width()) as u16;
         let x = area.right().saturating_sub(right + 5 + w);
         if x > area.x + left.width() as u16 + 4 {
-            f.render_widget(Paragraph::new(Line::styled(hint, Style::new().fg(t.acc))), Rect { x, width: w, ..area });
+            let line = Line::from(vec![Span::styled(format!("{UPGRADE_HINT} "), Style::new().fg(t.acc)), Span::styled(UPGRADE, switch(t, true))]);
+            f.render_widget(Paragraph::new(line), Rect { x, width: w, ..area });
+            let b = UPGRADE.width() as u16;
+            fr.upgrade_button = Some(Rect { x: x + w - b, width: b, ..area });
         }
     }
 }
+
+/// The message of a newer zendo in the top line (CMD-11).
+const UPGRADE_HINT: &str = "new version available";
+/// The upgrade button in the top line (CMD-11).
+pub const UPGRADE: &str = "[upgrade]";
 
 /// The sound button in the top line (ATTN-7).
 pub const SOUND: &str = "[sound]";

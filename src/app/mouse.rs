@@ -77,6 +77,10 @@ impl App {
             self.did_by_mouse(crate::keys::Pane::Read, "to_spec");
             return self.note_to_spec();
         }
+        if self.frame.upgrade_button().is_some_and(|r| hit(&r)) {
+            self.did_by_mouse(crate::keys::Pane::Read, "upgrade");
+            return self.upgrade();
+        }
         if let Some(n) = self.frame.session_buttons().iter().find(|(r, _)| hit(r)).map(|(_, n)| *n) {
             self.count_session_button(n);
             return if n < SESSIONS { self.switch_session(n) } else { self.open_terminal(n - SESSIONS) };

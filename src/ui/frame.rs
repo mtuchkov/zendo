@@ -26,6 +26,7 @@ pub struct Frame {
     pub(super) sound_button: Option<Rect>,
     pub(super) music_button: Option<Rect>,
     pub(super) spec_button: Option<Rect>,
+    pub(super) upgrade_button: Option<Rect>,
     pub(super) music_answers: Option<(Rect, Rect)>,
 }
 
@@ -108,6 +109,11 @@ impl Frame {
 
     pub fn music_button(&self) -> Option<Rect> {
         self.music_button
+    }
+
+    /// The upgrade button, for the mouse (CMD-11).
+    pub fn upgrade_button(&self) -> Option<Rect> {
+        self.upgrade_button
     }
 
     /// The two answers of the music question: keep on, turn off.
