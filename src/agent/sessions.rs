@@ -59,7 +59,7 @@ pub(super) async fn model_session(
 }
 
 /// Close a session that zendo no longer uses, where the agent can, so that the agent frees what it
-/// holds for it: its process and its MCP servers (issue #5). A pending turn of it ends as cancelled.
+/// holds for it: its process and its MCP servers (ADR 0009). A pending turn of it ends as cancelled.
 /// It waits for the answer: a next command can load the same session again (`cli_tick`).
 pub(super) async fn close_session(cx: &agent_client_protocol::v1::ConnectionTo<Agent>, id: SessionId, can_close: bool) {
     if can_close {

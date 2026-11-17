@@ -36,6 +36,7 @@ impl Tree {
             }
         }
         files.sort();
+        self.drop_changes();
         self.files = files;
         self.dirs = dirs;
         self.root = root.to_path_buf();
@@ -43,8 +44,9 @@ impl Tree {
         self.scanned = Some(Instant::now());
     }
 
+    /// Older than the scan interval, or never filled; not while git reads the changes (ADR 0009).
     pub fn stale(&self) -> bool {
-        self.scanned.is_none_or(|t| t.elapsed() > Duration::from_secs(5))
+        !self.scanning() && self.scanned.is_none_or(|t| t.elapsed() > Duration::from_secs(5))
     }
 
     /// The files whose path has every word of `q`, in any case; more words in the file name come first.

@@ -103,6 +103,8 @@ pub struct Tree {
     pub worktree: Option<PathBuf>,
     /// The deleted files in the worktree changed view (FILES-35).
     pub deleted: BTreeSet<PathBuf>,
+    /// Git for the worktree changed view (ADR 0009).
+    git: changes::Changes,
     docs: GlobMatcher,
 }
 
@@ -125,6 +127,7 @@ impl Default for Tree {
             notes_files: Vec::new(),
             worktree: None,
             deleted: BTreeSet::new(),
+            git: changes::Changes::default(),
             docs: Glob::new(DOCS_GLOB).expect("valid glob").compile_matcher(),
         }
     }
@@ -136,6 +139,7 @@ struct Node {
     files: Vec<String>,
 }
 
+mod changes;
 mod notes;
 mod scan;
 mod sections;
@@ -251,6 +255,7 @@ impl Tree {
         if let Some(i) = self.rows().iter().position(|r| r.rel == rel) {
             self.sel = i;
         }
+        self.reveal_later(rel);
     }
 
     pub fn toggle(&mut self, rel: &Path) {

@@ -110,7 +110,7 @@ fn syncer_commits_on_its_own_and_at_exit() {
     let _ = std::fs::remove_dir_all(&base);
 }
 
-// FILES-27, issue #5: an output larger than the pipe buffer (64 KB on Linux) comes back whole and
+// FILES-27, ADR 0009: an output larger than the pipe buffer (64 KB on Linux) comes back whole and
 // at once, not after the time limit as an error.
 #[test]
 fn a_large_output_does_not_hang_git() {

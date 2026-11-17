@@ -142,7 +142,7 @@ fn closed(log: &std::path::Path) -> Vec<String> {
     sent.filter(|m| m["method"] == "session/close").filter_map(|m| m["params"]["sessionId"].as_str().map(str::to_string)).collect()
 }
 
-// NAMES-12, issue #5: a session that zendo replaces with a new one for the same key, or forgets,
+// NAMES-12, ADR 0009: a session that zendo replaces with a new one for the same key, or forgets,
 // is closed, so that the agent frees it (its process and its MCP servers).
 #[tokio::test]
 async fn replaced_and_forgotten_sessions_are_closed() {

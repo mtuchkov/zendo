@@ -34,6 +34,9 @@ pub(crate) fn draw_tree(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme,
                 format!("Agent session {} has no worktree yet: .worktrees/{} comes when its agent changes code.", app.state.session + 1, app.state.session + 1)
             }
             View::Worktree => "No text files in the worktree.".to_string(),
+            // ADR 0009: git reads the changes on a thread, and its error shows.
+            View::WorktreeChanged if let Some(e) = app.files.tree().error() => format!("Cannot read the changes against main: {e}"),
+            View::WorktreeChanged if app.files.tree().scanning() => "Reading the changes against main…".to_string(),
             View::WorktreeChanged => "No changes against main.".to_string(),
         };
         f.render_widget(Paragraph::new(markdown::wrap(vec![Span::styled(msg, dim)], w.saturating_sub(1), " ", " ")), body);
