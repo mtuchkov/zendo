@@ -2,8 +2,9 @@
 //! name model names the image in a throwaway session; then it says `Image: <name>` (CLAUDE-37 to
 //! CLAUDE-39). The question is in no thread.
 use super::*;
+use crate::agent::api::Question;
 use crate::agent::{Attachment, Event};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub const IMAGE_PREFIX: &str = "(image) ";
 /// The longest name, in chars.
@@ -13,9 +14,12 @@ pub const IMAGE_PROMPT: &str = "Name this image with one to three short lowercas
 shows, such as `login form` or `error dialog`. Answer with the name alone on one line.";
 
 impl App {
-    /// Ask the name model for a name of the pasted image at `path`, where the agent takes images
-    /// (CLAUDE-37, CLAUDE-39).
+    /// Ask the name model for a name of the pasted image at `path`: through the API of the agent,
+    /// else in a throwaway session where the agent takes images (CLAUDE-37, CLAUDE-39, NAMES-15).
     pub(crate) fn name_image(&mut self, path: PathBuf) {
+        if self.link.api().is_some() {
+            return self.link.ask_api(Question::Image(path.clone()), IMAGE_PROMPT.into(), Some(path));
+        }
         let Some(a) = self.link.handle().filter(|_| self.link.images()) else { return };
         let key = format!("{IMAGE_PREFIX}{}", path.display());
         if let Some(model) = self.link.name_model() {
@@ -36,13 +40,20 @@ impl App {
         }
     }
 
-    /// The naming turn ended: the name labels the chip of the image, while it is in the input
-    /// (CLAUDE-38).
+    /// The naming turn ended in its throwaway session.
     fn image_named(&mut self, key: &str, ok: bool) {
         let Some((path, buf)) = self.link.take_image(key) else { return };
         self.link.send(Cmd::Forget { key: key.to_string() });
-        let has = |c: &crate::app::Chip| matches!(&c.attach, Some(Attachment::Image(p)) if *p == path);
-        if let (true, Some(name), Some(old)) = (ok, image_name(&buf), self.composer.chips().iter().find(|c| has(c)).map(|c| c.label.clone())) {
+        if ok {
+            self.label_image(&path, &buf);
+        }
+    }
+
+    /// The answer for the image at `path`: the name labels its chip, while it is in the input
+    /// (CLAUDE-38).
+    pub(super) fn label_image(&mut self, path: &Path, answer: &str) {
+        let has = |c: &crate::app::Chip| matches!(&c.attach, Some(Attachment::Image(p)) if p == path);
+        if let (Some(name), Some(old)) = (image_name(answer), self.composer.chips().iter().find(|c| has(c)).map(|c| c.label.clone())) {
             self.composer.rename_chip(&old, &format!("Image: {name}"));
         }
     }

@@ -1,6 +1,8 @@
 //! A zendo app in a test: a repository in a temp folder, the mock agent, a test terminal, keys.
 #![allow(dead_code)]
 
+pub mod http;
+
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};

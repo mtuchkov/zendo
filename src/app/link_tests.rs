@@ -25,18 +25,14 @@ fn the_agent_is_ready_with_its_name_and_leaves_a_reason_when_it_goes() {
     assert!(!l.running());
 }
 
-// ADR 0008, NAMES-10, NAMES-14: each answer that keeps the name counts, up to a limit, and the
-// next question keeps the count.
+// ADR 0008, NAMES-10: the link keeps the size and the time of the last question for a name.
 #[test]
-fn the_answers_that_keep_a_name_are_counted() {
+fn the_last_question_for_a_name_is_kept() {
     let mut l = AgentLink::default();
-    l.name_kept("id", 3);
-    assert!(l.asked("id").is_none(), "no question: nothing to count");
+    assert!(l.asked("id").is_none());
     l.ask_name("id", 10);
-    assert_eq!(l.asked("id").map(|a| (a.size, a.keeps)), Some((10, 0)));
-    (0..5).for_each(|_| l.name_kept("id", 3));
     l.ask_name("id", 40);
-    assert_eq!(l.asked("id").map(|a| (a.size, a.keeps)), Some((40, 3)));
+    assert_eq!(l.asked("id").map(|a| a.size), Some(40));
 }
 
 // ADR 0008, CLAUDE-37: the answer for the name of an image comes in parts, and goes with the turn.

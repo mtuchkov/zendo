@@ -1,8 +1,7 @@
 ---
-status: "implemented"
-approved: "2026-11-14"
-revision: "2"
-date: "2026-11-14"
+status: "draft"
+revision: "3"
+date: "2026-11-17"
 parent: "../zendo.md"
 prev: "../sessions.md"
 next: "../handoff.md"
@@ -10,7 +9,7 @@ children:
   - "session-names-rename.md"
   - "session-names-buttons.md"
 level: "the names of the agent sessions: when they come, how long they stay, where they show"
-note: "From the requests of the user on 2026-11-14; the user approved the requirements in the chat. NAMES-8, NAMES-11 to NAMES-13 came later on the same day. Revision 2 (approved by the user on 2026-11-14, implemented in zendo 0.70.0) names a session from its first agent message, during the turn; the questions again and the rename (NAMES-10, NAMES-14) and the buttons (NAMES-6, NAMES-8, NAMES-11) moved to child documents."
+note: "From the requests of the user on 2026-11-14; the user approved the requirements in the chat. NAMES-8, NAMES-11 to NAMES-13 came later on the same day. Revision 2 (approved by the user on 2026-11-14, implemented in zendo 0.70.0) names a session from its first agent message, during the turn. Revision 3 (draft, from the requests of the user on 2026-11-17): a name does not change while its Claude session lasts (NAMES-14 retired, NAMES-17), and zendo asks the API of the configured agent directly when the environment has its key (NAMES-15, NAMES-16, ADR 0010)."
 ---
 
 # Session names
@@ -19,18 +18,29 @@ Each agent session (`F6` to `F10`, see [Threads](../threads.md)) gets a name of 
 its conversation is about, for example `parser`. The name stands next to the key of the session.
 
 **When a name comes.** As soon as the thread of a Claude session has a question of the user and one
-message of the agent, intermediate or final, zendo asks a light model of the agent for a name in the
-background, outside the thread of the session; it does not wait for the end of the turn. Later
-questions, while the topic is not clear yet and to change a name that no longer fits, are in
-[Session names: rename](session-names-rename.md). The config names the model
-for each agent in `[name_models]` of `~/.zendo/config.toml`; by default `haiku` for Claude and `luna`
-for Codex. No two agent sessions have the same name.
+message of the agent, intermediate or final, zendo asks a light model for a name in the background,
+outside the thread of the session; it does not wait for the end of the turn. While the topic is not
+clear yet, zendo asks again; see [Session names: rename](session-names-rename.md). The config names
+the model for each agent in `[name_models]` of `~/.zendo/config.toml`; by default `haiku` for Claude
+and `luna` for Codex. No two agent sessions have the same name.
+
+**Who answers.** The question needs one word back, so zendo sends it straight to the API of the
+agent that the config names: the Anthropic Messages API for Claude, the OpenAI Responses API for
+Codex. The credential comes from the environment of zendo or from `[env]` of the config:
+`ANTHROPIC_API_KEY` for Claude, `OPENAI_API_KEY` or `CODEX_API_KEY` for Codex. For Claude without a
+key, zendo takes the sign-in of the `ant` CLI (`ant auth login`, a Claude Console sign-in) through
+`ant auth print-credentials --access-token`. Without any of these, zendo asks the agent in a
+throwaway session, as before. A login with a Claude subscription gives no API credential, and the
+terms of Anthropic do not let a third-party program use the subscription token; the throwaway
+session runs in the agent itself, so it can use the subscription (ADR 0010). The names of pasted
+images ([Chat](../chat.md), CLAUDE-37) take the same way.
 
 **How long a name stays.** A name belongs to one Claude session, the conversation with one session
-ID: it stays when zendo starts again, and when the user continues the session in Claude Code. A new
-Claude session, such as a new thread in the chat or `/clear` in Claude Code, has no name until its
-own first agent message. zendo learns about a new Claude session from the agent and from the hooks of each
-run of Claude Code (SESSIONS-18), so it needs no periodic check (Design).
+ID. It does not change while that session lasts: zendo asks no more questions for it. It stays when
+zendo starts again, and when the user continues the session in Claude Code. A new Claude session,
+such as a new thread in the chat or `/clear` in Claude Code, has no name until its own first agent
+message. zendo learns about a new Claude session from the agent and from the hooks of each run of
+Claude Code (SESSIONS-18), so it needs no periodic check (Design).
 
 **Where a name shows.** After the key of the session: on its button, in the bottom line of the
 session view, and in the top line; see [Session names: buttons](session-names-buttons.md). The
@@ -40,17 +50,22 @@ terminals get no name.
 
 | ID       | Pattern    | Requirement | Source |
 | -------- | ---------- | ----------- | ------ |
-| NAMES-1  | Event      | When the thread of a Claude session of an agent session has a question of the user and a message of the agent, the system shall ask the agent for a name of one word that tells what the conversation is about, also while the turn runs. | User, 2026-11-14 |
+| NAMES-1  | Event      | When the thread of a Claude session of an agent session has a question of the user and a message of the agent, the system shall ask for a name of one word that tells what the conversation is about, also while the turn runs. | User, 2026-11-14 |
 | NAMES-2  | Ubiquitous | The system shall give each agent session a name that no other agent session has. | User, 2026-11-14 |
-| NAMES-3  | State      | While a Claude session lasts, the system shall keep the name of its agent session, also after zendo starts again, and change it only by NAMES-14 ([rename](session-names-rename.md)). | User, 2026-11-14 |
+| NAMES-3  | State      | While a Claude session lasts, the system shall keep the name of its agent session, also after zendo starts again. | User, 2026-11-14 |
+| NAMES-17 | State      | While the Claude session of an agent session has a name, the system shall not ask for a name of that session. | User, 2026-11-17 |
 | NAMES-4  | Event      | When a new Claude session starts in an agent session, the system shall remove the name of the agent session within 1 s. | User, 2026-11-14 |
 | NAMES-5  | Ubiquitous | The system shall give no name to a terminal. | User, 2026-11-14 |
 | NAMES-12 | Ubiquitous | The system shall get the names from the model that `[name_models]` of the config names for the agent: by default `haiku` for Claude and `luna` for Codex. | User, 2026-11-14 |
+| NAMES-15 | Optional   | Where the configured agent has an API credential, the system shall ask for the names of the agent sessions and of the pasted images through the API of that agent: the Anthropic Messages API for Claude, the OpenAI Responses API for Codex. | User, 2026-11-17 |
+| NAMES-16 | Unwanted   | If the configured agent has no API credential, then the system shall ask the agent for the names in a throwaway session. | User, 2026-11-17 |
+| NAMES-20 | Optional   | Where the agent is Claude and the environment and `[env]` of the config have no `ANTHROPIC_API_KEY`, the system shall use the access token that `ant auth print-credentials --access-token` prints, if the command succeeds. | User, 2026-11-17 |
 
 ### Acceptance tests
 
 The tests are in `tests/session_names.rs`, with the mock agent and the mock command line of
 [Sessions](../sessions.md). The mock agent gives the same list of names to each question for a name.
+A mock API server on `127.0.0.1` answers as the Anthropic or the OpenAI API.
 
 **`the_first_agent_message_names_the_session`** (mock agent; verifies NAMES-1, NAMES-5, NAMES-6,
 NAMES-9)
@@ -74,6 +89,12 @@ NAMES-9)
 - When zendo starts again.
 - Then the button of agent session 1 shows the same name, before any question.
 
+**`a_named_session_keeps_its_name`** (mock agent; verifies NAMES-3, NAMES-17)
+
+- Given agent session 1 with a name.
+- When the conversation grows by more than 600 characters in two more turns.
+- Then zendo asks no more questions for a name, and the button shows the same name.
+
 **`a_new_claude_session_clears_the_name`** and **`a_new_thread_clears_the_name`** (mock agent,
 mock command line; verify NAMES-4)
 
@@ -87,6 +108,33 @@ mock command line; verify NAMES-4)
 - When agent session 1 gets its first answer.
 - Then the mock agent names the session with that model, or with its default model.
 
+**`the_anthropic_api_names_a_claude_session`** and **`the_openai_api_names_a_codex_session`**
+(mock API server; verify NAMES-15, NAMES-18)
+
+- Given a Claude or a Codex agent with an API key, and the mock API server.
+- When agent session 1 gets its first agent message.
+- Then the mock server gets one request to `/v1/messages` with `x-api-key`, or to `/v1/responses`
+  with a bearer token, for the API model of the config; the button shows the first word of its
+  answer; the mock agent gets no question for the name.
+
+**`a_pasted_image_gets_its_name_from_the_api`** (mock API server; verifies NAMES-15, CLAUDE-37,
+CLAUDE-38)
+
+- Given a Claude agent with an API key, and the mock API server.
+- When the user pastes an image.
+- Then the mock server gets the image in base64, and the chip shows `Image: <name>` of its answer.
+
+**`the_ant_sign_in_is_the_claude_credential`** (unit test in `src/agent/api/api_tests.rs`, with a
+mock `ant` script; verifies NAMES-20)
+
+- Given a Claude agent, no `ANTHROPIC_API_KEY`, and a mock `ant` that prints a token.
+- When zendo asks through the API.
+- Then the request has `Authorization: Bearer <token>`; with a mock `ant` that fails, the agent has
+  no API credential.
+
+The fallback of NAMES-16 is the way of all the other tests, where the mock agent has no API
+credential.
+
 ## Detailed requirements
 
 | ID       | Pattern    | Requirement | Source |
@@ -94,5 +142,11 @@ mock command line; verify NAMES-4)
 | NAMES-7  | Event      | When the user continues a Claude session in Claude Code, the system shall keep its name. | User, 2026-11-14 |
 | NAMES-9  | Ubiquitous | The system shall get a name without a message in the thread of the agent session. | Design |
 | NAMES-13 | Unwanted   | If the agent has no model of the name in the config, or the config names none, then the system shall get the name from the default model of the agent. | Design |
+| NAMES-18 | Optional   | Where the system asks through the API, it shall send the short model names `haiku`, `sonnet` and `opus` as `claude-haiku-5-5`, `claude-sonnet-5-5` and `claude-opus-5-5`, `luna` and `sol` as `gpt-6-luna` and `gpt-6-sol`, and any other name as the config writes it. | Design |
+| NAMES-19 | Unwanted   | If the API answers with an error, then the system shall show the error once in the flash line and ask again by NAMES-10. | Design |
 
-Tests of NAMES-7 and NAMES-6 in `tests/session_names.rs`: `the_bottom_line_shows_the_name`.
+The API takes `ANTHROPIC_BASE_URL` and `OPENAI_BASE_URL` for its address, as the agents do.
+
+Tests of NAMES-7 and NAMES-6 in `tests/session_names.rs`: `the_bottom_line_shows_the_name`; of
+NAMES-19: `an_error_of_the_api_shows_once`. Tests of NAMES-18 and of the keys in
+`src/agent/api/api_tests.rs`.

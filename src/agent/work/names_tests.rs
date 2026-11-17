@@ -34,28 +34,23 @@ fn told_needs_a_question_and_a_complete_agent_message() {
     assert_eq!(told(&[q.clone(), m.clone(), tools(&["Read a.rs"])], true), Some(43), "a tool call ends the message; its title counts");
 }
 
-// NAMES-1, NAMES-10, NAMES-14: the first question comes at once; the next one after 200 more
-// characters or 30 s more of a running turn with something new, both doubled by each kept name.
+// NAMES-1, NAMES-10: the first question comes at once; the next one after 200 more characters or
+// 30 s more of a running turn with something new.
 #[test]
-fn due_after_the_thresholds_doubled_by_each_kept_name() {
+fn due_after_200_characters_or_30_seconds() {
     let t0 = Instant::now();
     let s = |n| Duration::from_secs(n);
     assert!(due(10, None, None, t0), "first question");
-    let last = Asked { size: 100, at: t0, keeps: 0 };
+    let last = Asked { size: 100, at: t0 };
     assert!(!due(299, None, Some(&last), t0 + s(99)), "199 more characters, no turn");
     assert!(due(300, None, Some(&last), t0), "200 more characters");
     assert!(!due(101, Some(t0), Some(&last), t0 + s(29)), "29 s of the turn");
     assert!(due(101, Some(t0), Some(&last), t0 + s(30)), "30 s of the turn");
     assert!(!due(100, Some(t0), Some(&last), t0 + s(60)), "nothing new");
     assert!(!due(101, Some(t0 + s(20)), Some(&last), t0 + s(40)), "the turn runs 20 s only");
-    let kept = Asked { keeps: 2, ..last };
-    assert!(!due(500, None, Some(&kept), t0), "two kept names: 800 more characters");
-    assert!(due(900, None, Some(&kept), t0));
-    assert!(!due(101, Some(t0), Some(&kept), t0 + s(119)), "two kept names: 120 s");
-    assert!(due(101, Some(t0), Some(&kept), t0 + s(120)));
 }
 
-// NAMES-14: the question for a name has the first message and the last ones, with tool calls.
+// NAMES-1: the question for a name has the first message and the last ones, with tool calls.
 #[test]
 fn the_conversation_has_the_first_and_the_last_messages() {
     let mut items = vec![Item::User("first".into())];
