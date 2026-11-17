@@ -125,11 +125,12 @@ impl AgentLink {
         self.asked.insert(id.to_string(), Asked { size, at: Instant::now() });
     }
 
-    /// The API that `find` gave: a key is ready at once; the sign-in of `ant` waits for a check on a
-    /// thread, since `ant` may refresh its token over the network (NAMES-20).
+    /// The API that `find` gave: a key is ready at once; the sign-in of `ant` or of `claude` waits
+    /// for a check on a thread, since the CLI may refresh its token over the network (NAMES-20,
+    /// NAMES-21).
     pub fn start_api(&mut self, api: Option<Api>) {
         self.api = match api {
-            Some(a) if matches!(a.cred, Credential::Ant(_)) => {
+            Some(a) if !matches!(a.cred, Credential::Key(_)) => {
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || drop(tx.send(Some(a).filter(Api::usable))));
                 ApiState::Pending(rx)

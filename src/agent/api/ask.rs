@@ -51,6 +51,9 @@ impl Asker {
 /// applies.
 pub fn ask(api: &Api, prompt: &str, image: Option<&Path>) -> Result<String, String> {
     let image = image.map(read_image).transpose()?;
+    if let Credential::Claude(path) = &api.cred {
+        return cli::ask(path, api, prompt, image.as_ref());
+    }
     let token = api.token()?;
     let agent: ureq::Agent = ureq::Agent::config_builder().timeout_global(Some(LIMIT)).http_status_as_error(false).build().into();
     let req = api.headers(&token).into_iter().fold(agent.post(&api.url()), |r, (k, v)| r.header(k, v));

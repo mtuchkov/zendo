@@ -1,10 +1,12 @@
 //! The model API of the configured agent, for the questions that need one word back: the names of
 //! the agent sessions and of the pasted images (docs/zendo/session-names/session-names.md,
 //! NAMES-15 to NAMES-20, ADR 0010). Claude asks the Anthropic Messages API, Codex the OpenAI
-//! Responses API. Without a credential there is no API, and zendo asks the agent in a throwaway
-//! session (NAMES-16).
+//! Responses API; a Claude user with a subscription only asks through `claude -p` (NAMES-21).
+//! Without any of these there is no API, and zendo asks the agent in a throwaway session
+//! (NAMES-16).
 
 mod ask;
+mod cli;
 
 pub use ask::{Answer, Asker, Question};
 
@@ -27,6 +29,8 @@ pub enum Credential {
     Key(String),
     /// The `ant` CLI at this path: its sign-in gives a token for each question (NAMES-20).
     Ant(PathBuf),
+    /// The `claude` CLI at this path, with the login of the user, also a subscription (NAMES-21).
+    Claude(PathBuf),
 }
 
 /// The API of the configured agent: where it is, the model and the credential.
@@ -52,13 +56,15 @@ const OPENAI_TOKENS: u32 = 2048;
 
 impl Api {
     /// The API of an agent of `kind` with the name model `model`, if it has a credential: for Claude
-    /// `ANTHROPIC_API_KEY`, else the `ant` CLI at `ant`; for Codex `OPENAI_API_KEY`, else
-    /// `CODEX_API_KEY` (NAMES-15, NAMES-16, NAMES-20). `env` reads a variable.
-    pub fn find(kind: Kind, model: Option<String>, env: &dyn Fn(&str) -> Option<String>, ant: Option<PathBuf>) -> Option<Self> {
+    /// `ANTHROPIC_API_KEY`, else the `ant` CLI, else the `claude` CLI; for Codex `OPENAI_API_KEY`,
+    /// else `CODEX_API_KEY` (NAMES-15, NAMES-16, NAMES-20, NAMES-21). `env` reads a variable, and
+    /// `which` finds a program on the `PATH`.
+    pub fn find(kind: Kind, model: Option<String>, env: &dyn Fn(&str) -> Option<String>, which: &dyn Fn(&str) -> Option<PathBuf>) -> Option<Self> {
         let var = |k: &str| env(k).map(|v| v.trim().to_string()).filter(|v| !v.is_empty());
         let (vendor, base, cred) = match kind {
             Kind::Claude => {
-                let cred = var("ANTHROPIC_API_KEY").map(Credential::Key).or_else(|| ant.map(Credential::Ant))?;
+                let cli = || which("ant").map(Credential::Ant).or_else(|| which("claude").map(Credential::Claude));
+                let cred = var("ANTHROPIC_API_KEY").map(Credential::Key).or_else(cli)?;
                 (Vendor::Anthropic, var("ANTHROPIC_BASE_URL").unwrap_or_else(|| "https://api.anthropic.com".into()), cred)
             }
             Kind::Codex => {
@@ -79,17 +85,23 @@ impl Api {
         }
     }
 
-    /// The secret for the headers: the key, or a fresh token of `ant` (NAMES-20).
+    /// The secret for the headers: the key, or a fresh token of `ant` (NAMES-20). The `claude` CLI
+    /// keeps its login to itself.
     pub fn token(&self) -> Result<String, String> {
         match &self.cred {
             Credential::Key(k) => Ok(k.clone()),
             Credential::Ant(path) => ant_token(path),
+            Credential::Claude(_) => Err("the claude CLI has no token for zendo".into()),
         }
     }
 
-    /// True when the credential gives a token now: a key always, `ant` when it is signed in.
+    /// True when the credential works now: a key always, `ant` and `claude` when they are signed
+    /// in (NAMES-20, NAMES-21).
     pub fn usable(&self) -> bool {
-        self.token().is_ok()
+        match &self.cred {
+            Credential::Claude(path) => cli::logged_in(path),
+            _ => self.token().is_ok(),
+        }
     }
 
     /// The headers of a question with the secret `token`.
@@ -177,9 +189,9 @@ fn ant_token(path: &Path) -> Result<String, String> {
     }
 }
 
-/// The `ant` CLI on the `PATH`, if there is one.
-pub fn ant_on_path() -> Option<PathBuf> {
-    std::env::split_paths(&std::env::var_os("PATH")?).map(|d| d.join("ant")).find(|p| p.is_file())
+/// The program `name` on the `PATH`, if there is one.
+pub fn on_path(name: &str) -> Option<PathBuf> {
+    std::env::split_paths(&std::env::var_os("PATH")?).map(|d| d.join(name)).find(|p| p.is_file())
 }
 
 #[cfg(test)]

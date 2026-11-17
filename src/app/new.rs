@@ -13,7 +13,7 @@ impl App {
         let kind = crate::setup::config::kind_of(&cfg.agent);
         let name_model = user.name_model(kind);
         let env = |k: &str| cfg.agent_env.get(k).cloned().or_else(|| std::env::var(k).ok());
-        let api = crate::agent::api::Api::find(kind, name_model.clone(), &env, crate::agent::api::ant_on_path());
+        let api = crate::agent::api::Api::find(kind, name_model.clone(), &env, &crate::agent::api::on_path);
         crate::text::highlight::init(user.highlight.as_ref());
         let mut app = Self {
             cfg,

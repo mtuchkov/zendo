@@ -7,9 +7,16 @@ fn env(pairs: &[(&str, &str)]) -> HashMap<String, String> {
     pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
 }
 
-fn find(kind: Kind, pairs: &[(&str, &str)], ant: Option<&str>) -> Option<Api> {
+/// `find` with the variables `pairs` and the programs `progs` (name, path) on the `PATH`.
+fn find_with(kind: Kind, pairs: &[(&str, &str)], progs: &[(&str, &str)]) -> Option<Api> {
     let e = env(pairs);
-    Api::find(kind, Some("haiku".into()), &|k| e.get(k).cloned(), ant.map(PathBuf::from))
+    let which = |n: &str| progs.iter().find(|(k, _)| *k == n).map(|(_, p)| PathBuf::from(p));
+    Api::find(kind, Some("haiku".into()), &|k| e.get(k).cloned(), &which)
+}
+
+fn find(kind: Kind, pairs: &[(&str, &str)], ant: Option<&str>) -> Option<Api> {
+    let progs: Vec<(&str, &str)> = ant.map(|a| ("ant", a)).into_iter().collect();
+    find_with(kind, pairs, &progs)
 }
 
 // NAMES-15, NAMES-16: the API follows the kind of the configured agent, and needs its credential.
@@ -28,7 +35,7 @@ fn the_api_follows_the_configured_agent() {
     assert!(find(Kind::Other, &[("ANTHROPIC_API_KEY", "a"), ("OPENAI_API_KEY", "o")], None).is_none(), "another agent");
     assert!(find(Kind::Claude, &[("ANTHROPIC_API_KEY", " ")], None).is_none(), "an empty key");
     let e = env(&[("ANTHROPIC_API_KEY", "a")]);
-    assert!(Api::find(Kind::Claude, None, &|k| e.get(k).cloned(), None).is_none(), "no model");
+    assert!(Api::find(Kind::Claude, None, &|k| e.get(k).cloned(), &|_| None).is_none(), "no model");
 }
 
 // NAMES-15: the agents take `ANTHROPIC_BASE_URL` and `OPENAI_BASE_URL`; so does zendo.
@@ -49,9 +56,21 @@ fn the_ant_cli_is_the_credential_of_claude_without_a_key() {
     assert!(find(Kind::Codex, &[], Some("/bin/ant")).is_none());
 }
 
+// NAMES-21: without a key and without `ant`, the `claude` CLI is the credential of Claude; never of
+// Codex.
+#[test]
+fn the_claude_cli_is_the_credential_of_claude_last() {
+    let both = [("ant", "/bin/ant"), ("claude", "/bin/claude")];
+    assert_eq!(find_with(Kind::Claude, &[], &both[1..]).unwrap().cred, Credential::Claude("/bin/claude".into()));
+    assert_eq!(find_with(Kind::Claude, &[], &both).unwrap().cred, Credential::Ant("/bin/ant".into()), "ant first");
+    assert_eq!(find_with(Kind::Claude, &[("ANTHROPIC_API_KEY", "a")], &both).unwrap().cred, Credential::Key("a".into()), "the key first");
+    assert!(find_with(Kind::Codex, &[], &both).is_none());
+}
+
 /// A script in a folder of its own that prints `out` and ends with `code`, as a mock `ant`.
 fn mock_ant(name: &str, out: &str, code: i32) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("zendo-ant-{name}-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("ant");
     std::fs::write(&path, format!("#!/bin/sh\n[ \"$*\" = \"auth print-credentials --access-token\" ] || exit 9\necho '{out}'\nexit {code}\n")).unwrap();

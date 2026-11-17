@@ -344,3 +344,29 @@ async fn an_error_of_the_api_shows_once() {
     assert!(a.flash.is_none(), "the error shows once: {:?}", a.flash);
     done(&root, &mut a);
 }
+
+/// A mock `claude` in the folder `root`: `-p` reads one message and answers `words`.
+fn mock_claude(root: &std::path::Path, words: &str) -> std::path::PathBuf {
+    let path = root.join("mock-claude");
+    let result = format!("{{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"{words}\"}}");
+    std::fs::write(&path, format!("#!/bin/sh\nread line\necho \"$line\" > \"$0.in\"\necho '{result}'\n")).unwrap();
+    let mut p = std::fs::metadata(&path).unwrap().permissions();
+    std::os::unix::fs::PermissionsExt::set_mode(&mut p, 0o755);
+    std::fs::set_permissions(&path, p).unwrap();
+    path
+}
+
+// NAMES-21: a Claude user with a subscription only names the session through `claude -p`; the mock
+// agent, which would say `mock`, gets no question for the name.
+#[cfg(unix)]
+#[tokio::test(flavor = "multi_thread")]
+async fn claude_p_names_a_claude_session() {
+    let root = repo("names-claude-p", &[("README.txt", "no notes\n")]);
+    let cli = mock_claude(&root, "hooks, layout");
+    let mut a = app(&root);
+    a.link.set_api(Some(Api { cred: Credential::Claude(cli.clone()), ..api_at(Vendor::Anthropic, "unused", "haiku") }));
+    assert_eq!(named(&mut a, 0).await, "hooks");
+    let sent = std::fs::read_to_string(root.join("mock-claude.in")).unwrap();
+    assert!(sent.contains("Name this conversation") && sent.contains("first question"), "{sent}");
+    done(&root, &mut a);
+}

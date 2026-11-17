@@ -2,8 +2,9 @@
 status: "draft"
 date: "2026-11-17"
 sources:
-  - "The user, 2026-11-17: a name shall not change while its session runs; use the AI API directly in place of agent sessions, since only one word comes back; the API depends on the configured agent, Claude or Codex; fall back to a session without a key; consider the sign-in of the `ant` CLI."
-  - "../../zendo/session-names/session-names.md (NAMES-15 to NAMES-20)"
+  - "The user, 2026-11-17: a name shall not change while its session runs; use the AI API directly in place of agent sessions, since only one word comes back; the API depends on the configured agent, Claude or Codex; fall back to a session without a key; consider the sign-in of the `ant` CLI; Anthropic encourages local development with the Agent SDK and `claude -p`."
+  - "Claude Code docs, headless mode: `claude -p` on subscription plans draws from the Agent SDK credit of the plan (since 2026-06-15)."
+  - "../../zendo/session-names/session-names-api.md (NAMES-15 to NAMES-21)"
   - "../../zendo/chat.md (CLAUDE-37 to CLAUDE-39)"
   - "ADR 0001 (Claude through ACP)"
   - "Claude Platform docs, CLI authentication and scripting: scripts may call the API with the token of `ant auth print-credentials --access-token`."
@@ -25,8 +26,9 @@ Claude or Codex. Three credentials exist on a machine of a user:
 - an API key in the environment: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` or `CODEX_API_KEY`;
 - the Claude Console sign-in of the `ant` CLI, which the docs allow for any HTTP client;
 - the subscription sign-in of Claude Code or of Codex. The terms of Anthropic forbid the Claude
-  subscription token in third-party tools, and the server refuses it. The ChatGPT token of Codex
-  works only with an endpoint that OpenAI does not document.
+  subscription token in third-party tools, and the server refuses it, but they allow `claude -p`
+  with a subscription for local use. The ChatGPT token of Codex works only with an endpoint that
+  OpenAI does not document.
 
 ## Options
 
@@ -36,7 +38,8 @@ Claude or Codex. Three credentials exist on a machine of a user:
 | Direct API with a key or the `ant` sign-in, else the throwaway session | Fast, small requests; no agent context; a subscription user still gets names. | Two ways to keep; an HTTP client dependency. |
 | Direct API only | One way. | No names for a user with a subscription only. |
 | Subscription tokens of the agents | No key needed. | Against the terms of Anthropic; undocumented for Codex. |
-| `claude -p` / `codex exec` | Uses every login. | A full agent run per word; still an agent session. |
+| `claude -p` with no tools, settings or MCP servers, after a key and `ant` | Uses the subscription as Anthropic allows; a short system prompt. | A process start per question (about 1 s); Claude only. |
+| `codex exec` | Uses every login of Codex. | A full agent run per word. |
 
 ## Decision
 
@@ -66,15 +69,20 @@ Proposal, not yet accepted: the direct API with a fallback to the throwaway sess
   has an API, and through a throwaway session when it has none.
 - The question for a rename is gone (NAMES-14 retired, NAMES-17): fewer questions in all.
 - The mapping of short model names needs an update when the vendors release new models.
-- The `ant` sign-in bills the Console workspace, not a subscription.
+- The `ant` sign-in bills the Console workspace, not a subscription. `claude -p` draws from the
+  Agent SDK credit of the subscription.
+- `claude -p` without `--bare` still reads `~/.claude/CLAUDE.md`; `--bare` would skip it but reads
+  no subscription login.
 
 ## Verification
 
 - `tests/session_names.rs`: `the_anthropic_api_names_a_claude_session`,
   `the_openai_api_names_a_codex_session`, `a_pasted_image_gets_its_name_from_the_api` with a mock
   HTTP server; the other tests cover the fallback.
+- `tests/session_names.rs`: `claude_p_names_a_claude_session` with a mock `claude`.
 - `src/agent/api/api_tests.rs`: the choice of the API and of the credential, the `ant` token, the
   bodies of the requests, the parse of the answers, and the model names.
+- `src/agent/api/cli_tests.rs`: the flags of `claude -p`, its input line, its login, its result.
 
 ## Decision record
 
