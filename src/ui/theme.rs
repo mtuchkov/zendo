@@ -125,7 +125,7 @@ pub const THEMES: [Theme; 4] = [
 ];
 
 /// The float color of a dark theme: sand.
-const SAND: Color = hex(0xD2CCBF);
+const SAND: Color = hex(0xEEEAE0);
 /// The float color of a light theme: umber.
 const UMBER: Color = hex(0x2B2722);
 
@@ -135,12 +135,12 @@ const ON_SAND: Theme = Theme {
     blurb: "the float of a dark theme",
     bg: SAND,
     // The background of code: a darker sand.
-    panel: hex(0xC7C0B0),
+    panel: hex(0xE3DED1),
     float: SAND,
     fg: hex(0x26231D),
     dim: hex(0x5F584C),
     line: hex(0xA79F8E),
-    sel: hex(0xC3BBAA),
+    sel: hex(0xDFD9CB),
     acc: hex(0x9A4305),
     acc2: hex(0x1D6496),
     add: hex(0x2E6B3A),

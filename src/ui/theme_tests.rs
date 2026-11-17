@@ -68,3 +68,12 @@ fn the_float_stands_out_of_its_theme() {
         assert!(contrast(f.fg, f.panel) >= 7.0, "{}: code reads", t.name);
     }
 }
+
+// FLOAT-16: the float of a dark theme is a light sand, #EEEAE0, the color that the user chose on
+// 2026-11-17.
+#[test]
+fn the_float_of_a_dark_theme_is_light_sand() {
+    for t in THEMES.iter().filter(|t| luminance(t.bg) < 0.5) {
+        assert_eq!(t.float, Color::Rgb(0xEE, 0xEA, 0xE0), "{}", t.name);
+    }
+}
