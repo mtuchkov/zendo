@@ -70,6 +70,11 @@ impl Reader {
         self.scroll = row.saturating_sub(3);
     }
 
+    /// Back in a document: the view and the cursor where the user left them, without a selection.
+    pub fn set_place(&mut self, scroll: usize, row: usize, col: usize) {
+        (self.scroll, self.row, self.col, self.want, self.anchor) = (scroll, row, col, col, None);
+    }
+
     /// Another document: the first row, without a selection. The column stays.
     pub fn to_top(&mut self) {
         (self.scroll, self.row, self.anchor) = (0, 0, None);

@@ -3,6 +3,7 @@
 //! `m` and `u` held in read mode show the version of `main` and of the main checkout on disk.
 use super::*;
 use crate::docs::tree::worktree;
+use crate::setup::state::LastDoc;
 
 /// A held key is up when no auto-repeat came for this long: before the first repeat, and after it
 /// (FILES-46).
@@ -71,12 +72,70 @@ impl App {
         self.files.peek.on.is_none() && self.files.current().is_some_and(|p| !p.exists())
     }
 
-    /// After a change of the agent session: the version of the open document in that session
-    /// (FILES-39, FILES-41).
+    /// After a change of the agent session: the last document of that session, else the open
+    /// document, in the version of that session (FILES-39, FILES-41, FILES-50, FILES-51).
     pub(crate) fn follow_session(&mut self) {
-        if let Some(p) = self.files.current().cloned().filter(|p| self.session_path(p) != *p) {
+        if self.open_session_doc() {
+            return;
+        }
+        if let Some(p) = self.files.current().map(|p| self.session_path(p)).filter(|p| self.files.current() != Some(p)) {
             self.open_file(p);
         }
+    }
+
+    /// The last document of the active session, where the user left it (FILES-50, FILES-54,
+    /// FILES-55). False when the session has none in its checkout.
+    pub(crate) fn open_session_doc(&mut self) -> bool {
+        let Some((p, last)) = self.session_doc() else { return false };
+        if self.files.current() != Some(&p) {
+            self.open_file(p);
+        }
+        if self.mode == Mode::Read {
+            self.reader.set_place(last.scroll, last.row, last.col);
+        }
+        true
+    }
+
+    /// The last document of the active session in its checkout, while it exists there (FILES-51).
+    fn session_doc(&self) -> Option<(PathBuf, LastDoc)> {
+        let last = self.state.session_docs.get(&self.state.session)?;
+        let p = self.session_path(&self.cfg.root.join(&last.path));
+        p.exists().then(|| (p, last.clone()))
+    }
+
+    /// A file on the screen is the last document of the active session, and in read mode the place
+    /// in it too. The state file changes with a new document; the place goes to it with the next
+    /// save (FILES-50, FILES-52, FILES-54).
+    pub(crate) fn track_session_doc(&mut self, p: &Path) {
+        if !p.exists() {
+            return;
+        }
+        let (doc, read) = (self.doc_key(p), self.mode == Mode::Read);
+        let (scroll, row, col) = (self.reader.scroll(), self.reader.row(), self.reader.col());
+        let last = self.state.session_docs.entry(self.state.session).or_default();
+        let new = last.path != doc;
+        if new {
+            *last = LastDoc { path: doc, ..LastDoc::default() };
+        }
+        if read {
+            (last.scroll, last.row, last.col) = (scroll, row, col);
+        }
+        if new {
+            self.state.save(&self.cfg.root);
+        }
+    }
+
+    /// A rename or a move in zendo: the sessions whose last document it was keep it (FILES-53).
+    pub(crate) fn rename_session_docs(&mut self, old: &Path, new: &Path) {
+        let (old, new) = (self.doc_key(old), self.doc_key(new));
+        self.state.session_docs.values_mut().filter(|d| d.path == old).for_each(|d| d.path = new.clone());
+    }
+
+    /// The key of a document in the state: its path in the repo without the worktree, else its
+    /// whole path.
+    fn doc_key(&self, p: &Path) -> String {
+        let p = self.cfg.root.join(p);
+        self.doc_rel(&p).unwrap_or_else(|| p.display().to_string())
     }
 
     /// `m` or `u` in read mode: show the other version, or note one more auto-repeat of the key.

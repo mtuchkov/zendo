@@ -465,3 +465,141 @@ async fn a_new_note_of_a_notes_repo_stays_in_the_notes_repo() {
     let _ = std::fs::remove_dir_all(&root);
     let _ = std::fs::remove_dir_all(&notes);
 }
+
+/// Open a file as the user does in the active session, and let zendo see it.
+fn open_in(a: &mut App, root: &Path, rel: &str) {
+    a.focus = Focus::Note;
+    a.open_file(root.join(rel));
+    a.tick();
+}
+
+fn current(a: &App, root: &Path) -> String {
+    a.files.current_path().and_then(|p| p.strip_prefix(root).ok()).map(|p| p.display().to_string()).unwrap_or_default()
+}
+
+// FILES-50, FILES-51
+#[tokio::test]
+async fn a_session_opens_its_last_document_again() {
+    let root = two_worktrees("last-doc");
+    let mut a = app(&root);
+    a.switch_session(0);
+    open_in(&mut a, &root, "a.md");
+    a.switch_session(1);
+    open_in(&mut a, &root, "b.md");
+    a.switch_session(0);
+    assert_eq!(current(&a, &root), ".worktrees/1/a.md", "back in session 1: its last document");
+    a.focus = Focus::Note;
+    assert!(screen(&mut a).contains("body one"));
+    a.switch_session(1);
+    assert_eq!(current(&a, &root), ".worktrees/2/b.md", "back in session 2: its last document");
+    a.switch_session(2);
+    assert_eq!(current(&a, &root), "b.md", "no last document: the open document stays");
+    std::fs::remove_file(root.join(".worktrees/1/a.md")).unwrap();
+    a.switch_session(0);
+    assert_eq!(current(&a, &root), ".worktrees/1/b.md", "the last document is gone: the open document stays");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FILES-52
+#[tokio::test]
+async fn the_last_document_of_a_session_stays_after_a_restart() {
+    let root = two_worktrees("last-doc-restart");
+    let mut a = app(&root);
+    a.switch_session(1);
+    open_in(&mut a, &root, "c.md");
+    a.switch_session(2);
+    open_in(&mut a, &root, "b.md");
+    drop(a);
+    let mut a = app(&root);
+    a.switch_session(1);
+    assert_eq!(current(&a, &root), ".worktrees/2/c.md");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FILES-53
+#[tokio::test]
+async fn the_last_document_of_a_session_follows_a_rename() {
+    let root = two_worktrees("last-doc-rename");
+    let mut a = app(&root);
+    a.switch_session(2);
+    open_in(&mut a, &root, "b.md");
+    a.switch_session(3);
+    open_in(&mut a, &root, "c.md");
+    a.files.ask(zendo::app::FilePrompt::Rename(PathBuf::from("b.md"), "b.md".into()));
+    for _ in 0.."b.md".len() {
+        key(&mut a, KeyCode::Backspace);
+    }
+    for c in "beta.md".chars() {
+        key(&mut a, KeyCode::Char(c));
+    }
+    key(&mut a, KeyCode::Enter);
+    assert!(root.join("beta.md").exists());
+    a.switch_session(2);
+    assert_eq!(current(&a, &root), "beta.md");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// A long document in `.worktrees/1`: the view must scroll to show its end.
+fn long_doc(root: &Path) {
+    let body: String = (1..=200).map(|i| format!("line {i}\n\n")).collect();
+    write(root.join(".worktrees/1/long.md"), &format!("# long\n\n{body}"));
+}
+
+/// The place of the read cursor and the view: (scroll, row).
+fn place(a: &App) -> (usize, usize) {
+    (a.reader.scroll(), a.reader.row())
+}
+
+/// Down in read mode `n` times, with a frame before and after, as the user does.
+fn scroll_down(a: &mut App, n: usize) {
+    a.focus = Focus::Note;
+    screen(a);
+    for _ in 0..n {
+        key(a, KeyCode::Down);
+    }
+    screen(a);
+    a.tick();
+}
+
+// FILES-54
+#[tokio::test]
+async fn a_session_goes_back_to_the_place_in_its_last_document() {
+    let root = two_worktrees("last-place");
+    long_doc(&root);
+    let mut a = app(&root);
+    a.switch_session(0);
+    open_in(&mut a, &root, ".worktrees/1/long.md");
+    scroll_down(&mut a, 80);
+    let left = place(&a);
+    assert!(left.0 > 0, "the view scrolled: {left:?}");
+    a.switch_session(1);
+    open_in(&mut a, &root, "b.md");
+    assert_eq!(place(&a), (0, 0), "another document starts at the top");
+    a.switch_session(0);
+    screen(&mut a);
+    assert_eq!(place(&a), left, "back where the user left it");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FILES-52, FILES-55
+#[tokio::test]
+async fn zendo_starts_on_the_last_document_of_the_active_session() {
+    let root = two_worktrees("last-start");
+    long_doc(&root);
+    let mut a = app(&root);
+    a.switch_session(1);
+    open_in(&mut a, &root, "c.md");
+    a.switch_session(0);
+    open_in(&mut a, &root, ".worktrees/1/long.md");
+    scroll_down(&mut a, 80);
+    let left = place(&a);
+    a.quit = true;
+    assert!(a.settle_quit());
+    drop(a);
+    let mut a = app(&root);
+    assert_eq!(current(&a, &root), ".worktrees/1/long.md");
+    a.focus = Focus::Note;
+    screen(&mut a);
+    assert_eq!(place(&a), left);
+    let _ = std::fs::remove_dir_all(&root);
+}
