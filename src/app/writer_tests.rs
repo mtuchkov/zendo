@@ -1,13 +1,14 @@
 //! The writer without an app (ADR 0008).
 use super::*;
 
-// ADR 0008, FLOAT-17: a new note starts without a title line and has no file; the save gives it one.
+// ADR 0008, FLOAT-17: a new note starts with an empty title line, the cursor on the first line of
+// the body, and has no file; the save gives it one.
 #[test]
 fn a_new_note_has_no_file_until_the_save() {
     let mut w = Writer::default();
     assert!(w.editor().is_empty() && w.path().is_none());
     w.start_new();
-    assert_eq!((w.editor().text().as_str(), w.editor().row, w.editor().col), ("", 0, 0));
+    assert_eq!((w.editor().text().as_str(), w.editor().row, w.editor().col), ("# \n\n", 2, 0));
     w.editor_mut().type_str("Plan");
     assert!(w.editor().dirty && w.saved_at().is_none());
     w.saved("/r/docs/plan.md".into());
@@ -45,7 +46,7 @@ fn two_drafts_swap() {
     w.start_on("behind", "/r/a.md".into());
     let mut other = Draft::new_note();
     w.swap_draft(&mut other);
-    assert_eq!((w.editor().text().as_str(), w.path()), ("", None));
+    assert_eq!((w.editor().text().as_str(), w.path()), (NEW_NOTE, None));
     w.editor_mut().type_str("New");
     w.swap_draft(&mut other);
     assert_eq!((w.editor().text().as_str(), w.file()), ("behind", Some(Path::new("/r/a.md"))));

@@ -19,7 +19,7 @@ fn alt(a: &mut App, c: char) {
 }
 
 fn in_float(a: &App) -> bool {
-    a.writer.float().is_some() && a.mode == Mode::Write && a.writer.editor().text().is_empty() && a.writer.path().is_none()
+    a.writer.float().is_some() && a.mode == Mode::Write && a.writer.editor().text() == "# \n\n" && a.writer.path().is_none()
 }
 
 /// The notes folder after the test: the files in it.
@@ -30,8 +30,8 @@ fn notes(root: &std::path::Path) -> Vec<String> {
 }
 
 // FLOAT-1, FLOAT-17: alt-n opens a new note in write mode in a float, from read mode, write mode,
-// the chat, the file tree and the delta; the note has no title line, and the cursor is on the first
-// line of the body.
+// the chat, the file tree and the delta; the note has an empty title line, and the cursor is on the
+// first line of the body.
 #[tokio::test]
 async fn alt_n_opens_a_float_from_every_pane() {
     let root = repo("float-every-pane", &files());
@@ -51,7 +51,7 @@ async fn alt_n_opens_a_float_from_every_pane() {
         draw(&mut a, 160, 40);
         alt(&mut a, 'n');
         assert!(in_float(&a), "{name}: a float with an empty note");
-        assert_eq!((a.writer.editor().row, a.writer.editor().col), (0, 0), "{name}: the cursor on the first line of the body");
+        assert_eq!((a.writer.editor().row, a.writer.editor().col), (2, 0), "{name}: the cursor on the first line of the body");
         a.cli.stop_all();
     }
     let _ = std::fs::remove_dir_all(&root);
@@ -105,13 +105,11 @@ async fn esc_saves_the_float_and_restores_the_screen() {
     a.reader.select_from((10, 0));
     let scroll = a.reader.scroll();
     alt(&mut a, 'n');
-    typ(&mut a, "# Tea");
+    typ(&mut a, "A line of text.");
+    title(&mut a, "Tea");
     let screen = draw(&mut a, 120, 40).join("\n");
     let today = chrono::Local::now().format("%a %-d %b").to_string();
     assert!(screen.contains(&today), "the date under the title:\n{screen}");
-    key(&mut a, KeyCode::Enter);
-    key(&mut a, KeyCode::Enter);
-    typ(&mut a, "A line of text.");
     key(&mut a, KeyCode::Esc);
     assert!(a.writer.float().is_none(), "esc closes the float");
     let saved: Vec<String> = notes(&root).into_iter().filter(|n| n.ends_with("-tea.md")).collect();
@@ -240,7 +238,7 @@ async fn pane_keys_do_nothing_in_the_float() {
     alt(&mut a, 'n');
     assert!(a.writer.float().is_some() && a.mode == Mode::Write, "still in the float");
     assert_eq!((a.threads.shown(), a.state.tree, a.work.delta_open(), a.cli.pane), (false, false, false, None), "no pane opened");
-    assert_eq!(a.writer.editor().text(), "Tea", "the same note");
+    assert_eq!(a.writer.editor().text(), "# \n\nTea", "the same note");
     key(&mut a, KeyCode::Tab);
     assert_eq!(a.focus, Focus::Note, "tab does not move the focus");
     a.cli.stop_all();
@@ -322,11 +320,20 @@ async fn the_float_shows_new_note_until_the_title() {
     alt(&mut a, 'n');
     typ(&mut a, "Leaf");
     assert!(in_place(&draw(&mut a, 120, 40)), "`new note` in place of the title");
-    key(&mut a, KeyCode::Home);
-    typ(&mut a, "# Tea ");
+    title(&mut a, "Tea");
+    key(&mut a, KeyCode::Down);
     let screen = draw(&mut a, 120, 40);
     assert!(!in_place(&screen), "the title in its place:\n{}", screen.join("\n"));
     let _ = std::fs::remove_dir_all(&root);
+}
+
+/// Type a title into the title line of the float, from the body.
+fn title(a: &mut App, text: &str) {
+    while a.writer.editor().row > 0 {
+        key(a, KeyCode::Up);
+    }
+    key(a, KeyCode::End);
+    typ(a, text);
 }
 
 /// Type lines of text in write mode, one after the other.
@@ -344,8 +351,8 @@ fn note_with(root: &std::path::Path, part: &str) -> Option<String> {
     notes(root).into_iter().find(|n| n.contains(part)).and_then(|n| std::fs::read_to_string(root.join("docs/notes").join(n)).ok())
 }
 
-// FLOAT-18, FLOAT-20, FLOAT-23: after three lines of text, the name model writes the title as the
-// first line; the cursor stays on its char; the file gets the name of the title.
+// FLOAT-18, FLOAT-20, FLOAT-23: after three lines of text, the name model writes the title into the
+// title line; the cursor stays on its char; the file gets the name of the title.
 #[tokio::test]
 async fn the_name_model_titles_the_note_after_three_lines() {
     let root = repo("float-title-live", &files());
@@ -353,7 +360,7 @@ async fn the_name_model_titles_the_note_after_three_lines() {
     alt(&mut a, 'n');
     lines(&mut a, &["Green tea.", "Black tea.", "White"]);
     a.save();
-    until(&mut a, |a| a.writer.editor().lines[0].starts_with("# ")).await;
+    until(&mut a, |a| a.writer.editor().lines[0].len() > 2).await;
     assert_eq!(a.writer.editor().lines[..2], ["# Mock title of 3 lines".to_string(), String::new()], "the title and an empty line");
     assert_eq!((a.writer.editor().row, a.writer.editor().col), (4, 5), "the cursor on the same char");
     typ(&mut a, " tea.");
@@ -374,7 +381,8 @@ async fn closing_the_float_titles_or_updates_the_note() {
     let root = repo("float-title-close", &files());
     let mut a = app(&root);
     alt(&mut a, 'n');
-    lines(&mut a, &["# Mine", "", "One.", "Two.", "Three."]);
+    lines(&mut a, &["One.", "Two.", "Three."]);
+    title(&mut a, "Mine");
     key(&mut a, KeyCode::Esc);
     alt(&mut a, 'n');
     typ(&mut a, "Only one line.");
@@ -384,7 +392,7 @@ async fn closing_the_float_titles_or_updates_the_note() {
     alt(&mut a, 'n');
     lines(&mut a, &["Cups.", "Pots.", "Leaves."]);
     a.save();
-    until(&mut a, |a| a.writer.editor().lines[0].starts_with("# ")).await;
+    until(&mut a, |a| a.writer.editor().lines[0].len() > 2).await;
     key(&mut a, KeyCode::Enter);
     typ(&mut a, "Water.");
     key(&mut a, KeyCode::Esc);

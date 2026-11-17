@@ -30,39 +30,46 @@ pub struct TitleJob {
     pub old: Option<String>,
 }
 
-/// The title of a note: the first line with text, when it is `# `.
-pub fn title_of(text: &str) -> Option<&str> {
-    text.lines().find(|l| !l.trim().is_empty()).and_then(|l| l.strip_prefix("# ")).map(str::trim)
+/// The title line of a note and its index: the first line with text, when it is `# …` or an
+/// empty title, `#` (FLOAT-17).
+fn title_line(text: &str) -> Option<(usize, &str)> {
+    text.split('\n').enumerate().find(|(_, l)| !l.trim().is_empty()).filter(|(_, l)| l.trim() == "#" || l.starts_with("# "))
 }
 
-/// The body of a note: the text after the title, without the blank lines around it.
+/// The title of a note: the text of its title line, when it has some.
+pub fn title_of(text: &str) -> Option<&str> {
+    title_line(text).map(|(_, l)| l.trim().trim_start_matches('#').trim()).filter(|t| !t.is_empty())
+}
+
+/// The body of a note: the text after the title line, without the blank lines around it.
 pub fn body_of(text: &str) -> &str {
-    let text = text.trim_start_matches('\n');
-    let body = if title_of(text).is_some() { text.split_once('\n').map_or("", |(_, b)| b) } else { text };
+    let body = match title_line(text) {
+        Some((i, _)) => text.splitn(i + 2, '\n').nth(i + 1).unwrap_or(""),
+        None => text,
+    };
     body.trim()
 }
 
 /// The body has enough text for a title: three lines with text, or 200 chars (FLOAT-18).
 pub fn ripe(text: &str) -> bool {
-    let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).collect();
+    let lines: Vec<&str> = body_of(text).lines().filter(|l| !l.trim().is_empty()).collect();
     lines.len() >= TITLE_LINES || lines.iter().map(|l| l.chars().count()).sum::<usize>() >= TITLE_CHARS
 }
 
-/// The text with the title of the agent: as the first line when the text has no title, or in
-/// place of `old` while the title is still `old`. None: the title stays (FLOAT-21).
+/// The text with the title of the agent: in the empty title line, as the first line when the
+/// text has no title line, or in place of `old` while the title is still `old`. None: the title
+/// stays (FLOAT-18, FLOAT-21).
 pub fn with_title(text: &str, title: &str, old: Option<&str>) -> Option<String> {
     let title = title.trim();
-    match title_of(text) {
-        None => Some(format!("# {title}\n\n{text}")),
-        Some(t) if Some(t) == old && t != title => {
-            let mut lines: Vec<&str> = text.split('\n').collect();
-            let i = lines.iter().position(|l| !l.trim().is_empty())?;
-            let line = format!("# {title}");
-            lines[i] = &line;
-            Some(lines.join("\n"))
-        }
-        _ => None,
-    }
+    let at = match (title_line(text), title_of(text)) {
+        (None, _) => return Some(format!("# {title}\n\n{text}")),
+        (Some((i, _)), None) => i,
+        (Some((i, _)), Some(t)) if Some(t) == old && t != title => i,
+        _ => return None,
+    };
+    let line = format!("# {title}");
+    let lines: Vec<&str> = text.split('\n').enumerate().map(|(k, l)| if k == at { line.as_str() } else { l }).collect();
+    Some(lines.join("\n"))
 }
 
 impl App {

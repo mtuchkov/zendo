@@ -33,7 +33,9 @@ impl App {
             Some(p) => p.clone(),
             None if empty => return,
             None => {
-                let title = notes::title_of(&body).unwrap_or_else(|| text.lines().next().unwrap_or("note").to_string());
+                // Without a title: the first line of the body (FLOAT-17).
+                let first = crate::agent::work::body_of(&text).lines().next().unwrap_or("note").to_string();
+                let title = notes::title_of(&body).unwrap_or(first);
                 self.new_note_path(&title)
             }
         };

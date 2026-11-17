@@ -81,8 +81,9 @@ fn write_lines(app: &App, t: &Theme, w: usize) -> (markdown::Rendered, usize, Op
     let on_title = title.is_some_and(|i| i == app.writer.editor().row);
     let title_rows = match title {
         Some(i) if on_title => markdown::raw_rows(&lines[i], w, t),
+        // The float with an empty title: `new note` in its place (FLOAT-22).
+        Some(i) if app.writer.float().is_some() && lines[i].trim_start_matches('#').trim().is_empty() => vec![Line::styled("new note", Style::new().fg(t.dim))],
         Some(i) => title_rows(lines[i].trim_start_matches('#').trim(), w, t),
-        // The float without a title: `new note` in its place (FLOAT-22).
         None if app.writer.float().is_some() => vec![Line::styled("new note", Style::new().fg(t.dim))],
         None => Vec::new(),
     };

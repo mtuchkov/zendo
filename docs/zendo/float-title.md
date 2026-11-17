@@ -11,7 +11,8 @@ note: "Agent draft of the request of the user on 2026-11-17. Not reviewed by the
 
 # Title of a new note
 
-The user starts a new note with the text, not with the title (see [New note in a float](float.md)).
+The user starts a new note with the text, not with the title: the title line is empty, and the
+cursor is on the body (see [New note in a float](float.md)).
 The name model of the agent writes the title: `haiku` for Claude, or the model of `[name_models]`
 in the config (see [Session names](session-names/session-names.md)). It is cheap and fast, and it
 works in a background session without tools, so the chat does not see it.
@@ -21,8 +22,9 @@ works in a background session without tools, so the chat does not see it.
 agent and the text changed since. When the float closes and the note has no title yet, it writes
 one then.
 
-**Where.** zendo puts the title as the first line of the note, `# <title>`, and an empty line under
-it. The cursor stays on the same char of the text, so the user types on. When the float is closed
+**Where.** zendo puts the title into the empty title line, `# <title>`. When the user took the
+title line away, zendo puts it as the first line, with an empty line under it. The cursor stays on
+the same char of the text, so the user types on. When the float is closed
 already, zendo puts the title into the file. Then zendo renames the file to the date and a short
 form of the title, as for a new note (NOTE-7).
 
@@ -33,8 +35,8 @@ zendo does not replace it, and does not ask for another.
 
 | ID       | Pattern | Requirement                                                                                                                                                                                       | Source           |
 | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| FLOAT-18 | Event   | When the body of the note in the float has three lines with text, or 200 chars of text, and the note has no `# ` title, the system shall ask the name model for a title in a background session without tools, put `# <title>` as the first line, and keep the cursor on the same char. | User, 2026-11-17 |
-| FLOAT-19 | Event   | When the user closes the float, and the note has no `# ` title, or has the title of the agent unchanged and a text that changed since that title, the system shall ask the name model for the title and put it into the file. | User, 2026-11-17 |
+| FLOAT-18 | Event   | When the body of the note in the float has three lines with text, or 200 chars of text, and the title of the note is empty, the system shall ask the name model for a title in a background session without tools, put it into the title line, `# <title>`, and keep the cursor on the same char. | User, 2026-11-17 |
+| FLOAT-19 | Event   | When the user closes the float, and the title of the note is empty, or the note has the title of the agent unchanged and a text that changed since that title, the system shall ask the name model for the title and put it into the file. | User, 2026-11-17 |
 
 ### Acceptance tests
 
@@ -42,8 +44,8 @@ zendo does not replace it, and does not ask for another.
 
 - Given the float on a new note.
 - When the user types three lines of text.
-- Then the note has the title of the mock agent as its first line, the cursor is on the same char
-  of the third line, and the file name is the date and the short form of the title.
+- Then the title line has the title of the mock agent, the cursor is on the same char of the third
+  line, and the file name is the date and the short form of the title.
 
 **`closing_the_float_titles_or_updates_the_note`** (mock agent; verifies FLOAT-19, FLOAT-21)
 

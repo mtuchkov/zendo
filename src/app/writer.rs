@@ -23,10 +23,20 @@ impl Draft {
         Self { editor: Editor::new(""), path: None, last_edit: Instant::now(), saved_at: None }
     }
 
-    /// A new note: no title line, the cursor on the first line of the body (FLOAT-17).
+    /// A new note: an empty title line, the cursor on the first line of the body (FLOAT-17).
     pub fn new_note() -> Self {
-        Self::empty()
+        Self { editor: new_note_editor(), ..Self::empty() }
     }
+}
+
+/// The text of a new note: an empty title line, an empty line, and the cursor on the first line of
+/// the body (FLOAT-17).
+pub const NEW_NOTE: &str = "# \n\n";
+
+fn new_note_editor() -> Editor {
+    let mut editor = Editor::new(NEW_NOTE);
+    editor.move_to_end();
+    editor
 }
 
 pub struct Writer {
@@ -71,9 +81,9 @@ impl Writer {
         self.draft.path.as_deref()
     }
 
-    /// Write mode on a new note: no title line, no file yet, not saved (FLOAT-17).
+    /// Write mode on a new note: an empty title line, no file yet, not saved (FLOAT-17).
     pub fn start_new(&mut self) {
-        self.draft.editor = Editor::new("");
+        self.draft.editor = new_note_editor();
         self.draft.path = None;
     }
 
