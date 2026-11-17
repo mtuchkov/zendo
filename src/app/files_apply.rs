@@ -77,13 +77,15 @@ impl App {
         self.flash(format!("{done} to {}", self.rel(target)));
     }
 
-    /// The session, the place in the recent files and the thread of a file follow its new path.
+    /// The session, the place in the recent files, the last document of the agent sessions and the
+    /// thread of a file follow its new path.
     fn keys_moved(&mut self, old: &Path, target: &Path) {
         let (ok, nk) = (self.rel(old), self.rel(target));
         if let Some(id) = self.state.take_session(&self.cfg.agent, &ok) {
             self.state.set_session(&self.cfg.agent, &nk, id);
             self.state.save(&self.cfg.root);
         }
+        self.rename_session_docs(old, target);
         self.rename_recent(&ok, &nk);
         self.threads.rename(&ok, nk);
     }

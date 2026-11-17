@@ -181,6 +181,7 @@ impl App {
     pub(crate) fn track_recent(&mut self) {
         let shows = matches!(self.mode, Mode::Read | Mode::Write) && self.writer.float().is_none() && self.focus != Focus::Tree && self.cli.view.is_none();
         let Some(path) = self.files.current().cloned().filter(|_| shows) else { return };
+        self.track_session_doc(&path);
         if self.files.find.seen.as_ref() != Some(&path) {
             self.files.find.seen = Some(path.clone());
             self.add_recent(&path);

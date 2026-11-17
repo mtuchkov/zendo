@@ -71,12 +71,45 @@ impl App {
         self.files.peek.on.is_none() && self.files.current().is_some_and(|p| !p.exists())
     }
 
-    /// After a change of the agent session: the version of the open document in that session
-    /// (FILES-39, FILES-41).
+    /// After a change of the agent session: the last document of that session, else the open
+    /// document, in the version of that session (FILES-39, FILES-41, FILES-50, FILES-51).
     pub(crate) fn follow_session(&mut self) {
-        if let Some(p) = self.files.current().cloned().filter(|p| self.session_path(p) != *p) {
+        let doc = self.session_doc().or_else(|| self.files.current().map(|p| self.session_path(p)));
+        if let Some(p) = doc.filter(|p| self.files.current() != Some(p)) {
             self.open_file(p);
         }
+    }
+
+    /// The last document of the active session in its checkout, while it exists there (FILES-51).
+    fn session_doc(&self) -> Option<PathBuf> {
+        let doc = self.state.session_docs.get(&self.state.session)?;
+        Some(self.session_path(&self.cfg.root.join(doc))).filter(|p| p.exists())
+    }
+
+    /// A file on the screen is the last document of the active session, and the state keeps it
+    /// (FILES-50, FILES-52).
+    pub(crate) fn track_session_doc(&mut self, p: &Path) {
+        if !p.exists() {
+            return;
+        }
+        let (n, doc) = (self.state.session, self.doc_key(p));
+        if self.state.session_docs.get(&n) != Some(&doc) {
+            self.state.session_docs.insert(n, doc);
+            self.state.save(&self.cfg.root);
+        }
+    }
+
+    /// A rename or a move in zendo: the sessions whose last document it was keep it (FILES-53).
+    pub(crate) fn rename_session_docs(&mut self, old: &Path, new: &Path) {
+        let (old, new) = (self.doc_key(old), self.doc_key(new));
+        self.state.session_docs.values_mut().filter(|d| **d == old).for_each(|d| *d = new.clone());
+    }
+
+    /// The key of a document in the state: its path in the repo without the worktree, else its
+    /// whole path.
+    fn doc_key(&self, p: &Path) -> String {
+        let p = self.cfg.root.join(p);
+        self.doc_rel(&p).unwrap_or_else(|| p.display().to_string())
     }
 
     /// `m` or `u` in read mode: show the other version, or note one more auto-repeat of the key.

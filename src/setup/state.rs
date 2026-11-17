@@ -47,6 +47,10 @@ pub struct State {
     /// The files that the user opened in the note pane, the most recent first (FIND-2, FIND-4).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub recent: Vec<Opened>,
+    /// The last document that the user opened in each agent session, without its worktree
+    /// (FILES-50, FILES-52).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub session_docs: BTreeMap<usize, String>,
     /// The name of each Claude session that has one, keyed by its session ID (NAMES-3).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub names: BTreeMap<String, String>,
