@@ -538,3 +538,68 @@ async fn the_last_document_of_a_session_follows_a_rename() {
     assert_eq!(current(&a, &root), "beta.md");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+/// A long document in `.worktrees/1`: the view must scroll to show its end.
+fn long_doc(root: &Path) {
+    let body: String = (1..=200).map(|i| format!("line {i}\n\n")).collect();
+    write(root.join(".worktrees/1/long.md"), &format!("# long\n\n{body}"));
+}
+
+/// The place of the read cursor and the view: (scroll, row).
+fn place(a: &App) -> (usize, usize) {
+    (a.reader.scroll(), a.reader.row())
+}
+
+/// Down in read mode `n` times, with a frame before and after, as the user does.
+fn scroll_down(a: &mut App, n: usize) {
+    a.focus = Focus::Note;
+    screen(a);
+    for _ in 0..n {
+        key(a, KeyCode::Down);
+    }
+    screen(a);
+    a.tick();
+}
+
+// FILES-54
+#[tokio::test]
+async fn a_session_goes_back_to_the_place_in_its_last_document() {
+    let root = two_worktrees("last-place");
+    long_doc(&root);
+    let mut a = app(&root);
+    a.switch_session(0);
+    open_in(&mut a, &root, ".worktrees/1/long.md");
+    scroll_down(&mut a, 80);
+    let left = place(&a);
+    assert!(left.0 > 0, "the view scrolled: {left:?}");
+    a.switch_session(1);
+    open_in(&mut a, &root, "b.md");
+    assert_eq!(place(&a), (0, 0), "another document starts at the top");
+    a.switch_session(0);
+    screen(&mut a);
+    assert_eq!(place(&a), left, "back where the user left it");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FILES-52, FILES-55
+#[tokio::test]
+async fn zendo_starts_on_the_last_document_of_the_active_session() {
+    let root = two_worktrees("last-start");
+    long_doc(&root);
+    let mut a = app(&root);
+    a.switch_session(1);
+    open_in(&mut a, &root, "c.md");
+    a.switch_session(0);
+    open_in(&mut a, &root, ".worktrees/1/long.md");
+    scroll_down(&mut a, 80);
+    let left = place(&a);
+    a.quit = true;
+    assert!(a.settle_quit());
+    drop(a);
+    let mut a = app(&root);
+    assert_eq!(current(&a, &root), ".worktrees/1/long.md");
+    a.focus = Focus::Note;
+    screen(&mut a);
+    assert_eq!(place(&a), left);
+    let _ = std::fs::remove_dir_all(&root);
+}

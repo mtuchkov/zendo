@@ -27,6 +27,8 @@ impl App {
             link: AgentLink::with_name_model(name_model),
             ..Default::default()
         };
+        // The last document of the active session, where the user left it (FILES-55).
+        app.open_session_doc();
         app.files.find.seen = app.files.current().cloned();
         app.load_structure();
         // The tree was open last time: fill it; with no note on screen, start in it.

@@ -31,6 +31,8 @@ impl App {
     /// F6 to F10, alt-] and alt-[: the chat goes to agent session `n`, after the last one the first. The
     /// chat opens on it.
     pub fn switch_session(&mut self, n: usize) {
+        // The place in the document of the session that the user leaves (FILES-54).
+        self.track_recent();
         self.cli.pane = None;
         self.state.session = n % SESSIONS;
         self.state.save(&self.cfg.root);

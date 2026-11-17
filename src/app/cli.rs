@@ -168,6 +168,13 @@ impl App {
         true
     }
 
+    /// zendo quits: the state keeps the place in the last document of the session (FILES-54).
+    fn quit_now(&mut self) -> bool {
+        self.track_recent();
+        self.state.save(&self.cfg.root);
+        true
+    }
+
     /// True when zendo can quit now. While Claude Code sessions run, the first quit asks, and a
     /// second one within 5 s stops them (SESSIONS-6, SESSIONS-19).
     pub fn settle_quit(&mut self) -> bool {
@@ -175,11 +182,11 @@ impl App {
             return false;
         }
         if !self.cli.any_running() {
-            return true;
+            return self.quit_now();
         }
         if self.cli.quit_asked.is_some_and(|t| t.elapsed() < QUIT_AGAIN) {
             self.cli.stop_all();
-            return true;
+            return self.quit_now();
         }
         self.quit = false;
         self.cli.quit_asked = Some(Instant::now());
