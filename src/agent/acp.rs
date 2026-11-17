@@ -188,6 +188,7 @@ async fn serve(cx: agent_client_protocol::v1::ConnectionTo<Agent>, shared: Arc<S
     let init = cx.send_request(InitializeRequest::new(ProtocolVersion::V1)).block_task().await?;
     let can_load = init.agent_capabilities.load_session;
     let can_image = init.agent_capabilities.prompt_capabilities.image;
+    let can_close = init.agent_capabilities.session_capabilities.close.is_some();
     let name = init.agent_info.as_ref().map(|i| i.name.clone()).unwrap_or_else(|| "agent".into());
     shared.emit(Event::Ready { agent: name, can_load, can_image });
 
@@ -237,55 +238,16 @@ async fn serve(cx: agent_client_protocol::v1::ConnectionTo<Agent>, shared: Arc<S
                 }
             }
             Cmd::Forget { key } => {
-                sessions.remove(&key);
+                if let Some(old) = sessions.remove(&key) {
+                    close_session(&cx, old, can_close).await;
+                }
             }
             Cmd::Model { key, model } => {
-                let (id, options) = new_session(&cx, &shared, &key, &cwd).await?;
-                sessions.insert(key, id.clone());
-                if let Some((config, value)) = super::model::choose(&options, &model) {
-                    // A model that the agent refuses leaves its default model (NAMES-13).
-                    let _ = cx.send_request(SetSessionConfigOptionRequest::new(id, config, value.as_str())).block_task().await;
+                let id = model_session(&cx, &shared, &key, &model, &cwd).await?;
+                if let Some(old) = sessions.insert(key, id) {
+                    close_session(&cx, old, can_close).await;
                 }
             }
         }
     }
-}
-
-pub(super) async fn open_session(
-    cx: &agent_client_protocol::v1::ConnectionTo<Agent>,
-    shared: &Arc<Shared>,
-    key: &str,
-    known: Option<String>,
-    can_load: bool,
-    cwd: &std::path::Path,
-) -> Result<SessionId, agent_client_protocol::Error> {
-    if let (Some(known), true) = (known, can_load) {
-        let id = SessionId::new(known.clone());
-        shared.keys.lock().unwrap().insert(known.clone(), key.to_string());
-        *shared.loading.lock().unwrap() = Some(key.to_string());
-        let r = cx.send_request(LoadSessionRequest::new(id.clone(), cwd.to_path_buf()).mcp_servers(crate::mcp::acp_servers(key))).block_task().await;
-        *shared.loading.lock().unwrap() = None;
-        match r {
-            Ok(_) => {
-                shared.emit(Event::Session { key: key.to_string(), id: known, resumed: true });
-                return Ok(id);
-            }
-            Err(_) => shared.emit(Event::Error { key: Some(key.to_string()), text: "could not resume the earlier thread, so this is a new one (details in .zendo/agent.log)".into() }),
-        }
-    }
-    new_session(cx, shared, key, cwd).await.map(|(id, _)| id)
-}
-
-/// A new session for `key`, and the config options of the agent for it.
-async fn new_session(
-    cx: &agent_client_protocol::v1::ConnectionTo<Agent>,
-    shared: &Arc<Shared>,
-    key: &str,
-    cwd: &std::path::Path,
-) -> Result<(SessionId, Vec<SessionConfigOption>), agent_client_protocol::Error> {
-    let r = cx.send_request(NewSessionRequest::new(cwd.to_path_buf()).mcp_servers(crate::mcp::acp_servers(key))).block_task().await?;
-    let id = r.session_id;
-    shared.keys.lock().unwrap().insert(id.0.to_string(), key.to_string());
-    shared.emit(Event::Session { key: key.to_string(), id: id.0.to_string(), resumed: false });
-    Ok((id, r.config_options.unwrap_or_default()))
 }

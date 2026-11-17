@@ -32,6 +32,17 @@ impl Files {
         self.tree.stale()
     }
 
+    /// Take the answer of git for the worktree changed view, when it came (ADR 0009). True when the
+    /// rows changed. The first rows of the view select the open file, as a scan does.
+    pub fn poll_tree(&mut self) -> bool {
+        let first = self.tree.files.is_empty();
+        let changed = self.tree.poll();
+        if changed && first {
+            self.reveal_current();
+        }
+        changed
+    }
+
     /// The next tick fills the tree again.
     pub fn scan_again(&mut self) {
         self.tree.scanned = None;

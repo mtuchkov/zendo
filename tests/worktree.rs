@@ -47,6 +47,16 @@ fn tree_in(root: &Path, view: View) -> App {
     a
 }
 
+/// Tick until the worktree changed view has the answer of git (ADR 0009).
+fn settle(a: &mut App) {
+    let end = Instant::now() + Duration::from_secs(20);
+    while a.files.tree().scanning() {
+        assert!(Instant::now() < end, "timeout");
+        std::thread::sleep(Duration::from_millis(10));
+        a.tick();
+    }
+}
+
 fn files(a: &App) -> Vec<String> {
     a.files.tree().files.iter().map(|p| p.display().to_string()).collect()
 }
@@ -76,6 +86,7 @@ fn the_changed_view_lists_what_differs_from_main() {
     std::fs::remove_file(wt.join("b.md")).unwrap();
     write(wt.join("n.txt"), "new\n");
     let mut a = tree_in(&root, View::WorktreeChanged);
+    settle(&mut a);
     assert_eq!(files(&a), [".worktrees/1/a.md", ".worktrees/1/b.md", ".worktrees/1/n.txt"]);
     assert!(a.files.tree().deleted.contains(Path::new(".worktrees/1/b.md")), "b.md is deleted");
 
@@ -89,7 +100,74 @@ fn the_changed_view_lists_what_differs_from_main() {
     write(wt.join("c.md"), "# c\n\nchanged too\n");
     a.files.scan_again();
     a.tick();
+    settle(&mut a);
     assert!(files(&a).contains(&".worktrees/1/c.md".to_string()), "{:?}", files(&a));
+}
+
+// ADR 0009, FILES-32: a switch of the session does not wait for git. The view says that it reads
+// the changes, and the rows come on a later tick.
+#[tokio::test]
+async fn the_changed_view_reads_git_off_the_ui_thread() {
+    let root = repo("thread");
+    write(root.join(".worktrees/1/a.md"), "# a\n\nchanged\n");
+    let mut a = tree_in(&root, View::WorktreeChanged);
+    a.switch_session(1);
+    a.switch_session(0);
+    assert!(a.files.tree().scanning(), "git runs on its own thread");
+    assert!(a.files.tree().files.is_empty(), "{:?}", a.files.tree().files);
+    let screen = draw(&mut a, 120, 30).join("\n");
+    assert!(screen.contains("Reading the changes"), "{screen}");
+    settle(&mut a);
+    assert_eq!(files(&a), [".worktrees/1/a.md"]);
+}
+
+// ADR 0009, FILES-27: when the answer of git comes, the selection goes to the open file, as it did
+// when git ran on the UI thread.
+#[test]
+fn the_changed_view_selects_the_open_file_when_git_answers() {
+    let root = repo("select");
+    for f in ["a", "b", "c"] {
+        write(root.join(format!(".worktrees/1/{f}.md")), &format!("# {f}\n\nchanged\n"));
+    }
+    let mut a = tree_in(&root, View::Worktree);
+    a.open_file(root.join(".worktrees/1/c.md"));
+    key(&mut a, KeyCode::Char('v'));
+    assert_eq!(a.files.tree().view, View::WorktreeChanged);
+    settle(&mut a);
+    let t = a.files.tree();
+    assert_eq!(t.rows().get(t.sel).map(|r| r.rel.clone()), Some(PathBuf::from(".worktrees/1/c.md")));
+}
+
+// ADR 0009, FILES-27: a reveal while git reads selects the file in the rows of the answer, also when
+// the view kept the rows of the last answer meanwhile.
+#[test]
+fn a_reveal_while_git_reads_selects_the_file_in_the_new_rows() {
+    let root = repo("reveal");
+    write(root.join(".worktrees/1/c.md"), "# c\n\nchanged\n");
+    let mut a = tree_in(&root, View::WorktreeChanged);
+    a.open_file(root.join(".worktrees/1/c.md"));
+    settle(&mut a);
+    a.toggle_tree();
+    write(root.join(".worktrees/1/a.md"), "# a\n\nchanged\n");
+    write(root.join(".worktrees/1/b.md"), "# b\n\nchanged\n");
+    a.toggle_tree();
+    settle(&mut a);
+    let t = a.files.tree();
+    assert_eq!(t.rows().get(t.sel).map(|r| r.rel.clone()), Some(PathBuf::from(".worktrees/1/c.md")));
+}
+
+// ADR 0009: when git fails, the worktree changed view shows the error, not an empty list.
+#[test]
+fn a_git_error_shows_in_the_changed_view() {
+    let root = repo("error");
+    git(&root, &["branch", "-m", "main", "trunk"]);
+    let mut a = tree_in(&root, View::WorktreeChanged);
+    settle(&mut a);
+    assert!(a.files.tree().files.is_empty());
+    assert!(a.files.tree().error().is_some_and(|e| e.contains("main")), "{:?}", a.files.tree().error());
+    let screen = draw(&mut a, 120, 30).join("\n");
+    assert!(screen.contains("Cannot read the changes"), "{screen}");
+    assert!(!screen.contains("No changes against main"), "{screen}");
 }
 
 // FILES-31, FILES-32. Async: the chat of the other session starts the agent.

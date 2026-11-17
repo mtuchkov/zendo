@@ -82,6 +82,9 @@ impl App {
             self.scan_tree();
             self.mark_tree();
         }
+        if self.files.poll_tree() {
+            self.mark_tree();
+        }
         self.sync_visit();
         self.track_recent();
         self.worktree_recap_tick();

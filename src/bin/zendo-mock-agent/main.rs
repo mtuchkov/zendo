@@ -16,7 +16,8 @@ use agent_client_protocol::v1::schema::{
     RequestPermissionOutcome, RequestPermissionRequest, SessionNotification, SessionUpdate,
     StopReason, TextContent, ToolCall, ToolCallContent, ToolCallStatus, ToolCallUpdate,
     ToolCallUpdateFields, ToolKind, SessionConfigOption, SessionConfigOptionCategory, SessionConfigSelectOption,
-    SetSessionConfigOptionRequest, SetSessionConfigOptionResponse,
+    SetSessionConfigOptionRequest, SetSessionConfigOptionResponse, SessionCapabilities, SessionCloseCapabilities, CloseSessionRequest,
+    CloseSessionResponse,
 };
 use agent_client_protocol::{Agent, Client, Result, Stdio};
 use std::path::PathBuf;
@@ -101,7 +102,12 @@ async fn main() -> Result<()> {
             async move |init: InitializeRequest, responder, _cx| {
                 responder.respond(
                     InitializeResponse::new(init.protocol_version)
-                        .agent_capabilities(AgentCapabilities::new().load_session(true).prompt_capabilities(PromptCapabilities::new().image(true)))
+                        .agent_capabilities(
+                            AgentCapabilities::new()
+                                .load_session(true)
+                                .prompt_capabilities(PromptCapabilities::new().image(true))
+                                .session_capabilities(SessionCapabilities::new().close(SessionCloseCapabilities::new())),
+                        )
                         .agent_info(Implementation::new("zendo-mock-agent", env!("CARGO_PKG_VERSION"))),
                 )
             },
@@ -136,6 +142,10 @@ async fn main() -> Result<()> {
                 commands(&cx, &sid)?;
                 responder.respond(LoadSessionResponse::new())
             },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            async move |_req: CloseSessionRequest, responder, _cx: Cx| responder.respond(CloseSessionResponse::new()),
             agent_client_protocol::on_receive_request!(),
         )
         .on_receive_request(
