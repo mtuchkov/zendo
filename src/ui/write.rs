@@ -30,6 +30,7 @@ pub(crate) fn draw_write(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
         let y0 = col.y as i64 + row as i64 - app.reader.scroll() as i64;
         draw_over_limit(f, app, fr, t, area, col, y0.max(col.y as i64) as u16);
     }
+    let head_rows: Vec<String> = r.lines.iter().take(head.min(HEAD_ROWS)).map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect()).collect();
     let lit = selected_rows(app, &spans, cur);
     fr.write_rows = spans;
     let rows: Vec<usize> = r.rows.iter().map(|x| x + head).collect();
@@ -52,6 +53,10 @@ pub(crate) fn draw_write(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
     // The markup of the cursor row can make it longer than the column: it shows on the margin.
     let wide = Rect { width: (area.x + area.width).saturating_sub(col.x).min(col.width + 12), ..col };
     f.render_widget(Paragraph::new(view), wide);
+    // The button of the note on the line of its date, as in read mode (SPEC-1).
+    if let Some(n) = app.note().filter(|n| app.writer.float().is_none() && app.writer.path() == Some(&n.path)).cloned() {
+        draw_spec_button(f, app, fr, t, col, &n, &head_rows);
+    }
     if code {
         draw_gutter(f, t, gut, &rows, app.reader.scroll(), Some(vrow));
     }
@@ -77,6 +82,8 @@ fn write_lines(app: &App, t: &Theme, w: usize) -> (markdown::Rendered, usize, Op
     let title_rows = match title {
         Some(i) if on_title => markdown::raw_rows(&lines[i], w, t),
         Some(i) => title_rows(lines[i].trim_start_matches('#').trim(), w, t),
+        // The float without a title: `new note` in its place (FLOAT-22).
+        None if app.writer.float().is_some() => vec![Line::styled("new note", Style::new().fg(t.dim))],
         None => Vec::new(),
     };
     // The float has its own head: the title, and the time when it opened (FLOAT-7).

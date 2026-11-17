@@ -51,7 +51,7 @@ impl App {
             .replace("{{FILE}}", &rel)
             .replace("{{TEXT}}", &text);
         let key = format!("{RECAP_PREFIX}meta {rel}");
-        self.work.start(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto: true, failed: None, meta: Some(meta), review: false, name: None });
+        self.work.start(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto: true, failed: None, meta: Some(meta), review: false, name: None, title: None });
         self.link.send(Cmd::Prompt { key, known: None, text: prompt, attach: vec![] });
         true
     }

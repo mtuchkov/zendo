@@ -1,6 +1,7 @@
 //! Write mode: the draft in the editor, the new note in a float, the mark of "say it here", and the
 //! files that wait for a title or front matter (ADR 0008). The writer does not see the app.
 use super::{Float, Say};
+use crate::agent::work::TitleJob;
 use crate::text::editor::Editor;
 use chrono::{DateTime, Local};
 use std::collections::VecDeque;
@@ -22,11 +23,9 @@ impl Draft {
         Self { editor: Editor::new(""), path: None, last_edit: Instant::now(), saved_at: None }
     }
 
-    /// A new note, with the cursor after `# `.
+    /// A new note: no title line, the cursor on the first line of the body (FLOAT-17).
     pub fn new_note() -> Self {
-        let mut editor = Editor::new("# ");
-        editor.move_to_end();
-        Self { editor, ..Self::empty() }
+        Self::empty()
     }
 }
 
@@ -38,11 +37,18 @@ pub struct Writer {
     say: Option<Say>,
     /// Files to get a title or front matter from the agent, after write mode.
     meta_queue: VecDeque<String>,
+    /// The notes of closed floats that wait for a title from the name model (FLOAT-19).
+    titles: VecDeque<TitleJob>,
+    /// The closed floats, by the time they opened, and the files of their notes.
+    closed: VecDeque<(DateTime<Local>, PathBuf)>,
 }
+
+/// The closed floats that the writer remembers, for titles that come late.
+const CLOSED: usize = 8;
 
 impl Default for Writer {
     fn default() -> Self {
-        Self { draft: Draft::empty(), float: None, say: None, meta_queue: VecDeque::new() }
+        Self { draft: Draft::empty(), float: None, say: None, meta_queue: VecDeque::new(), titles: VecDeque::new(), closed: VecDeque::new() }
     }
 }
 
@@ -65,10 +71,9 @@ impl Writer {
         self.draft.path.as_deref()
     }
 
-    /// Write mode on a new note: no file yet, not saved.
+    /// Write mode on a new note: no title line, no file yet, not saved (FLOAT-17).
     pub fn start_new(&mut self) {
-        self.draft.editor = Editor::new("# ");
-        self.draft.editor.move_to_end();
+        self.draft.editor = Editor::new("");
         self.draft.path = None;
     }
 
@@ -118,6 +123,10 @@ impl Writer {
         self.float.as_ref()
     }
 
+    pub fn float_mut(&mut self) -> Option<&mut Float> {
+        self.float.as_mut()
+    }
+
     pub fn take_float(&mut self) -> Option<Float> {
         self.float.take()
     }
@@ -153,6 +162,40 @@ impl Writer {
 
     pub fn next_meta(&mut self) -> Option<String> {
         self.meta_queue.pop_front()
+    }
+
+    /// The float that opened at `opened` closed, and its note is in `path`.
+    pub fn float_closed(&mut self, opened: DateTime<Local>, path: PathBuf) {
+        self.closed.retain(|(o, _)| *o != opened);
+        self.closed.push_back((opened, path));
+        while self.closed.len() > CLOSED {
+            self.closed.pop_front();
+        }
+    }
+
+    /// The file of the note of the closed float that opened at `opened`.
+    pub fn closed_note(&self, opened: DateTime<Local>) -> Option<&PathBuf> {
+        self.closed.iter().find(|(o, _)| *o == opened).map(|(_, p)| p)
+    }
+
+    /// The note of a closed float moved to `path`.
+    pub fn closed_moved(&mut self, opened: DateTime<Local>, path: PathBuf) {
+        if let Some(c) = self.closed.iter_mut().find(|(o, _)| *o == opened) {
+            c.1 = path;
+        }
+    }
+
+    /// The note of a closed float waits for a title (FLOAT-19).
+    pub fn ask_title(&mut self, job: TitleJob) {
+        self.titles.push_back(job);
+    }
+
+    pub fn next_title(&mut self) -> Option<TitleJob> {
+        self.titles.pop_front()
+    }
+
+    pub fn titles_wait(&self) -> bool {
+        !self.titles.is_empty()
     }
 }
 

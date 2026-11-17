@@ -10,6 +10,8 @@ pub struct Float {
     pub opened: chrono::DateTime<Local>,
     /// The area of the float in the last frame, for the mouse.
     pub rect: Rect,
+    /// The title of the note: asked, and the one of the agent (FLOAT-18, FLOAT-19).
+    pub title: crate::agent::work::Titling,
     behind: Behind,
 }
 
@@ -30,7 +32,7 @@ macro_rules! swap_fields {
 }
 
 impl Behind {
-    /// Write mode on an empty note, with the cursor after `# `.
+    /// Write mode on an empty note, without a title line (FLOAT-17).
     fn new_note() -> Self {
         Self {
             draft: Draft::new_note(),
@@ -72,20 +74,20 @@ impl App {
         if self.mode == Mode::Write {
             self.save();
         }
-        let mut fl = Float { opened: Local::now(), rect: Rect::default(), behind: Behind::new_note() };
+        let mut fl = Float { opened: Local::now(), rect: Rect::default(), title: Default::default(), behind: Behind::new_note() };
         fl.swap(self);
         fl.swap_rows(&mut self.frame);
         self.writer.set_float(fl);
     }
 
-    /// `esc`: save the note, ask for a missing title, and give back the screen as it was. A note
-    /// without text makes no file (FLOAT-3, FLOAT-12, FLOAT-13).
+    /// `esc`: save the note, ask the name model for its title, and give back the screen as it was.
+    /// A note without text makes no file (FLOAT-3, FLOAT-12, FLOAT-13, FLOAT-19).
     pub fn close_float(&mut self) {
         self.save();
-        if self.writer.path().is_some() {
-            self.ask_for_meta();
-        }
         let made = self.writer.path().cloned();
+        if let Some(p) = &made {
+            self.title_on_close(p.clone());
+        }
         let Some(mut fl) = self.writer.take_float() else { return };
         fl.swap(self);
         fl.swap_rows(&mut self.frame);

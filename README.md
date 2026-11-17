@@ -65,6 +65,8 @@ beside it when you need them.
   rest of the document: the same style, the same level of detail.
 - **Review.** `ctrl-r` twice: the agent marks the lines that confuse a reader,
   and says why.
+- **From a note to a spec.** `[ → spec ]` on a note, or `s`: the agent decides
+  which specifications to update and which to write, says its plan, then edits.
 - **Documents that stay short.** Past the word limit (1,000 by default) the text
   turns red. `S` asks the agent to split the document and keep each part at one
   level of detail.

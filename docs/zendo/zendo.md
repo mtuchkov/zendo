@@ -45,7 +45,9 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Write mode](write.md)                       | The live view, hard wrap, the cursor between modes            |
 | [Say it here](say.md)                        | `ctrl-shift-s`: the agent writes an idea at a place in the note |
 | [Notes list and search](notes-list.md)       | Titles, tags, links, the notes list, search                   |
+| [Note to spec](note-to-spec.md)              | `[ → spec ]` or `s`: the agent turns a note into specifications |
 | [New note in a float](float.md)              | `alt-n`: a new note in a float over the open file, without distraction |
+| [Title of a new note](float-title.md)        | The name model writes the title of the note in the float      |
 | [Find](find.md)                              | `alt-/`: recent files, search by path and text, the preview   |
 | [Notes repo](notes-repo.md)                  | Notes in a private git repo, in sync between machines         |
 | [Length](length.md)                          | The word limit, the red area, the split with Claude            |

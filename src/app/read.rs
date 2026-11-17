@@ -70,6 +70,7 @@ impl App {
             "say" => self.start_say(),
             "copy" => self.copy_selection(),
             "split" => self.split_document(),
+            "to_spec" => self.note_to_spec(),
             "next_note" => self.step_note(1),
             "prev_note" => self.step_note(-1),
             _ => {}

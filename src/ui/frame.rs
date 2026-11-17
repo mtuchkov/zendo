@@ -25,6 +25,7 @@ pub struct Frame {
     pub(super) input_width: usize,
     pub(super) sound_button: Option<Rect>,
     pub(super) music_button: Option<Rect>,
+    pub(super) spec_button: Option<Rect>,
     pub(super) music_answers: Option<(Rect, Rect)>,
 }
 
@@ -100,6 +101,11 @@ impl Frame {
     }
 
     /// The music button, for the mouse.
+    /// `[ → spec ]` in the head of a note, for mouse clicks (SPEC-1).
+    pub fn spec_button(&self) -> Option<Rect> {
+        self.spec_button
+    }
+
     pub fn music_button(&self) -> Option<Rect> {
         self.music_button
     }

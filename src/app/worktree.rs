@@ -80,6 +80,6 @@ impl App {
         let Some(a) = self.link.handle().filter(|_| !fresh && !diff.trim().is_empty()) else { return };
         let text = format!("{PROMPT}Worktree: {rel}\n--- the changes against the merge base with main ---\n{diff}\n");
         a.send(Cmd::Prompt { key: format!("{RECAP_PREFIX}{rel}"), known: None, text, attach: vec![] });
-        self.work.start(RecapJob { rel, hash, text: String::new(), buf: String::new(), auto: true, failed: None, meta: None, review: false, name: None });
+        self.work.start(RecapJob { rel, hash, text: String::new(), buf: String::new(), auto: true, failed: None, meta: None, review: false, name: None, title: None });
     }
 }
