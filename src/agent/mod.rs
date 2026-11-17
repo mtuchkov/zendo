@@ -5,13 +5,15 @@
 
 mod acp;
 mod model;
+mod sessions;
 pub mod work;
 
 use acp::*;
+use sessions::*;
 
 use agent_client_protocol::schema::ProtocolVersion;
 use agent_client_protocol::v1::schema::{
-    CancelNotification, ContentBlock, InitializeRequest, LoadSessionRequest, NewSessionRequest,
+    CancelNotification, CloseSessionRequest, ContentBlock, InitializeRequest, LoadSessionRequest, NewSessionRequest,
     PermissionOptionKind, PromptRequest, RequestPermissionOutcome, RequestPermissionRequest,
     RequestPermissionResponse, SelectedPermissionOutcome, SessionId, SessionNotification,
     SessionUpdate, TextContent, AvailableCommandsUpdate, SessionConfigOption, SetSessionConfigOptionRequest, AvailableCommandInput, ToolCallContent, ToolKind, ImageContent, ResourceLink,

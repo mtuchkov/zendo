@@ -134,3 +134,37 @@ async fn each_line_of_the_agent_log_has_its_time() {
     }
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// The ids of the sessions that zendo closed, from the agent log.
+fn closed(log: &std::path::Path) -> Vec<String> {
+    let text = std::fs::read_to_string(log).unwrap_or_default();
+    let sent = text.lines().filter_map(|l| l.split_once(" Stdin ")).filter_map(|(_, json)| serde_json::from_str::<serde_json::Value>(json).ok());
+    sent.filter(|m| m["method"] == "session/close").filter_map(|m| m["params"]["sessionId"].as_str().map(str::to_string)).collect()
+}
+
+// NAMES-12, issue #5: a session that zendo replaces with a new one for the same key, or forgets,
+// is closed, so that the agent frees it (its process and its MCP servers).
+#[tokio::test]
+async fn replaced_and_forgotten_sessions_are_closed() {
+    let dir = tmpdir("close");
+    let log = dir.join("agent.log");
+    let (h, mut rx) = agent::spawn(mock(), Default::default(), dir.clone(), Some(log.clone()));
+    assert!(matches!(next(&mut rx).await, Event::Ready { .. }));
+    let mut ids = Vec::new();
+    for _ in 0..2 {
+        h.send(Cmd::Model { key: "(recap) name 1".into(), model: "mock-light".into() });
+        loop {
+            if let Event::Session { id, .. } = next(&mut rx).await {
+                ids.push(id);
+                break;
+            }
+        }
+    }
+    h.send(Cmd::Forget { key: "(recap) name 1".into() });
+    let end = std::time::Instant::now() + Duration::from_secs(10);
+    while closed(&log).len() < 2 && std::time::Instant::now() < end {
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    assert_eq!(closed(&log), ids, "the replaced session, then the forgotten one");
+    let _ = std::fs::remove_dir_all(&dir);
+}
