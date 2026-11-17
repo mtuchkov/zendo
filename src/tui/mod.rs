@@ -1,6 +1,7 @@
 //! The terminal loop: input on its own thread, one draw for all waiting input, the output of the
 //! Claude Code sessions, and the terminal modes.
 
+mod caret;
 mod sound;
 
 use crate::app::App;
@@ -127,8 +128,8 @@ pub fn terminal_off() {
     if KITTY.swap(false, std::sync::atomic::Ordering::Relaxed) {
         let _ = execute!(std::io::stdout(), PopKeyboardEnhancementFlags);
     }
-    let _ = execute!(std::io::stdout(), DisableBracketedPaste, DisableMouseCapture, DisableFocusChange, SetCursorStyle::DefaultUserShape);
-    SHAPE.store(0, std::sync::atomic::Ordering::Relaxed);
+    let _ = execute!(std::io::stdout(), DisableBracketedPaste, DisableMouseCapture, DisableFocusChange, SetCursorStyle::DefaultUserShape, ratatui::crossterm::style::Print(caret::RESET_COLOR));
+    *SHAPE.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = None;
 }
 
 /// The terminal has the kitty keyboard protocol: ctrl-shift-s is not ctrl-s.
@@ -137,16 +138,18 @@ pub fn kitty() -> bool {
 }
 
 static KITTY: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-static SHAPE: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+static SHAPE: std::sync::Mutex<Option<caret::Caret>> = std::sync::Mutex::new(None);
 
-/// A blinking block on the char in read mode; a blinking bar where you type.
+/// The cursor: its shape and color for the pane with the keys and the float (FLOAT-16); written
+/// only when it changes.
 fn cursor_shape(app: &App) {
-    use ratatui::crossterm::cursor::SetCursorStyle;
     use crate::keys::Pane;
-    let block = app.key_pane() == Pane::Read && app.mode == crate::app::Mode::Read;
-    let want = if block { 1 } else { 2 };
-    if SHAPE.swap(want, std::sync::atomic::Ordering::Relaxed) != want {
-        let style = if block { SetCursorStyle::BlinkingBlock } else { SetCursorStyle::BlinkingBar };
-        let _ = execute!(std::io::stdout(), style);
+    use std::io::Write;
+    let read = app.key_pane() == Pane::Read && app.mode == crate::app::Mode::Read;
+    let want = caret::look(read, app.writer.float().is_some());
+    let mut last = SHAPE.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    if last.replace(want) != Some(want) {
+        let mut out = std::io::stdout();
+        let _ = out.write_all(caret::seq(want).as_bytes()).and_then(|()| out.flush());
     }
 }

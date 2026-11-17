@@ -129,6 +129,9 @@ const SAND: Color = hex(0xEEEAE0);
 /// The float color of a light theme: umber.
 const UMBER: Color = hex(0x2B2722);
 
+/// The color of the cursor in the float: rust, it shows on sand and on umber (FLOAT-16).
+pub const CARET: Color = hex(0xC8442B);
+
 /// The ink on sand: dark, warm colors that read on a light background.
 const ON_SAND: Theme = Theme {
     name: "Sand",
