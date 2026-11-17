@@ -6,13 +6,14 @@ parent: "session-names.md"
 prev: "session-names-rename.md"
 next: "session-names-buttons.md"
 level: "who answers the questions for the names of agent sessions and pasted images: the API of the agent, `claude -p`, or a throwaway session"
-note: "Draft, from the requests of the user on 2026-11-17: use the model API directly, since only one word comes back; the API depends on the configured agent; fall back to a session without a key; use the sign-in of `ant`; use `claude -p`, which Anthropic encourages for local development. ADR 0010 holds the decision."
+note: "Draft, from the requests of the user on 2026-11-17. ADR 0010 holds the decision."
 ---
 
 # Session names: API
 
-The questions for the name of an agent session ([Session names](session-names.md), NAMES-1) and of
-a pasted image ([Chat](../chat.md), CLAUDE-37) need a few words back. zendo sends them past the
+The questions for the name of an agent session ([Session names](session-names.md), NAMES-1), of a
+pasted image ([Chat](../chat.md), CLAUDE-37) and for the title of a new note
+([Float: title](../float-title.md), FLOAT-18, FLOAT-19) need a few words back. zendo sends them past the
 agent, straight to the model of the agent that the config names (ADR 0010).
 
 **Which API.** The agent of the config decides: for Claude the Anthropic Messages API, for Codex
@@ -34,7 +35,7 @@ from the Agent SDK credit of the plan. zendo checks the sign-in of `ant` with
 `ant auth print-credentials` and the one of `claude` with `claude auth status`, on a thread at
 start.
 
-**No credential.** zendo asks the agent in a throwaway session, as before ADR 0010.
+**No credential.** zendo asks the agent in a throwaway session (NAMES-16).
 
 **The model.** `[name_models]` names the model (NAMES-12). zendo sends the short names as API
 identifiers (NAMES-18), and any other name as the config writes it.
@@ -43,7 +44,7 @@ identifiers (NAMES-18), and any other name as the config writes it.
 
 | ID       | Pattern  | Requirement | Source |
 | -------- | -------- | ----------- | ------ |
-| NAMES-15 | Optional | Where the configured agent has an API credential, the system shall ask for the names of the agent sessions and of the pasted images through the API of that agent: the Anthropic Messages API for Claude, the OpenAI Responses API for Codex. | User, 2026-11-17 |
+| NAMES-15 | Optional | Where the configured agent has an API credential, the system shall ask for the names of the agent sessions, the names of the pasted images and the titles of new notes through the API of that agent, without a start of the agent: the Anthropic Messages API for Claude, the OpenAI Responses API for Codex. | User, 2026-11-17 |
 | NAMES-16 | Unwanted | If the configured agent has no API credential, then the system shall ask the agent for the names in a throwaway session. | User, 2026-11-17 |
 | NAMES-20 | Optional | Where the agent is Claude and the environment and `[env]` of the config have no `ANTHROPIC_API_KEY`, the system shall use the access token that `ant auth print-credentials --access-token` prints, if the command succeeds. | User, 2026-11-17 |
 | NAMES-21 | Optional | Where the agent is Claude, with no `ANTHROPIC_API_KEY` and no `ant` on the `PATH`, and `claude auth status` reports a login, the system shall ask through `claude -p` with no tools, no setting sources, no MCP servers and a system prompt of its own. | User, 2026-11-17 |
@@ -70,6 +71,15 @@ CLAUDE-38)
 - When the user pastes an image.
 - Then the mock server gets the image in base64, and the chip shows `Image: <name>` of its answer.
 
+**`the_api_titles_the_note_after_three_lines`** and
+**`closing_the_float_titles_the_note_through_the_api`** (mock API server, in `tests/float.rs`;
+verify NAMES-15, FLOAT-18, FLOAT-19)
+
+- Given a Claude agent with an API key, and the mock API server that answers `TITLE: <title>`.
+- When the float has three lines, or closes with one line.
+- Then the mock server gets one question for the title, the title goes into the float or the file,
+  and the agent does not start.
+
 **`claude_p_names_a_claude_session`** (mock `claude` script; verifies NAMES-21)
 
 - Given a Claude agent with `claude -p` as its way, and a mock `claude` that answers two words.
@@ -85,8 +95,7 @@ mock `ant` script; verifies NAMES-20)
 - Then the request has `Authorization: Bearer <token>`; with a mock `ant` that fails, the agent has
   no API credential.
 
-The fallback of NAMES-16 is the way of all the other tests of session names, where the mock agent
-has no API credential.
+The other tests of session names and titles cover the fallback of NAMES-16.
 
 ## Detailed requirements
 

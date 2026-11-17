@@ -168,15 +168,20 @@ impl AgentLink {
     }
 
     /// Ask the API, when there is one, with `prompt` and the image at `image`.
-    pub fn ask_api(&self, q: Question, prompt: String, image: Option<PathBuf>) {
-        if let Some(a) = self.api() {
+    pub fn ask_api(&mut self, q: Question, prompt: String, image: Option<PathBuf>) {
+        if let ApiState::Ready(Some(a)) = &self.api {
             self.asker.ask(a, q, prompt, image);
         }
     }
 
     /// The answers of the API that came.
-    pub fn api_answers(&self) -> Vec<Answer> {
+    pub fn api_answers(&mut self) -> Vec<Answer> {
         self.asker.answers()
+    }
+
+    /// The questions to the API without an answer yet.
+    pub fn api_asks(&self) -> &[Question] {
+        self.asker.open()
     }
 
     /// True the first time only: an error of the API shows once (NAMES-19).

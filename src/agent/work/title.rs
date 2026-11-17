@@ -2,6 +2,7 @@
 //! the body has three lines of text, and again when the float closes if the text changed since
 //! (FLOAT-18 to FLOAT-23). A title of the user stays (FLOAT-21).
 use super::*;
+use crate::agent::api::Question;
 use crate::docs::notes;
 use crate::text::editor::Editor;
 use chrono::DateTime;
@@ -102,13 +103,18 @@ impl App {
         self.send_title(job, rel, text)
     }
 
-    /// The question for a title, in a throwaway session of the name model (FLOAT-18).
+    /// The question for a title: through the API of the agent, else in a throwaway session of the
+    /// name model (FLOAT-18, NAMES-15, NAMES-16).
     fn send_title(&mut self, job: TitleJob, rel: String, text: String) -> bool {
         let prompt = META_PROMPT
             .replace("{{PARTS}}", "TITLE: <the title>\n")
             .replace("{{TODAY}}", &Local::now().format("%Y-%m-%d").to_string())
             .replace("{{FILE}}", &rel)
             .replace("{{TEXT}}", &text);
+        if self.link.api().is_some() {
+            self.link.ask_api(Question::Title { opened: job.opened, old: job.old }, prompt, None);
+            return true;
+        }
         let key = format!("{RECAP_PREFIX}{TITLE_KEY}");
         self.work.start(RecapJob { rel, hash: state::hash(&text), text, title: Some(job), ..RecapJob::default() });
         if let Some(model) = self.link.name_model() {
@@ -131,19 +137,28 @@ impl App {
         };
         self.writer.float_closed(opened, path);
         // A question that runs for this float puts its title into the file.
-        let running = self.work.job().and_then(|j| j.title.as_ref()).is_some_and(|j| j.opened == opened);
+        let in_api = self.link.api_asks().iter().any(|q| matches!(q, Question::Title { opened: o, .. } if *o == opened));
+        let running = in_api || self.work.job().and_then(|j| j.title.as_ref()).is_some_and(|j| j.opened == opened);
         if self.cfg.offline || running {
             return;
         }
         self.writer.ask_title(TitleJob { opened, old });
-        self.ensure_agent();
+        if self.link.api().is_none() {
+            self.ensure_agent();
+        }
     }
 
-    /// The title turn ended: the title goes into the float, or into the file of the closed float.
+    /// The title turn ended in its throwaway session.
     pub(super) fn title_done(&mut self, job: RecapJob) {
-        let Some(tj) = job.title else { return };
-        let Some(title) = parse_meta(&job.buf).0 else {
-            if let Some(e) = job.failed {
+        if let Some(tj) = job.title {
+            self.titled(tj, &job.buf, job.failed);
+        }
+    }
+
+    /// The answer for a title: the title goes into the float, or into the file of the closed float.
+    pub(super) fn titled(&mut self, tj: TitleJob, answer: &str, failed: Option<String>) {
+        let Some(title) = parse_meta(answer).0 else {
+            if let Some(e) = failed {
                 self.flash(format!("no title from the agent: {}", e.lines().next().unwrap_or("")));
             }
             return;

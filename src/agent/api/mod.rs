@@ -1,6 +1,6 @@
 //! The model API of the configured agent, for the questions that need one word back: the names of
-//! the agent sessions and of the pasted images (docs/zendo/session-names/session-names.md,
-//! NAMES-15 to NAMES-20, ADR 0010). Claude asks the Anthropic Messages API, Codex the OpenAI
+//! the agent sessions, of the pasted images and the titles of new notes
+//! (docs/zendo/session-names/session-names-api.md, NAMES-15 to NAMES-21, ADR 0010). Claude asks the Anthropic Messages API, Codex the OpenAI
 //! Responses API; a Claude user with a subscription only asks through `claude -p` (NAMES-21).
 //! Without any of these there is no API, and zendo asks the agent in a throwaway session
 //! (NAMES-16).
@@ -51,7 +51,7 @@ pub struct Image {
 }
 
 /// The longest answer, in tokens. A reasoning model of OpenAI counts its thinking too.
-const ANTHROPIC_TOKENS: u32 = 64;
+const ANTHROPIC_TOKENS: u32 = 128;
 const OPENAI_TOKENS: u32 = 2048;
 
 impl Api {

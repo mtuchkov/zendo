@@ -1,6 +1,7 @@
 //! The questions to the API, each on a thread of its own: the tick of the app takes the answers,
 //! so the UI never waits for the network (ADR 0009, ADR 0010).
 use super::*;
+use chrono::{DateTime, Local};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::time::Duration;
 
@@ -14,6 +15,9 @@ pub enum Question {
     Name { n: usize, id: String },
     /// The name of the pasted image at this path (CLAUDE-37).
     Image(PathBuf),
+    /// The title of the note of the float that opened at `opened`; `old` is the title of the agent
+    /// that the answer replaces (FLOAT-18, FLOAT-19).
+    Title { opened: DateTime<Local>, old: Option<String> },
 }
 
 /// A question and the text of its answer, or the error.
@@ -23,27 +27,37 @@ pub type Answer = (Question, Result<String, String>);
 pub struct Asker {
     tx: Sender<Answer>,
     rx: Receiver<Answer>,
+    /// The questions without an answer yet.
+    open: Vec<Question>,
 }
 
 impl Default for Asker {
     fn default() -> Self {
         let (tx, rx) = channel();
-        Self { tx, rx }
+        Self { tx, rx, open: Vec::new() }
     }
 }
 
 impl Asker {
     /// Ask `api` with `prompt` and the image at `image`, on a thread.
-    pub fn ask(&self, api: &Api, q: Question, prompt: String, image: Option<PathBuf>) {
+    pub fn ask(&mut self, api: &Api, q: Question, prompt: String, image: Option<PathBuf>) {
         let (api, tx) = (api.clone(), self.tx.clone());
+        self.open.push(q.clone());
         std::thread::spawn(move || {
             let _ = tx.send((q, ask(&api, &prompt, image.as_deref())));
         });
     }
 
     /// The answers that came since the last call.
-    pub fn answers(&self) -> Vec<Answer> {
-        self.rx.try_iter().collect()
+    pub fn answers(&mut self) -> Vec<Answer> {
+        let answers: Vec<Answer> = self.rx.try_iter().collect();
+        self.open.retain(|q| !answers.iter().any(|(a, _)| a == q));
+        answers
+    }
+
+    /// The questions without an answer yet.
+    pub fn open(&self) -> &[Question] {
+        &self.open
     }
 }
 

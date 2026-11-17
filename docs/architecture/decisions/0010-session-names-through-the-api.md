@@ -15,7 +15,8 @@ sources:
 
 ## Context
 
-zendo names the agent sessions and the pasted images with a light model. Up to now it opened a
+zendo names the agent sessions and the pasted images, and titles new notes (FLOAT-18), with a light
+model. Up to now it opened a
 throwaway ACP session of the agent for each question (ADR 0001). A throwaway session starts an agent
 process context, loads the system prompt and the tools of the agent, and holds the work queue of
 the recaps while it runs. The answer is one word.
@@ -56,7 +57,8 @@ Proposal, not yet accepted: the direct API with a fallback to the throwaway sess
 - zendo shall find the credential once at start, and the `ant` token at each question.
 - The request shall run on a thread of its own with a limit of 20 s; the tick of the app takes the
   answer, so the UI never waits (as ADR 0009).
-- A question through the API shall not wait for the agent or for the recap queue.
+- A question through the API shall not wait for the agent or for the recap queue, and shall not
+  start the agent; the titles of new notes take the same way.
 - An HTTP error shall show once in the flash line; the name waits for the next threshold.
 - The short model names of `[name_models]` map to API identifiers (NAMES-18); a full identifier
   passes as it is.

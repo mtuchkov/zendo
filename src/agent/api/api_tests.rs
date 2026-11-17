@@ -161,3 +161,22 @@ fn the_answers_of_both_apis_give_their_text() {
     assert_eq!(error_text(401, &e), "HTTP 401: invalid x-api-key");
     assert_eq!(error_text(500, &serde_json::Value::Null), "HTTP 500");
 }
+
+// FLOAT-19, FLOAT-23: the asker knows the questions without an answer, so a closed float does not
+// ask again while its question runs.
+#[test]
+fn the_asker_keeps_the_open_questions_until_their_answers() {
+    let mut asker = Asker::default();
+    let api = Api { vendor: Vendor::Anthropic, base: "http://x".into(), model: "m".into(), cred: Credential::Claude("/no/such/claude".into()) };
+    let q = Question::Image("/tmp/a.png".into());
+    asker.ask(&api, q.clone(), "name it".into(), None);
+    assert_eq!(asker.open(), std::slice::from_ref(&q));
+    let end = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    let mut got = Vec::new();
+    while got.is_empty() && std::time::Instant::now() < end {
+        got = asker.answers();
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert!(matches!(&got[..], [(a, Err(_))] if *a == q), "{got:?}");
+    assert!(asker.open().is_empty());
+}

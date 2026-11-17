@@ -100,8 +100,8 @@ impl App {
         }
     }
 
-    /// Called on every tick: take the answers of the API, and ask it for a name that is due. A
-    /// question through the API waits neither for the agent nor for the recaps (ADR 0010).
+    /// Called on every tick: take the answers of the API, and ask it for a title or a name that is
+    /// due. A question through the API waits neither for the agent nor for the recaps (ADR 0010).
     pub(crate) fn api_tick(&mut self) {
         self.link.poll_api();
         for (q, answer) in self.link.api_answers() {
@@ -114,9 +114,10 @@ impl App {
             match q {
                 Question::Name { n, id } => self.named(n, id, &text),
                 Question::Image(path) => self.label_image(&path, &text),
+                Question::Title { opened, old } => self.titled(TitleJob { opened, old }, &text, None),
             }
         }
-        if self.link.api().is_some() {
+        if self.link.api().is_some() && !self.title_tick() {
             self.name_tick();
         }
     }
