@@ -1,13 +1,13 @@
 ---
 status: "approved"
 approved: "2026-11-14"
-revision: "2"
-date: "2026-11-14"
+revision: "3"
+date: "2026-11-17"
 parent: "zendo.md"
 prev: "zendo-session.md"
-next: "terminal/terminal.md"
+next: "chat-chips.md"
 level: "the chat input: lines, chips, attachments and @ file suggestions"
-note: "Split from claude.md; the user approved the requirements in the chat on 2026-11-14, with CLAUDE-17 for `Image #n` chips and CLAUDE-37 to CLAUDE-39 for image names."
+note: "Split from claude.md; the user approved the requirements in the chat on 2026-11-14, with CLAUDE-17 for `Image #n` chips and CLAUDE-37 to CLAUDE-39 for image names. Revision 3: a link to the chip window and the open document in chat-chips.md, asked by the user on 2026-11-17; not reviewed yet."
 ---
 
 # Chat
@@ -23,7 +23,7 @@ also add a line, in every terminal. The input grows up to a quarter of the panel
 **Chips.** A selection added to the chat is a chip with its first 15 chars, and `+N` when it has N more lines; it brings the selected
 text as context. A file chip shows the last 4 chars of its folder and the first 10 chars of its
 name, as `ates/specificat`. The arrows step over a chip as one unit, and the chip at the cursor
-shows in the accent color; `backspace` and `delete` remove it. `@` and the start of a name show the
+shows in the accent color; `backspace` and `delete` remove it. A double-click on a chip shows what it brings ([Chips and the open document](chat-chips.md)). `@` and the start of a name show the
 4 best files under the input; the arrows choose, `tab` or `enter` adds the file as a chip. `ctrl-t`
 does the same for templates: the chip tells the agent to write a new document from the template, for
 example a specification from the notes the user names with `@`.

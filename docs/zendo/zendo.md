@@ -22,6 +22,7 @@ children:
   - "cli-messages.md"
   - "zendo-session.md"
   - "chat.md"
+  - "chat-chips.md"
   - "terminal/terminal.md"
   - "attention.md"
   - "project-structure.md"
@@ -60,6 +61,7 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Claude Code messages in the chat](cli-messages.md) | The prompts and answers of a running Claude Code session in its chat |
 | [zendo session](zendo-session.md)            | What a zendo session is, its id, and what zendo tells its agent |
 | [Chat](chat.md)                              | The chat input: chips, attachments, `@` file suggestions        |
+| [Chips and the open document](chat-chips.md) | The chip window, images, the choice of the open document      |
 | [Terminal](terminal/terminal.md)             | Shell blocks in the chat, the `F5` and `[>]` terminals in the chat pane, their output for the agent |
 | [Attention](attention.md)                    | The bell and the blinking button when a turn ends; `[sound]`   |
 | [Project structure](project-structure.md)    | `project-structure.toml`: use and repair                      |
