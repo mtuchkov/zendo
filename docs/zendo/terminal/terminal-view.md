@@ -1,13 +1,13 @@
 ---
-status: "approved"
-approved: "2026-11-17"
+status: "implemented"
+approved: "2026-11-18"
 revision: "6"
-date: "2026-11-17"
+date: "2026-11-18"
 parent: "terminal.md"
 prev: "shell-blocks.md"
 next: "terminal-output.md"
 level: "the view of a terminal: the chat pane, the full screen, the keys to leave and to go to another session, the buttons"
-note: "From the requests of the user on 2026-11-12, split from terminal.md; the user approved the requirements in the chat on 2026-11-14, with TERM-14 for the terminal buttons at the top of the right edge. Revision 5 (the user, 2026-11-17): TERM-15 marks the terminal in the chat pane as the active button, in the accent color. Revision 6 (agent draft from the request of the user on 2026-11-17, not reviewed): TERM-52 (`F5` goes through the terminals), TERM-53 and TERM-54 (the `[+]` button). These three IDs are proposals until the user reviews them."
+note: "From the requests of the user on 2026-11-12, split from terminal.md; the user approved the requirements in the chat on 2026-11-14, with TERM-14 for the terminal buttons at the top of the right edge. Revision 5 (the user, 2026-11-17): TERM-15 marks the terminal in the chat pane as the active button, in the accent color. Revision 6 (the user, 2026-11-17): TERM-52 (`F5` goes through the terminals), TERM-53 and TERM-54 (the `[+]` button); the user approved them and marked the document implemented on 2026-11-18."
 ---
 
 # Terminal view
