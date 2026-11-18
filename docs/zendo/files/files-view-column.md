@@ -49,7 +49,7 @@ and its key, as before: `structure · v`.
 
 When the user presses `v`, the tree shows the next view (FILES-4), and the strip opens into a hint
 over the tree: each letter with the name of its view, the active one marked. The tree under the
-hint keeps its width. After 2.5 seconds the hint closes into the strip again; a `v` while it is open
+hint keeps its width and its chars, in the dim color on its own background. After 2.5 seconds the hint closes into the strip again; a `v` while it is open
 starts the 2.5 seconds again. A click on a name shows its view.
 
 ```
