@@ -67,6 +67,5 @@ and `a_replayed_question_shows_its_chips` (mock agent; CLAUDE-64) in `tests/chip
 
 ## Open points
 
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| Does Claude Code expand an `@path` that comes in a bracketed paste, as it does for a typed one? A check with a real Claude Code session settles it before the code. | CLAUDE-60 | A check with real Claude |
+None. The user checked on 2026-11-17 that Claude Code reads the file of an `@path` that comes in a
+paste of more than one line (CLAUDE-60).
