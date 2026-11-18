@@ -45,6 +45,25 @@ impl App {
         }
     }
 
+    /// A click in the tree: a view letter (FILES-65), `[+]` or `[-]`, a row. True when it hit one.
+    fn click_tree(&mut self, hit: &dyn Fn(&Rect) -> bool) -> bool {
+        if let Some(v) = self.frame.view_buttons().iter().find(|(r, _)| hit(r)).map(|(_, v)| *v) {
+            self.focus = Focus::Tree;
+            self.did_by_mouse(crate::keys::Pane::Tree, "view");
+            self.show_tree_view(v);
+        } else if let Some(open) = self.frame.tree_fold().iter().find(|(r, _)| hit(r)).map(|(_, o)| *o) {
+            self.fold_all(open);
+        } else if let Some(i) = self.frame.tree_rows().iter().find(|(r, _)| hit(r)).map(|(_, i)| *i) {
+            self.focus = Focus::Tree;
+            self.files.select_row(i);
+            self.did_by_mouse(crate::keys::Pane::Tree, "preview");
+            self.tree_activate(false);
+        } else {
+            return false;
+        }
+        true
+    }
+
     /// A drag moves the end of the selection, until the button is up.
     pub(crate) fn drag_selection(&mut self, x: u16, y: u16, m: KeyModifiers) {
         self.pointer.drag(x, y, m);
@@ -92,15 +111,7 @@ impl App {
             self.did_by_mouse(crate::keys::Pane::Global, "terminal");
             return self.put_into_terminal(&cmd, false);
         }
-        if let Some(open) = self.frame.tree_fold().iter().find(|(r, _)| hit(r)).map(|(_, o)| *o) {
-            return self.fold_all(open);
-        }
-        let row = self.frame.tree_rows().iter().find(|(r, _)| hit(r)).map(|(_, i)| *i);
-        if let Some(i) = row {
-            self.focus = Focus::Tree;
-            self.files.select_row(i);
-            self.did_by_mouse(crate::keys::Pane::Tree, "preview");
-            self.tree_activate(false);
+        if self.click_tree(&hit) {
             return;
         }
         let Some((region, rect)) = self.region_at(x, y) else { return };

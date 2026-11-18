@@ -48,13 +48,13 @@ async fn brief_open_does_not_count_but_work_does() {
     let mut a = app(&root);
     a.sync_visit();
     a.interact(3);
-    a.mode = Mode::Notes;
+    a.mode = Mode::Find;
     a.sync_visit();
     assert!(!a.state.files.contains_key(REL), "a brief open must not count");
 
     a.mode = Mode::Read;
     a.interact(ENGAGED);
-    a.mode = Mode::Notes;
+    a.mode = Mode::Find;
     a.sync_visit();
     let f = &a.state.files[REL];
     assert_eq!(f.visits, 1);

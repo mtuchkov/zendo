@@ -16,6 +16,8 @@ pub const DOCS_GLOB: &str = "**/docs/**";
 pub enum Kind {
     Dir { open: bool },
     File,
+    /// A head of the Notes view: Today, This week, Older (FILES-61).
+    Head,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -30,6 +32,8 @@ pub enum View {
     Worktree,
     /// The files of that worktree that differ from the merge base with `main` (FILES-27).
     WorktreeChanged,
+    /// The notes by age (FILES-61).
+    Notes,
 }
 
 impl View {
@@ -40,8 +44,22 @@ impl View {
             View::Text => "text",
             View::Worktree => "worktree",
             View::WorktreeChanged => "worktree changed",
+            View::Notes => "notes",
         }
     }
+
+    /// The letter of the view in the strip of the tree (FILES-62).
+    pub fn letter(self) -> &'static str {
+        match self {
+            View::Structure => "S",
+            View::Docs => "D",
+            View::Text => "T",
+            View::Worktree => "W",
+            View::WorktreeChanged => "Δ",
+            View::Notes => "N",
+        }
+    }
+
     pub fn from_name(s: &str) -> Option<View> {
         match s {
             "structure" => Some(View::Structure),
@@ -49,6 +67,7 @@ impl View {
             "text" => Some(View::Text),
             "worktree" => Some(View::Worktree),
             "worktree changed" => Some(View::WorktreeChanged),
+            "notes" => Some(View::Notes),
             _ => None,
         }
     }
@@ -85,6 +104,10 @@ pub struct Tree {
     pub changed: BTreeSet<PathBuf>,
     /// The folders of the repository, in the text view.
     pub dirs: Vec<PathBuf>,
+    /// The rows of the Notes view: the heads and the notes by age (FILES-61).
+    pub notes_view: Vec<Row>,
+    /// Until when the hint of the view strip shows (FILES-66).
+    pub hint_until: Option<Instant>,
     /// The file name filter (`` ` `` in the tree): while it is on, the tree is a flat list of matches.
     pub find: Option<String>,
     /// `[.*]` of the filter: the text is a regular expression for the path (FILES-59).
@@ -117,6 +140,8 @@ impl Default for Tree {
             dirs: Vec::new(),
             find: None,
             find_regex: false,
+            notes_view: Vec::new(),
+            hint_until: None,
             notes: None,
             notes_files: Vec::new(),
             worktree: None,
@@ -150,6 +175,7 @@ impl Tree {
             View::Text => "text files",
             View::Worktree => "worktree",
             View::WorktreeChanged => "worktree Δ",
+            View::Notes => "notes",
         }
     }
 
@@ -158,18 +184,22 @@ impl Tree {
         self.structure.as_ref().filter(|s| self.view == View::Structure && s.main().next().is_some())
     }
 
-    /// `v`: structure (if there is one) → docs → text → worktree → worktree changed → …; the
-    /// worktree views only while the active agent session has a worktree (FILES-4, FILES-31).
+    /// `v`: structure (if there is one) → docs → text → worktree → worktree changed → notes → …;
+    /// the worktree views only while the active agent session has a worktree (FILES-4, FILES-31).
     pub fn next_view(&mut self) {
+        let views = self.views();
+        let at = views.iter().position(|v| *v == self.view).map_or(0, |i| i + 1);
+        self.view = views[at % views.len()];
+    }
+
+    /// The views that the strip and the `v` cycle show now, in their order (FILES-4, FILES-64).
+    pub fn views(&self) -> Vec<View> {
         let has = self.structure.as_ref().is_some_and(|s| s.main().next().is_some());
-        self.view = match self.view {
-            View::Structure => View::Docs,
-            View::Docs => View::Text,
-            View::Text if self.worktree.is_some() => View::Worktree,
-            View::Worktree => View::WorktreeChanged,
-            View::Text | View::WorktreeChanged if has => View::Structure,
-            View::Text | View::WorktreeChanged => View::Docs,
-        };
+        let wt = self.worktree.is_some();
+        [(View::Structure, has), (View::Docs, true), (View::Text, true), (View::Worktree, wt), (View::WorktreeChanged, wt), (View::Notes, true)]
+            .into_iter()
+            .filter_map(|(v, on)| on.then_some(v))
+            .collect()
     }
 
     /// Visible rows: folders first, then files; folder chains with one child are joined (`docs/notes`).
@@ -180,6 +210,9 @@ impl Tree {
         }
         if self.view.is_worktree() {
             return self.worktree_rows();
+        }
+        if self.view == View::Notes {
+            return self.notes_view.clone();
         }
         let mut out = self.notes_rows();
         match self.structured() {

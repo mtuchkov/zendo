@@ -39,20 +39,20 @@ impl Files {
             }
             Kind::File if self.tree.deleted.contains(&row.rel) => Picked::Deleted,
             Kind::File => Picked::File(row.rel),
+            Kind::Head => Picked::Nothing,
         }
     }
 
     /// A key of the tree that only moves in it. False: the action is not one of them.
     pub fn key_tree(&mut self, act: &str) -> bool {
         let rows = self.tree.rows();
-        let (n, sel) = (rows.len(), self.tree.sel);
+        let sel = self.tree.sel;
         let row = rows.get(sel);
+        let notes = self.tree.view == crate::docs::tree::View::Notes;
         match act {
-            "down" if n > 0 => self.tree.sel = (sel + 1).min(n - 1),
-            "down" => {}
-            "up" => self.tree.sel = sel.saturating_sub(1),
-            "top" => self.tree.sel = 0,
-            "bottom" => self.tree.sel = n.saturating_sub(1),
+            "down" | "up" | "top" | "bottom" => self.move_in_tree(act, &rows),
+            // FILES-69: the Notes view has no folders.
+            "unfold" | "fold" | "expand_all" | "collapse_all" if notes => {}
             // Unfold or fold the folder: [+] / [-].
             "unfold" | "fold" => {
                 let want_open = act == "unfold";
@@ -75,6 +75,23 @@ impl Files {
             _ => return false,
         }
         true
+    }
+
+    /// `j`, `k`, `g`, `G`: the selection moves, over the heads of the Notes view.
+    fn move_in_tree(&mut self, act: &str, rows: &[crate::docs::tree::Row]) {
+        let n = rows.len();
+        if n == 0 {
+            return;
+        }
+        let ok = |i: &usize| rows[*i].kind != Kind::Head;
+        let sel = self.tree.sel;
+        let to = match act {
+            "down" => (sel + 1..n).find(ok),
+            "up" => (0..sel).rev().find(ok),
+            "top" => (0..n).find(ok),
+            _ => (0..n).rev().find(ok),
+        };
+        self.tree.sel = to.unwrap_or(sel.min(n - 1));
     }
 
     /// Typing in the file name filter of the tree.

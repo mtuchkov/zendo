@@ -224,6 +224,7 @@ rename = ["f2"]  # rename the file
 move = ["m"]  # move the file to a folder
 new_file = ["f3"]  # new file
 new_folder = ["f4"]  # new folder
+new_note = ["n"]  # a new note, in the notes view
 delete = ["delete"]  # delete the file
 
 # features
@@ -232,7 +233,8 @@ add_to_chat = ["a"]  # add the file to the chat
 # panes and view
 open = ["enter"]  # open in the note
 preview = ["l", "right", "space"]  # open, stay in the tree
-view = ["v"]  # structure, docs, text files, worktree, worktree Δ
+view = ["v"]  # structure, docs, text files, worktree, worktree Δ, notes
+notes = ["o"]  # the notes view
 layout = ["w"]  # standard / wide screen
 delta = ["d"]  # delta
 chat = ["c"]  # chat
@@ -256,23 +258,6 @@ recap = ["r"]  # recap now
 layout = ["w"]  # standard / wide screen
 write = ["i"]  # write
 close = ["esc", "d", "q"]  # close the delta
-
-[notes]
-# navigation
-down = ["j", "down"]  # down
-up = ["k", "up"]  # up
-top = ["g", "home"]  # top
-bottom = ["G", "end"]  # bottom
-
-# editing
-new = ["n"]  # new note
-rename = ["r"]  # rename the file to the title
-rename_file = ["f2"]  # rename the file
-delete = ["delete"]  # delete the file
-
-# panes and view
-open = ["enter", "l", "right"]  # open
-close = ["esc", "o", "q"]  # close
 
 [session]
 # A Claude Code session or a terminal on the whole screen, or a terminal in the chat pane. All other

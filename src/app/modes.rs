@@ -7,7 +7,6 @@ pub enum Mode {
     #[default]
     Read,
     Write,
-    Notes,
     Find,
     Theme,
     Help,
@@ -39,54 +38,13 @@ impl App {
         }
     }
 
+    /// `o`: the tree in the Notes view, with the focus in it (FILES-68).
     pub fn open_notes(&mut self) {
-        self.lists.select_note(self.note_index().unwrap_or(0));
-        self.mode = Mode::Notes;
-    }
-
-    pub(crate) fn key_notes(&mut self, act: Option<&str>) {
-        let n = self.files.notes().len();
-        match act {
-            Some("close") => self.mode = Mode::Read,
-            Some("down") => self.lists.note_down(n),
-            Some("up") => self.lists.note_up(),
-            Some("top") => self.lists.select_note(0),
-            Some("bottom") => self.lists.note_bottom(n),
-            Some("open") if n > 0 => {
-                self.files.show_note(self.lists.note());
-                self.reader.to_start();
-                self.threads.unpin();
-                self.mode = Mode::Read;
-            }
-            Some("new") => self.open_float(),
-            Some("rename") if n > 0 => self.rename(self.lists.note()),
-            Some("rename_file") => self.ask_file(self.notes_file(), 'r'),
-            Some("delete") => self.ask_file(self.notes_file(), 'd'),
-            _ => {}
+        if !self.state.tree {
+            self.toggle_tree();
         }
-    }
-
-    /// Rename the file to match its title, keeping the date.
-    pub(crate) fn rename(&mut self, i: usize) {
-        let note = &self.files.notes()[i];
-        let date = note.created.unwrap_or_else(|| note.modified.date_naive());
-        let target = self.files.store().dir.join(format!("{}-{}.md", date.format("%Y-%m-%d"), notes::slug(&note.title)));
-        if target == note.path {
-            self.flash("the file name already matches the title");
-            return;
-        }
-        if target.exists() {
-            self.flash("a file with that name exists");
-            return;
-        }
-        let old = note.path.clone();
-        match self.move_file(&old, &target) {
-            Ok(()) => {
-                self.lists.select_note(self.files.notes().iter().position(|n| n.path == target).unwrap_or(0));
-                self.flash(format!("renamed to {}", self.rel(&target)));
-            }
-            Err(e) => self.flash(format!("rename failed: {e}")),
-        }
+        self.show_tree_view(crate::docs::tree::View::Notes);
+        self.focus = Focus::Tree;
     }
 
     pub(crate) fn key_theme(&mut self, k: KeyEvent) {

@@ -11,7 +11,7 @@ impl Files {
         let Some(r) = rows.get(self.tree.sel) else { return String::new() };
         let dir = match r.kind {
             Kind::Dir { .. } => r.rel.clone(),
-            Kind::File => r.rel.parent().map(Path::to_path_buf).unwrap_or_default(),
+            Kind::File | Kind::Head => r.rel.parent().map(Path::to_path_buf).unwrap_or_default(),
         };
         let s = dir.display().to_string();
         if s.is_empty() { s } else { format!("{s}/") }

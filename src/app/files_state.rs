@@ -155,6 +155,7 @@ impl Files {
             n.extend(more);
             n.sort_by_key(|b| std::cmp::Reverse(b.modified));
             self.notes = n;
+            self.fill_notes_view();
         }
         if self.current.as_ref().is_some_and(|p| !p.exists() && !self.extra.contains(p)) {
             self.current = self.notes.first().map(|n| n.path.clone());

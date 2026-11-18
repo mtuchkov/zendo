@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-18"
 revision: "1"
 date: "2026-11-18"
 parent: "files.md"
 prev: "files-views.md"
 next: "files-actions.md"
 level: "the strip of view letters on the left edge of the tree, its hint, and the Notes view"
-note: "Agent draft of the design that the user decided on 2026-11-18. Not reviewed by the user. It moves the notes list of notes-list.md into the tree."
+note: "Design that the user decided and approved on 2026-11-18. It moves the notes list of notes-list.md into the tree."
 ---
 
 # File tree: the view strip and the Notes view
@@ -28,7 +29,8 @@ other with an empty row between them, and one empty column after the letters.
 | `N`    | notes |
 
 The letter of the active view stands on the accent color; the other letters have the second accent
-color. `W` and `Δ` show only while the active agent session has a worktree. A line separates `N`
+color. `W` and `Δ` show only while the active agent session has a worktree, and `S` only while
+`project-structure.toml` has main materials, as in the `v` cycle (FILES-4). A line separates `N`
 from the views of the files. A click on a letter shows its view. The head of the tree names the view
 and its key, as before: `structure · v`.
 
@@ -97,7 +99,7 @@ in a [float](../float.md), `f2` renames the file to a typed name, and `delete` d
 | -------- | ---------- | ----------- | ------ |
 | FILES-62 | Ubiquitous | The system shall label the views `S`, `D`, `T`, `W`, `Δ` and `N`. | User, 2026-11-18 |
 | FILES-63 | Ubiquitous | The system shall show the letter of the active view on the accent color and the other letters in the second accent color. | User, 2026-11-18 |
-| FILES-64 | State      | While the active agent session has no worktree, the system shall not show `W` and `Δ`. | Design |
+| FILES-64 | State      | While the active agent session has no worktree, the system shall not show `W` and `Δ`; while `project-structure.toml` has no main materials, `S`. | Design |
 | FILES-65 | Event      | When the user clicks a letter of the strip or a name of the hint, the system shall show that view and keep it for the repository (FILES-10). | User, 2026-11-18 |
 | FILES-66 | Event      | When the user presses `v` in the tree, the system shall show over the tree, for 2.5 seconds after the last `v`, the hint with the letter and the name of each view, without a change of the width of the tree. | User, 2026-11-18 |
 | FILES-67 | Ubiquitous | The system shall name the active view and its key in the head of the tree. | User, 2026-11-18 |

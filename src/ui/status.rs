@@ -98,7 +98,6 @@ fn status_keys(app: &App, fr: &Cache, t: &Theme, claude: bool) -> (&'static str,
             v.extend(hints(Pane::Write, &[("done", "read"), ("chat", "chat"), ("add_to_chat", "to chat"), ("say", "say here"), ("bold", "bold"), ("italic", "italic"), ("underline", "underline"), ("toggle_tree", "files"), ("delta", "delta")]));
             ("WRITE", t.acc2, v)
         }
-        Mode::Notes => ("NOTES", t.acc, hints(Pane::Notes, &[("down", "move"), ("open", "open"), ("new", "new"), ("rename", "rename"), ("close", "close")])),
         Mode::Find => ("FIND", t.acc, list_keys("open")),
         Mode::Theme => ("THEME", t.acc, vec![("j k".into(), "preview".into()), ("enter".into(), "keep".into()), ("esc".into(), "cancel".into())]),
     }
@@ -136,7 +135,6 @@ fn status_right(app: &App, fr: &Cache, claude: bool) -> String {
             };
             format!("{words} words · {saved}")
         }
-        Mode::Notes => format!("{} notes · {}", app.files.notes().len(), app.rel(&app.cfg.notes_dir)),
         Mode::Find => format!("{} files", app.files.find().items.len()),
         Mode::Theme => THEMES[app.theme].name.to_string(),
         _ if app.note().is_some() && fr.word_limit > 0 => format!("{} / {} words", fr.word_count, fr.word_limit),

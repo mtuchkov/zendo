@@ -1,11 +1,12 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-18"
 revision: "4"
 date: "2026-11-17"
 parent: "files.md"
 next: "files-view-column.md"
 level: "the views of the file tree, folding, the marks, the bottom of the tree"
-note: "Split from files.md revision 2 (user, 2026-11-14). Revision 2 changes FILES-4: the `v` cycle has the two worktree views after folders (user, 2026-11-14); implemented in zendo 0.62.0. Revision 3, from the request of the user on 2026-11-17 and approved by the user on 2026-11-17: the all and folders views go (FILES-4, FILES-17), the folders start closed (FILES-56), `[+]` and `[-]` open and close every folder (FILES-57), and the tree follows the open document (FILES-58); implemented in zendo 0.85.0. Revision 4 (agent draft, not reviewed): FILES-4 ends with the Notes view of files-view-column.md."
+note: "Split from files.md revision 2 (user, 2026-11-14). Revision 2 changes FILES-4: the `v` cycle has the two worktree views after folders (user, 2026-11-14); implemented in zendo 0.62.0. Revision 3, from the request of the user on 2026-11-17 and approved by the user on 2026-11-17: the all and folders views go (FILES-4, FILES-17), the folders start closed (FILES-56), `[+]` and `[-]` open and close every folder (FILES-57), and the tree follows the open document (FILES-58); implemented in zendo 0.85.0. Revision 4 (approved by the user on 2026-11-18): FILES-4 ends with the Notes view of files-view-column.md."
 ---
 
 # File tree: views

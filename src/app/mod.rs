@@ -20,7 +20,6 @@ mod float;
 mod jobs;
 mod key_help;
 mod link;
-mod lists;
 mod hold;
 mod file_prompt;
 mod info;
@@ -63,7 +62,6 @@ pub use float::Float;
 pub use jobs::*;
 pub use key_help::KeyHelp;
 pub use link::AgentLink;
-pub use lists::Lists;
 pub use update::Update;
 pub use hold::{CONTINUE, HOLD_AGAIN, Hold};
 pub use say::{SAY_HERE, Say};
@@ -135,8 +133,6 @@ pub struct App {
     pub state: State,
 
     /// The view of the note: the read cursor, the selection, and the scroll.
-    /// The notes list and the search: the selection, the query, the matches.
-    pub lists: Lists,
     /// The check for a newer zendo, and the upgrade at the quit.
     pub update: Update,
     /// The help of the keys: its pane, the keymap file, the problems of the keymap.

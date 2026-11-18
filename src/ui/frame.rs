@@ -14,6 +14,8 @@ pub struct Frame {
     pub(super) tree_rows: Vec<(Rect, usize)>,
     /// `[+]` and `[-]` in the head of the tree: true opens every folder (FILES-57).
     pub(super) tree_fold: Vec<(Rect, bool)>,
+    /// The letters of the view strip of the tree, or the names of its hint (FILES-65).
+    pub(super) view_buttons: Vec<(Rect, crate::docs::tree::View)>,
     pub(super) session_buttons: Vec<(Rect, usize)>,
     pub(super) play_buttons: Vec<(Rect, String)>,
     pub(super) read_text: Vec<String>,
@@ -63,6 +65,11 @@ impl Frame {
     /// `[+]` and `[-]` in the head of the tree, for mouse clicks: true opens every folder.
     pub fn tree_fold(&self) -> &[(Rect, bool)] {
         &self.tree_fold
+    }
+
+    /// The letters of the view strip or the names of its hint, for mouse clicks.
+    pub fn view_buttons(&self) -> &[(Rect, crate::docs::tree::View)] {
+        &self.view_buttons
     }
 
     /// The buttons of the agent sessions, for mouse clicks.

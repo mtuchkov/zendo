@@ -95,11 +95,6 @@ impl App {
                 return;
             }
             return match self.mode {
-                Mode::Notes => {
-                    let act = self.keys.local(Pane::Notes, &k);
-                    self.did_some(Pane::Notes, act);
-                    self.key_notes(act)
-                }
                 Mode::Find => self.key_find(k),
                 Mode::Theme => self.key_theme(k),
                 _ => {}
@@ -194,11 +189,10 @@ impl App {
         true
     }
 
-    /// The pane whose keys the help shows: the pane in focus, the notes list, or only the global keys.
+    /// The pane whose keys the help shows: the pane in focus, or only the global keys.
     fn help_pane_now(&self) -> crate::keys::Pane {
         match self.mode {
             Mode::Read | Mode::Write => self.key_pane(),
-            Mode::Notes => crate::keys::Pane::Notes,
             _ => crate::keys::Pane::Global,
         }
     }

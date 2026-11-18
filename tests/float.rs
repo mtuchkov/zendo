@@ -142,8 +142,8 @@ async fn the_float_saves_the_open_file_first() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FLOAT-5, FLOAT-15: `n` in read mode and in the notes list opens the float; enter in the notes
-// list opens a note in the note pane.
+// FLOAT-5, FLOAT-15, FILES-61: `n` in read mode and in the Notes view of the tree opens the float;
+// enter in the Notes view opens a note in the note pane.
 #[tokio::test]
 async fn n_opens_the_float() {
     let root = repo("float-n", &files());
@@ -153,11 +153,11 @@ async fn n_opens_the_float() {
     assert!(in_float(&a), "n in read mode");
     key(&mut a, KeyCode::Esc);
     key(&mut a, KeyCode::Char('o'));
-    assert_eq!(a.mode, Mode::Notes);
+    assert_eq!((a.files.tree().view, a.focus), (zendo::docs::tree::View::Notes, zendo::app::Focus::Tree));
     key(&mut a, KeyCode::Char('n'));
-    assert!(in_float(&a), "n in the notes list");
+    assert!(in_float(&a), "n in the Notes view");
     key(&mut a, KeyCode::Esc);
-    assert_eq!(a.mode, Mode::Notes, "back in the notes list");
+    assert_eq!(a.focus, zendo::app::Focus::Tree, "back in the Notes view");
     key(&mut a, KeyCode::Enter);
     assert!(a.writer.float().is_none() && a.mode == Mode::Read && a.files.current().is_some(), "a note that is there opens in the note pane");
     let _ = std::fs::remove_dir_all(&root);

@@ -270,12 +270,12 @@ async fn ignored_files_are_not_searched() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-20 (FIND-17 retired): `/` in the notes list opens the find panel.
+// FIND-20 (FIND-17 retired): `/` in the Notes view of the tree opens the find panel.
 #[tokio::test]
 async fn slash_in_the_notes_list_opens_find() {
     let (root, mut a) = find_app("find-notes-list");
     key(&mut a, KeyCode::Char('o'));
-    assert_eq!(a.mode, Mode::Notes);
+    assert_eq!(a.focus, Focus::Tree);
     key(&mut a, KeyCode::Char('/'));
     assert_eq!(a.mode, Mode::Find);
     let _ = std::fs::remove_dir_all(&root);
