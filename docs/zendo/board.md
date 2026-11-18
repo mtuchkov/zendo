@@ -4,7 +4,7 @@ revision: "1"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "zendo-session.md"
-next: "chat.md"
+next: "board-watch.md"
 level: "messages between zendo sessions: the hand-off, the questions back, the list of sessions, and the limits"
 note: "Agent draft from the request of the user on 2026-11-18 in chat: a session gives work to another session through zendo and the MCP server `zendo`, and the sessions ask each other for more information, so that the user does not copy a brief from one session to another. The user decided: a hand-off goes to one of the five sessions, after a question to the user when the agent names none; all messages go without a confirmation. Design: ADR 0018. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
@@ -24,7 +24,8 @@ its answer.
 
 **Delivery.** A message goes to the current thread of the target without a confirmation: to the
 agent of the chat, or to Claude Code while it runs. While the target answers, the message waits in
-its queue. The chat of the target shows it with the label `from 3 · <name>`.
+its queue, or goes to the agent during the turn through the [watch](board-watch.md). The chat of
+the target shows it with the label `from 3 · <name>`.
 
 **Not the voice of the user.** A message from a session does not approve what only the user
 approves, such as a merge into `main` (SESSIONS-21).

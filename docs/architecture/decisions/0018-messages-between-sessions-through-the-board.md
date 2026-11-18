@@ -5,6 +5,7 @@ sources:
   - "The user, 2026-11-18: a session gives work to another session through zendo and the MCP server `zendo`, and the sessions ask each other for more information; today the user copies a brief from one session to another."
   - "The user, 2026-11-18: a hand-off goes to one of the five sessions, after a question to the user when the agent names none; all messages go without a confirmation."
   - "../../zendo/board.md (BOARD-1 to BOARD-14)"
+  - "../../zendo/board-watch.md (BOARD-15 to BOARD-22): the user, 2026-11-18, wants a command that Claude can attach the Monitor tool to."
   - "src/mcp/mod.rs: `zendo mcp --session N` is a stdio process that the agent starts; it has no connection to the zendo process."
   - "../../zendo/cli-messages.md (CLIMSG-2): the hooks of a Claude Code session append lines to a file in `.zendo/sessions/`, and zendo reads them on each tick."
   - "ADR 0003 (state in the repository), ADR 0009 (no UI stalls)"
@@ -54,12 +55,21 @@ Draft of the agent: the first option.
   target, or `cancelled`.
 - zendo shall count the messages since the last question of the user, keep the count in
   `.zendo/db.json`, and hold the messages over the limit (BOARD-5).
+- `zendo board watch --session N` shall read `messages.jsonl` from its start, and print each
+  message for session N that has no `delivered` line. Before it prints one, it shall append a
+  `watched` line with the id, and read the file again. zendo shall append a `delivered` line before
+  it sends a message as a question. For each message, the first of the two lines in the file wins,
+  so a message is either a question or watched, not both (BOARD-22). An append in one write keeps
+  one order for all writers.
+- zendo shall write its process id and a time to `sessions.json` each second. The watch shall exit
+  with a reason when the process is gone or the time is older than 5 s (BOARD-17).
 - The checks of a message that need no zendo process (the sender as the target, an id out of 1 to
   5) shall run in the server, so the tool returns the error at once.
 
 ## Consequences
 
-- A message takes one tick to arrive. That is fast enough for a hand-off.
+- A message takes one tick to arrive. That is fast enough for a hand-off. The watch reads the file
+  about twice a second, so an answer reaches a waiting agent within a second.
 - The board works when the user leaves a session and comes back. When zendo is down, no session
   runs (until phase 2), and the messages wait in the file.
 - In phase 2 the session server reads the same file, or the servers connect to it; the tools stay
@@ -73,7 +83,7 @@ Draft of the agent: the first option.
 ## Verification
 
 - `tests/board.rs` runs the server of one session over stdin and the mock agent of another, and
-  checks the delivery, the queue, the choice of the target, the limit and the restart.
+  checks the delivery, the queue, the choice of the target, the limit, the restart and the watch.
 - Unit tests in `src/mcp/` check the lines that the tools write and the errors of BOARD-11.
 - A check with real Claude: session 3 finds that a branch belongs to session 2 with `sessions`, and
   gives it a hand-off.
