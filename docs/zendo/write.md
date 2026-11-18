@@ -31,7 +31,7 @@ an arrow: a word); `ctrl-shift-s` or `alt-s` says it here, `ctrl-shift-a` or `al
 selection or the line to the chat, `ctrl-shift-c` or `ctrl-g` (in any terminal) saves and opens the chat; `ctrl-c`, `ctrl-x` and `ctrl-v` copy, cut and
 paste with the system clipboard; `ctrl-b`, `ctrl-i`, `ctrl-u` and `alt-c` make the selection or the
 word bold, italic, underlined or code. Lists, numbered lists and code blocks go on by themselves
-([Text input](panes/text-input.md)). When the user leaves write mode, and the file has no `# ` title, or it
+([Text input](panes/text-input/text-formatting.md)). When the user leaves write mode, and the file has no `# ` title, or it
 is a doc outside the notes folder without front matter, the agent writes the missing part in a
 background session without tools; zendo adds only that part and changes nothing else. The note pane
 and read mode are in [Notes](notes.md).

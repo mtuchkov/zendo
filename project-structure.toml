@@ -91,7 +91,11 @@ about = "The commands of zendo: cli.md is the parent; its children are setup, in
 
 [[entry]]
 path = "docs/zendo/panes"
-about = "The panes of zendo: panes.md is the parent; its children are the text selection, and the keys, hints and help."
+about = "The panes of zendo: panes.md is the parent; its children are the text selection, the keys, hints and help, and the text input."
+
+[[entry]]
+path = "docs/zendo/panes/text-input"
+about = "The text input of zendo: text-input.md is the parent; its children are the formatting of the rich editors and the date selector."
 
 [[entry]]
 path = "docs/zendo/terminal"

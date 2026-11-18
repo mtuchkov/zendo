@@ -18,7 +18,7 @@ The chat input is where the user writes to the agent. The connection, threads an
 **The chat input** is an editor: the arrows and the word keys move in it, every word can change.
 `ctrl-j` (or `shift-enter`) adds a line; the status bar names `ctrl-j`, because
 a terminal without the kitty keyboard protocol sends `shift-enter` as `enter`. `alt-enter` (or
-`ctrl-enter`) sends, also from a code block ([Text input](panes/text-input.md)). A `\` at the end of the line and `enter`
+`ctrl-enter`) sends, also from a code block ([Text input](panes/text-input/text-formatting.md)). A `\` at the end of the line and `enter`
 also add a line, in every terminal. The input grows up to a quarter of the panel, then scrolls.
 
 **Chips.** A text chip shows the first 15 chars of its text and always the number of its lines, as
