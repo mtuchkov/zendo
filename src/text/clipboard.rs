@@ -143,3 +143,13 @@ pub fn paste_image() -> Option<std::path::PathBuf> {
     }
     None
 }
+
+/// Open a file in the program of the system for its kind: `open` on macOS, `xdg-open` elsewhere
+/// (CLAUDE-52). The program runs on its own; zendo does not wait for it.
+pub fn open_outside(path: &std::path::Path) -> std::io::Result<()> {
+    use std::process::{Command, Stdio};
+    let program = if cfg!(target_os = "macos") { "open" } else { "xdg-open" };
+    let mut child = Command::new(program).arg(path).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn()?;
+    std::thread::spawn(move || child.wait());
+    Ok(())
+}

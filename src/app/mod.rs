@@ -166,6 +166,9 @@ pub struct App {
     pub focus: Focus,
     /// The chat input of each agent session: what goes into its next question (ADR 0011).
     pub chat: ChatPane,
+    /// Opens a file in the program of the system (CLAUDE-52); a test puts its own here.
+    #[default(crate::text::clipboard::open_outside)]
+    pub opener: fn(&Path) -> std::io::Result<()>,
     /// The chat threads, the transcript cursor, the pinned thread, and the scroll of the chat pane.
     pub threads: Threads,
     /// The keymap of every pane, and what is wrong in `[keys]` of the config.

@@ -34,6 +34,11 @@ pub struct Composer {
     /// `up` in the history: the index of the message on show, and the input before the first `up`
     /// (HISTORY-5, HISTORY-6).
     recall: Option<(usize, Editor, Vec<Chip>)>,
+    /// The chip window, the last click on a chip, and the open document that the user unselected
+    /// with the stamp of its text (CLAUDE-48, CLAUDE-55).
+    view: Option<ChipView>,
+    last_click: Option<(String, std::time::Instant)>,
+    doc_skip: Option<(String, u64)>,
 }
 
 impl Default for Composer {
@@ -51,6 +56,9 @@ impl Default for Composer {
             about: "",
             pick: None,
             recall: None,
+            view: None,
+            last_click: None,
+            doc_skip: None,
         }
     }
 }
@@ -264,6 +272,9 @@ const ABOUTS: [&str; 3] = ["the changes", "the selection", "the mark"];
 pub(crate) mod at;
 #[path = "chips.rs"]
 pub mod chips;
+#[path = "chip_view.rs"]
+pub mod chip_view;
+pub use chip_view::ChipView;
 #[path = "slash.rs"]
 pub(crate) mod slash;
 

@@ -122,6 +122,8 @@ impl App {
         let mut file = None;
         if scope == ALL_KEY {
             text.push_str(&format!("Notes folder: {}\nSearch across all notes in that folder.\n", self.cfg.notes_dir.display()));
+        } else if self.doc_line() == Some(false) {
+            // The user unselected the open document: nothing of it goes (CLAUDE-55).
         } else if self.files.current().is_some_and(|p| !p.exists()) {
             // No version of the document in this session: no note file (FILES-40).
         } else if let Some(p) = self.files.current().map(|p| self.session_path(p)).filter(|_| scope != NEW_KEY) {

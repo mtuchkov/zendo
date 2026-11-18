@@ -5,6 +5,7 @@ mod background;
 mod chat;
 mod questions;
 mod steps;
+mod chip_view;
 pub(crate) mod cli;
 mod code_pane;
 mod delta_pane;
@@ -26,6 +27,8 @@ mod tree_strip;
 mod write;
 
 use chat::*;
+pub use chip_view::CHIP_DIM;
+use chip_view::*;
 use cli::*;
 use code_pane::*;
 use delta_pane::*;
@@ -101,8 +104,7 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     ])
     .areas(area);
 
-    fr.regions.clear();
-    fr.clear_pane_buttons();
+    fr.clear_places();
     f.render_widget(Paragraph::new("─".repeat(rule.width as usize)).style(Style::new().fg(t.line)), rule);
     fr.view_height = main.height as usize;
 
@@ -119,6 +121,7 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
         }
         Mode::Read | Mode::Write | Mode::Help => {
             draw_panes(f, app, fr, &t, main);
+            draw_chip_view(f, app, fr, &t);
             if app.mode == Mode::Help {
                 // Over the panes and the top line, not over the status bar.
                 fr.overlay = Some(draw_help(f, app, fr, &t, Rect { height: rule.y - area.y, ..area }));

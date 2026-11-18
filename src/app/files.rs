@@ -112,6 +112,7 @@ impl App {
         self.cli_tick();
         self.hold_tick();
         self.attention_tick();
+        self.doc_tick();
         if self.chat.due(Instant::now()) {
             self.save_drafts();
         }
