@@ -39,6 +39,7 @@ impl App {
                 }
             }
             Event::Thought { key } => self.thread(&key).thinking = true,
+            Event::Question { key, request, questions } => self.on_question(key, request, questions),
             Event::Tool { key, id, title, kind, state, mut info } => {
                 info.place = info.place.map(|p| self.in_root(&p));
                 info.error = info.error.and_then(|e| e.lines().map(str::trim).find(|l| !l.is_empty()).map(str::to_string));
@@ -230,6 +231,7 @@ fn event_key(e: &Event) -> Option<String> {
         | Event::Thought { key }
         | Event::Tool { key, .. }
         | Event::Permission { key, .. }
+        | Event::Question { key, .. }
         | Event::Blocked { key, .. }
         | Event::TurnEnd { key, .. } => Some(key.clone()),
         Event::Error { key, .. } => key.clone(),

@@ -3,6 +3,9 @@ use super::*;
 
 impl App {
     pub(crate) fn key_panel(&mut self, k: KeyEvent, act: Option<&str>) {
+        if act != Some("back") && self.question_key(&k, act) {
+            return;
+        }
         let key = self.key();
         let busy = self.threads.get(&key).is_some_and(|t| t.busy.is_some());
         match act {
@@ -52,6 +55,7 @@ impl App {
     /// `esc` while the agent answers: stop it, and put the queued questions back into the input
     /// (CLAUDE-34).
     fn stop_answer(&mut self, key: String) {
+        self.cancel_question(&key);
         self.link.send(Cmd::Cancel { key: key.clone() });
         self.queue_to_input(&key);
     }

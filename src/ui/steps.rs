@@ -15,7 +15,7 @@ const NO_NEWS: std::time::Duration = std::time::Duration::from_secs(60);
 /// time since the last news when it is long (ACT-1, ACT-2).
 pub(super) fn status_line(th: &crate::app::Thread, start: std::time::Instant) -> String {
     let e = start.elapsed();
-    let step = running_step(th).map_or_else(|| "thinking".to_string(), step_label);
+    let step = if th.asking().is_some() { "waits for your answer".to_string() } else { running_step(th).map_or_else(|| "thinking".to_string(), step_label) };
     let mut s = format!("{} {step} · {} s", SPIN[(e.as_millis() / 300) as usize % 4], e.as_secs());
     let quiet = th.news.unwrap_or(start).elapsed();
     if quiet >= NO_NEWS {

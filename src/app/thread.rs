@@ -39,6 +39,8 @@ pub enum Item {
     Blocked(String),
     Info(String),
     Error(String),
+    /// A question of the agent with choices (ACT-4).
+    Question(Box<crate::app::Ask>),
 }
 
 #[derive(Default)]

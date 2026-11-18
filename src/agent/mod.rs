@@ -7,7 +7,9 @@ mod acp;
 pub mod api;
 mod model;
 mod sessions;
+mod questions;
 mod tool_events;
+pub use questions::{Pick, Question};
 pub mod work;
 
 use acp::*;
@@ -91,6 +93,8 @@ pub enum Cmd {
     Open { key: String, known: Option<String> },
     /// Answer a permission request. `None` cancels it.
     Answer { request: u64, option: Option<String> },
+    /// Answer a question of the agent with the picks of the user. `None` cancels it (ACT-4).
+    Reply { request: u64, picks: Option<Vec<Pick>> },
     Cancel { key: String },
     /// Forget the thread of `key`; the next prompt starts a new session.
     Forget { key: String },
@@ -170,6 +174,8 @@ pub enum Event {
     /// A tool call or its update. An update leaves out what did not change.
     Tool { key: String, id: String, title: String, kind: String, state: ToolState, info: ToolInfo },
     Permission { key: String, request: u64, title: String, kind: String, diffs: Vec<DiffView>, choices: Vec<Choice> },
+    /// The agent asks the user questions with choices; `Cmd::Reply` answers them (ACT-4).
+    Question { key: String, request: u64, questions: Vec<Question> },
     /// A shell command was blocked by policy.
     Blocked { key: String, title: String },
     TurnEnd { key: String, stop: String },
@@ -207,6 +213,7 @@ pub fn spawn(command: String, env: BTreeMap<String, String>, cwd: PathBuf, log: 
         events: etx,
         keys: Mutex::new(HashMap::new()),
         answers: Mutex::new(HashMap::new()),
+        replies: Mutex::new(HashMap::new()),
         next: AtomicU64::new(1),
         loading: Mutex::new(None),
     });
