@@ -1,5 +1,5 @@
 //! The lists of the find panel: the modes, the recent files, the matches by path and in the text,
-//! and All as the merge of the other three (FIND-2, FIND-9, FIND-26 to FIND-29, FIND-40).
+//! and All as the merge of the other three (FIND-2, FIND-9, FIND-28 to FIND-31, FIND-42).
 use super::*;
 use std::cmp::Reverse;
 
@@ -8,7 +8,7 @@ const BY_PATH: usize = 50;
 /// The most files that a mode lists by their text.
 const BY_TEXT: usize = 200;
 
-/// What the find panel looks for (FIND-19).
+/// What the find panel looks for (FIND-21).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum FindMode {
     Notes,
@@ -52,7 +52,7 @@ struct Row {
 }
 
 impl App {
-    /// Notes, Docs or Code: the kind of a file (FIND-26 to FIND-28).
+    /// Notes, Docs or Code: the kind of a file (FIND-28 to FIND-30).
     fn find_kind(&self, p: &Path) -> FindMode {
         let notes = std::iter::once(self.cfg.notes_dir.clone()).chain(self.repo_notes_outside());
         if notes.into_iter().any(|d| p.starts_with(&d)) {
@@ -95,7 +95,7 @@ impl App {
     }
 
     /// For an empty query: the notes by age in Notes; the recent files of their kind in the other
-    /// modes; never the open file, nor a file that is gone (FIND-2, FIND-7, FIND-28, FIND-29).
+    /// modes; never the open file, nor a file that is gone (FIND-2, FIND-7, FIND-30, FIND-31).
     fn recent_rows(&self) -> Vec<(Vec<FindMode>, Row)> {
         let open = self.files.current();
         let row = |path: PathBuf, i: usize, at| Row { path, key: (0, i, Reverse(0)), at, snippets: Vec::new() };
@@ -110,7 +110,7 @@ impl App {
     }
 
     /// The files whose path has every word, or matches the expression; recent files first (FIND-9,
-    /// FIND-43).
+    /// FIND-45).
     fn path_rows(&self, q: &str) -> Vec<(FindMode, Row)> {
         let Some(files) = &self.files.find.files else { return Vec::new() };
         let re = self.files.find.regex.then(|| regex::RegexBuilder::new(q).case_insensitive(true).build().ok()).flatten();
@@ -142,7 +142,7 @@ impl App {
         }
     }
 
-    /// The files with matches in the text, the whole ID and the most hits first (FIND-30, FIND-35).
+    /// The files with matches in the text, the whole ID and the most hits first (FIND-32, FIND-37).
     fn text_rows(&self, seen: &[PathBuf]) -> Vec<(FindMode, Row)> {
         let mut hits: Vec<&grep::Hit> = self.files.find.hits.iter().filter(|h| !seen.contains(&h.path)).collect();
         hits.sort_by(|a, b| (!a.exact, Reverse(a.count), &a.path).cmp(&(!b.exact, Reverse(b.count), &b.path)));

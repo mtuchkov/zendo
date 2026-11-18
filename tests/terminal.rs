@@ -282,7 +282,7 @@ async fn alt_slash_opens_find_over_a_full_screen_session() {
     done(&root, &mut a);
 }
 
-// FIND-21: on the full screen of a session, `/` goes to the program and does not open the find
+// FIND-23: on the full screen of a session, `/` goes to the program and does not open the find
 // panel.
 #[tokio::test(flavor = "multi_thread")]
 async fn slash_goes_to_a_full_screen_session() {

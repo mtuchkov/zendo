@@ -14,7 +14,7 @@ pub struct Frame {
     pub(super) tree_rows: Vec<(Rect, usize)>,
     /// `[+]` and `[-]` in the head of the tree: true opens every folder (FILES-57).
     pub(super) tree_fold: Vec<(Rect, bool)>,
-    /// The letters of the view strip of the tree, or the names of its hint (FILES-65).
+    /// The letters of the view strip of the tree, or the names of its hint (FILES-73).
     pub(super) view_buttons: Vec<(Rect, crate::docs::tree::View)>,
     pub(super) session_buttons: Vec<(Rect, usize)>,
     pub(super) play_buttons: Vec<(Rect, String)>,
@@ -31,7 +31,7 @@ pub struct Frame {
     pub(super) music_button: Option<Rect>,
     pub(super) spec_button: Option<Rect>,
     pub(super) upgrade_button: Option<Rect>,
-    /// `[.*]` of the find panel or of the filter of the tree (FIND-42, FILES-59).
+    /// `[.*]` of the find panel or of the filter of the tree (FIND-44, FILES-67).
     pub(super) find_regex: Option<Rect>,
     pub(super) music_answers: Option<(Rect, Rect)>,
 }

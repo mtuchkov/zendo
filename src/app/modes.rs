@@ -38,7 +38,7 @@ impl App {
         }
     }
 
-    /// `o`: the tree in the Notes view, with the focus in it (FILES-68).
+    /// `o`: the tree in the Notes view, with the focus in it (FILES-76).
     pub fn open_notes(&mut self) {
         if !self.state.tree {
             self.toggle_tree();

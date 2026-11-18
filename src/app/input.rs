@@ -131,13 +131,13 @@ impl App {
         }
     }
 
-    /// The global action of a key; not `find` for a `/` that types (FIND-20, FIND-21).
+    /// The global action of a key; not `find` for a `/` that types (FIND-22, FIND-23).
     fn global_of(&self, k: &KeyEvent) -> Option<&'static str> {
         self.keys.local(crate::keys::Pane::Global, k).filter(|a| *a != "find" || !self.slash_types(k))
     }
 
     /// A `/` without alt where the focus takes text: write mode, the chat input, a session or a
-    /// terminal, the float, a question field, the filter of the tree (FIND-21).
+    /// terminal, the float, a question field, the filter of the tree (FIND-23).
     fn slash_types(&self, k: &KeyEvent) -> bool {
         use crate::keys::Pane;
         let slash = k.code == KeyCode::Char('/') && !k.modifiers.contains(KeyModifiers::ALT);

@@ -52,7 +52,7 @@ fn click(a: &mut App, x: u16, y: u16) {
     a.on_mouse(MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: x, row: y, modifiers: KeyModifiers::NONE });
 }
 
-// FILES-60: the views stand in a strip of letters on the left edge; a click on a letter shows its
+// FILES-68: the views stand in a strip of letters on the left edge; a click on a letter shows its
 // view.
 #[tokio::test]
 async fn the_views_stand_in_a_strip() {
@@ -69,7 +69,7 @@ async fn the_views_stand_in_a_strip() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FILES-62, FILES-63: the letters, and the accent color under the active one.
+// FILES-70, FILES-71: the letters, and the accent color under the active one.
 #[tokio::test]
 async fn the_active_letter_has_the_accent_color() {
     let (root, mut a) = tree_app("tree-strip-color");
@@ -82,7 +82,7 @@ async fn the_active_letter_has_the_accent_color() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FILES-64: W and Δ only with a worktree; S only with main materials.
+// FILES-72: W and Δ only with a worktree; S only with main materials.
 #[tokio::test]
 async fn the_worktree_letters_need_a_worktree() {
     let root = repo("tree-strip-no-structure", &[("docs/a.md", "# A\n")]);
@@ -92,7 +92,7 @@ async fn the_worktree_letters_need_a_worktree() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FILES-65: a click on a letter keeps the view for the repository.
+// FILES-73: a click on a letter keeps the view for the repository.
 #[tokio::test]
 async fn a_click_on_a_letter_keeps_the_view() {
     let (root, mut a) = tree_app("tree-strip-keep");
@@ -104,7 +104,7 @@ async fn a_click_on_a_letter_keeps_the_view() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FILES-66: `v` shows the hint with the names over the tree for 2.5 seconds; a click on a name
+// FILES-74: `v` shows the hint with the names over the tree for 2.5 seconds; a click on a name
 // shows its view.
 #[tokio::test]
 async fn v_shows_the_hint_for_2_5_seconds() {
@@ -125,7 +125,7 @@ async fn v_shows_the_hint_for_2_5_seconds() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FILES-67: the head names the view and its key.
+// FILES-75: the head names the view and its key.
 #[tokio::test]
 async fn the_head_names_the_view() {
     let (root, mut a) = tree_app("tree-head");
@@ -133,7 +133,7 @@ async fn the_head_names_the_view() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FILES-61, FILES-68: `o` opens the tree in the Notes view, by age; `enter` opens the note.
+// FILES-69, FILES-76: `o` opens the tree in the Notes view, by age; `enter` opens the note.
 #[tokio::test]
 async fn the_notes_view_lists_the_notes_by_age() {
     let (root, mut a) = tree_app("tree-notes");
@@ -151,7 +151,7 @@ async fn the_notes_view_lists_the_notes_by_age() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FILES-68: `o` opens the tree also when it is closed.
+// FILES-76: `o` opens the tree also when it is closed.
 #[tokio::test]
 async fn o_opens_the_notes_view() {
     let root = repo("tree-o", &files());
@@ -162,7 +162,7 @@ async fn o_opens_the_notes_view() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FILES-69: the Notes view has no `[+]` and `[-]`; `n` writes a new note there.
+// FILES-77: the Notes view has no `[+]` and `[-]`; `n` writes a new note there.
 #[tokio::test]
 async fn the_notes_view_has_no_fold_buttons() {
     let (root, mut a) = tree_app("tree-notes-fold");

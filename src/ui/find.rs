@@ -37,7 +37,7 @@ pub(crate) fn draw_find(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme,
 }
 
 /// `[.*]` at the right end of a query line: the accent color while on, the error color for an
-/// expression that does not compile (FIND-42, FIND-44, FILES-59). Returns its area, for the mouse.
+/// expression that does not compile (FIND-44, FIND-46, FILES-67). Returns its area, for the mouse.
 pub(crate) fn draw_regex_button(f: &mut Frame, on: bool, bad: bool, t: &Theme, row: Rect) -> Rect {
     let fg = if bad { t.del } else if on { t.acc } else { t.dim };
     let style = Style::new().fg(fg).add_modifier(if on { Modifier::BOLD } else { Modifier::empty() });
@@ -47,7 +47,7 @@ pub(crate) fn draw_regex_button(f: &mut Frame, on: bool, bad: bool, t: &Theme, r
 }
 
 /// The modes after the key hint `tab`, in the colors of the session buttons; the number of results
-/// of each mode, or `…` while the search runs (FIND-23, FIND-24, FIND-41).
+/// of each mode, or `…` while the search runs (FIND-25, FIND-26, FIND-43).
 fn draw_modes(f: &mut Frame, app: &App, t: &Theme, row: Rect) {
     let find = app.files.find();
     let mut spans = vec![Span::styled(format!("  {}  ", app.keys.first(crate::keys::Pane::Global, "next_pane")), Style::new().fg(t.dim))];

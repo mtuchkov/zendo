@@ -41,7 +41,7 @@ fn repo(name: &str) -> PathBuf {
 fn tree_in(root: &Path, view: View) -> App {
     let mut a = app(root);
     a.toggle_tree();
-    // As a click on its letter: `v` would show the hint over the tree (FILES-65, FILES-66).
+    // As a click on its letter: `v` would show the hint over the tree (FILES-73, FILES-74).
     a.show_tree_view(view);
     a
 }

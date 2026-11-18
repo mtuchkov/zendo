@@ -73,12 +73,12 @@ in a [float](../float.md), `f2` renames the file to a typed name, and `delete` d
 
 | ID       | Pattern    | Requirement | Source |
 | -------- | ---------- | ----------- | ------ |
-| FILES-60 | Ubiquitous | The system shall show a strip of two columns on the left edge of the tree pane: one letter for each view, one under the other, and an empty column. | User, 2026-11-18 |
-| FILES-61 | Ubiquitous | The system shall have a Notes view in the tree that lists the notes by age, with the keys `enter`, `n`, `f2` and `delete`. | User, 2026-11-18 |
+| FILES-68 | Ubiquitous | The system shall show a strip of two columns on the left edge of the tree pane: one letter for each view, one under the other, and an empty column. | User, 2026-11-18 |
+| FILES-69 | Ubiquitous | The system shall have a Notes view in the tree that lists the notes by age, with the keys `enter`, `n`, `f2` and `delete`. | User, 2026-11-18 |
 
 ### Acceptance tests
 
-**`the_views_stand_in_a_strip`** (unit test; verifies FILES-60)
+**`the_views_stand_in_a_strip`** (unit test; verifies FILES-68)
 
 - Given a repository with `project-structure.toml`, docs and notes, and the tree open.
 - When the user draws the screen, then clicks `T`.
@@ -86,7 +86,7 @@ in a [float](../float.md), `f2` renames the file to a typed name, and `delete` d
   column after them; `S` stands on the accent color; after the click the tree shows the text view
   and `T` stands on the accent color.
 
-**`the_notes_view_lists_the_notes_by_age`** (unit test; verifies FILES-61)
+**`the_notes_view_lists_the_notes_by_age`** (unit test; verifies FILES-69)
 
 - Given notes of today and of an older day.
 - When the user presses `o`, then `enter`.
@@ -97,17 +97,17 @@ in a [float](../float.md), `f2` renames the file to a typed name, and `delete` d
 
 | ID       | Pattern    | Requirement | Source |
 | -------- | ---------- | ----------- | ------ |
-| FILES-62 | Ubiquitous | The system shall label the views `S`, `D`, `T`, `W`, `Δ` and `N`. | User, 2026-11-18 |
-| FILES-63 | Ubiquitous | The system shall show the letter of the active view on the accent color and the other letters in the second accent color. | User, 2026-11-18 |
-| FILES-64 | State      | While the active agent session has no worktree, the system shall not show `W` and `Δ`; while `project-structure.toml` has no main materials, `S`. | Design |
-| FILES-65 | Event      | When the user clicks a letter of the strip or a name of the hint, the system shall show that view and keep it for the repository (FILES-10). | User, 2026-11-18 |
-| FILES-66 | Event      | When the user presses `v` in the tree, the system shall show over the tree, for 2.5 seconds after the last `v`, the hint with the letter and the name of each view, without a change of the width of the tree. | User, 2026-11-18 |
-| FILES-67 | Ubiquitous | The system shall name the active view and its key in the head of the tree. | User, 2026-11-18 |
-| FILES-68 | Event      | When the user presses `o`, the system shall open the tree in the Notes view, with the focus in the tree. | User, 2026-11-18 |
-| FILES-69 | State      | While the tree shows the Notes view, the system shall not show `[+]` and `[-]`, and `+`, `-`, `*` and `_` shall do nothing. | User, 2026-11-18 |
+| FILES-70 | Ubiquitous | The system shall label the views `S`, `D`, `T`, `W`, `Δ` and `N`. | User, 2026-11-18 |
+| FILES-71 | Ubiquitous | The system shall show the letter of the active view on the accent color and the other letters in the second accent color. | User, 2026-11-18 |
+| FILES-72 | State      | While the active agent session has no worktree, the system shall not show `W` and `Δ`; while `project-structure.toml` has no main materials, `S`. | Design |
+| FILES-73 | Event      | When the user clicks a letter of the strip or a name of the hint, the system shall show that view and keep it for the repository (FILES-10). | User, 2026-11-18 |
+| FILES-74 | Event      | When the user presses `v` in the tree, the system shall show over the tree, for 2.5 seconds after the last `v`, the hint with the letter and the name of each view, without a change of the width of the tree. | User, 2026-11-18 |
+| FILES-75 | Ubiquitous | The system shall name the active view and its key in the head of the tree. | User, 2026-11-18 |
+| FILES-76 | Event      | When the user presses `o`, the system shall open the tree in the Notes view, with the focus in the tree. | User, 2026-11-18 |
+| FILES-77 | State      | While the tree shows the Notes view, the system shall not show `[+]` and `[-]`, and `+`, `-`, `*` and `_` shall do nothing. | User, 2026-11-18 |
 
-Tests that verify detailed requirements: `the_view_letters` (FILES-62),
-`the_active_letter_has_the_accent_color` (FILES-63), `the_worktree_letters_need_a_worktree`
-(FILES-64), `a_click_on_a_letter_keeps_the_view` (FILES-65), `v_shows_the_hint_for_2_5_seconds`
-(FILES-66), `the_head_names_the_view` (FILES-67), `o_opens_the_notes_view` (FILES-68),
-`the_notes_view_has_no_fold_buttons` (FILES-69).
+Tests that verify detailed requirements: `the_view_letters` (FILES-70),
+`the_active_letter_has_the_accent_color` (FILES-71), `the_worktree_letters_need_a_worktree`
+(FILES-72), `a_click_on_a_letter_keeps_the_view` (FILES-73), `v_shows_the_hint_for_2_5_seconds`
+(FILES-74), `the_head_names_the_view` (FILES-75), `o_opens_the_notes_view` (FILES-76),
+`the_notes_view_has_no_fold_buttons` (FILES-77).

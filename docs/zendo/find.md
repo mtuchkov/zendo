@@ -58,7 +58,7 @@ the query. `enter` opens the selected file in the note pane in read mode, at the
 
 | ID     | Pattern    | Requirement                                                                                                                                      | Source           |
 | ------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
-| FIND-1 | Event      | When the user presses `alt-/` in any pane or mode, or `/` where the focus does not take text (FIND-20), the system shall open the find panel. | User, 2026-11-13; User, 2026-11-17 |
+| FIND-1 | Event      | When the user presses `alt-/` in any pane or mode, or `/` where the focus does not take text (FIND-22), the system shall open the find panel. | User, 2026-11-13; User, 2026-11-17 |
 | FIND-2 | State      | While the query is empty, the system shall list the files that the user opened in the note pane in this repository, the most recent first, without the open file. | User, 2026-11-13 |
 | FIND-3 | Event      | When the selection moves in the list, the system shall show the selected file in the preview of the panel, as read mode shows it.                | User, 2026-11-13 |
 | FIND-4 | Ubiquitous | The system shall keep the recent files for the repository in its state, so that a restart keeps them.                                           | Design           |
@@ -102,11 +102,11 @@ the query. `enter` opens the selected file in the note pane in read mode, at the
 | FIND-11 | Event      | When the user presses `enter`, the system shall open the selected file in the note pane in read mode, at the line of the match.                       | Design           |
 | FIND-12 | Event      | When the user presses `esc`, the system shall close the panel and keep the file, the pane, the mode and the cursor as they were.                      | Design           |
 | FIND-13 | State      | While the panel is narrower than 100 chars, the system shall show the preview under the list.                                                         | Design           |
-| FIND-14 | Ubiquitous | The system shall keep NOTE-13 and NOTE-14 in the find panel: `#` finds a tag or a requirement ID in every mode (FIND-30, FIND-31), and `?` asks the agent about all notes in Notes mode (FIND-28). | NOTE-13, NOTE-14 |
+| FIND-14 | Ubiquitous | The system shall keep NOTE-13 and NOTE-14 in the find panel: `#` finds a tag or a requirement ID in every mode (FIND-32, FIND-33), and `?` asks the agent about all notes in Notes mode (FIND-30). | NOTE-13, NOTE-14 |
 | FIND-15 | State      | While a Claude Code session or a terminal is on the full screen, the system shall open the find panel over it when the user presses `alt-/`, and not send the key to the program. | User, 2026-11-13 |
-| FIND-17 | —          | Retired in revision 4: `/` in the notes list opens the find panel (FIND-20). | User, 2026-11-17 |
+| FIND-17 | —          | Retired in revision 4: `/` in the notes list opens the find panel (FIND-22). | User, 2026-11-17 |
 | FIND-16 | Unwanted   | If a markdown file is in a hidden folder or git ignores it, then the system shall not search its text (FILES-1).                                       | FILES-1          |
-| FIND-18 | State      | While the notes repo is on and the panel is in Notes mode, the system shall search the notes of the repository in the notes repo by path and by text (FIND-28, FILES-25). | User, 2026-11-13 |
+| FIND-18 | State      | While the notes repo is on and the panel is in Notes mode, the system shall search the notes of the repository in the notes repo by path and by text (FIND-30, FILES-25). | User, 2026-11-13 |
 
 Tests that verify detailed requirements: `the_row_shows_title_path_and_time` (FIND-5),
 `a_tree_preview_is_not_recent` and `a_note_from_the_float_is_recent` (FIND-6), `a_deleted_file_is_not_recent` (FIND-7),

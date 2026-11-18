@@ -180,7 +180,7 @@ async fn a_rename_keeps_the_recent_place() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-9, FIND-26: a query lists the docs whose path has every word, then the docs whose text has
+// FIND-9, FIND-28: a query lists the docs whose path has every word, then the docs whose text has
 // it, without regard to letter case; code is not a doc.
 #[tokio::test]
 async fn a_query_finds_paths_then_text() {
@@ -270,7 +270,7 @@ async fn ignored_files_are_not_searched() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-20 (FIND-17 retired): `/` in the Notes view of the tree opens the find panel.
+// FIND-22 (FIND-17 retired): `/` in the Notes view of the tree opens the find panel.
 #[tokio::test]
 async fn slash_in_the_notes_list_opens_find() {
     let (root, mut a) = find_app("find-notes-list");
@@ -281,7 +281,7 @@ async fn slash_in_the_notes_list_opens_find() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-6, FIND-29: a new note from the float is a recent file when the float closes; a note shows
+// FIND-6, FIND-31: a new note from the float is a recent file when the float closes; a note shows
 // in All, not in Docs.
 #[tokio::test]
 async fn a_note_from_the_float_is_recent() {

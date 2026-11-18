@@ -141,7 +141,7 @@ fn an_entry_can_have_a_list_of_paths() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-32, FIND-33: `tag_patterns` is a list in `[project]`; a pattern that does not compile is an
+// FIND-34, FIND-35: `tag_patterns` is a list in `[project]`; a pattern that does not compile is an
 // issue.
 #[test]
 fn a_bad_tag_pattern_falls_back() {
@@ -157,7 +157,7 @@ fn a_bad_tag_pattern_falls_back() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-46: more than five tag patterns get a warning about the speed of the search, not an issue.
+// FIND-48: more than five tag patterns get a warning about the speed of the search, not an issue.
 #[test]
 fn many_tag_patterns_get_a_warning() {
     let few: Structure = toml::from_str("[project]\ntag_patterns = [\"A-[0-9]+\", \"B-[0-9]+\"]\n").unwrap();

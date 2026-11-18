@@ -4,11 +4,11 @@ approved: "2026-11-17"
 date: "2026-11-17"
 sources:
   - "The user, 2026-11-17: the search shall not block the UI thread; files change often, so no cache between searches; measure first; use ripgrep as a crate."
-  - "../../zendo/find-background.md (FIND-34 to FIND-41)"
+  - "../../zendo/find-background.md (FIND-36 to FIND-43)"
   - "ADR 0009 (git and agent sessions without UI stalls)"
 ---
 
-# 0011 The find search uses the ripgrep crates off the UI thread
+# 0017 The find search uses the ripgrep crates off the UI thread
 
 ## Context
 

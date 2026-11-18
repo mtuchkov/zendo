@@ -6,7 +6,7 @@ pub(crate) fn draw_tree(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme,
     fr.tree_rows.clear();
     fr.tree_fold.clear();
     f.render_widget(Block::new().style(Style::new().bg(t.panel)), area);
-    // FILES-60: the strip of view letters on the left edge; the hint stands over the tree.
+    // FILES-68: the strip of view letters on the left edge; the hint stands over the tree.
     let inner = Rect { x: area.x + super::tree_strip::STRIP_W, y: area.y, width: area.width.saturating_sub(super::tree_strip::STRIP_W + 1), height: area.height };
     draw_tree_body(f, app, fr, t, inner);
     super::tree_strip::draw_strip(f, app, fr, t, area);
@@ -25,7 +25,7 @@ fn draw_tree_body(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, inner
         f.render_widget(Paragraph::new(lines), foot_area);
     }
     tree_head(f, app, fr, t, head);
-    // FILES-69: the Notes view has no folders to open.
+    // FILES-77: the Notes view has no folders to open.
     if app.files.tree().find.is_none() && app.files.tree().view != View::Notes {
         fold_buttons(f, fr, t, Rect { x: tools.right().saturating_sub(7), width: 7, ..tools });
     }
@@ -158,7 +158,7 @@ fn tree_line(app: &App, t: &Theme, row: &Row, is_current: bool, w: usize) -> Lin
         Kind::Dir { open } => (if open { "[-] " } else { "[+] " }, Style::new().fg(t.dim)),
         Kind::File if is_current => (" ●  ", Style::new().fg(t.fg).add_modifier(Modifier::BOLD)),
         Kind::File => ("    ", Style::new().fg(t.fg)),
-        // FILES-61: a head of the Notes view.
+        // FILES-69: a head of the Notes view.
         Kind::Head => ("", Style::new().fg(t.dim).add_modifier(Modifier::BOLD)),
     };
     // Markdown is the default: its extension shows only in the text view, where files of every kind are.

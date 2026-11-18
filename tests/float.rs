@@ -142,7 +142,7 @@ async fn the_float_saves_the_open_file_first() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FLOAT-5, FLOAT-15, FILES-61: `n` in read mode and in the Notes view of the tree opens the float;
+// FLOAT-5, FLOAT-15, FILES-69: `n` in read mode and in the Notes view of the tree opens the float;
 // enter in the Notes view opens a note in the note pane.
 #[tokio::test]
 async fn n_opens_the_float() {

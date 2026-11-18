@@ -1,5 +1,5 @@
 //! The strip of view letters on the left edge of the tree, and its hint after `v`
-//! (files-view-column.md: FILES-60, FILES-62 to FILES-66).
+//! (files-view-column.md: FILES-68, FILES-70 to FILES-74).
 use super::*;
 use crate::docs::tree::View;
 
@@ -31,7 +31,7 @@ fn places(views: &[View], area: Rect) -> (Vec<(View, u16)>, Option<u16>) {
     (out.into_iter().filter(|(_, y)| *y < area.bottom()).collect(), rule.filter(|y| *y < area.bottom()))
 }
 
-/// The strip, or the hint over the tree while it shows; both take clicks (FILES-65).
+/// The strip, or the hint over the tree while it shows; both take clicks (FILES-73).
 pub(crate) fn draw_strip(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
     fr.view_buttons.clear();
     let tree = app.files.tree();

@@ -1,5 +1,5 @@
 //! Find (find.md, find-modes.md, find-background.md, find-regex.md): the panel, its modes and keys;
-//! the worker searches off the UI thread (ADR 0011), and `find_list.rs` makes the lists.
+//! the worker searches off the UI thread (ADR 0017), and `find_list.rs` makes the lists.
 use super::*;
 use crate::docs::grep::{self, Ask, Hit, Out, Worker};
 pub use find_list::FindMode;
@@ -34,33 +34,33 @@ pub struct Find {
     /// What the panel stands over: the mode, the focus, a session on the full screen (FIND-12).
     back: Option<(Mode, Focus, Option<usize>)>,
     pub mode: FindMode,
-    /// `[.*]`: the query is a regular expression (FIND-42); it stays from one open to the next.
+    /// `[.*]`: the query is a regular expression (FIND-44); it stays from one open to the next.
     pub regex: bool,
-    /// The regular expression does not compile (FIND-44).
+    /// The regular expression does not compile (FIND-46).
     pub bad_regex: bool,
-    /// The search in the text of the query runs (FIND-41).
+    /// The search in the text of the query runs (FIND-43).
     pub running: bool,
     /// The number of rows of each mode, in the order of `FindMode::ALL`.
     pub counts: [usize; 4],
     /// The marks of a match in a line, for the preview.
     pub(crate) mark: Option<regex::Regex>,
-    /// The files of the repository, walked when the panel opened (FIND-37); None until they come.
+    /// The files of the repository, walked when the panel opened (FIND-39); None until they come.
     files: Option<Vec<PathBuf>>,
     /// The matches in the text of the query.
     hits: Vec<Hit>,
-    /// The number of the query; the worker drops older ones (FIND-38).
+    /// The number of the query; the worker drops older ones (FIND-40).
     seq: u64,
     worker: Option<Worker>,
     /// The worker wakes the event loop when it sends results.
     pub wake: Arc<tokio::sync::Notify>,
-    /// The forms of a requirement ID: the tag patterns (FIND-32).
+    /// The forms of a requirement ID: the tag patterns (FIND-34).
     id_patterns: Vec<regex::Regex>,
     /// Titles and the text test of files, read once while the panel is open.
     meta: std::cell::RefCell<std::collections::HashMap<PathBuf, (String, bool)>>,
 }
 
 impl App {
-    /// `alt-/`, `/`: open the find panel in Docs mode (FIND-1, FIND-15, FIND-20, FIND-25).
+    /// `alt-/`, `/`: open the find panel in Docs mode (FIND-1, FIND-15, FIND-22, FIND-27).
     pub fn open_find(&mut self) {
         if self.mode == Mode::Find {
             return;
@@ -85,7 +85,7 @@ impl App {
     }
 
     /// The forms of a requirement ID: the `tag_patterns` of `project-structure.toml` that compile,
-    /// or the default when none is left (FIND-32, FIND-33).
+    /// or the default when none is left (FIND-34, FIND-35).
     fn id_patterns(&self) -> Vec<regex::Regex> {
         let set = crate::docs::structure::Structure::load(&self.cfg.root).and_then(Result::ok).and_then(|s| s.project.tag_patterns);
         let ok: Vec<regex::Regex> = set.into_iter().flatten().filter_map(|p| regex::Regex::new(&p).ok()).collect();
@@ -134,14 +134,14 @@ impl App {
         self.run_find();
     }
 
-    /// `tab`, `shift-tab`: the next or the previous mode; the query stays (FIND-19, FIND-22).
+    /// `tab`, `shift-tab`: the next or the previous mode; the query stays (FIND-21, FIND-24).
     fn find_mode(&mut self, back: bool) {
         self.files.find.mode = self.files.find.mode.step(back);
         self.files.find.sel = 0;
         self.make_find_list();
     }
 
-    /// `[.*]` or `alt-r`: the regular expression on or off (FIND-42).
+    /// `[.*]` or `alt-r`: the regular expression on or off (FIND-44).
     pub fn toggle_find_regex(&mut self) {
         self.files.find.regex = !self.files.find.regex;
         self.run_find();
@@ -154,7 +154,7 @@ impl App {
     }
 
     /// `enter`: open the selected file in the note pane at the line of the match (FIND-11); after
-    /// `?` in Notes mode, ask the agent about all notes (FIND-39).
+    /// `?` in Notes mode, ask the agent about all notes (FIND-41).
     fn find_enter(&mut self) {
         if let Some(q) = self.files.find.query.strip_prefix('?').map(|q| q.trim().to_string()) {
             if self.files.find.mode != FindMode::Notes {
@@ -178,13 +178,13 @@ impl App {
         self.track_recent();
     }
 
-    /// The query changed: the search by path now, the search in the text on the worker (FIND-35).
+    /// The query changed: the search by path now, the search in the text on the worker (FIND-37).
     pub(crate) fn run_find(&mut self) {
         let ask = self.find_ask();
         let f = &mut self.files.find;
         f.bad_regex = matches!(&ask, Some(Ask::Text { query, regex: true }) if regex::Regex::new(query).is_err());
         if f.bad_regex {
-            // FIND-44: the list keeps the results of the last valid query.
+            // FIND-46: the list keeps the results of the last valid query.
             return;
         }
         f.seq += 1;
@@ -201,7 +201,7 @@ impl App {
         self.make_find_list();
     }
 
-    /// What the worker looks for: nothing for an empty query and for `?` (FIND-39).
+    /// What the worker looks for: nothing for an empty query and for `?` (FIND-41).
     fn find_ask(&self) -> Option<Ask> {
         let q = self.files.find.query.trim();
         match q.chars().next()? {
@@ -217,7 +217,7 @@ impl App {
         }
     }
 
-    /// Take what the worker sent: the list of files, the matches of the query (FIND-34).
+    /// Take what the worker sent: the list of files, the matches of the query (FIND-36).
     pub fn poll_find(&mut self) {
         let Some(w) = &self.files.find.worker else { return };
         let outs = w.poll();

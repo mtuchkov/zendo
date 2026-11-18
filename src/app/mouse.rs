@@ -45,7 +45,7 @@ impl App {
         }
     }
 
-    /// A click in the tree: a view letter (FILES-65), `[+]` or `[-]`, a row. True when it hit one.
+    /// A click in the tree: a view letter (FILES-73), `[+]` or `[-]`, a row. True when it hit one.
     fn click_tree(&mut self, hit: &dyn Fn(&Rect) -> bool) -> bool {
         if let Some(v) = self.frame.view_buttons().iter().find(|(r, _)| hit(r)).map(|(_, v)| *v) {
             self.focus = Focus::Tree;

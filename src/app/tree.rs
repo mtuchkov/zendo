@@ -43,7 +43,7 @@ impl App {
         self.files.reveal_current();
     }
 
-    /// A click on a letter of the view strip or a name of its hint; `o` (FILES-65, FILES-68).
+    /// A click on a letter of the view strip or a name of its hint; `o` (FILES-73, FILES-76).
     pub fn show_tree_view(&mut self, view: crate::docs::tree::View) {
         self.state.tree_view = self.files.pick_view(view).to_string();
         self.state.save(&self.cfg.root);
@@ -81,7 +81,7 @@ impl App {
             "new_file" => self.tree_act(TreeAct::New { folder: false }),
             "new_folder" => self.tree_act(TreeAct::New { folder: true }),
             "add_to_chat" => self.attach_tree_file(),
-            // FILES-61: `n` writes a new note in the Notes view.
+            // FILES-69: `n` writes a new note in the Notes view.
             "new_note" if self.files.tree().view == crate::docs::tree::View::Notes => self.open_float(),
             "layout" => self.toggle_layout(),
             "delta" => self.toggle_delta(),

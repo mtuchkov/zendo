@@ -51,7 +51,7 @@ impl Files {
         let notes = self.tree.view == crate::docs::tree::View::Notes;
         match act {
             "down" | "up" | "top" | "bottom" => self.move_in_tree(act, &rows),
-            // FILES-69: the Notes view has no folders.
+            // FILES-77: the Notes view has no folders.
             "unfold" | "fold" | "expand_all" | "collapse_all" if notes => {}
             // Unfold or fold the folder: [+] / [-].
             "unfold" | "fold" => {
@@ -136,7 +136,7 @@ impl Files {
         FilterKey::Done
     }
 
-    /// `[.*]` or `alt-r` in the filter: the text is a regular expression, or words again (FILES-59).
+    /// `[.*]` or `alt-r` in the filter: the text is a regular expression, or words again (FILES-67).
     pub fn toggle_filter_regex(&mut self) {
         self.tree.find_regex = !self.tree.find_regex;
         self.tree.sel = 0;

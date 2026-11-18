@@ -31,11 +31,11 @@ fn clear(a: &mut App) {
     a.on_key(KeyEvent::new(KeyCode::Char('u'), KeyModifiers::CONTROL));
 }
 
-// FIND-30: `#` and an ID finds the files with an ID that starts with it, as a whole ID, the whole ID
+// FIND-32: `#` and an ID finds the files with an ID that starts with it, as a whole ID, the whole ID
 // first; in Code mode the text of code is searched for it.
 #[tokio::test]
 async fn hash_finds_a_requirement_id_in_code_and_docs() {
-    let root = repo("find-ids", &[("src/find.rs", "// (FIND-9, FIND-19)\n"), ("src/other.rs", "// FIND-19 only\n"), ("docs/find.md", "| FIND-9 | a row |\n")]);
+    let root = repo("find-ids", &[("src/find.rs", "// (FIND-9, FIND-21)\n"), ("src/other.rs", "// FIND-21 only\n"), ("docs/find.md", "| FIND-9 | a row |\n")]);
     let mut a = app(&root);
     alt(&mut a, '/');
     to_mode(&mut a, FindMode::Code);
@@ -52,7 +52,7 @@ async fn hash_finds_a_requirement_id_in_code_and_docs() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-31: `#` and a word that is no ID finds a tag in the docs and in the notes; code has no tags.
+// FIND-33: `#` and a word that is no ID finds a tag in the docs and in the notes; code has no tags.
 #[tokio::test]
 async fn hash_finds_a_tag_in_docs() {
     let root = repo("find-tags", &[("docs/a.md", "# A\n\nWork #todo here.\n"), ("docs/notes/2026-11-17-n.md", "# N\n\n#todo too\n"), ("src/a.rs", "// #todo\n")]);
@@ -67,7 +67,7 @@ async fn hash_finds_a_tag_in_docs() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-32, FIND-33: `tag_patterns` sets the forms of an ID; a bad pattern does not count, and none
+// FIND-34, FIND-35: `tag_patterns` sets the forms of an ID; a bad pattern does not count, and none
 // left gives the default.
 #[tokio::test]
 async fn the_tag_patterns_are_configurable() {
@@ -90,7 +90,7 @@ async fn the_tag_patterns_are_configurable() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-34: a key returns before the search in the text ends; the results come later.
+// FIND-36: a key returns before the search in the text ends; the results come later.
 #[tokio::test]
 async fn typing_does_not_wait_for_the_search() {
     let files: Vec<(String, String)> = (0..2000).map(|i| (format!("docs/d{i}.md"), format!("# D{i}\n\n{}\nneedle {i}\n", "text ".repeat(200)))).collect();
@@ -111,7 +111,7 @@ async fn typing_does_not_wait_for_the_search() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-35: one search in the text fills every mode.
+// FIND-37: one search in the text fills every mode.
 #[tokio::test]
 async fn one_search_fills_every_mode() {
     let root = repo("find-one-search", &[("docs/a.md", "# A\n\nfind\n"), ("docs/notes/2026-11-17-n.md", "# N\n\nfind\n"), ("src/a.rs", "// find\n")]);
@@ -125,7 +125,7 @@ async fn one_search_fills_every_mode() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-36: the text comes from the disk for each search.
+// FIND-38: the text comes from the disk for each search.
 #[tokio::test]
 async fn a_changed_file_is_found_without_a_new_open() {
     let root = repo("find-fresh", &[("docs/a.md", "# A\n\nnothing\n")]);
@@ -141,7 +141,7 @@ async fn a_changed_file_is_found_without_a_new_open() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-37: the list of files comes from a walk when the panel opens.
+// FIND-39: the list of files comes from a walk when the panel opens.
 #[tokio::test]
 async fn a_new_file_is_found_after_the_panel_opens_again() {
     let root = repo("find-new-file", &[("docs/a.md", "# A\n\nalpha\n")]);
@@ -159,7 +159,7 @@ async fn a_new_file_is_found_after_the_panel_opens_again() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-38: a result of an old query does not show.
+// FIND-40: a result of an old query does not show.
 #[tokio::test]
 async fn a_late_result_of_an_old_query_does_not_show() {
     let root = repo("find-late", &[("docs/a.md", "# A\n\nalpha\n"), ("docs/b.md", "# B\n\nbeta\n")]);
@@ -175,7 +175,7 @@ async fn a_late_result_of_an_old_query_does_not_show() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-39: `?` is no search.
+// FIND-41: `?` is no search.
 #[tokio::test]
 async fn a_question_is_not_searched() {
     let root = repo("find-question", &[("docs/a.md", "# A\n\nalpha\n")]);
@@ -186,7 +186,7 @@ async fn a_question_is_not_searched() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-40: All is the merge of Notes, Docs and Code, in one order: by path first, then by text.
+// FIND-42: All is the merge of Notes, Docs and Code, in one order: by path first, then by text.
 #[tokio::test]
 async fn all_is_the_merge_of_the_three_modes() {
     let root = repo("find-merge", &[("docs/x.md", "# X\n\nzeta zeta\n"), ("docs/notes/2026-11-17-zeta.md", "# Z\n"), ("src/zeta.rs", "\n"), ("docs/notes/2026-11-17-n.md", "# N\n\nzeta\n")]);
@@ -198,7 +198,7 @@ async fn all_is_the_merge_of_the_three_modes() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-41: the mode row shows `…` while the search runs, then the number of results.
+// FIND-43: the mode row shows `…` while the search runs, then the number of results.
 #[tokio::test]
 async fn the_mode_row_shows_counts_and_running_searches() {
     let root = repo("find-counts", &[("docs/a.md", "# A\n\nalpha\n")]);
@@ -219,7 +219,7 @@ fn click_regex(a: &mut App) {
     a.on_mouse(MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: r.x + 1, row: r.y, modifiers: KeyModifiers::NONE });
 }
 
-// FIND-42: `alt-r` and a click on `[.*]` turn the regular expression on and off.
+// FIND-44: `alt-r` and a click on `[.*]` turn the regular expression on and off.
 #[tokio::test]
 async fn the_regex_button_turns_on_and_off() {
     let root = repo("find-regex-button", &[("src/config.json", "{}\n"), ("docs/config-toml.md", "# C\n")]);
@@ -238,7 +238,7 @@ async fn the_regex_button_turns_on_and_off() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-43: the expression matches the text too, and the preview marks the match.
+// FIND-45: the expression matches the text too, and the preview marks the match.
 #[tokio::test]
 async fn a_regex_matches_path_and_text() {
     let root = repo("find-regex-text", &[("docs/a.md", "# A\n\nRetry after 30 s\n"), ("docs/b.md", "# B\n\nretry later\n")]);
@@ -251,7 +251,7 @@ async fn a_regex_matches_path_and_text() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-44: an expression that does not compile keeps the last results and marks the button.
+// FIND-46: an expression that does not compile keeps the last results and marks the button.
 #[tokio::test]
 async fn a_bad_regex_keeps_the_last_results() {
     let root = repo("find-regex-bad", &[("docs/a.md", "# A\n\nretry\n")]);
@@ -267,7 +267,7 @@ async fn a_bad_regex_keeps_the_last_results() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-45: the state of `[.*]` stays from one open to the next.
+// FIND-47: the state of `[.*]` stays from one open to the next.
 #[tokio::test]
 async fn the_regex_state_stays() {
     let root = repo("find-regex-stays", &[("docs/a.md", "# A\n")]);
@@ -280,7 +280,7 @@ async fn the_regex_state_stays() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FILES-11, FILES-59: `` ` `` filters the tree by name; `[.*]` and `alt-r` make it a regular
+// FILES-11, FILES-67: `` ` `` filters the tree by name; `[.*]` and `alt-r` make it a regular
 // expression.
 #[tokio::test]
 async fn the_tree_filter_takes_a_regex() {

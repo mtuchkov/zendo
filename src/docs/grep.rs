@@ -1,6 +1,6 @@
-//! The search of the find panel, off the UI thread, with the search engine of ripgrep (ADR 0011):
+//! The search of the find panel, off the UI thread, with the search engine of ripgrep (ADR 0017):
 //! one worker walks the repository when the panel opens and searches the text of the files on the
-//! disk for each query. It keeps no copy of the text (FIND-34 to FIND-38).
+//! disk for each query. It keeps no copy of the text (FIND-36 to FIND-40).
 use grep_regex::{RegexMatcher, RegexMatcherBuilder};
 use grep_searcher::{BinaryDetection, SearcherBuilder, sinks::UTF8};
 use std::path::{Path, PathBuf};
@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex, mpsc};
 use std::time::Duration;
 use tokio::sync::Notify;
 
-/// The form of a requirement ID when `project-structure.toml` sets no tag pattern (FIND-32).
+/// The form of a requirement ID when `project-structure.toml` sets no tag pattern (FIND-34).
 pub const DEFAULT_ID: &str = "[A-Z][A-Z0-9]*-[0-9]+";
 /// The search starts when the user stops typing for this long.
 const DEBOUNCE: Duration = Duration::from_millis(100);
@@ -43,10 +43,10 @@ pub struct Hit {
 pub enum Ask {
     /// The query in markdown files: plain text, or a regular expression.
     Text { query: String, regex: bool },
-    /// A tag that starts with the word, in markdown files (FIND-31).
+    /// A tag that starts with the word, in markdown files (FIND-33).
     Tag(String),
     /// A requirement ID of one of the patterns that starts with the word, in every text file
-    /// (FIND-30, FIND-32).
+    /// (FIND-32, FIND-34).
     Id { word: String, patterns: Vec<regex::Regex> },
 }
 
@@ -163,7 +163,7 @@ fn snippet(line: usize, text: &str, mark: Option<&regex::Regex>) -> Snippet {
 /// What the worker sends.
 #[derive(Debug)]
 pub enum Out {
-    /// The files of the repository, for the search by path while the panel is open (FIND-37).
+    /// The files of the repository, for the search by path while the panel is open (FIND-39).
     Files(Vec<PathBuf>),
     /// The matches in the text for the query with this number.
     Hits { seq: u64, hits: Vec<Hit> },
@@ -192,12 +192,12 @@ impl Worker {
         Self { jobs, out, seq }
     }
 
-    /// Walk the roots again: the panel opens (FIND-37).
+    /// Walk the roots again: the panel opens (FIND-39).
     pub fn walk(&self, roots: Vec<PathBuf>) {
         let _ = self.jobs.send(Job::Walk(roots));
     }
 
-    /// Search for the query with the number `seq`; the search of an older number stops (FIND-38).
+    /// Search for the query with the number `seq`; the search of an older number stops (FIND-40).
     pub fn search(&self, seq: u64, ask: Ask) {
         self.seq.store(seq, Ordering::SeqCst);
         let _ = self.jobs.send(Job::Search(seq, ask));

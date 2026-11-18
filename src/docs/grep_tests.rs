@@ -23,7 +23,7 @@ fn run(root: &Path, ask: &Ask) -> Vec<Hit> {
     hits
 }
 
-// FIND-35: the text of markdown files, without regard to letter case, also outside ASCII; code is
+// FIND-37: the text of markdown files, without regard to letter case, also outside ASCII; code is
 // not searched for plain text.
 #[test]
 fn text_is_found_in_markdown_without_regard_to_case() {
@@ -36,7 +36,7 @@ fn text_is_found_in_markdown_without_regard_to_case() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-43: a regular expression, without regard to letter case.
+// FIND-45: a regular expression, without regard to letter case.
 #[test]
 fn a_regex_finds_text() {
     let root = dir("regex", &[("docs/a.md", "# A\n\nRetry after 30 s\n"), ("docs/b.md", "# B\n\nretry later\n")]);
@@ -45,22 +45,22 @@ fn a_regex_finds_text() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-30: an ID that starts with the word, as a whole ID, in markdown and in code; the whole ID
+// FIND-32: an ID that starts with the word, as a whole ID, in markdown and in code; the whole ID
 // marks the file as exact.
 #[test]
 fn an_id_is_found_by_its_start_in_docs_and_code() {
-    let root = dir("id", &[("src/find.rs", "// (FIND-9, FIND-19)\n"), ("src/other.rs", "// FIND-19\n"), ("src/x.rs", "// XFIND-9 aFIND-9\n"), ("docs/find.md", "| FIND-9 | a row |\n")]);
+    let root = dir("id", &[("src/find.rs", "// (FIND-9, FIND-21)\n"), ("src/other.rs", "// FIND-21\n"), ("src/x.rs", "// XFIND-9 aFIND-9\n"), ("docs/find.md", "| FIND-9 | a row |\n")]);
     let id = |w: &str| Ask::Id { word: w.into(), patterns: vec![regex::Regex::new(DEFAULT_ID).unwrap()] };
     let hits = run(&root, &id("FIND-9"));
-    assert_eq!(paths(&hits, &root), vec!["docs/find.md", "src/find.rs"], "not FIND-19 alone, not XFIND-9");
+    assert_eq!(paths(&hits, &root), vec!["docs/find.md", "src/find.rs"], "not FIND-21 alone, not XFIND-9");
     assert!(hits.iter().all(|h| h.exact));
     let hits = run(&root, &id("find-1"));
     assert_eq!(paths(&hits, &root), vec!["src/find.rs", "src/other.rs"]);
-    assert!(hits.iter().all(|h| !h.exact), "FIND-19 is not FIND-1");
+    assert!(hits.iter().all(|h| !h.exact), "FIND-21 is not FIND-1");
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-32: an ID of any of the tag patterns.
+// FIND-34: an ID of any of the tag patterns.
 #[test]
 fn an_id_of_any_pattern_is_found() {
     let root = dir("id-patterns", &[("src/a.rs", "// REQ_7\n"), ("src/b.rs", "// ADR-0011\n")]);
@@ -72,7 +72,7 @@ fn an_id_of_any_pattern_is_found() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-31: a tag that starts with the word, outside headings; code has no tags.
+// FIND-33: a tag that starts with the word, outside headings; code has no tags.
 #[test]
 fn a_tag_is_found_by_its_start() {
     let root = dir("tag", &[("docs/a.md", "# A\n\nSome #todo here.\n"), ("docs/b.md", "# todo list\n\nnone\n"), ("src/a.rs", "// #todo\n")]);
@@ -81,7 +81,7 @@ fn a_tag_is_found_by_its_start() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-38: a search stops when it is old.
+// FIND-40: a search stops when it is old.
 #[test]
 fn a_stopped_search_gives_nothing() {
     let root = dir("stop", &[("docs/a.md", "# A\n\nx\n")]);
@@ -89,7 +89,7 @@ fn a_stopped_search_gives_nothing() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-34, FIND-38: the worker answers off the caller's thread; a newer query drops the older one.
+// FIND-36, FIND-40: the worker answers off the caller's thread; a newer query drops the older one.
 #[test]
 fn the_worker_answers_the_last_query_only() {
     let root = dir("worker", &[("docs/a.md", "# A\n\nalpha\n"), ("docs/b.md", "# B\n\nbeta\n")]);

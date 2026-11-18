@@ -6,7 +6,7 @@ use crate::docs::tree::{Kind, Row, Tree, View, worktree};
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-/// How long the hint of the view strip shows after `v` (FILES-66).
+/// How long the hint of the view strip shows after `v` (FILES-74).
 const VIEW_HINT: std::time::Duration = std::time::Duration::from_millis(2500);
 
 impl Files {
@@ -28,7 +28,7 @@ impl Files {
     }
 
     /// The rows of the Notes view: the notes of the notes folder by age, under the heads Today,
-    /// This week and Older (FILES-61).
+    /// This week and Older (FILES-69).
     pub(super) fn fill_notes_view(&mut self) {
         let today = chrono::Local::now().date_naive();
         let head = |n: &Note| match (today - n.modified.date_naive()).num_days() {
@@ -80,7 +80,7 @@ impl Files {
     }
 
     /// `v`: the next view of the tree, from its first row, and the hint of the strip for 2.5 s
-    /// (FILES-4, FILES-66). Gives the name that the state keeps.
+    /// (FILES-4, FILES-74). Gives the name that the state keeps.
     pub fn next_view(&mut self) -> &'static str {
         self.tree.next_view();
         self.tree.hint_until = Some(std::time::Instant::now() + VIEW_HINT);
@@ -88,7 +88,7 @@ impl Files {
         self.tree.view.name()
     }
 
-    /// A click on a letter of the strip or a name of the hint (FILES-65).
+    /// A click on a letter of the strip or a name of the hint (FILES-73).
     pub fn pick_view(&mut self, view: View) -> &'static str {
         self.tree.view = view;
         (self.tree.sel, self.tree.scroll) = (0, 0);
@@ -96,7 +96,7 @@ impl Files {
         view.name()
     }
 
-    /// The hint of the strip shows now (FILES-66).
+    /// The hint of the strip shows now (FILES-74).
     pub fn view_hint(&self) -> bool {
         self.tree.hint_until.is_some_and(|t| std::time::Instant::now() < t)
     }

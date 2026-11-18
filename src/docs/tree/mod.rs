@@ -16,7 +16,7 @@ pub const DOCS_GLOB: &str = "**/docs/**";
 pub enum Kind {
     Dir { open: bool },
     File,
-    /// A head of the Notes view: Today, This week, Older (FILES-61).
+    /// A head of the Notes view: Today, This week, Older (FILES-69).
     Head,
 }
 
@@ -32,7 +32,7 @@ pub enum View {
     Worktree,
     /// The files of that worktree that differ from the merge base with `main` (FILES-27).
     WorktreeChanged,
-    /// The notes by age (FILES-61).
+    /// The notes by age (FILES-69).
     Notes,
 }
 
@@ -48,7 +48,7 @@ impl View {
         }
     }
 
-    /// The letter of the view in the strip of the tree (FILES-62).
+    /// The letter of the view in the strip of the tree (FILES-70).
     pub fn letter(self) -> &'static str {
         match self {
             View::Structure => "S",
@@ -104,13 +104,13 @@ pub struct Tree {
     pub changed: BTreeSet<PathBuf>,
     /// The folders of the repository, in the text view.
     pub dirs: Vec<PathBuf>,
-    /// The rows of the Notes view: the heads and the notes by age (FILES-61).
+    /// The rows of the Notes view: the heads and the notes by age (FILES-69).
     pub notes_view: Vec<Row>,
-    /// Until when the hint of the view strip shows (FILES-66).
+    /// Until when the hint of the view strip shows (FILES-74).
     pub hint_until: Option<Instant>,
     /// The file name filter (`` ` `` in the tree): while it is on, the tree is a flat list of matches.
     pub find: Option<String>,
-    /// `[.*]` of the filter: the text is a regular expression for the path (FILES-59).
+    /// `[.*]` of the filter: the text is a regular expression for the path (FILES-67).
     pub find_regex: bool,
     /// The notes folder in the notes repo, while the notes repo is on (FILES-25).
     pub notes: Option<PathBuf>,
@@ -192,7 +192,7 @@ impl Tree {
         self.view = views[at % views.len()];
     }
 
-    /// The views that the strip and the `v` cycle show now, in their order (FILES-4, FILES-64).
+    /// The views that the strip and the `v` cycle show now, in their order (FILES-4, FILES-72).
     pub fn views(&self) -> Vec<View> {
         let has = self.structure.as_ref().is_some_and(|s| s.main().next().is_some());
         let wt = self.worktree.is_some();

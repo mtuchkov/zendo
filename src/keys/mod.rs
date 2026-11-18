@@ -212,7 +212,7 @@ impl Keymap {
 }
 
 /// Panes that zendo had: their keys in a keymap file do nothing, without a problem. `notes` went
-/// into the tree as the Notes view (FILES-61).
+/// into the tree as the Notes view (FILES-69).
 const RETIRED_PANES: [&str; 1] = ["notes"];
 
 /// The panes and actions of a layer that zendo does not know.

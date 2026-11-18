@@ -29,14 +29,14 @@ fn query(a: &mut App, q: &str) {
     a.settle_find();
 }
 
-// FIND-19: `tab` goes round Notes, Docs, Code, All with the same query; each mode lists its own
+// FIND-21: `tab` goes round Notes, Docs, Code, All with the same query; each mode lists its own
 // kind of files.
 #[tokio::test]
 async fn tab_switches_the_mode_and_keeps_the_query() {
     let root = repo("find-modes-tab", &FILES);
     let mut a = app(&root);
     alt(&mut a, '/');
-    assert_eq!(a.files.find().mode, FindMode::Docs, "FIND-25");
+    assert_eq!(a.files.find().mode, FindMode::Docs, "FIND-27");
     query(&mut a, "find");
     assert_eq!(listed(&a, &root), vec!["docs/find.md", "docs/other.md"], "Docs: by path, then by text; no note, no code");
     key(&mut a, KeyCode::Tab);
@@ -52,7 +52,7 @@ async fn tab_switches_the_mode_and_keeps_the_query() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-22: `shift-tab` goes to the previous mode.
+// FIND-24: `shift-tab` goes to the previous mode.
 #[tokio::test]
 async fn shift_tab_goes_to_the_previous_mode() {
     let root = repo("find-modes-back", &FILES);
@@ -65,7 +65,7 @@ async fn shift_tab_goes_to_the_previous_mode() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-23, FIND-24: the modes stand in a row above the query, after `tab`; the active one has the
+// FIND-25, FIND-26: the modes stand in a row above the query, after `tab`; the active one has the
 // accent color, the others the second accent color.
 #[tokio::test]
 async fn the_modes_stand_above_the_query() {
@@ -89,7 +89,7 @@ async fn the_modes_stand_above_the_query() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-28, FIND-39: `?` asks the agent only in Notes mode.
+// FIND-30, FIND-41: `?` asks the agent only in Notes mode.
 #[tokio::test]
 async fn notes_mode_keeps_questions() {
     let root = repo("find-modes-question", &FILES);
@@ -105,7 +105,7 @@ async fn notes_mode_keeps_questions() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-20, FIND-21: `/` opens the panel where the focus takes no text; where it takes text, `/`
+// FIND-22, FIND-23: `/` opens the panel where the focus takes no text; where it takes text, `/`
 // types.
 #[tokio::test]
 async fn slash_opens_find_where_no_text_is_typed() {
@@ -144,7 +144,7 @@ async fn slash_opens_find_where_no_text_is_typed() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-25: the panel always opens in Docs mode.
+// FIND-27: the panel always opens in Docs mode.
 #[tokio::test]
 async fn find_opens_in_docs_mode() {
     let root = repo("find-modes-docs", &FILES);
@@ -157,7 +157,7 @@ async fn find_opens_in_docs_mode() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-26: Docs mode lists markdown files that are not notes, by path and by text.
+// FIND-28: Docs mode lists markdown files that are not notes, by path and by text.
 #[tokio::test]
 async fn docs_mode_has_no_notes_and_no_code() {
     let root = repo("find-modes-docs-only", &FILES);
@@ -168,7 +168,7 @@ async fn docs_mode_has_no_notes_and_no_code() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-27: Code mode lists text files that are not markdown, by path only; with an empty query the
+// FIND-29: Code mode lists text files that are not markdown, by path only; with an empty query the
 // recent ones.
 #[tokio::test]
 async fn code_mode_finds_by_path_only() {
@@ -186,7 +186,7 @@ async fn code_mode_finds_by_path_only() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-29: All mode lists every kind; with an empty query every recent file.
+// FIND-31: All mode lists every kind; with an empty query every recent file.
 #[tokio::test]
 async fn all_mode_finds_every_kind() {
     let root = repo("find-modes-all", &FILES);

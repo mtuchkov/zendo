@@ -32,7 +32,7 @@ finds a tag, and one that starts with `?` asks the agent about all notes.
 | NOTE-12 | Event      | When the user searches, the system shall find the text in all notes, without regard to letter case.                                 | Design           |
 | NOTE-13 | Event      | When the search starts with `#`, the system shall find the notes with that tag.                                                     | Design           |
 | NOTE-14 | Event      | When the search starts with `?`, the system shall ask Claude the question about all notes.                                          | Design           |
-| NOTE-15 | —          | Retired on 2026-11-18: the Notes view has no rename to the title (FILES-61).                                                          | User, 2026-11-18 |
+| NOTE-15 | —          | Retired on 2026-11-18: the Notes view has no rename to the title (FILES-69).                                                          | User, 2026-11-18 |
 | NOTE-24 | Event      | When the user presses `f2` or `delete` on a note in the Notes view of the tree, the system shall rename or delete the file as in the file tree. | User, 2026-11-12 |
 
 Tests that verify detailed requirements: `title_and_tags` (NOTE-10), `slug_is_short_and_clean`

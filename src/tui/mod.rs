@@ -42,7 +42,7 @@ pub async fn run(
     let mut pulse = tokio::time::interval(Duration::from_millis(100));
     pulse.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let printed = app.cli.notify.clone();
-    // The worker of the find panel sent results (ADR 0011).
+    // The worker of the find panel sent results (ADR 0017).
     let found = app.files.find().wake.clone();
     // The lofi music opens its output here, not in App::new, so tests play nothing (LOFI-11).
     app.start_music(crate::music::Output::System);

@@ -73,7 +73,7 @@ pub fn check(text: &str, root: &Path) -> Report {
             issues.push(Issue { at: "[project]".into(), what: format!("unknown key `{k}`") });
         }
     }
-    // FIND-33: a tag pattern that does not compile.
+    // FIND-35: a tag pattern that does not compile.
     for (p, e) in st.project.tag_patterns.iter().flatten().filter_map(|p| regex::Regex::new(p).err().map(|e| (p, e))) {
         let first = e.to_string().lines().last().unwrap_or_default().to_string();
         issues.push(Issue { at: "[project]".into(), what: format!("the tag pattern `{p}` is not a valid regular expression: {first}") });
