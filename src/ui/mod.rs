@@ -76,6 +76,7 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     fr.music_button = None;
     fr.spec_button = None;
     fr.upgrade_button = None;
+    fr.find_regex = None;
     if app.hold.is_some() {
         fr.regions.clear();
         draw_hold(f, app, &t, area);
@@ -107,8 +108,7 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
 
     match app.mode {
         Mode::Notes => draw_notes(f, app, &t, main),
-        Mode::Search => draw_search(f, app, &t, main),
-        Mode::Find => draw_find(f, app, &t, main),
+        Mode::Find => draw_find(f, app, fr, &t, main),
         Mode::Theme => {
             let w = 40.min(main.width / 2);
             let [left, right] = Layout::horizontal([Constraint::Min(1), Constraint::Length(w)]).areas(main);

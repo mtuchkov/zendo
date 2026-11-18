@@ -1,5 +1,6 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-17"
 date: "2026-11-17"
 sources:
   - "The user, 2026-11-17: the search shall not block the UI thread; files change often, so no cache between searches; measure first; use ripgrep as a crate."
@@ -46,22 +47,22 @@ each line for each query.
 
 ## Decision
 
-Proposal, not yet accepted:
+Accepted by the user on 2026-11-17:
 
 - zendo shall use the ripgrep crates `grep-searcher` and `grep-regex` for the search in the text,
-  with the parallel walk of `ignore`, case-insensitive, Unicode on.
-- The find panel shall have one worker thread. On the open of the panel it walks the repository and
-  sends the list of files; the UI thread keeps it until the panel closes and searches by path in it
-  on each key (about 2 ms for 10,000 paths).
-- When the user stops typing for 100 ms, the UI thread sends the query with a number. The worker
-  searches the markdown files, and the code too for a requirement ID, and sends the results with
-  the number. The UI thread drops results with an old number; the worker checks the number between
-  files and stops an old search.
-- The worker sorts each file into Notes, Docs or Code by its path. Each list keeps one sort order;
-  the list of All is a merge of the three, made on the UI thread when results come.
-- The worker shall wake the event loop when it sends results; the tick of zendo is 250 ms.
-- `docs::search::search` and its cache of docs go away; the tag search reads the tags from the
-  same search.
+  case-insensitive, Unicode on. `ignore` walks the repository, as before.
+- The find panel shall have one worker thread (`src/docs/grep.rs`). On the open of the panel it
+  walks the repository and sends the list of files; the UI thread keeps the list until the panel
+  closes and searches by path in it on each key.
+- On each change of the query, the UI thread sends the query with a number. The worker waits 100 ms
+  for a newer query, then searches the files of the list on the disk: the markdown files, and the
+  code too for a requirement ID. The threads of the search take the next file of the list, so that
+  a folder of large files does not load one thread. The worker checks the number between files and
+  stops an old search; the UI thread drops results with an old number.
+- The UI thread sorts each file into Notes, Docs or Code by its path, and makes the list of All
+  from the same rows, in one sort order.
+- The worker wakes the event loop when it sends results; the tick of zendo is 250 ms.
+- `docs::search::search`, its cache of docs, and the search mode of the notes list go away.
 
 ## Consequences
 
@@ -75,8 +76,17 @@ Proposal, not yet accepted:
 
 ## Verification
 
-- `typing_does_not_wait_for_the_search` and `a_late_result_of_an_old_query_does_not_show` in
-  `tests/find.rs`.
-- `one_search_fills_every_mode` and `a_changed_file_is_found_without_a_new_open`.
-- A benchmark on a repository of 10,000 files: each key returns in less than 16 ms, and the results
-  of a query show in less than 200 ms after the debounce.
+- The tests of `src/docs/grep_tests.rs`, `tests/find_search.rs` and `tests/find_modes.rs`:
+  `typing_does_not_wait_for_the_search`, `a_late_result_of_an_old_query_does_not_show`,
+  `one_search_fills_every_mode`, `a_changed_file_is_found_without_a_new_open`.
+- A benchmark of the implementation on 2026-11-17, release build, 2 cores, files in the page cache:
+
+| Measure | code10k | docs10k | vscode |
+| ------- | ------- | ------- | ------ |
+| Walk when the panel opens, off the UI thread | 59 ms | 113–152 ms | 65 ms |
+| A key and its draw in the panel | 1–7 ms | 1–18 ms | 1–16 ms |
+| Results of `config` after the last key, with the 100 ms wait | 111 ms | 133–138 ms | 129 ms |
+| Results of `#FIND-1` (the text of code) after the last key | 152 ms | 141–195 ms | 212 ms |
+
+The first draw of the preview of a markdown file in a run takes up to 70 ms, once; that is the
+preview, not the search.

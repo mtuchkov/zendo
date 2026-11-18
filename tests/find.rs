@@ -1,5 +1,6 @@
 //! Find (docs/zendo/find.md): `alt-/` and `/` open the find panel; with an empty query it lists the
 //! recent files, with a query the files by path and then by text; the preview shows the selection.
+//! The search in the text runs on a worker: `settle_find` waits for it.
 
 mod common;
 use common::*;
@@ -179,19 +180,18 @@ async fn a_rename_keeps_the_recent_place() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-9: a query lists the files whose path has every word, then the markdown files whose text
-// has it, without regard to letter case.
+// FIND-9, FIND-26: a query lists the docs whose path has every word, then the docs whose text has
+// it, without regard to letter case; code is not a doc.
 #[tokio::test]
 async fn a_query_finds_paths_then_text() {
     let root = repo("find-query", &[("docs/design.md", "# Design\n\nWe drink TEA here.\n"), ("docs/tea-notes.md", "# Notes\n\nNothing.\n"), ("src/tea.rs", "fn main() {}\n")]);
     let mut a = app(&root);
     alt(&mut a, '/');
     typ(&mut a, "tea");
-    let got = listed(&a, &root);
-    assert_eq!(got.len(), 3, "{got:?}");
-    assert!(got[..2].contains(&"docs/tea-notes.md".to_string()) && got[..2].contains(&"src/tea.rs".to_string()), "paths first: {got:?}");
-    assert_eq!(got[2], "docs/design.md", "then the text");
+    a.settle_find();
+    assert_eq!(listed(&a, &root), vec!["docs/tea-notes.md", "docs/design.md"], "the path first, then the text");
     typ(&mut a, " notes");
+    a.settle_find();
     assert_eq!(listed(&a, &root), vec!["docs/tea-notes.md"], "every word of the path");
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -213,6 +213,7 @@ async fn the_preview_shows_the_match_and_enter_opens_at_it() {
     let mut a = app(&root);
     alt(&mut a, '/');
     typ(&mut a, "coffee");
+    a.settle_find();
     assert_eq!(listed(&a, &root), vec!["docs/design.md"]);
     let screen = draw(&mut a, 140, 40).join("\n");
     assert!(screen.contains("The coffee machine is eventually consistent."), "the line of the match:\n{screen}");
@@ -264,21 +265,24 @@ async fn ignored_files_are_not_searched() {
     let mut a = app(&root);
     alt(&mut a, '/');
     typ(&mut a, "zebra");
+    a.settle_find();
     assert_eq!(listed(&a, &root), vec!["docs/d.md"]);
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-17: `/` in the notes list keeps the search of the notes.
+// FIND-20 (FIND-17 retired): `/` in the notes list opens the find panel.
 #[tokio::test]
-async fn slash_in_the_notes_list_searches_the_notes() {
+async fn slash_in_the_notes_list_opens_find() {
     let (root, mut a) = find_app("find-notes-list");
     key(&mut a, KeyCode::Char('o'));
+    assert_eq!(a.mode, Mode::Notes);
     key(&mut a, KeyCode::Char('/'));
-    assert_eq!(a.mode, Mode::Search);
+    assert_eq!(a.mode, Mode::Find);
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-6: a new note from the float is a recent file when the float closes.
+// FIND-6, FIND-29: a new note from the float is a recent file when the float closes; a note shows
+// in All, not in Docs.
 #[tokio::test]
 async fn a_note_from_the_float_is_recent() {
     let (root, mut a) = find_app("find-float");
@@ -288,13 +292,16 @@ async fn a_note_from_the_float_is_recent() {
     typ(&mut a, "Tea");
     key(&mut a, KeyCode::Esc);
     alt(&mut a, '/');
+    assert_eq!(listed(&a, &root), vec![A], "Docs has no notes");
+    key(&mut a, KeyCode::Tab);
+    key(&mut a, KeyCode::Tab);
     let got = listed(&a, &root);
     assert!(got[0].ends_with("-tea.md") && got[1] == A, "{got:?}");
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-18: while the notes repo is on, a query finds the notes of the repository in the notes repo,
-// by path and by text.
+// FIND-18: while the notes repo is on, a query in Notes mode finds the notes of the repository in
+// the notes repo, by path and by text.
 #[tokio::test]
 async fn a_query_finds_the_notes_of_the_notes_repo() {
     let root = repo("find-notes-repo", &files());
@@ -314,11 +321,15 @@ async fn a_query_finds_the_notes_of_the_notes_repo() {
     .unwrap();
     let got = |a: &App| a.files.find().items.iter().map(|i| i.path.clone()).collect::<Vec<_>>();
     alt(&mut a, '/');
+    a.on_key(KeyEvent::new(KeyCode::BackTab, KeyModifiers::SHIFT));
     typ(&mut a, "spotify");
+    a.settle_find();
     assert_eq!(got(&a), vec![notes.join("2026-11-13-spotify.md")], "by path");
     key(&mut a, KeyCode::Esc);
     alt(&mut a, '/');
+    a.on_key(KeyEvent::new(KeyCode::BackTab, KeyModifiers::SHIFT));
     typ(&mut a, "playlist");
+    a.settle_find();
     let paths = got(&a);
     assert_eq!(paths.len(), 2, "by text: {paths:?}");
     assert!(paths.contains(&notes.join("2026-11-13-other.md")), "{paths:?}");

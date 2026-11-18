@@ -12,7 +12,7 @@ the project for three readers:
 | Table | Required | Content |
 |---|---|---|
 | `[meta]` | no | Free facts about the file, for example `date` or `note`. Any keys. |
-| `[project]` | no | `name`, `about` (for people), `claude` (rules for the whole repository). |
+| `[project]` | no | `name`, `about` (for people), `claude` (rules for the whole repository), `requirement_id` (the form of a requirement ID, a regular expression; default `[A-Z][A-Z0-9]*-[0-9]+`; `#` in the find panel finds these IDs). |
 | `[[entry]]` | no, any number | One folder or file each. |
 
 No other top-level tables or keys.

@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-17"
 revision: "1"
 date: "2026-11-17"
 parent: "zendo.md"
 prev: "find-background.md"
 next: "notes-repo.md"
 level: "the regex button of the find panel and of the filter of the file tree"
-note: "Agent draft of the design that the user decided on 2026-11-17. Not reviewed by the user."
+note: "Design that the user decided and approved on 2026-11-17."
 ---
 
 # Find: regex

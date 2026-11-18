@@ -51,6 +51,11 @@ impl Tree {
 
     /// The files whose path has every word of `q`, in any case; more words in the file name come first.
     pub(super) fn found(&self, q: &str) -> Vec<Row> {
+        if self.find_regex {
+            let Ok(re) = regex::RegexBuilder::new(q).case_insensitive(true).build() else { return Vec::new() };
+            let rows = self.files.iter().filter(|f| re.is_match(&f.to_string_lossy()));
+            return rows.map(|f| Row { rel: f.clone(), name: f.display().to_string(), depth: 0, kind: Kind::File, section: false }).collect();
+        }
         let words: Vec<String> = q.split_whitespace().map(str::to_lowercase).collect();
         let mut hits: Vec<(std::cmp::Reverse<usize>, &PathBuf)> = self
             .files

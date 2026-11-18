@@ -85,8 +85,10 @@ pub struct Tree {
     pub changed: BTreeSet<PathBuf>,
     /// The folders of the repository, in the text view.
     pub dirs: Vec<PathBuf>,
-    /// The file name filter (`/` in the tree): while it is on, the tree is a flat list of matches.
+    /// The file name filter (`` ` `` in the tree): while it is on, the tree is a flat list of matches.
     pub find: Option<String>,
+    /// `[.*]` of the filter: the text is a regular expression for the path (FILES-59).
+    pub find_regex: bool,
     /// The notes folder in the notes repo, while the notes repo is on (FILES-25).
     pub notes: Option<PathBuf>,
     /// The markdown files of the notes folder, relative to it.
@@ -114,6 +116,7 @@ impl Default for Tree {
             changed: BTreeSet::new(),
             dirs: Vec::new(),
             find: None,
+            find_regex: false,
             notes: None,
             notes_files: Vec::new(),
             worktree: None,

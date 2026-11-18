@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-17"
 revision: "4"
 date: "2026-11-17"
 parent: "zendo.md"
 prev: "float-title.md"
 next: "find-modes.md"
 level: "the find panel: recent files, search by path and by text, the preview"
-note: "Revision 2 was approved by the user on 2026-11-13 and implemented. Revision 3 adds FIND-18 (the notes of the notes repo), approved by the user on 2026-11-13. Revision 4 (agent draft, not reviewed) moves the modes, `tab` and the global `/` to find-modes.md, changes FIND-1, FIND-14 and FIND-18, and retires FIND-17."
+note: "Revision 2 was approved by the user on 2026-11-13 and implemented. Revision 3 adds FIND-18 (the notes of the notes repo), approved by the user on 2026-11-13. Revision 4 (approved by the user on 2026-11-17) moves the modes, `tab` and the global `/` to find-modes.md, changes FIND-1, FIND-14 and FIND-18, and retires FIND-17."
 ---
 
 # Find: recent files and search
@@ -111,7 +112,7 @@ Tests that verify detailed requirements: `the_row_shows_title_path_and_time` (FI
 `a_tree_preview_is_not_recent` and `a_note_from_the_float_is_recent` (FIND-6), `a_deleted_file_is_not_recent` (FIND-7),
 `a_rename_keeps_the_recent_place` (FIND-8), `a_query_finds_paths_then_text` (FIND-9),
 `the_preview_shows_the_match_and_enter_opens_at_it` (FIND-10, FIND-11), `esc_changes_nothing` (FIND-12),
-`a_narrow_panel_shows_the_preview_under_the_list` (FIND-13), the tests of `src/docs/search_tests.rs` (FIND-14),
+`a_narrow_panel_shows_the_preview_under_the_list` (FIND-13), `hash_finds_a_tag_in_docs` and `notes_mode_keeps_questions` (FIND-14),
 `alt_slash_opens_find_over_a_full_screen_session` in `tests/terminal.rs` (FIND-15), `ignored_files_are_not_searched`
 (FIND-16), and
 `a_query_finds_the_notes_of_the_notes_repo` (FIND-18).

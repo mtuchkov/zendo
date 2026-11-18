@@ -72,6 +72,7 @@ impl App {
     }
 
     pub fn tick(&mut self) {
+        self.poll_find();
         self.music_tick();
         self.peek_tick();
         // CMD-11: the message names no commit and no key; the top line has the button.

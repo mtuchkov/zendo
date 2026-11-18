@@ -17,7 +17,7 @@ pub(crate) fn draw_tree(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme,
         lines.extend(foot);
         f.render_widget(Paragraph::new(lines), foot_area);
     }
-    tree_head(f, app, t, head);
+    tree_head(f, app, fr, t, head);
     if app.files.tree().find.is_none() {
         fold_buttons(f, fr, t, Rect { x: tools.right().saturating_sub(7), width: 7, ..tools });
     }
@@ -100,17 +100,21 @@ fn worktree_foot(app: &App, t: &Theme, w: usize) -> Vec<Line<'static>> {
 }
 
 /// The head line: the project and the view, or the file name filter while it is on.
-fn tree_head(f: &mut Frame, app: &App, t: &Theme, head: Rect) {
+fn tree_head(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, head: Rect) {
     let dim = Style::new().fg(t.dim);
     let w = head.width as usize;
     if let Some(q) = app.files.tree().find.clone() {
         let n = app.files.tree().rows().len();
         let count = if q.trim().is_empty() { "enter open · esc".to_string() } else { format!("{n} · esc") };
-        let room = (w.saturating_sub(4 + count.width())).max(1);
+        let room = (w.saturating_sub(9 + count.width())).max(1);
         let shown: String = if q.width() > room { q.chars().rev().take(room).collect::<Vec<_>>().into_iter().rev().collect() } else { q.clone() };
-        let line = Line::from(vec![Span::styled("/ ", Style::new().fg(t.acc)), Span::styled(shown.clone(), Style::new().fg(t.fg))]);
+        let line = Line::from(vec![Span::styled("` ", Style::new().fg(t.acc)), Span::styled(shown.clone(), Style::new().fg(t.fg))]);
         f.render_widget(Paragraph::new(line), Rect { x: head.x + 1, width: head.width.saturating_sub(1), ..head });
-        f.render_widget(Paragraph::new(Line::styled(count.clone(), dim)), Rect { x: head.right().saturating_sub(count.width() as u16), width: count.width() as u16, ..head });
+        let bad = app.files.tree().find_regex && regex::Regex::new(&q).is_err();
+        let button = super::find::draw_regex_button(f, app.files.tree().find_regex, bad, t, Rect { width: head.width + 2, ..head });
+        fr.find_regex = Some(button);
+        let right = button.x.saturating_sub(1);
+        f.render_widget(Paragraph::new(Line::styled(count.clone(), dim)), Rect { x: right.saturating_sub(count.width() as u16), width: count.width() as u16, ..head });
         if app.focus == Focus::Tree {
             f.set_cursor_position((head.x + 3 + shown.width() as u16, head.y));
         }

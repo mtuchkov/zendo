@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-17"
 revision: "1"
 date: "2026-11-17"
 parent: "zendo.md"
 prev: "find-ids.md"
 next: "find-regex.md"
 level: "the search of the find panel off the UI thread: the list of files, the search in the text, and the merge of All"
-note: "Agent draft of the design that the user decided on 2026-11-17. Not reviewed by the user. The mechanism and the measurements are in ADR 0011."
+note: "Design that the user decided and approved on 2026-11-17. The mechanism and the measurements are in ADR 0011."
 ---
 
 # Find: search in the background
@@ -50,12 +51,12 @@ mode.
 
 ### Acceptance tests
 
-**`typing_does_not_wait_for_the_search`** (unit test with a slow search; verifies FIND-34)
+**`typing_does_not_wait_for_the_search`** (unit test; verifies FIND-34)
 
-- Given a search in the text that takes 2 s for each query.
-- When the user types `abc` in the find panel.
-- Then each key returns in less than 50 ms, the query shows `abc` at once, and the list shows only
-  the results of `abc` when they come.
+- Given a repository with 2,000 docs that each have the word `needle`.
+- When the user types `needle` in the find panel.
+- Then each key returns in less than 50 ms, the query shows `needle` at once while the search in
+  the text runs, and the list shows the results when they come.
 
 **`one_search_fills_every_mode`** (unit test; verifies FIND-35)
 

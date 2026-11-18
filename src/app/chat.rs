@@ -212,9 +212,9 @@ impl App {
         } else if self.mode == Mode::Write {
             self.writer.editor_mut().type_str(&s);
             self.writer.touch();
-        } else if self.mode == Mode::Search {
-            self.lists.edit_query(|q| q.push_str(s.lines().next().unwrap_or("")));
-            self.run_search();
+        } else if self.mode == Mode::Find {
+            self.files.find_mut().query.push_str(s.lines().next().unwrap_or(""));
+            self.run_find();
         }
     }
 

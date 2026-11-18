@@ -29,6 +29,8 @@ pub struct Frame {
     pub(super) music_button: Option<Rect>,
     pub(super) spec_button: Option<Rect>,
     pub(super) upgrade_button: Option<Rect>,
+    /// `[.*]` of the find panel or of the filter of the tree (FIND-42, FILES-59).
+    pub(super) find_regex: Option<Rect>,
     pub(super) music_answers: Option<(Rect, Rect)>,
 }
 
@@ -119,6 +121,11 @@ impl Frame {
     }
 
     /// The upgrade button, for the mouse (CMD-11).
+    /// `[.*]` on the screen, for mouse clicks.
+    pub fn find_regex(&self) -> Option<Rect> {
+        self.find_regex
+    }
+
     pub fn upgrade_button(&self) -> Option<Rect> {
         self.upgrade_button
     }

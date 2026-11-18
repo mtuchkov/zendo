@@ -20,7 +20,7 @@
 [global]
 # navigation
 next_pane = ["tab"]  # next pane
-find = ["alt-/"]  # find a file: the recent files, by path and by text
+find = ["alt-/", "/"]  # find: notes, docs and code; `/` where no text is typed
 
 # editing
 new_note = ["alt-n"]  # a new note in a float
@@ -60,7 +60,6 @@ top = ["g", "home"]  # top
 bottom = ["G", "end"]  # bottom
 next_note = ["]"]  # next note
 prev_note = ["["]  # previous note
-search = ["/"]  # find a file: the recent files, by path and by text
 
 # text selection
 select = ["v"]  # start / stop a selection
@@ -218,7 +217,7 @@ fold = ["-"]  # fold [-]
 expand_all = ["*"]  # open every folder
 collapse_all = ["_"]  # close every folder
 close_folder = ["h", "left"]  # close the folder / go to the parent
-search = ["/"]  # filter by file name
+search = ["`"]  # filter by file name
 
 # editing
 rename = ["f2"]  # rename the file
@@ -264,8 +263,6 @@ down = ["j", "down"]  # down
 up = ["k", "up"]  # up
 top = ["g", "home"]  # top
 bottom = ["G", "end"]  # bottom
-search = ["/"]  # search
-tags = ["#"]  # search tags
 
 # editing
 new = ["n"]  # new note

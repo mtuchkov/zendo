@@ -82,8 +82,10 @@ impl Files {
         let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
         let last = self.tree.rows().len().saturating_sub(1);
         let Some(empty) = self.tree.find.as_ref().map(String::is_empty) else { return FilterKey::Done };
-        let typed = !ctrl && !k.modifiers.contains(KeyModifiers::ALT);
+        let alt = k.modifiers.contains(KeyModifiers::ALT);
+        let typed = !ctrl && !alt;
         match k.code {
+            KeyCode::Char('r') if alt => self.toggle_filter_regex(),
             KeyCode::Esc => {
                 // The tree comes back with the match selected.
                 let picked = self.tree_file();
@@ -115,6 +117,12 @@ impl Files {
             _ => {}
         }
         FilterKey::Done
+    }
+
+    /// `[.*]` or `alt-r` in the filter: the text is a regular expression, or words again (FILES-59).
+    pub fn toggle_filter_regex(&mut self) {
+        self.tree.find_regex = !self.tree.find_regex;
+        self.tree.sel = 0;
     }
 
     /// Change the text of the filter: the first match is selected.

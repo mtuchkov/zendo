@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-17"
 revision: "2"
 date: "2026-11-17"
 parent: "files.md"
 prev: "files-views.md"
 next: "files-code.md"
 level: "the actions on a file in the file tree: filter, rename, move, delete, new, add to the chat"
-note: "Split from files.md revision 2 (user, 2026-11-14). Revision 2 (agent draft, not reviewed): the filter moves from `/` to `` ` ``, `/` opens the find panel (FIND-20), and the filter gets the regex button (FILES-59)."
+note: "Split from files.md revision 2 (user, 2026-11-14). Revision 2 (approved by the user on 2026-11-17): the filter moves from `/` to `` ` ``, `/` opens the find panel (FIND-20), and the filter gets the regex button (FILES-59)."
 ---
 
 # File tree: actions

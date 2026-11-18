@@ -23,7 +23,7 @@ async fn f1_shows_the_keys_of_the_pane_from_everywhere() {
                 a.focus = Focus::Claude;
             }
             3 => a.open_notes(),
-            4 => a.open_search(""),
+            4 => a.open_find(),
             _ => {}
         }
         let b = bar(&mut a);

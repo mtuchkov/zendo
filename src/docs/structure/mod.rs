@@ -25,6 +25,8 @@ pub struct Project {
     pub about: Option<String>,
     /// Rules for Claude that hold in the whole repository.
     pub claude: Option<String>,
+    /// The form of a requirement ID, a regular expression, for `#` in the find panel (FIND-32).
+    pub requirement_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]

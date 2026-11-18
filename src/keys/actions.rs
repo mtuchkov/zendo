@@ -12,7 +12,7 @@ use Pane::*;
 pub const ACTIONS: &[Action] = &[
     // global
     a(Global, Navigation, "next_pane", "next pane"),
-    a(Global, Navigation, "find", "find a file: the recent files, by path and by text"),
+    a(Global, Navigation, "find", "find: notes, docs and code; `/` where no text is typed"),
     a(Global, Editing, "new_note", "a new note in a float"),
     a(Global, Sessions, "session_1", "agent session 1"),
     a(Global, Sessions, "session_2", "agent session 2"),
@@ -42,7 +42,6 @@ pub const ACTIONS: &[Action] = &[
     a(Read, Navigation, "bottom", "bottom"),
     a(Read, Navigation, "next_note", "next note"),
     a(Read, Navigation, "prev_note", "previous note"),
-    a(Read, Navigation, "search", "find a file: the recent files, by path and by text"),
     a(Read, Selection, "select", "start / stop a selection"),
     a(Read, Selection, "select_down", "select down"),
     a(Read, Selection, "select_up", "select up"),
@@ -187,8 +186,6 @@ pub const ACTIONS: &[Action] = &[
     a(Notes, Navigation, "up", "up"),
     a(Notes, Navigation, "top", "top"),
     a(Notes, Navigation, "bottom", "bottom"),
-    a(Notes, Navigation, "search", "search"),
-    a(Notes, Navigation, "tags", "search tags"),
     a(Notes, Editing, "new", "new note"),
     a(Notes, Editing, "rename", "rename the file to the title"),
     a(Notes, Editing, "rename_file", "rename the file"),

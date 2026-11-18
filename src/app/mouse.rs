@@ -70,6 +70,9 @@ impl App {
         if self.frame.music_button().is_some_and(|r| hit(&r)) {
             return self.toggle_music();
         }
+        if self.frame.find_regex().is_some_and(|r| hit(&r)) {
+            return if self.mode == Mode::Find { self.toggle_find_regex() } else { self.files.toggle_filter_regex() };
+        }
         if self.frame.sound_button().is_some_and(|r| hit(&r)) {
             return self.toggle_sound();
         }

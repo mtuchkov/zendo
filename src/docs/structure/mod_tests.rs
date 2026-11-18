@@ -140,3 +140,17 @@ fn an_entry_can_have_a_list_of_paths() {
     assert!(all.iter().any(|w| w.contains("does not exist")) && all.iter().any(|w| w.contains("relative")), "{all:?}");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// FIND-32, FIND-33: `requirement_id` is a key of `[project]`; one that does not compile is an issue.
+#[test]
+fn a_bad_requirement_id_pattern_falls_back() {
+    let root = std::env::temp_dir().join(format!("zendo-structure-reqid-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let good = check("[project]\nrequirement_id = \"REQ_[0-9]+\"\n", &root);
+    assert!(good.ok(), "{:?}", good.issues);
+    assert_eq!(good.parsed.unwrap().project.requirement_id.as_deref(), Some("REQ_[0-9]+"));
+    let bad = check("[project]\nrequirement_id = \"REQ_[0-9\"\n", &root);
+    assert!(bad.issues.iter().any(|i| i.at == "[project]" && i.what.contains("not a valid regular expression")), "{:?}", bad.issues);
+    let _ = std::fs::remove_dir_all(&root);
+}

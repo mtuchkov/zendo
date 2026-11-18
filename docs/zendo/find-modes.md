@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-17"
 revision: "1"
 date: "2026-11-17"
 parent: "zendo.md"
 prev: "find.md"
 next: "find-ids.md"
 level: "the modes of the find panel and the global `/` key"
-note: "Agent draft of the design that the user decided on 2026-11-17. Not reviewed by the user. A design for the search in the text of code and for an index comes later, in its own document."
+note: "Design that the user decided and approved on 2026-11-17. A design for the search in the text of code and for an index comes later, in its own document."
 ---
 
 # Find: modes and the `/` key

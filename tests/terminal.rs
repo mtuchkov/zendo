@@ -282,6 +282,21 @@ async fn alt_slash_opens_find_over_a_full_screen_session() {
     done(&root, &mut a);
 }
 
+// FIND-21: on the full screen of a session, `/` goes to the program and does not open the find
+// panel.
+#[tokio::test(flavor = "multi_thread")]
+async fn slash_goes_to_a_full_screen_session() {
+    let (root, mut a) = app_with_shell("term-slash");
+    f5(&mut a, false);
+    ctrl(&mut a, 'o');
+    assert_eq!(a.cli.view, Some(shell(0)));
+    typ(&mut a, "echo a/b");
+    key(&mut a, KeyCode::Enter);
+    assert_ne!(a.mode, zendo::app::Mode::Find, "the panel does not open");
+    wait(&mut a, 10, |a| a.cli.text(shell(0)).contains("echo a/b"));
+    done(&root, &mut a);
+}
+
 // TERM-51: on the full screen, alt-] and alt-[ (alt-} on the Mac) show the next or the previous terminal that
 // runs on the full screen, and no agent session is left out: one without Claude Code shows its chat.
 #[tokio::test(flavor = "multi_thread")]

@@ -9,7 +9,7 @@ pub const FORMAT: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/reso
 pub const FIX_PROMPT: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/fix-project-structure.md"));
 
 const TOP_KEYS: [&str; 3] = ["meta", "project", "entry"];
-const PROJECT_KEYS: [&str; 3] = ["name", "about", "claude"];
+const PROJECT_KEYS: [&str; 4] = ["name", "about", "claude", "requirement_id"];
 const ENTRY_KEYS: [&str; 7] = ["path", "label", "about", "claude", "main", "words", "template"];
 
 /// Other names people use for the entry keys.
@@ -72,6 +72,10 @@ pub fn check(text: &str, root: &Path) -> Report {
         for k in p.keys().filter(|k| !PROJECT_KEYS.contains(&k.as_str())) {
             issues.push(Issue { at: "[project]".into(), what: format!("unknown key `{k}`") });
         }
+    }
+    // FIND-33: a requirement ID form that does not compile.
+    if let Some(e) = st.project.requirement_id.as_deref().and_then(|p| regex::Regex::new(p).err()) {
+        issues.push(Issue { at: "[project]".into(), what: format!("`requirement_id` is not a valid regular expression: {e}") });
     }
     let raw_entries = raw.get("entry").and_then(|v| v.as_array()).cloned().unwrap_or_default();
     let mut seen = std::collections::BTreeSet::new();

@@ -8,7 +8,6 @@ pub enum Mode {
     Read,
     Write,
     Notes,
-    Search,
     Find,
     Theme,
     Help,
@@ -60,8 +59,6 @@ impl App {
                 self.mode = Mode::Read;
             }
             Some("new") => self.open_float(),
-            Some("search") => self.open_search(""),
-            Some("tags") => self.open_search("#"),
             Some("rename") if n > 0 => self.rename(self.lists.note()),
             Some("rename_file") => self.ask_file(self.notes_file(), 'r'),
             Some("delete") => self.ask_file(self.notes_file(), 'd'),
@@ -89,60 +86,6 @@ impl App {
                 self.flash(format!("renamed to {}", self.rel(&target)));
             }
             Err(e) => self.flash(format!("rename failed: {e}")),
-        }
-    }
-
-    pub fn open_search(&mut self, q: &str) {
-        self.lists.edit_query(|query| *query = q.to_string());
-        self.run_search();
-        self.mode = Mode::Search;
-    }
-
-    pub(crate) fn run_search(&mut self) {
-        self.lists.search(self.files.notes());
-    }
-
-    pub(crate) fn key_search(&mut self, k: KeyEvent) {
-        let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
-        match k.code {
-            KeyCode::Esc => self.mode = Mode::Read,
-            KeyCode::Down | KeyCode::Tab => self.lists.result_down(),
-            KeyCode::Char('j') if ctrl => self.lists.result_down(),
-            KeyCode::Up | KeyCode::BackTab => self.lists.result_up(),
-            KeyCode::Char('k') if ctrl => self.lists.result_up(),
-            KeyCode::Enter => {
-                if let Some(q) = self.lists.query().strip_prefix('?') {
-                    let q = q.trim().to_string();
-                    self.mode = Mode::Read;
-                    self.threads.pin(ALL_KEY);
-                    self.open_panel();
-                    self.ask(q, ALL_KEY.into());
-                    return;
-                }
-                if let Some((note, line)) = self.lists.picked().map(|g| (g.note, g.snippets.first().map(|s| s.line).unwrap_or(0))) {
-                    self.files.show_note(note);
-                    self.threads.unpin();
-                    self.mode = Mode::Read;
-                    let rows = crate::ui::source_rows(self, self.frame.text_width());
-                    self.reader.jump(rows.get(line).copied().unwrap_or(0));
-                    self.reader.unselect();
-                }
-            }
-            KeyCode::Backspace => {
-                self.lists.edit_query(|q| {
-                    q.pop();
-                });
-                self.run_search();
-            }
-            KeyCode::Char('u') if ctrl => {
-                self.lists.edit_query(String::clear);
-                self.run_search();
-            }
-            KeyCode::Char(c) if !ctrl => {
-                self.lists.edit_query(|q| q.push(c));
-                self.run_search();
-            }
-            _ => {}
         }
     }
 

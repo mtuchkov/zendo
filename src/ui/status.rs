@@ -79,7 +79,7 @@ fn status_keys(app: &App, fr: &Cache, t: &Theme, claude: bool) -> (&'static str,
     match app.mode {
         Mode::Read if app.reader.anchor().is_some() => ("SELECT", t.acc2, hints(Pane::Read, &[("select_down", "extend"), ("ask", "ask claude"), ("add_to_chat", "add to chat"), ("copy", "copy"), ("back", "cancel")])),
         Mode::Read | Mode::Help => {
-            let mut v = hints(Pane::Read, &[("down", "cursor"), ("select_down", "select"), ("ask", "ask"), ("say", "say here"), ("add_to_chat", "to chat"), ("chat", "chat"), ("write", "write"), ("search", "search"), ("help", "keys")]);
+            let mut v = hints(Pane::Read, &[("down", "cursor"), ("select_down", "select"), ("ask", "ask"), ("say", "say here"), ("add_to_chat", "to chat"), ("chat", "chat"), ("write", "write"), ("help", "keys")]);
             // The four cursor keys and the four select keys, each with one label.
             let four = |names: [&str; 4]| {
                 let keys = names.map(|n| app.keys.first(Pane::Read, n));
@@ -98,8 +98,8 @@ fn status_keys(app: &App, fr: &Cache, t: &Theme, claude: bool) -> (&'static str,
             v.extend(hints(Pane::Write, &[("done", "read"), ("chat", "chat"), ("add_to_chat", "to chat"), ("say", "say here"), ("bold", "bold"), ("italic", "italic"), ("underline", "underline"), ("toggle_tree", "files"), ("delta", "delta")]));
             ("WRITE", t.acc2, v)
         }
-        Mode::Notes => ("NOTES", t.acc, hints(Pane::Notes, &[("down", "move"), ("open", "open"), ("new", "new"), ("rename", "rename"), ("tags", "by tag"), ("close", "close")])),
-        m @ (Mode::Search | Mode::Find) => if m == Mode::Find { ("FIND", t.acc, list_keys("open")) } else { ("SEARCH", t.acc, list_keys("open at match")) },
+        Mode::Notes => ("NOTES", t.acc, hints(Pane::Notes, &[("down", "move"), ("open", "open"), ("new", "new"), ("rename", "rename"), ("close", "close")])),
+        Mode::Find => ("FIND", t.acc, list_keys("open")),
         Mode::Theme => ("THEME", t.acc, vec![("j k".into(), "preview".into()), ("enter".into(), "keep".into()), ("esc".into(), "cancel".into())]),
     }
 }
@@ -136,7 +136,7 @@ fn status_right(app: &App, fr: &Cache, claude: bool) -> String {
             };
             format!("{words} words · {saved}")
         }
-        Mode::Notes | Mode::Search => format!("{} notes · {}", app.files.notes().len(), app.rel(&app.cfg.notes_dir)),
+        Mode::Notes => format!("{} notes · {}", app.files.notes().len(), app.rel(&app.cfg.notes_dir)),
         Mode::Find => format!("{} files", app.files.find().items.len()),
         Mode::Theme => THEMES[app.theme].name.to_string(),
         _ if app.note().is_some() && fr.word_limit > 0 => format!("{} / {} words", fr.word_count, fr.word_limit),

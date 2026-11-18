@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-17"
 revision: "1"
 date: "2026-11-17"
 parent: "zendo.md"
 prev: "find-modes.md"
 next: "find-background.md"
 level: "a `#` query in the find panel: tags and requirement IDs"
-note: "Agent draft of the design that the user decided on 2026-11-17. Not reviewed by the user."
+note: "Design that the user decided and approved on 2026-11-17."
 ---
 
 # Find: tags and requirement IDs
