@@ -1,5 +1,5 @@
 ---
-status: "approved"
+status: "implemented"
 approved: "2026-11-18"
 revision: "6"
 date: "2026-11-17"
@@ -7,7 +7,7 @@ parent: "panes.md"
 prev: "keymap.md"
 next: "key-hints.md"
 level: "how the user changes one key from a hint or the help, and how a light model suggests free keys"
-note: "Agent draft from the request of the user on 2026-11-17. Revision 2 takes the answers of the user on 2026-11-17: the API, only a double click, no key path in the help, `esc` is fixed. Revision 3 added the tip menu; revision 4 moves it to ../tips.md; revision 5 lets the float add a key; revision 6 moves the suggestions to key-hints.md, takes the answers of 2026-11-18: two clicks, remove a key, every key but `esc`, `haiku` with low effort, and retires the IDs that had two meanings in the drafts. Approved by the user on 2026-11-18."
+note: "Agent draft from the request of the user on 2026-11-17. Revision 2 takes the answers of the user on 2026-11-17: the API, only a double click, no key path in the help, `esc` is fixed. Revision 3 added the tip menu; revision 4 moves it to ../tips.md; revision 5 lets the float add a key; revision 6 moves the suggestions to key-hints.md, takes the answers of 2026-11-18: two clicks, remove a key, every key but `esc`, `haiku` with low effort, and retires the IDs that had two meanings in the drafts. Approved by the user on 2026-11-18. Implemented in zendo 0.93.0 to 0.95.0; REKEY-32 waits for a way to know that the terminal sends no mouse events. The frequent actions of REKEY-31 are the actions of the hints of the status bar until zendo ships the usage counts from real use (PANES-18)."
 ---
 
 # Change a key
@@ -57,7 +57,9 @@ The tip menu tells the user about the float: see [Tips](../tips.md).
 - Then the file has `toggle_tree = ["alt-t", "ctrl-shift-b"]`, the comments stay, and the status
   bar shows `alt-t tree`.
 
-**`a_clash_keeps_the_old_key_and_asks_the_model`** (mock agent; verifies REKEY-3, REKEY-6)
+**`a_clash_keeps_the_old_key`** (unit test; verifies REKEY-3) and
+**`a_clash_asks_the_model_with_low_effort_and_the_keymap`** (mock API; verifies REKEY-3, REKEY-6,
+in [Key hints](key-hints.md))
 
 - Given the float for `toggle_tree` and a mock model API.
 - When the user presses `tab`, the key of `next_pane`.

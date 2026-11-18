@@ -1,12 +1,12 @@
 ---
-status: "approved"
+status: "implemented"
 approved: "2026-11-18"
 revision: "1"
 date: "2026-11-18"
 parent: "panes.md"
 prev: "key-change.md"
 level: "how a light model suggests free keys in the key float, without a wait for the user"
-note: "Agent draft, moved out of key-change.md on 2026-11-18 to keep each document within two pages; the IDs did not change. Approved by the user on 2026-11-18."
+note: "Agent draft, moved out of key-change.md on 2026-11-18 to keep each document within two pages; the IDs did not change. Approved by the user on 2026-11-18. Implemented in zendo 0.93.0."
 ---
 
 # Key hints
@@ -33,21 +33,26 @@ late answer is dropped.
 
 ### Acceptance tests
 
-`a_clash_keeps_the_old_key_and_asks_the_model` in [Change a key](key-change.md) also verifies REKEY-6.
+**`a_clash_asks_the_model_with_low_effort_and_the_keymap`** (mock API; verifies REKEY-6, REKEY-10, REKEY-11)
 
-**`the_user_presses_keys_while_the_model_thinks`** (mock agent; verifies REKEY-4)
+- Given the float for `toggle_tree` and a mock model API that answers `alt-y` and `alt-u`.
+- When the user presses `tab`.
+- Then the float shows the keys of the rules at once, then `alt-y` and `alt-u`; the request asks
+  for `haiku` with low effort and has the keymap in effect.
+
+**`the_user_presses_keys_while_the_model_thinks`** (mock API; verifies REKEY-4)
 
 - Given a mock model API that answers after two seconds.
 - When the user presses a clashing key, then a free key at once.
 - Then the free key is set without a wait.
 
-**`a_late_answer_does_not_change_the_float`** (mock agent; verifies REKEY-5)
+**`a_late_answer_does_not_change_the_float`** (mock API; verifies REKEY-5)
 
 - Given a mock model API that answers after the user closed the float.
 - When the answer comes.
 - Then the screen does not change.
 
-**`a_suggestion_that_clashes_is_not_shown`** (mock agent; verifies REKEY-7)
+**`a_suggestion_that_clashes_is_not_shown`** (mock API; verifies REKEY-7)
 
 - Given a mock model that suggests `j` and a key of another action, for an action of the write pane.
 - When the float shows the suggestions.

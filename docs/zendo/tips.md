@@ -1,12 +1,12 @@
 ---
-status: "approved"
+status: "implemented"
 approved: "2026-11-18"
 revision: "3"
 date: "2026-11-17"
 parent: "zendo.md"
 prev: "usage.md"
 level: "the tip menu at start and the tip in the status bar"
-note: "Agent draft from the requests of the user on 2026-11-17, moved out of panes/key-change.md (REKEY-19 to REKEY-24). Revision 2: the option stops only the tip menu, the setting is in the config, the status bar shows a tip at random. Revision 3: every message comes before the tip. Approved by the user on 2026-11-18."
+note: "Agent draft from the requests of the user on 2026-11-17, moved out of panes/key-change.md (REKEY-19 to REKEY-24). Revision 2: the option stops only the tip menu, the setting is in the config, the status bar shows a tip at random. Revision 3: every message comes before the tip. Approved by the user on 2026-11-18. Implemented in zendo 0.94.0."
 ---
 
 # Tips

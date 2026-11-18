@@ -54,7 +54,7 @@ Accepted: the second option, with the rules as the first and last layer.
 
 ## Verification
 
-`a_clash_keeps_the_old_key_and_asks_the_model` (REKEY-3, REKEY-6),
+`a_clash_keeps_the_old_key` (REKEY-3), `a_clash_asks_the_model_with_low_effort_and_the_keymap` (REKEY-6),
 `the_user_presses_keys_while_the_model_thinks` (REKEY-4),
 `a_late_answer_does_not_change_the_float` (REKEY-5) and
 `a_suggestion_that_clashes_is_not_shown` (REKEY-7) in
