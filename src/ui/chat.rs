@@ -44,7 +44,8 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
     }
 
     let dim = Style::new().fg(t.dim);
-    let scope = if app.scope() == ALL_KEY { "ALL NOTES".to_string() } else { format!("THIS {}", app.file_word().to_uppercase()) };
+    // The line of the open document says what the question is about; only all notes show here (CLAUDE-58).
+    let scope = if app.scope() == ALL_KEY { "ALL NOTES" } else { "" };
     let agent = app.profile().map_or("AGENT".to_string(), |p| p.name.to_uppercase());
     let left = agent.as_str();
     let pad = w.saturating_sub(left.len() + scope.len());
