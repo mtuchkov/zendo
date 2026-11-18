@@ -152,7 +152,7 @@ impl App {
 
     /// A click off a panel that stands over the screen closes it, as `esc` does: the help, the
     /// find panel, or the float under them (PANES-47). True when the click closed a panel.
-    /// A button of the chat panel: a session, a new terminal, the background line (BG-3, BG-8), or
+    /// A button of the chat panel: a session, a new terminal, the background line (BG-3, BG-8, BG-11), or
     /// the play button of a shell block. True when the click hit one.
     fn click_panel_button(&mut self, hit: &impl Fn(&Rect) -> bool) -> bool {
         if let Some(n) = self.frame.session_buttons().iter().find(|(r, _)| hit(r)).map(|(_, n)| *n) {
@@ -160,6 +160,8 @@ impl App {
             if n < SESSIONS { self.switch_session(n) } else { self.open_terminal(n - SESSIONS) }
         } else if self.frame.new_terminal_button().is_some_and(|r| hit(&r)) {
             self.new_terminal();
+        } else if self.frame.bg_toggle().is_some_and(|r| hit(&r)) {
+            self.toggle_background_list();
         } else if let Some((_, pgid, stop)) = self.frame.bg_buttons().iter().find(|(r, ..)| hit(r)).copied() {
             if stop { self.stop_background(pgid) } else { self.show_background(pgid) }
         } else if let Some(cmd) = self.frame.play_buttons().iter().find(|(r, _)| hit(r)).map(|(_, c)| c.to_string()) {

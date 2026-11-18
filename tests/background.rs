@@ -133,3 +133,71 @@ async fn quit_asks_about_background_processes() {
     assert!(!zendo::procs::alive(&zendo::procs::list(), pgid), "the quit stopped it");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// BG-4: the quit key a second time, as the question says, stops the process and quits.
+#[tokio::test]
+#[serial]
+async fn quit_again_stops_background_processes() {
+    clean(&["6402"]);
+    let root = repo("bg-quit-again", &[]);
+    let mut a = app(&root);
+    ask(&mut a, "background 6402").await;
+    scan_until(&mut a, |a| a.bg.list.len() == 1);
+    a.focus = Focus::Tree;
+    ctrl(&mut a, 'q');
+    assert!(!a.settle_quit(), "the first quit asks");
+    ctrl(&mut a, 'q');
+    assert!(a.quit && a.settle_quit(), "the second quit quits");
+    let pgid = a.bg.list[0].pgid;
+    let end = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while zendo::procs::alive(&zendo::procs::list(), pgid) && std::time::Instant::now() < end {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+    assert!(!zendo::procs::alive(&zendo::procs::list(), pgid), "the quit stopped it");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// BG-11: a click on `⏵` opens the list of all processes with their whole commands and a `×` in
+// each row, and a click on `⏷` closes it.
+#[tokio::test]
+#[serial]
+async fn the_mark_opens_the_list_of_all_processes() {
+    clean(&["6501", "6502"]);
+    let root = repo("bg-list", &[]);
+    let mut a = app(&root);
+    ask(&mut a, "background 6501 6502").await;
+    scan_until(&mut a, |a| a.bg.list.len() == 2);
+    assert!(screen(&mut a).contains("⏵ 2 running"));
+    let mark = a.frame.bg_toggle().expect("the mark of the line");
+    click(&mut a, mark.x, mark.y);
+    assert!(a.bg.open);
+    let s = screen(&mut a);
+    assert!(s.contains("⏷ 2 running"), "{s}");
+    assert!(s.contains("sleep 6501") && s.contains("sleep 6502"), "a row for each: {s}");
+    assert_eq!(a.frame.bg_buttons().iter().filter(|(_, _, x)| *x).count(), 2, "a × in each row");
+    let mark = a.frame.bg_toggle().expect("the mark of the list");
+    click(&mut a, mark.x, mark.y);
+    assert!(!a.bg.open && screen(&mut a).contains("⏵ 2 running"));
+    clean(&["6501", "6502"]);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// BG-1, BG-12: a long command shows without its folders, and a process without room in the line
+// shows as `+1`, so that the number and the names agree.
+#[tokio::test]
+#[serial]
+async fn a_process_without_room_shows_as_more() {
+    let root = repo("bg-more", &[]);
+    let mut a = app(&root);
+    a.open_panel();
+    let long = "/home/u/.nvm/versions/node/v24.15.0/bin/node /home/u/.local/lib/node_modules/@x/codegraph/dist/very/long/path/server.js --stdio --watch --verbose".to_string();
+    for (pgid, label) in [(1, long), (2, "npm run dev".to_string())] {
+        a.bg.list.push(zendo::app::Bg { pgid, label, started: std::time::Instant::now(), key: a.key(), stopping: None });
+    }
+    let s = draw(&mut a, 200, 30).join("\n");
+    let line = s.lines().find(|l| l.contains("2 running")).expect("the background line").to_string();
+    assert!(!line.contains("/home/u"), "no folders: {line}");
+    assert!(line.contains("node serv"), "{line}");
+    assert!(line.contains("npm run dev") || line.contains("· +1"), "the second one shows, or +1: {line}");
+    let _ = std::fs::remove_dir_all(&root);
+}
