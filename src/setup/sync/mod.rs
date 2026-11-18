@@ -12,9 +12,11 @@
 //! repo, so that `zendo notes consolidate` can find the folders of one project.
 
 mod git;
+mod lock;
 mod syncer;
 
 pub use git::*;
+pub use lock::*;
 pub use syncer::*;
 
 use serde::{Deserialize, Serialize};

@@ -209,4 +209,13 @@ pub(super) fn notes_repo_check(n: &config::NotesRepo, o: &mut Out) {
         o.fail("notes sync", "a rebase is in progress in the notes repo");
         o.hint(format!("Finish it in {}: git status, then git rebase --continue or --abort.", n.path.display()));
     }
+    // NOTESREP-18: who syncs now, and an index.lock that a killed git left.
+    let lock = crate::setup::sync::lock_path();
+    if let Some(who) = crate::setup::sync::holder(&lock) {
+        o.ok("notes sync", format!("syncing now: {who}"));
+    }
+    if crate::setup::sync::stale_index_lock(&n.path, &lock) {
+        o.fail("notes sync", ".git/index.lock is older than a minute and no zendo syncs: every commit fails");
+        o.hint(format!("Check that no git runs in {}, then remove {}.", n.path.display(), n.path.join(".git/index.lock").display()));
+    }
 }
