@@ -9,7 +9,7 @@ pub const FORMAT: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/reso
 pub const FIX_PROMPT: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/fix-project-structure.md"));
 
 const TOP_KEYS: [&str; 3] = ["meta", "project", "entry"];
-const PROJECT_KEYS: [&str; 4] = ["name", "about", "claude", "requirement_id"];
+const PROJECT_KEYS: [&str; 4] = ["name", "about", "claude", "tag_patterns"];
 const ENTRY_KEYS: [&str; 7] = ["path", "label", "about", "claude", "main", "words", "template"];
 
 /// Other names people use for the entry keys.
@@ -73,9 +73,10 @@ pub fn check(text: &str, root: &Path) -> Report {
             issues.push(Issue { at: "[project]".into(), what: format!("unknown key `{k}`") });
         }
     }
-    // FIND-33: a requirement ID form that does not compile.
-    if let Some(e) = st.project.requirement_id.as_deref().and_then(|p| regex::Regex::new(p).err()) {
-        issues.push(Issue { at: "[project]".into(), what: format!("`requirement_id` is not a valid regular expression: {e}") });
+    // FIND-33: a tag pattern that does not compile.
+    for (p, e) in st.project.tag_patterns.iter().flatten().filter_map(|p| regex::Regex::new(p).err().map(|e| (p, e))) {
+        let first = e.to_string().lines().last().unwrap_or_default().to_string();
+        issues.push(Issue { at: "[project]".into(), what: format!("the tag pattern `{p}` is not a valid regular expression: {first}") });
     }
     let raw_entries = raw.get("entry").and_then(|v| v.as_array()).cloned().unwrap_or_default();
     let mut seen = std::collections::BTreeSet::new();

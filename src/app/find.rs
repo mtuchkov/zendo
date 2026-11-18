@@ -53,8 +53,8 @@ pub struct Find {
     worker: Option<Worker>,
     /// The worker wakes the event loop when it sends results.
     pub wake: Arc<tokio::sync::Notify>,
-    /// The form of a requirement ID (FIND-32).
-    id_pattern: Option<regex::Regex>,
+    /// The forms of a requirement ID: the tag patterns (FIND-32).
+    id_patterns: Vec<regex::Regex>,
     /// Titles and the text test of files, read once while the panel is open.
     meta: std::cell::RefCell<std::collections::HashMap<PathBuf, (String, bool)>>,
 }
@@ -79,16 +79,17 @@ impl App {
         let wake = f.wake.clone();
         let roots: Vec<PathBuf> = std::iter::once(self.cfg.root.clone()).chain(self.repo_notes_outside()).collect();
         self.files.find.worker.get_or_insert_with(|| Worker::start(wake)).walk(roots);
-        self.files.find.id_pattern = Some(self.id_pattern());
+        self.files.find.id_patterns = self.id_patterns();
         self.mode = Mode::Find;
         self.run_find();
     }
 
-    /// The form of a requirement ID: `requirement_id` of `project-structure.toml`, or the default
-    /// when it is not there or does not compile (FIND-32, FIND-33).
-    fn id_pattern(&self) -> regex::Regex {
-        let set = crate::docs::structure::Structure::load(&self.cfg.root).and_then(Result::ok).and_then(|s| s.project.requirement_id);
-        set.and_then(|p| regex::Regex::new(&p).ok()).unwrap_or_else(|| regex::Regex::new(grep::DEFAULT_ID).expect("the default compiles"))
+    /// The forms of a requirement ID: the `tag_patterns` of `project-structure.toml` that compile,
+    /// or the default when none is left (FIND-32, FIND-33).
+    fn id_patterns(&self) -> Vec<regex::Regex> {
+        let set = crate::docs::structure::Structure::load(&self.cfg.root).and_then(Result::ok).and_then(|s| s.project.tag_patterns);
+        let ok: Vec<regex::Regex> = set.into_iter().flatten().filter_map(|p| regex::Regex::new(&p).ok()).collect();
+        if ok.is_empty() { vec![regex::Regex::new(grep::DEFAULT_ID).expect("the default compiles")] } else { ok }
     }
 
     /// `esc`: the screen as it was under the panel (FIND-12).
@@ -207,8 +208,10 @@ impl App {
             '?' => None,
             '#' => {
                 let w = q[1..].trim().to_string();
-                let id = self.files.find.id_pattern.as_ref().filter(|p| p.find(&w).is_some_and(|m| m.start() == 0 && m.end() == w.len()));
-                (!w.is_empty()).then(|| id.map_or_else(|| Ask::Tag(w.clone()), |p| Ask::Id { word: w.clone(), pattern: p.clone() }))
+                // The patterns that the whole word matches: the word has the form of their IDs.
+                let whole = |p: &&regex::Regex| p.find(&w).is_some_and(|m| m.start() == 0 && m.end() == w.len());
+                let patterns: Vec<regex::Regex> = self.files.find.id_patterns.iter().filter(whole).cloned().collect();
+                (!w.is_empty()).then(|| if patterns.is_empty() { Ask::Tag(w.clone()) } else { Ask::Id { word: w.clone(), patterns } })
             }
             _ => Some(Ask::Text { query: q.to_string(), regex: self.files.find.regex }),
         }

@@ -67,17 +67,22 @@ async fn hash_finds_a_tag_in_docs() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FIND-32, FIND-33: `requirement_id` sets the form of an ID; a bad one falls back to the default.
+// FIND-32, FIND-33: `tag_patterns` sets the forms of an ID; a bad pattern does not count, and none
+// left gives the default.
 #[tokio::test]
-async fn the_requirement_id_pattern_is_configurable() {
-    let root = repo("find-id-pattern", &[("project-structure.toml", "[project]\nrequirement_id = \"REQ_[0-9]+\"\n"), ("src/a.rs", "// REQ_7\n"), ("src/b.rs", "// FIND-1\n")]);
+async fn the_tag_patterns_are_configurable() {
+    let structure = "[project]\ntag_patterns = [\"REQ_[0-9]+\", \"ADR-[0-9]{4}\"]\n";
+    let root = repo("find-id-pattern", &[("project-structure.toml", structure), ("src/a.rs", "// REQ_7\n"), ("src/b.rs", "// FIND-1\n"), ("src/c.rs", "// ADR-0011\n")]);
     let mut a = app(&root);
     alt(&mut a, '/');
     to_mode(&mut a, FindMode::Code);
     query(&mut a, "#REQ_7");
     assert_eq!(listed(&a, &root), vec!["src/a.rs"]);
+    clear(&mut a);
+    query(&mut a, "#ADR-0011");
+    assert_eq!(listed(&a, &root), vec!["src/c.rs"]);
     key(&mut a, KeyCode::Esc);
-    std::fs::write(root.join("project-structure.toml"), "[project]\nrequirement_id = \"REQ_[0-9\"\n").unwrap();
+    std::fs::write(root.join("project-structure.toml"), "[project]\ntag_patterns = [\"REQ_[0-9\"]\n").unwrap();
     alt(&mut a, '/');
     to_mode(&mut a, FindMode::Code);
     query(&mut a, "#FIND-1");

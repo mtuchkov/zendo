@@ -50,13 +50,25 @@ fn a_regex_finds_text() {
 #[test]
 fn an_id_is_found_by_its_start_in_docs_and_code() {
     let root = dir("id", &[("src/find.rs", "// (FIND-9, FIND-19)\n"), ("src/other.rs", "// FIND-19\n"), ("src/x.rs", "// XFIND-9 aFIND-9\n"), ("docs/find.md", "| FIND-9 | a row |\n")]);
-    let id = |w: &str| Ask::Id { word: w.into(), pattern: regex::Regex::new(DEFAULT_ID).unwrap() };
+    let id = |w: &str| Ask::Id { word: w.into(), patterns: vec![regex::Regex::new(DEFAULT_ID).unwrap()] };
     let hits = run(&root, &id("FIND-9"));
     assert_eq!(paths(&hits, &root), vec!["docs/find.md", "src/find.rs"], "not FIND-19 alone, not XFIND-9");
     assert!(hits.iter().all(|h| h.exact));
     let hits = run(&root, &id("find-1"));
     assert_eq!(paths(&hits, &root), vec!["src/find.rs", "src/other.rs"]);
     assert!(hits.iter().all(|h| !h.exact), "FIND-19 is not FIND-1");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FIND-32: an ID of any of the tag patterns.
+#[test]
+fn an_id_of_any_pattern_is_found() {
+    let root = dir("id-patterns", &[("src/a.rs", "// REQ_7\n"), ("src/b.rs", "// ADR-0011\n")]);
+    let patterns = ["REQ_[0-9]+", "ADR-[0-9]{4}"].map(|p| regex::Regex::new(p).unwrap()).to_vec();
+    let hits = run(&root, &Ask::Id { word: "ADR-0011".into(), patterns: patterns.clone() });
+    assert_eq!(paths(&hits, &root), vec!["src/b.rs"]);
+    let hits = run(&root, &Ask::Id { word: "REQ_7".into(), patterns });
+    assert_eq!(paths(&hits, &root), vec!["src/a.rs"]);
     let _ = std::fs::remove_dir_all(&root);
 }
 

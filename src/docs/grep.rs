@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex, mpsc};
 use std::time::Duration;
 use tokio::sync::Notify;
 
-/// The form of a requirement ID when `project-structure.toml` sets none (FIND-32).
+/// The form of a requirement ID when `project-structure.toml` sets no tag pattern (FIND-32).
 pub const DEFAULT_ID: &str = "[A-Z][A-Z0-9]*-[0-9]+";
 /// The search starts when the user stops typing for this long.
 const DEBOUNCE: Duration = Duration::from_millis(100);
@@ -45,8 +45,9 @@ pub enum Ask {
     Text { query: String, regex: bool },
     /// A tag that starts with the word, in markdown files (FIND-31).
     Tag(String),
-    /// A requirement ID that starts with the word, in every text file (FIND-30).
-    Id { word: String, pattern: regex::Regex },
+    /// A requirement ID of one of the patterns that starts with the word, in every text file
+    /// (FIND-30, FIND-32).
+    Id { word: String, patterns: Vec<regex::Regex> },
 }
 
 impl Ask {
@@ -144,9 +145,10 @@ fn line_matches(ask: &Ask, line: &str) -> (bool, bool) {
             let w = w.to_lowercase();
             (crate::docs::notes::tags_in(line).iter().any(|t| t.to_lowercase().starts_with(&w)), false)
         }
-        Ask::Id { word, pattern } => {
+        Ask::Id { word, patterns } => {
             let w = word.to_lowercase();
-            let ids = pattern.find_iter(line).filter(|m| !line[..m.start()].chars().next_back().is_some_and(|c| c.is_alphanumeric() || c == '_'));
+            let free = |m: &regex::Match| !line[..m.start()].chars().next_back().is_some_and(|c| c.is_alphanumeric() || c == '_');
+            let ids = patterns.iter().flat_map(|p| p.find_iter(line)).filter(free);
             ids.map(|m| m.as_str().to_lowercase()).filter(|id| id.starts_with(&w)).fold((false, false), |(_, e), id| (true, e || id == w))
         }
     }
