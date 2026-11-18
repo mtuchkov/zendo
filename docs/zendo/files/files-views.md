@@ -1,12 +1,12 @@
 ---
 status: "implemented"
 approved: "2026-11-17"
-revision: "3"
+revision: "4"
 date: "2026-11-17"
 parent: "files.md"
 next: "files-actions.md"
 level: "the views of the file tree, folding, the marks, the bottom of the tree"
-note: "Split from files.md revision 2 (user, 2026-11-14). Revision 2 changes FILES-4: the `v` cycle has the two worktree views after folders (user, 2026-11-14); implemented in zendo 0.62.0. Revision 3, from the request of the user on 2026-11-17 and approved by the user on 2026-11-17: the all and folders views go (FILES-4, FILES-17), the folders start closed (FILES-56), `[+]` and `[-]` open and close every folder (FILES-57), and the tree follows the open document (FILES-58); implemented in zendo 0.85.0."
+note: "Split from files.md revision 2 (user, 2026-11-14). Revision 2 changes FILES-4: the `v` cycle has the two worktree views after folders (user, 2026-11-14); implemented in zendo 0.62.0. Revision 3, from the request of the user on 2026-11-17 and approved by the user on 2026-11-17: the all and folders views go (FILES-4, FILES-17), the folders start closed (FILES-56), `[+]` and `[-]` open and close every folder (FILES-57), and the tree follows the open document (FILES-58); implemented in zendo 0.85.0. Revision 4, from the request of the user on 2026-11-17: each start shows the structure view (FILES-66), and FILES-10 keeps only the folders between runs; approved by the user on 2026-11-17; implemented in zendo 0.89.0."
 ---
 
 # File tree: views
@@ -24,7 +24,9 @@ The file tree has three views of the repository:
   [Code files](files-code.md).
 
 `v` shows the next view, after text the two worktree views. `j` and `k` move; `+` and `-`, `l` and
-`h`, or a click on `[+]` and `[-]` open and close a folder. zendo keeps the view for the repository.
+`h`, or a click on `[+]` and `[-]` open and close a folder. The structure view is the default: each
+start of zendo shows it, or the docs view where the repository has no main materials. The view that
+the user chooses stays until the quit.
 
 Every folder and main material starts closed. Under the head of the tree, on the right, `[+]` opens
 every folder and `[-]` closes every folder; the keys `*` and `_` do the same.
@@ -51,7 +53,8 @@ Two more views show the worktree of the active agent session: worktree and workt
 | FILES-7 | Ubiquitous | The system shall mark with `Δ` the files that changed since the last visit that counted. | Design |
 | FILES-8 | Ubiquitous | The system shall show the `about` and the start of the Claude rules of the selected item at the bottom. | User, 2026-11-11 |
 | FILES-9 | Event | When a file of the tree changes on disk, the system shall show the change in the tree without a restart. | Design |
-| FILES-10 | Event | When the user changes the view or opens and closes folders, the system shall keep them for the repository. | Design |
+| FILES-10 | Event | When the user opens and closes folders, the system shall keep them for the repository. | Design; User, 2026-11-17 (the view goes, FILES-66) |
+| FILES-66 | Event | When zendo starts, the system shall show the structure view in the tree, or the docs view where the repository has no main materials, and not the view of the last run. | User, 2026-11-17 |
 | FILES-17 | Ubiquitous | The text view shall show every folder, also an empty one or one without a text file. | User, 2026-11-12; User, 2026-11-17 |
 | FILES-20 | Ubiquitous | The system shall have a text view that shows every text file that git does not ignore: a file of at most 2 MB whose start is UTF-8 without a NUL byte. | User, 2026-11-12 |
 | FILES-24 | Ubiquitous | The system shall show each file extension in the text view in the color that the theme gives its kind of file. | User, 2026-11-12 |
@@ -63,4 +66,5 @@ Tests that verify detailed requirements: `rows_join_single_folders_and_collapse`
 FILES-56), `the_text_view_shows_every_folder` (FILES-17), `structure_view_lists_main_materials_in_file_order`
 and `the_worktree_views_follow_text_only_with_a_worktree` (FILES-4), `the_text_view_shows_every_text_file` (FILES-20),
 `expand_all_and_collapse_all` (FILES-57), `the_tree_follows_the_open_document` (FILES-58),
-`tests/tree_fold.rs` (FILES-56, FILES-57, FILES-58), and `tests/tree_text.rs` (FILES-20, FILES-24).
+`tests/tree_fold.rs` (FILES-56, FILES-57, FILES-58), `tests/tree_text.rs` (FILES-20, FILES-24), and
+`tests/tree_start.rs` (FILES-66).

@@ -5,6 +5,7 @@ revision: "2"
 date: "2026-11-17"
 parent: "files.md"
 prev: "files-worktree-note.md"
+next: "files-branch.md"
 level: "the last document of each agent session: zendo keeps it, with the place in it, and opens it again when the user goes back to the session and at start"
 note: "Agent draft from the request of the user on 2026-11-17: remember the last opened document of a session and open it when the user switches back. The user approved FILES-50 to FILES-55 on 2026-11-17. Implemented in zendo 0.76.0. Revision 2: the user answered both open points with yes on 2026-11-17: FILES-54 (the place) and FILES-55 (the start), in zendo 0.77.0."
 ---
