@@ -1,5 +1,6 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-17"
 date: "2026-11-17"
 sources:
   - "The user, 2026-11-17: the message of the user in the chat shall be per session; the chat text box is a part of the session, and the chat pane is a container for the session tabs and the active session."
@@ -89,4 +90,4 @@ The second option is chosen.
 ## Decision record
 
 Proposed by the agent on 2026-11-17 from the requests of the user in the chat. The user chose to
-keep the drafts across a restart, and a red chip for a gone file. Not reviewed yet.
+keep the drafts across a restart, and a red chip for a gone file, and approved the record on 2026-11-17.
