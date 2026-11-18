@@ -2,6 +2,9 @@
 
 use crate::docs::notes::Note;
 
+/// A line break in a query: the find panel shows a new line of the selection as this char (FIND-19).
+pub const NEW_LINE: char = '\u{23CE}';
+
 #[derive(Clone, Debug)]
 pub struct Snippet {
     pub line: usize,
@@ -22,7 +25,7 @@ pub fn search(notes: &[Note], query: &str) -> Vec<Group> {
     if q.is_empty() {
         return Vec::new();
     }
-    if let Some(tag) = q.strip_prefix('#') {
+    if let Some(tag) = q.strip_prefix('#').filter(|_| !q.contains(NEW_LINE)) {
         let tag = tag.to_lowercase();
         return notes
             .iter()
@@ -35,13 +38,19 @@ pub fn search(notes: &[Note], query: &str) -> Vec<Group> {
             })
             .collect();
     }
-    let needle = q.to_lowercase();
+    let mut groups = if q.contains(NEW_LINE) { super::search_lines::search(notes, q) } else { by_line(notes, &q.to_lowercase()) };
+    groups.sort_by(|a, b| b.count.cmp(&a.count).then(notes[b.note].modified.cmp(&notes[a.note].modified)));
+    groups
+}
+
+/// The notes with the query in a line.
+fn by_line(notes: &[Note], needle: &str) -> Vec<Group> {
     let mut groups = Vec::new();
     for (i, note) in notes.iter().enumerate() {
         let mut count = 0;
         let mut snippets = Vec::new();
         for (ln, line) in note.body.lines().enumerate() {
-            let hits = find_all(line, &needle);
+            let hits = find_all(line, needle);
             if hits.is_empty() {
                 continue;
             }
@@ -49,7 +58,7 @@ pub fn search(notes: &[Note], query: &str) -> Vec<Group> {
             let is_title = ln == 0 && line.starts_with("# ");
             if snippets.len() < 2 && !is_title {
                 let text = line.trim().trim_start_matches(['#', '-', '*', ' ']).to_string();
-                let hits = find_all(&text, &needle);
+                let hits = find_all(&text, needle);
                 snippets.push(Snippet { line: ln, text, hits });
             }
         }
@@ -57,12 +66,11 @@ pub fn search(notes: &[Note], query: &str) -> Vec<Group> {
             groups.push(Group { note: i, count, snippets });
         }
     }
-    groups.sort_by(|a, b| b.count.cmp(&a.count).then(notes[b.note].modified.cmp(&notes[a.note].modified)));
     groups
 }
 
 /// Case-insensitive matches, as byte ranges into `hay`.
-fn find_all(hay: &str, needle_lower: &str) -> Vec<(usize, usize)> {
+pub(super) fn find_all(hay: &str, needle_lower: &str) -> Vec<(usize, usize)> {
     if needle_lower.is_empty() {
         return vec![];
     }
