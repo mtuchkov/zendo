@@ -1,13 +1,13 @@
 ---
 status: "approved"
 approved: "2026-11-17"
-revision: "1"
+revision: "2"
 date: "2026-11-17"
 parent: "zendo.md"
 prev: "chat-chips.md"
 next: "chat-history.md"
 level: "how the chips of a question go to the agent and to Claude Code, and how the transcript shows them"
-note: "Agent draft of the requests of the user on 2026-11-17, with the answers of the user to the open questions in the chat on 2026-11-17, and the escapes of CLAUDE-61 asked by the user on 2026-11-17. Approved by the user on 2026-11-17."
+note: "Agent draft of the requests of the user on 2026-11-17, with the answers of the user to the open questions in the chat on 2026-11-17, and the escapes of CLAUDE-61 asked by the user on 2026-11-17. Approved by the user on 2026-11-17. Revision 2 (agent, 2026-11-17, not reviewed yet): a pasted text in the input keeps a run of `\\` at its end; the transcript keeps the label of a chip of its own questions; the test names as in the code."
 ---
 
 # Chips in a question
@@ -31,11 +31,13 @@ adds to the chat (`add_to_chat`: a selection of a note, a line, a message of the
 `⟦` becomes `\⟦`, a `⟧` becomes `\⟧`, and a run of `\` right before a mark or at the end of the
 text doubles. To read a chip back, a run of n `\` before a mark reads as (n − 1) / 2 `\` and the
 mark as text when n is odd, and as n / 2 `\` and a real mark when n is even (Design). An escaped mark is text: the chat input, the transcript and the agent see it as `\⟦`; the
-chip window shows the text without the escapes. Text that the user types is not escaped. The text
+chip window shows the text without the escapes. Text that the user types is not escaped. In a text that goes into the chat input as text, a run
+of `\\` at the end stays as it is: no chip ends there (Design). The text
 of a pasted chip names its source as `Text that the user pasted:`, not by its label (Design).
 
 **What the transcript shows.** The transcript shows the question as the user wrote it in the chat
-input, with its chips as chips in their colors. A double-click on a chip in the transcript opens
+input, with its chips as chips in their colors and with their labels: zendo keeps the label of each
+chip of its own questions with the question (Design). A double-click on a chip in the transcript opens
 the chip window, as in the chat input. A question of an earlier session (CLAUDE-27) comes back
 from the agent with its chips in `⟦` and `⟧`; the transcript shows each one as a chip with a label
 made from its text (CLAUDE-20, CLAUDE-41), and `↩` for text from the chat (Design). When zendo
@@ -63,7 +65,7 @@ and SESSIONS-4 of [Sessions](sessions.md).
 Tests that verify detailed requirements: `a_text_chip_goes_at_its_place_in_brackets` (mock agent;
 CLAUDE-59, CLAUDE-61), `marks_in_a_pasted_or_added_text_are_escaped` (CLAUDE-61), `a_file_chip_goes_as_its_label_with_the_file` (mock agent; CLAUDE-60) in
 `tests/chat_flows.rs`; `claude_code_gets_the_chips_at_their_places` (CLAUDE-59, CLAUDE-60) in
-`tests/sessions.rs`; `escapes_go_and_come_back` (CLAUDE-61, CLAUDE-64) in `src/app/chips_tests.rs`; `the_transcript_shows_chips_and_opens_them` (CLAUDE-62, CLAUDE-63, CLAUDE-65)
+`tests/sessions.rs`; `escapes_go_and_come_back` (CLAUDE-61, CLAUDE-64) and `a_chip_of_a_question_gets_a_label_from_its_text` (CLAUDE-64) in `src/app/chips_tests.rs`; `the_transcript_shows_chips_and_opens_them` (CLAUDE-62, CLAUDE-63, CLAUDE-65)
 and `a_replayed_question_shows_its_chips` (mock agent; CLAUDE-64) in `tests/chip_view.rs`.
 
 ## Open points

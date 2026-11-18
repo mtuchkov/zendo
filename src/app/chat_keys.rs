@@ -63,15 +63,10 @@ impl App {
     /// The queued questions of a thread go back into the chat input, before what it holds.
     pub(crate) fn queue_to_input(&mut self, key: &str) {
         let Some(t) = self.threads.get_mut(key).filter(|t| !t.queue.is_empty()) else { return };
-        let mut parts: Vec<String> = t.queue.drain(..).map(|o| o.question).collect();
+        let parts: Vec<String> = t.queue.drain(..).map(|o| o.question).collect();
         // The input of the session of the thread, also while another one is active (CLAUDE-47).
         let n = (0..SESSIONS).find(|n| session_key(*n) == key).unwrap_or(self.state.session);
-        let input = self.chat.composer_mut(n).input_mut();
-        let now = input.take();
-        if !now.is_empty() {
-            parts.push(now);
-        }
-        input.type_str(&parts.join("\n"));
+        self.chat.composer_mut(n).put_back(&parts.join("\n"));
     }
 
     fn new_thread(&mut self, key: String) {

@@ -122,6 +122,12 @@ impl Threads {
         start
     }
 
+    /// The first row of the view that `fit` chose for `total` rows in a view of `h` rows.
+    pub fn view_start(&self, total: usize, h: usize) -> usize {
+        let max = total.saturating_sub(h);
+        max - self.scroll.min(max)
+    }
+
     /// A click on row `y` and column `x` of a view of `h` rows: the transcript gets the keys, with
     /// the cursor under the pointer, so the view does not move (PANES-46).
     pub fn click(&mut self, y: usize, h: usize, x: usize) {

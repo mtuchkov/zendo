@@ -32,3 +32,30 @@ fn chips_are_found_by_their_marks() {
     assert_eq!(chip_ranges("⟦ab⟧ x ⟦c⟧"), vec![(0, 4), (7, 10)]);
     assert!(chip_ranges("[selection] plain").is_empty());
 }
+
+// CLAUDE-61, CLAUDE-64: an escaped text reads back as it was; a run of `\\` before a mark or at
+// the end doubles; the chips of a question with escapes are found.
+#[test]
+fn escapes_go_and_come_back() {
+    for t in ["plain", "a ⟦b⟧ c", "\\⟦", "end \\", "\\\\⟧x", "C:\\dir\\file"] {
+        assert_eq!(unescape(&escape(t)), t, "{t:?} -> {:?}", escape(t));
+    }
+    assert_eq!(escape("a ⟦b⟧"), "a \\⟦b\\⟧");
+    assert_eq!(escape("end \\"), "end \\\\", "a run at the end doubles");
+    assert_eq!(escape("C:\\dir"), "C:\\dir", "other runs stay");
+    let q = format!("why {OPEN}{}{CLOSE} now", escape("x ⟦y⟧ \\"));
+    let r = chip_ranges(&q);
+    assert_eq!(r.len(), 1, "{q}");
+    let inner: String = q.chars().skip(r[0].0 + 1).take(r[0].1 - r[0].0 - 2).collect();
+    assert_eq!(unescape(&inner), "x ⟦y⟧ \\");
+}
+
+// CLAUDE-64: the label of a chip from its text: the quoted lines, `↩` for text from the chat, a
+// file for `@path`, the first chars of other text.
+#[test]
+fn a_chip_of_a_question_gets_a_label_from_its_text() {
+    assert_eq!(label_of("Text from this chat:\n> what is it"), format!("{} what is it · 1 line", crate::app::CHAT_MARK));
+    assert_eq!(label_of("Selected text from docs/a.md (about lines 1–2):\n> one\n> two"), "one two · 2 lines");
+    assert_eq!(label_of("@/r/docs/notes/b.md"), "otes/b.md");
+    assert_eq!(label_of("Template: docs/t.md. Write it"), "Template: docs/…");
+}

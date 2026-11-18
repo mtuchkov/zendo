@@ -38,6 +38,7 @@ pub struct Frame {
     pub(super) chip_rects: Vec<(Rect, String)>,
     pub(super) doc_line: Option<Rect>,
     pub(super) chip_view_rect: Option<Rect>,
+    pub(super) transcript_chips: Vec<(Rect, String)>,
     pub(super) sound_button: Option<Rect>,
     pub(super) music_button: Option<Rect>,
     pub(super) spec_button: Option<Rect>,
@@ -168,6 +169,12 @@ impl Frame {
         self.clear_pane_buttons();
         (self.input_rect, self.doc_line, self.chip_view_rect) = (None, None, None);
         self.chip_rects.clear();
+        self.transcript_chips.clear();
+    }
+
+    /// The chips of the messages in the transcript on the screen, with the text in their marks.
+    pub fn transcript_chips(&self) -> &[(Rect, String)] {
+        &self.transcript_chips
     }
 
     pub fn input_rect(&self) -> Option<Rect> {

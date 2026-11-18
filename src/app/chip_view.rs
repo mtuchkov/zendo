@@ -92,12 +92,41 @@ impl App {
         }
     }
 
+    /// A click on a chip of a message in the transcript; the second one of a double-click opens it
+    /// (CLAUDE-63).
+    pub(crate) fn click_message_chip(&mut self, content: String) {
+        if self.composer_mut().double_click(&content, Instant::now()) {
+            self.open_message_chip(&content);
+        }
+    }
+
+    /// What a chip of a message brings, from the text in its marks: `@` and a file, or its text;
+    /// a chip with only a label says that zendo does not know (CLAUDE-65).
+    pub(crate) fn open_message_chip(&mut self, content: &str) {
+        let name = chips::label_of(content);
+        if chips::unknown(content) {
+            let lines = vec![("zendo does not know what this chip brought".to_string(), true)];
+            return self.composer_mut().view = Some(ChipView { label: name, lines, scroll: 0, style: 0 });
+        }
+        let body = chips::body_of(content);
+        match chips::unescape(body).strip_prefix('@').filter(|p| !p.contains('\n')) {
+            Some(p) => self.open_source(name, Some(Attachment::of(PathBuf::from(p))), None),
+            None => self.open_source(name, None, Some(body.to_string())),
+        }
+    }
+
     /// What the chip brings: its text in the window, or its file in the program of the system.
     pub(crate) fn open_chip(&mut self, label: &str) {
         let Some(chip) = self.composer().chips().iter().find(|c| c.label == label).cloned() else { return };
         let name = label.trim_matches([chips::OPEN, chips::CLOSE]).to_string();
+        self.open_source(name, chip.attach, chip.context);
+    }
+
+    /// The window of a chip with its file or its text; the text shows without its escapes
+    /// (CLAUDE-61).
+    fn open_source(&mut self, name: String, attach: Option<Attachment>, context: Option<String>) {
         let style = usize::from(name.starts_with(CHAT_MARK));
-        let lines = match (&chip.attach, &chip.context) {
+        let lines = match (&attach, &context) {
             (Some(a), _) if !a.path().exists() => return self.chip_error(name, format!("{} is gone", a.path().display())),
             (Some(Attachment::Image(p)), _) => return self.open_outside(name, p),
             (Some(a), _) => match text_of(a.path()) {
@@ -105,7 +134,7 @@ impl App {
                 Ok(None) => return self.open_outside(name, a.path()),
                 Err(e) => return self.chip_error(name, format!("{} does not open: {e}", a.path().display())),
             },
-            (None, Some(ctx)) => context_lines(ctx),
+            (None, Some(ctx)) => context_lines(&chips::unescape(ctx)),
             (None, None) => Vec::new(),
         };
         self.composer_mut().view = Some(ChipView { label: name, lines, scroll: 0, style });

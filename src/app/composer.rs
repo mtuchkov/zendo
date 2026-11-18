@@ -7,7 +7,6 @@ use super::AtKey;
 use crate::agent::Attachment;
 use crate::setup::history::Sent;
 use crate::text::editor::Editor;
-use crate::setup::state::{DraftChip, InputDraft};
 use std::path::PathBuf;
 
 pub struct Composer {
@@ -211,62 +210,52 @@ impl Composer {
         (q, chips)
     }
 
-    /// The question to send: the text of the input. The chips in it give their text to the
-    /// context and their files to the attachments. Only chips, or nothing, with a context: the
-    /// default question goes after the chips.
-    pub fn take_question(&mut self) -> String {
-        let (mut q, chips) = self.take_message();
-        let ctx: Vec<String> = chips.iter().filter_map(|c| c.context.clone()).collect();
+    /// The question to send: the text of the input, with each chip at its place (CLAUDE-59,
+    /// CLAUDE-60), as the transcript shows it and as it goes to the agent. The files of the chips go
+    /// to the attachments. Only chips, or nothing, with a context: the default question goes after
+    /// the chips.
+    pub fn take_question(&mut self) -> Question {
+        let (q, chips) = self.take_message();
         // The file of a red chip is gone: the label goes without it (CLAUDE-57).
-        self.attach = chips.into_iter().filter_map(|c| c.attach).filter(|a| a.path().exists()).collect();
-        if !ctx.is_empty() {
-            let all: Vec<String> = self.context.take().into_iter().chain(ctx).collect();
-            self.context = Some(all.join("\n"));
-        }
-        let bare = chips::without_chips(&q);
-        if bare.trim().is_empty() && self.context.is_some() {
+        self.attach = chips.iter().filter_map(|c| c.attach.clone()).filter(|a| a.path().exists()).collect();
+        let (mut shown, mut text) = (chips::inline(&q, &chips, shown_chip), chips::inline(&q, &chips, sent_chip));
+        let bare = chips::chip_ranges(&q).into_iter().rev().fold(q.clone(), |t, (a, b)| t.chars().take(a).chain(t.chars().skip(b)).collect());
+        if bare.trim().is_empty() && (self.context.is_some() || chips.iter().any(|c| c.context.is_some())) {
             let default = self.default.take().unwrap_or_else(|| super::DELTA_QUESTION.into());
-            q = format!("{} {default}", q.trim()).trim().to_string();
+            shown = format!("{} {default}", shown.trim()).trim().to_string();
+            text = format!("{} {default}", text.trim()).trim().to_string();
         }
-        q
+        Question { shown, text }
     }
 }
 
-impl Composer {
-    /// The input as a draft for the state (CLAUDE-45).
-    pub fn draft(&self) -> InputDraft {
-        let chips = self.chips.iter().map(|c| DraftChip {
-            label: c.label.clone(),
-            context: c.context.clone(),
-            file: c.attach.as_ref().map(|a| a.path().to_path_buf()),
-            image: matches!(c.attach, Some(Attachment::Image(_))),
-        });
-        InputDraft { text: self.input.text(), chips: chips.collect(), context: self.context.clone(), default: self.default.clone(), about: self.about.to_string() }
-    }
+/// A question from the chat input: as the transcript shows it, and as it goes to the agent.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Question {
+    pub shown: String,
+    pub text: String,
+}
 
-    /// The input of a draft, with the cursor at its end.
-    pub fn from_draft(d: &InputDraft) -> Self {
-        let attach = |c: &DraftChip| c.file.clone().map(|f| if c.image { Attachment::Image(f) } else { Attachment::File(f) });
-        let chips = d.chips.iter().map(|c| Chip { label: c.label.clone(), context: c.context.clone(), attach: attach(c) }).collect();
-        let mut input = Editor::new(&d.text);
-        input.move_to_end();
-        let about = ABOUTS.iter().find(|a| **a == d.about).copied().unwrap_or("");
-        Self { input, chips, context: d.context.clone(), default: d.default.clone(), about, ..Self::default() }
-    }
-
-    /// The labels of the chips whose file or image is gone: they show in red (CLAUDE-46).
-    pub fn gone(&self) -> Vec<String> {
-        self.chips.iter().filter(|c| c.attach.as_ref().is_some_and(|a| !a.path().exists())).map(|c| c.label.clone()).collect()
-    }
-
-    /// Nothing in the input and no context.
-    pub fn is_blank(&self) -> bool {
-        self.input.is_empty() && self.chips.is_empty() && self.context.is_none()
+/// A chip as the transcript keeps it: its label, then its text, or `@` and its file (CLAUDE-62).
+pub fn shown_chip(c: &Chip) -> String {
+    use chips::{CLOSE, LABEL_END, OPEN};
+    let label = c.label.trim_matches([OPEN, CLOSE]);
+    match (&c.context, &c.attach) {
+        (Some(ctx), _) => format!("{OPEN}{label}{LABEL_END}{ctx}{CLOSE}"),
+        (None, Some(a)) => format!("{OPEN}{label}{LABEL_END}@{}{CLOSE}", chips::escape(&a.path().display().to_string())),
+        (None, None) => c.label.clone(),
     }
 }
 
-/// What a context can be about, for the placeholder of the input (`set_default`).
-const ABOUTS: [&str; 3] = ["the changes", "the selection", "the mark"];
+/// A chip as it goes to the agent: its text, or its label with the file attached (CLAUDE-59,
+/// CLAUDE-60).
+fn sent_chip(c: &Chip) -> String {
+    match &c.context {
+        Some(ctx) => format!("{}{ctx}{}", chips::OPEN, chips::CLOSE),
+        None => c.label.clone(),
+    }
+}
+
 
 #[path = "at.rs"]
 pub(crate) mod at;
@@ -274,6 +263,8 @@ pub(crate) mod at;
 pub mod chips;
 #[path = "chip_view.rs"]
 pub mod chip_view;
+#[path = "draft.rs"]
+mod draft;
 pub use chip_view::ChipView;
 #[path = "slash.rs"]
 pub(crate) mod slash;

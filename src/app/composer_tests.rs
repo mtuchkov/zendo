@@ -23,8 +23,9 @@ fn a_chip_has_a_free_label_and_is_one_unit() {
     assert!(c.input().is_empty() && c.chips().is_empty());
 }
 
-// ADR 0008: the chips in the input give their text to the context and their files to the
-// attachments; a chip that the user deleted from the text gives nothing.
+// ADR 0008, CLAUDE-59, CLAUDE-60, CLAUDE-62: each chip goes at its place, a text as its text in
+// marks, a file as its label with the file attached; the transcript keeps `@` and the path of a
+// file; a chip that the user deleted from the text gives nothing.
 #[test]
 fn the_question_takes_the_context_and_the_files_of_its_chips() {
     // A file that is there: the file of a red chip does not go (CLAUDE-57).
@@ -40,10 +41,12 @@ fn the_question_takes_the_context_and_the_files_of_its_chips() {
     let kept = c.input().text().replace("⟦gone⟧ ", "");
     c.input_mut().take();
     c.input_mut().type_str(&format!("{kept}why?"));
-    assert_eq!(c.take_question(), "⟦sel⟧ ⟦img⟧ why?");
+    let q = c.take_question();
+    assert_eq!(q.text, "⟦selected text⟧ ⟦img⟧ why?");
+    assert_eq!(q.shown, format!("⟦sel\u{2063}selected text⟧ ⟦img\u{2063}@{}⟧ why?", dir.join("a.png").display()));
     assert!(c.sends_image());
     assert_eq!(c.take_attach().len(), 1);
-    assert_eq!(c.take_context().as_deref(), Some("selected text"));
+    assert_eq!(c.take_context(), None, "the text of a chip is in the question");
     assert!(c.input().is_empty() && c.chips().is_empty() && !c.has_context());
     let _ = std::fs::remove_dir_all(&dir);
 }
@@ -55,12 +58,12 @@ fn only_chips_send_the_default_question() {
     c.set_context("the delta".into());
     c.set_default("What changed?".into(), "the changes");
     assert_eq!(c.about(), "the changes");
-    assert_eq!(c.take_question(), "What changed?");
+    assert_eq!(c.take_question().text, "What changed?");
     c.add_chip("sel".into(), Some("text".into()), None, false);
-    assert_eq!(c.take_question(), format!("⟦sel⟧ {}", crate::app::DELTA_QUESTION), "no default left: the question of the delta");
-    assert_eq!(c.take_context().as_deref(), Some("the delta\ntext"));
+    assert_eq!(c.take_question().text, format!("⟦text⟧ {}", crate::app::DELTA_QUESTION), "no default left: the question of the delta");
+    assert_eq!(c.take_context().as_deref(), Some("the delta"));
     c.input_mut().type_str("plain");
-    assert_eq!(c.take_question(), "plain", "no context: the text as it is");
+    assert_eq!(c.take_question().text, "plain", "no context: the text as it is");
 }
 
 // ADR 0008, CLAUDE-28: `/` and a part of a name open the commands; tab takes the selected one.
@@ -175,8 +178,9 @@ fn a_send_ends_the_recall() {
     assert_eq!(c.input().text(), "last", "a new recall starts at the newest message");
 }
 
-// HISTORY-7, HISTORY-5, HISTORY-6: a message from the history brings its text chips back as
-// chips: one unit for the keys, and their text goes as context. The draft gets its own chips back.
+// HISTORY-7, HISTORY-5, HISTORY-6, CLAUDE-59: a message from the history brings its text chips
+// back as chips: one unit for the keys, and their text goes at their places in the question. The
+// draft gets its own chips back.
 #[test]
 fn a_recalled_message_brings_its_text_chips_back() {
     let mut c = Composer::default();
@@ -192,8 +196,8 @@ fn a_recalled_message_brings_its_text_chips_back() {
     assert_eq!(c.chips().len(), 1);
     assert!(c.chips()[0].label.starts_with("⟦draft text"), "the draft has its own chip again");
     assert!(c.recall_back(&h));
-    assert_eq!(c.take_question(), format!("why {label}"));
-    assert_eq!(c.take_context().as_deref(), Some("fn main() {}"));
+    assert_eq!(c.take_question().text, "why ⟦fn main() {}⟧");
+    assert_eq!(c.take_context(), None);
 }
 
 // HISTORY-7: the history keeps the text chips of a message and their labels; the labels of file

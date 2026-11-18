@@ -23,7 +23,8 @@ fn draw_buf(a: &mut App, w: u16, h: u16) -> (Vec<String>, Buffer) {
     let mut term = Terminal::new(TestBackend::new(w, h)).unwrap();
     term.draw(|f| a.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();
-    let rows = (0..h).map(|y| (0..w).map(|x| buf[(x, y)].symbol().to_string()).collect::<String>()).collect();
+    // A label keeps its words together with no-break spaces; they look as spaces.
+    let rows = (0..h).map(|y| (0..w).map(|x| buf[(x, y)].symbol().replace('\u{a0}', " ")).collect::<String>()).collect();
     (rows, buf)
 }
 
@@ -80,7 +81,7 @@ async fn a_red_chip_goes_without_its_file() {
     let answer = last_answer(&a);
     assert!(!answer.contains("file link"), "the gone file does not go: {answer}");
     let asked = a.threads[CHAT_KEY].items.iter().find_map(|i| if let Item::User(s) = i { Some(s.clone()) } else { None }).unwrap_or_default();
-    assert!(asked.contains("⟦otes/b.md⟧"), "the label goes: {asked}");
+    assert!(asked.starts_with("⟦otes/b.md\u{2063}"), "the transcript keeps the label: {asked}");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -219,5 +220,47 @@ async fn the_open_document_can_stay_out_of_the_question() {
     assert!(answer.contains("file link"), "{answer}");
     typ(&mut a, "/");
     assert!(!line(&mut a).contains("open document"), "no line for a slash command");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// CLAUDE-62, CLAUDE-63, CLAUDE-65: the transcript shows a question with its chips as chips; a
+// double-click on one opens its chip window; a chip that zendo does not know says so.
+#[tokio::test]
+async fn the_transcript_shows_chips_and_opens_them() {
+    let root = repo("chip-transcript", &files());
+    let mut a = chat(&root);
+    a.on_paste("first line\nsecond line\n".into());
+    ask(&mut a, "why").await;
+    let (rows, _) = draw_buf(&mut a, 160, 30);
+    let (r, _) = a.frame.transcript_chips().last().cloned().expect("a chip in the transcript");
+    let on_screen: String = rows[r.y as usize].chars().skip(r.x as usize).take(r.width as usize).collect();
+    assert!(on_screen.contains("first line") || rows[r.y as usize].contains("first line"), "the chip shows its label: {rows:#?}");
+    click(&mut a, r.x + 1, r.y);
+    click(&mut a, r.x + 1, r.y);
+    let (rows, _) = draw_buf(&mut a, 160, 30);
+    assert!(rows.iter().any(|r| r.contains("second line")), "the window: {rows:#?}");
+    key(&mut a, KeyCode::Esc);
+    a.on_agent(zendo::agent::Event::Replay { key: CHAT_KEY.into(), user: true, text: "see ⟦ates/specificat⟧ there".into() });
+    draw_buf(&mut a, 160, 30);
+    let n = a.frame.transcript_chips().len();
+    let (r, _) = a.frame.transcript_chips()[n - 1].clone();
+    click(&mut a, r.x + 1, r.y);
+    click(&mut a, r.x + 1, r.y);
+    let (rows, _) = draw_buf(&mut a, 160, 30);
+    assert!(rows.iter().any(|r| r.contains("does not know")), "{rows:#?}");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// CLAUDE-64: a question of an earlier session shows each `⟦…⟧` in it as a chip with a label from
+// its text, and `↩` for text from the chat.
+#[tokio::test]
+async fn a_replayed_question_shows_its_chips() {
+    let root = repo("chip-replay", &files());
+    let mut a = chat(&root);
+    let text = "Question: look ⟦Text from this chat:\n> the old answer⟧ again";
+    a.on_agent(zendo::agent::Event::Replay { key: CHAT_KEY.into(), user: true, text: text.into() });
+    let (rows, _) = draw_buf(&mut a, 160, 30);
+    assert!(rows.iter().any(|r| r.contains("› look")) && rows.iter().any(|r| r.contains("↩ the old answer")), "{rows:#?}");
+    assert!(!rows.iter().any(|r| r.contains("Text from")), "the chip, not its text: {rows:#?}");
     let _ = std::fs::remove_dir_all(&root);
 }

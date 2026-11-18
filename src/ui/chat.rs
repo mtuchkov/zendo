@@ -54,7 +54,7 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
     let pad = w.saturating_sub(left.len() + scope.len());
     f.render_widget(Paragraph::new(Line::from(vec![Span::styled(left, dim.add_modifier(Modifier::BOLD)), Span::raw(" ".repeat(pad)), Span::styled(scope, dim)])), head);
 
-    let (mut lines, blocks, steps) = panel_lines(app, t, w);
+    let (mut lines, blocks, steps, chips) = panel_lines(app, t, w);
     app.threads.transcript_mut().show_blocks(blocks);
     app.threads.transcript_mut().show_steps(steps);
     if let Some(down) = app.link.down() {
@@ -63,8 +63,10 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
         lines.push(Line::styled(format!("starting {} {}", short_agent(&app.cfg.agent), SPIN[(app.writer.idle().as_millis() / 300) as usize % 4]), dim));
     }
     fr.regions.push((crate::text::select::Region::Panel, body));
+    let total = lines.len();
     super::thread::draw_transcript(f, app, fr, t, body, lines, w);
     super::background::draw(f, app, fr, t, bg);
+    fr.transcript_chips = transcript_chip_rects(&chips, body, app.threads.view_start(total, body.height as usize));
     draw_input(f, app, fr, t, input, (in_h, in_w));
 }
 

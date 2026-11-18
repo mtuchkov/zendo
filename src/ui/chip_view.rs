@@ -23,6 +23,12 @@ pub(crate) fn chip_rects(area: Rect, rows: &[(&str, usize, usize)]) -> Vec<(Rect
     rows.iter().enumerate().flat_map(at).filter(|(r, _)| r.x < area.right()).collect()
 }
 
+/// The places of the chips of the transcript on the screen: the rows from `start` show in `body`.
+pub(crate) fn transcript_chip_rects(chips: &[(usize, u16, u16, String)], body: Rect, start: usize) -> Vec<(Rect, String)> {
+    let shown = |(row, ..): &&(usize, u16, u16, String)| *row >= start && *row < start + body.height as usize;
+    chips.iter().filter(shown).map(|(row, x, w, c)| (Rect { x: body.x + x, y: body.y + (row - start) as u16, width: *w, height: 1 }, c.clone())).collect()
+}
+
 /// `[x] open document` or `[ ] open document` above the chat input; its place for the mouse.
 pub(crate) fn draw_doc_line(f: &mut Frame, app: &App, t: &Theme, area: Rect) -> Option<Rect> {
     let on = app.doc_line()?;
