@@ -1,13 +1,13 @@
 ---
 status: "approved"
 approved: "2026-11-14"
-revision: "2"
-date: "2026-11-14"
+revision: "3"
+date: "2026-11-18"
 parent: "zendo.md"
 prev: "site.md"
 next: "usage.md"
 level: "what the user hears when zendo plays lofi music, and the decisions of the user"
-note: "From the requests of the user on 2026-11-13 and the answers of 2026-11-14: the music button, on by default, the question at the first start, the chime in the music, both platforms, the pause without focus. LOFI-9 is retired. Approved by the user on 2026-11-14. The notes of the first implementation are in ADR 0006."
+note: "From the requests of the user on 2026-11-13 and the answers of 2026-11-14: the music button, on by default, the question at the first start, the chime in the music, both platforms, the pause without focus. LOFI-9 is retired. Approved by the user on 2026-11-14. On 2026-11-18 the user moved the branch left of the buttons (LOFI-10). The notes of the first implementation are in ADR 0006."
 ---
 
 # Lofi music
@@ -93,7 +93,7 @@ and start it. When a turn of an agent ends while the music plays, the call of
 | LOFI-7  | Ubiquitous | The music shall play without breaks until the user stops it: no bars without drums, no pause at the end of the loop. | User, 2026-11-13 |
 | LOFI-8  | Event      | When the user clicks the music button or presses the music key (default `alt-m`), zendo shall stop the music if it plays, start it otherwise, and save the setting `music` in `~/.zendo/config.toml`. | User, 2026-11-14 |
 | LOFI-9  | Retired    | Retired on 2026-11-14: the user did not ask for a music file of the user. | User, 2026-11-14 |
-| LOFI-10 | Ubiquitous | zendo shall show the music button `[music]` left of the sound button in the top line: in the blue of the theme while the music plays, in the gray of the theme while it is stopped or not available. | User, 2026-11-14 |
+| LOFI-10 | Ubiquitous | zendo shall show the music button `[music]` between the name of the git branch and the sound button in the top line: in the blue of the theme while the music plays, in the gray of the theme while it is stopped or not available. | User, 2026-11-14; User, 2026-11-18 |
 | LOFI-11 | Optional   | Where `~/.zendo/config.toml` has `music = false`, zendo shall start with the music stopped; with `music = true` or without the setting, with the music playing. | User, 2026-11-14 |
 | LOFI-12 | Event      | When zendo starts and `~/.zendo/config.toml` has no setting `music`, zendo shall play the music, ask in a float whether the music shall play at each start, and save the answer as `music`. | User, 2026-11-14 |
 | LOFI-15 | State      | While the terminal of zendo has no focus, zendo shall pause the music; when the terminal gets the focus, zendo shall play it again, where the music is on. | User, 2026-11-14 |
