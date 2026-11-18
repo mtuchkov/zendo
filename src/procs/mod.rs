@@ -119,10 +119,32 @@ pub fn alive(procs: &[Proc], pgid: u32) -> bool {
     procs.iter().any(|p| p.pgid == pgid)
 }
 
-/// Ask the group to end, or end it by force (BG-3, BG-9).
-pub fn stop(pgid: u32, force: bool) {
+/// The group of the process `pid`.
+pub fn group_of(procs: &[Proc], pid: u32) -> Option<u32> {
+    procs.iter().find(|p| p.pid == pid).map(|p| p.pgid)
+}
+
+/// The group of zendo itself, read once.
+fn own_group() -> Option<u32> {
+    static OWN: std::sync::OnceLock<Option<u32>> = std::sync::OnceLock::new();
+    *OWN.get_or_init(|| group_of(&list(), std::process::id()))
+}
+
+/// True when zendo may signal the group `pgid`: not 0 (the group of the caller), not 1 (every
+/// process), and not the group of zendo itself, which must be known (BG-3).
+pub fn may_stop(pgid: u32, own: Option<u32>) -> bool {
+    pgid > 1 && own.is_some_and(|o| o != pgid)
+}
+
+/// Ask the group to end, or end it by force (BG-3, BG-9). False when `may_stop` refuses the group:
+/// no signal goes out.
+pub fn stop(pgid: u32, force: bool) -> bool {
+    if !may_stop(pgid, own_group()) {
+        return false;
+    }
     let signal = if force { "-KILL" } else { "-TERM" };
     let _ = Command::new("kill").args([signal, "--", &format!("-{pgid}")]).stdout(Stdio::null()).stderr(Stdio::null()).status();
+    true
 }
 
 #[cfg(test)]
