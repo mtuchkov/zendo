@@ -11,6 +11,7 @@ mod terminal;
 mod terminal_mouse;
 pub mod cursor_map;
 mod composer;
+mod date_keys;
 mod events;
 mod effect;
 mod files;

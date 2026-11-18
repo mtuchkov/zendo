@@ -102,7 +102,12 @@ impl App {
         let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
         let e = self.composer.input_mut();
         match k.code {
-            KeyCode::Char(c) if !ctrl => e.type_over(c),
+            KeyCode::Char(c) if !ctrl => {
+                e.type_over(c);
+                if c == '/' {
+                    Self::slashes_to_date(e);
+                }
+            }
             KeyCode::Backspace => e.delete_selection_or(Editor::backspace),
             KeyCode::Delete => e.delete(),
             KeyCode::Left => e.left(),

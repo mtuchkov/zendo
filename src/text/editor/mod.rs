@@ -1,5 +1,6 @@
 //! A plain-text editor with soft wrap, made for prose.
 
+mod date;
 mod edit;
 mod fence;
 mod list;
@@ -8,6 +9,7 @@ mod wrap;
 mod motion;
 mod select;
 
+pub use date::{DateFormat, DateKey, DatePick};
 use unicode_width::UnicodeWidthChar;
 
 /// A tab shows as this many spaces.
@@ -29,6 +31,8 @@ pub struct Editor {
     pub dirty: bool,
     /// The other end of the selection: (line, char). The cursor is the first end.
     pub anchor: Option<(usize, usize)>,
+    /// The date selector, while it is on (TEXT-16).
+    pub date: Option<DatePick>,
 }
 
 /// One visual row: logical line index and its char range.
@@ -164,3 +168,7 @@ mod list_tests;
 #[cfg(test)]
 #[path = "fence_tests.rs"]
 mod fence_tests;
+
+#[cfg(test)]
+#[path = "date_tests.rs"]
+mod date_tests;

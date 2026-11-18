@@ -254,3 +254,35 @@ fn a_click_on_a_task_box_in_write_mode() {
     assert!(a.writer.editor().lines.iter().any(|l| l == "- [x] milk"), "{:?}", a.writer.editor().lines);
     let _ = std::fs::remove_dir_all(&root);
 }
+
+fn today() -> String {
+    zendo::text::editor::DateFormat::system().format(chrono::Local::now().date_naive())
+}
+
+// TEXT-15, TEXT-16, TEXT-17: in write mode `//` puts the date of today; while the selector is on, `k`
+// and `j` change the part and are no text; enter leaves it, and the keys type again.
+#[test]
+fn slashes_open_the_date_selector_in_write_mode() {
+    let (root, mut a) = writing("text-date-write");
+    typ(&mut a, "due //");
+    let line = |a: &App| a.writer.editor().lines[a.writer.editor().row].clone();
+    assert_eq!(line(&a), format!("due {}", today()));
+    typ(&mut a, "kj");
+    assert_eq!(line(&a), format!("due {}", today()), "up and down: the same date again");
+    key(&mut a, KeyCode::Enter);
+    typ(&mut a, " x");
+    assert_eq!(line(&a), format!("due {} x", today()));
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// TEXT-17: in the chat, enter leaves the date selector and does not send.
+#[tokio::test]
+async fn enter_in_the_chat_date_selector_does_not_send() {
+    let (root, mut a) = chatting("text-date-chat");
+    typ(&mut a, "//");
+    key(&mut a, KeyCode::Up);
+    key(&mut a, KeyCode::Enter);
+    assert_ne!(input(&a), "", "not sent");
+    assert!(a.composer.input().date.is_none());
+    let _ = std::fs::remove_dir_all(&root);
+}

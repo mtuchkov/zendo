@@ -1,11 +1,11 @@
 ---
 status: "draft"
-revision: "2"
+revision: "3"
 date: "2026-11-17"
 parent: "panes.md"
 prev: "keymap.md"
 level: "how the user types: the rich editors and the one-line text fields, their keys and their formatting"
-note: "Agent draft from the requests of the user on 2026-11-17. Revision 2: no alt-c key; `*`, `_`, backtick and `>` typed on a selection mark it; quotes go on; a click checks a task; alt-enter and ctrl-enter send from a code block. Not reviewed by the user. The requirement IDs TEXT-1 to TEXT-14 are proposals until the user reviews this document."
+note: "Agent draft from the requests of the user on 2026-11-17. Revision 2: no alt-c key; `*`, `_`, backtick and `>` typed on a selection mark it; quotes go on; a click checks a task; alt-enter and ctrl-enter send from a code block. Not reviewed by the user. Revision 3: the date selector (TEXT-15 to TEXT-17). The requirement IDs TEXT-1 to TEXT-17 are proposals until the user reviews this document."
 ---
 
 # Text input
@@ -35,6 +35,13 @@ on an empty item ends the list. A quote goes on with `>` in the same way.
 **Tasks.** Read mode and write mode show a task as a box: `☐` open, `☑` done. A click on the box
 checks the task, or opens it again, in the file. Enter on a done task starts an open task.
 
+**Dates.** `//` at the start of a word in a rich editor puts the date of today, in the format of
+the locale of the system, and starts the date selector on its first part. While the selector is on,
+its keys come before the keys of the pane: up and `k` make the selected part greater, down and `j`
+smaller, left and `h`, right and `l` go to the other parts. Left on the first part, right on the last
+part, `enter` and `esc` leave the selector; another key leaves it and does what it does in the
+editor. In code, `//` is text.
+
 **Code blocks.** Enter at the end of a fence that opens a code block puts the cursor on a new line
 and puts the closing fence under it. In a code block, Enter keeps the indent and does not go on with
 a list. In the chat, `enter` sends; in a code block, and at the end of its opening fence, `enter`
@@ -49,6 +56,9 @@ everywhere; `ctrl-j` and `shift-enter` make a new line.
 | TEXT-2  | Ubiquitous | The system shall let the user select text in every input with Shift and a move, and copy, cut and paste it with the system clipboard. | User, 2026-11-17 |
 | TEXT-5  | Event      | When the user presses the bold or italic key in write mode, in the float or in the chat input, the system shall mark the selection, or the word at the cursor, and take the mark away when it is there. | User, 2026-11-17 |
 | TEXT-13 | Event      | When the user types `*`, `_`, `` ` `` or `>` on a selection in a rich editor, the system shall mark the selection bold, italic, code or quote, and take the mark away when it is there. | User, 2026-11-17 |
+| TEXT-15 | Event      | When the user types `//` at the start of a word outside code in a rich editor, the system shall put the date of today in the format of the locale of the system, and start the date selector on its first part. | User, 2026-11-17 |
+| TEXT-16 | State      | While the date selector is on, the system shall make the selected part greater with up or `k`, smaller with down or `j`, and select the part before or after with left or `h`, right or `l`. | User, 2026-11-17 |
+| TEXT-17 | Event      | When the user presses left on the first part, right on the last part, `enter` or `esc` in the date selector, the system shall end the selector and give the keys back to the pane. | User, 2026-11-17 |
 | TEXT-14 | Event      | When the user clicks the box of a task in read mode or in write mode, the system shall check the task, or open it again, in the text. | User, 2026-11-17 |
 | TEXT-7  | Event      | When the user presses Enter at the end of a fence that opens a code block that no fence closes, the system shall put the cursor on a new line and a closing fence with the same indent under it. | User, 2026-11-17 |
 | TEXT-8  | Event      | When the user presses Enter on a bullet item, the system shall start the next item with the same indent and bullet; on an empty item, the system shall end the list. | User, 2026-11-17 |
@@ -95,7 +105,9 @@ everywhere; `ctrl-j` and `shift-enter` make a new line.
 
 Tests that verify detailed requirements: the tests of `src/text/field_tests.rs` (TEXT-1, TEXT-2,
 TEXT-3), `src/text/editor/list_tests.rs` (TEXT-8, TEXT-9, TEXT-12, TEXT-13) and `src/text/editor/fence_tests.rs`
-(TEXT-5, TEXT-6, TEXT-7), and in `tests/text_input.rs`: `a_file_name_takes_a_paste_in_one_line`
+(TEXT-5, TEXT-6, TEXT-7), `src/text/editor/date_tests.rs` (TEXT-15, TEXT-16, TEXT-17), and in `tests/text_input.rs`: `a_file_name_takes_a_paste_in_one_line`
 (TEXT-1, TEXT-3), `ctrl_x_cuts_in_the_chat_input` (TEXT-4), `a_backtick_on_lines_makes_a_code_block`
 (TEXT-6), `a_click_on_a_task_box_in_write_mode` (TEXT-14), `the_chat_goes_on_with_lists` and `the_chat_closes_a_fence_and_enter_stays_in_the_block`
-(TEXT-8, TEXT-9, TEXT-10), `the_text_box_keys_are_in_the_keymap_and_the_help` (TEXT-11).
+(TEXT-8, TEXT-9, TEXT-10), `the_text_box_keys_are_in_the_keymap_and_the_help` (TEXT-11),
+`slashes_open_the_date_selector_in_write_mode` and `enter_in_the_chat_date_selector_does_not_send`
+(TEXT-15, TEXT-16, TEXT-17).
