@@ -33,7 +33,13 @@ pub(crate) fn draw_status(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, a
         spans.push(Span::styled(format!(" {v}   "), Style::new().fg(t.dim)));
     }
     let used: usize = spans.iter().map(|s| s.content.width()).sum();
-    let pad = (area.width as usize).saturating_sub(used + right.width() + 2);
+    let mut pad = (area.width as usize).saturating_sub(used + right.width() + 2);
+    // A tip after the hints, when no message shows and it has room: it gives way first (TIPS-6).
+    let tip = app.tips.status();
+    if app.flash.is_none() && pad >= tip.width() + 3 {
+        spans.push(Span::styled(tip, Style::new().fg(t.dim).add_modifier(Modifier::ITALIC)));
+        pad -= tip.width();
+    }
     spans.push(Span::raw(" ".repeat(pad)));
     spans.push(Span::styled(right, Style::new().fg(t.dim)));
     f.render_widget(Paragraph::new(Line::from(spans)), area);

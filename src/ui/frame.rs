@@ -34,6 +34,8 @@ pub struct Frame {
     pub(super) music_answers: Option<(Rect, Rect)>,
     /// The help or the find panel over the screen, for a click off it (PANES-47).
     pub(super) overlay: Option<Rect>,
+    /// The option and `[OK]` of the tip menu (TIPS-3, TIPS-5).
+    pub(super) tip_buttons: Option<(Rect, Rect)>,
     /// The keys of the status bar and of the help, for a click that changes one (REKEY-1).
     pub(super) key_targets: Vec<(Rect, crate::app::rekey::KeyTarget)>,
     /// The choices, `[remove]` and the suggested keys of the key float (REKEY-12, REKEY-25).
@@ -166,6 +168,12 @@ impl Frame {
         (self.sound_button, self.music_button, self.overlay, self.spec_button, self.upgrade_button) = (None, None, None, None, None);
         self.key_targets.clear();
         self.float_buttons.clear();
+        self.tip_buttons = None;
+    }
+
+    /// The option and `[OK]` of the tip menu.
+    pub fn tip_buttons(&self) -> Option<(Rect, Rect)> {
+        self.tip_buttons
     }
 
     /// The keys on the screen that a click can change (REKEY-1).

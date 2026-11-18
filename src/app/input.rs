@@ -55,6 +55,8 @@ impl App {
         match (self.cli.view, self.pane_terminal()) {
             // The question of the first start takes every key until it has an answer (LOFI-12).
             _ if self.music.asking => self.key_music_question(k),
+            // The tip menu takes every key; only `enter` closes it (TIPS-3).
+            _ if self.tips.open => self.key_tips(k),
             // The key float takes every key: the next key is the new key (REKEY-2, REKEY-14).
             _ if self.rekey.float().is_some() => self.key_key_float(k),
             _ if self.writer.float().is_some() => self.key_float(k),
