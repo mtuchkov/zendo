@@ -3,6 +3,7 @@
 mod edit;
 mod fence;
 mod list;
+mod marks;
 mod wrap;
 mod motion;
 mod select;

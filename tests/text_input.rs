@@ -59,21 +59,25 @@ async fn ctrl_x_cuts_in_the_chat_input() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// TEXT-5: bold, italic and code mark the word in the chat input as in write mode.
+// TEXT-5, TEXT-13: the keys and the marks typed on a selection mark bold, italic, code and quote in
+// the chat input as in write mode.
 #[tokio::test]
-async fn the_chat_input_marks_bold_italic_and_code() {
+async fn the_chat_input_marks_bold_italic_code_and_quote() {
     let (root, mut a) = chatting("text-chat-marks");
     typ(&mut a, "one two three");
     ctrl(&mut a, 'b');
     assert_eq!(input(&a), "one two **three**");
     press(&mut a, KeyCode::Char('w'), KeyModifiers::CONTROL);
     typ(&mut a, "x");
-    press(&mut a, KeyCode::Left, KeyModifiers::NONE);
-    alt(&mut a, 'c');
+    press(&mut a, KeyCode::Left, KeyModifiers::SHIFT);
+    typ(&mut a, "`");
     assert_eq!(input(&a), "one two `x`");
     press(&mut a, KeyCode::Home, KeyModifiers::NONE);
     ctrl(&mut a, 'i');
     assert_eq!(input(&a), "*one* two `x`");
+    press(&mut a, KeyCode::End, KeyModifiers::SHIFT);
+    typ(&mut a, ">");
+    assert_eq!(input(&a), "> *one* two `x`");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -82,7 +86,7 @@ async fn the_chat_input_marks_bold_italic_and_code() {
 async fn the_chat_goes_on_with_lists() {
     let (root, mut a) = chatting("text-chat-list");
     typ(&mut a, "12. first");
-    press(&mut a, KeyCode::Enter, KeyModifiers::ALT);
+    ctrl(&mut a, 'j');
     assert_eq!(input(&a), "12. first\n13. ");
     typ(&mut a, "second");
     press(&mut a, KeyCode::Enter, KeyModifiers::SHIFT);
@@ -93,7 +97,7 @@ async fn the_chat_goes_on_with_lists() {
 }
 
 // TEXT-7, TEXT-10: in the chat, enter after an opening fence closes the block, and enter in the
-// block is a new line; after the block, enter sends.
+// block is a new line; alt-enter sends.
 #[tokio::test]
 async fn the_chat_closes_a_fence_and_enter_stays_in_the_block() {
     let (root, mut a) = chatting("text-chat-fence");
@@ -107,6 +111,9 @@ async fn the_chat_closes_a_fence_and_enter_stays_in_the_block() {
     key(&mut a, KeyCode::Enter);
     typ(&mut a, "let y = 2;");
     assert_eq!(input(&a), "```rust\nlet x = 1;\nlet y = 2;\n```");
+    // alt-enter sends also from a code block.
+    press(&mut a, KeyCode::Enter, KeyModifiers::ALT);
+    assert_eq!(input(&a), "");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -129,16 +136,16 @@ fn write_mode_closes_fences_and_counts_on() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// TEXT-6: the code key on lines in write mode puts a code block around them.
+// TEXT-6, TEXT-13: a backtick typed on lines in write mode puts a code block around them.
 #[test]
-fn the_code_key_on_lines_makes_a_code_block() {
+fn a_backtick_on_lines_makes_a_code_block() {
     let (root, mut a) = writing("text-write-code");
     typ(&mut a, "a = 1");
     key(&mut a, KeyCode::Enter);
     typ(&mut a, "b = 2");
     // Write mode joins the lines of a paragraph: shift and left select back to the first line.
     (0..11).for_each(|_| press(&mut a, KeyCode::Left, KeyModifiers::SHIFT));
-    alt(&mut a, 'c');
+    typ(&mut a, "`");
     let e = a.writer.editor();
     let tail: Vec<&str> = e.lines.iter().rev().take(4).rev().map(String::as_str).collect();
     assert_eq!(tail, ["```", "a = 1", "b = 2", "```"]);
@@ -187,7 +194,8 @@ fn the_text_box_keys_are_in_the_keymap_and_the_help() {
     assert_eq!(k.local(Pane::Field, &ev(KeyCode::Char('x'), KeyModifiers::CONTROL)), Some("cut"));
     assert_eq!(k.local(Pane::Field, &ev(KeyCode::Left, KeyModifiers::CONTROL)), Some("word_left"));
     assert_eq!(k.local(Pane::Chat, &ev(KeyCode::Char('x'), KeyModifiers::CONTROL)), Some("cut"));
-    assert_eq!(k.local(Pane::Write, &ev(KeyCode::Char('c'), KeyModifiers::ALT)), Some("code"));
+    assert_eq!(k.local(Pane::Chat, &ev(KeyCode::Enter, KeyModifiers::ALT)), Some("send_now"));
+    assert_eq!(k.local(Pane::Field, &ev(KeyCode::Char('a'), KeyModifiers::CONTROL)), None, "home and end only");
     let root = repo("text-help", &files());
     let mut a = app(&root);
     draw(&mut a, 120, 30);
@@ -195,5 +203,54 @@ fn the_text_box_keys_are_in_the_keymap_and_the_help() {
     key(&mut a, KeyCode::F(1));
     let screen = draw(&mut a, 200, 70).join("\n");
     assert!(screen.contains("TEXTBOX") && screen.contains("clear the field"), "{screen}");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+const TASKS: &str = "docs/notes/2026-11-17-tasks.md";
+
+fn click(a: &mut App, x: u16, y: u16) {
+    use ratatui::crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
+    for kind in [MouseEventKind::Down(MouseButton::Left), MouseEventKind::Up(MouseButton::Left)] {
+        a.on_mouse(MouseEvent { kind, column: x, row: y, modifiers: KeyModifiers::NONE });
+    }
+}
+
+/// The place of the first `c` on the screen.
+fn find_on(screen: &[String], c: char) -> (u16, u16) {
+    let y = screen.iter().position(|r| r.contains(c)).unwrap_or_else(|| panic!("no {c} on {screen:#?}"));
+    let x = screen[y].chars().position(|x| x == c).unwrap();
+    (x as u16, y as u16)
+}
+
+// TEXT-14: a click on the box of a task in read mode checks it in the file; a second click opens it.
+#[test]
+fn a_click_on_a_task_box_checks_it() {
+    let root = repo("text-task-read", &[(TASKS, "# Tasks\n\n- [ ] milk\n- [x] bread\n"), ("docs/zendo/zendo.md", "# Zendo\n")]);
+    let mut a = app(&root);
+    a.open_file(root.join(TASKS));
+    let screen = draw(&mut a, 120, 30);
+    let (x, y) = find_on(&screen, '☐');
+    click(&mut a, x, y);
+    assert_eq!(std::fs::read_to_string(root.join(TASKS)).unwrap(), "# Tasks\n\n- [x] milk\n- [x] bread\n");
+    let screen = draw(&mut a, 120, 30);
+    assert!(!screen.iter().any(|r| r.contains('☐')), "{screen:#?}");
+    click(&mut a, x, y);
+    assert_eq!(std::fs::read_to_string(root.join(TASKS)).unwrap(), "# Tasks\n\n- [ ] milk\n- [x] bread\n");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// TEXT-14: in write mode a click on the box changes the task in the text.
+#[test]
+fn a_click_on_a_task_box_in_write_mode() {
+    let root = repo("text-task-write", &[(TASKS, "# Tasks\n\nintro\n\n- [ ] milk\n"), ("docs/zendo/zendo.md", "# Zendo\n")]);
+    let mut a = app(&root);
+    a.open_file(root.join(TASKS));
+    draw(&mut a, 120, 30);
+    a.reader.to_row(a.frame.read_text().iter().position(|r| r.starts_with("intro")).unwrap());
+    key(&mut a, KeyCode::Char('i'));
+    let screen = draw(&mut a, 120, 30);
+    let (x, y) = find_on(&screen, '☐');
+    click(&mut a, x, y);
+    assert!(a.writer.editor().lines.iter().any(|l| l == "- [x] milk"), "{:?}", a.writer.editor().lines);
     let _ = std::fs::remove_dir_all(&root);
 }

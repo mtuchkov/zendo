@@ -34,8 +34,8 @@ impl App {
             }
             // In a code block, and after the fence that opens it, Enter is a new line (TEXT-10).
             Some("send") if self.composer.in_code() => self.composer.input_mut().enter(true),
-            Some("send") if self.cli.running(self.state.session.min(SESSIONS - 1)) => self.send_to_cli(),
-            Some("send") => self.send_input(),
+            Some("send" | "send_now") if self.cli.running(self.state.session.min(SESSIONS - 1)) => self.send_to_cli(),
+            Some("send" | "send_now") => self.send_input(),
             None => self.input_key(k),
             Some(a) => self.input_action(a),
         }
@@ -102,7 +102,7 @@ impl App {
         let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
         let e = self.composer.input_mut();
         match k.code {
-            KeyCode::Char(c) if !ctrl => e.type_char(c),
+            KeyCode::Char(c) if !ctrl => e.type_over(c),
             KeyCode::Backspace => e.delete_selection_or(Editor::backspace),
             KeyCode::Delete => e.delete(),
             KeyCode::Left => e.left(),

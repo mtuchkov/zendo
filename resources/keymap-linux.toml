@@ -106,7 +106,7 @@ quit = ["q"]  # quit
 # navigation
 word_left = ["ctrl-left", "alt-left"]  # word left
 word_right = ["ctrl-right", "alt-right"]  # word right
-home = ["home", "ctrl-a"]  # line start
+home = ["home"]  # line start
 end = ["end"]  # line end
 
 # text selection
@@ -127,7 +127,6 @@ paste = ["ctrl-v"]  # paste
 bold = ["ctrl-b"]  # **bold** the selection or the word
 italic = ["ctrl-i", "alt-i"]  # *italic* the selection or the word
 underline = ["ctrl-u"]  # <u>underline</u> the selection or the word
-code = ["alt-c", "alt-`"]  # `code` the selection or the word; lines: a code block
 delete_word = ["ctrl-w", "alt-backspace", "ctrl-backspace"]  # delete the word before
 indent = ["tab"]  # indent
 
@@ -147,8 +146,8 @@ scroll_up = ["pageup"]  # scroll up
 scroll_down = ["pagedown"]  # scroll down
 word_left = ["ctrl-left", "alt-left"]  # word left
 word_right = ["ctrl-right", "alt-right"]  # word right
-home = ["home", "ctrl-a"]  # line start
-end = ["end", "ctrl-e"]  # line end
+home = ["home"]  # line start
+end = ["end"]  # line end
 
 # text selection
 select_left = ["ctrl-shift-h", "ctrl-shift-left", "shift-left"]  # select left
@@ -162,15 +161,15 @@ select_end = ["shift-end"]  # select to the line end
 copy = ["ctrl-c"]  # copy
 
 # editing
-send = ["enter"]  # send
-newline = ["alt-enter", "shift-enter", "ctrl-j"]  # new line
+send = ["enter"]  # send; in a code block a new line
+send_now = ["alt-enter", "ctrl-enter"]  # send, also from a code block
+newline = ["ctrl-j", "shift-enter"]  # new line
 delete_word = ["ctrl-w", "alt-backspace", "ctrl-backspace"]  # delete the word before
 clear = ["ctrl-u"]  # clear the input
 paste = ["ctrl-v"]  # paste
 cut = ["ctrl-x"]  # cut
 bold = ["ctrl-b"]  # **bold** the selection or the word
 italic = ["ctrl-i", "alt-i"]  # *italic* the selection or the word
-code = ["alt-c", "alt-`"]  # `code` the selection or the word; lines: a code block
 
 # features
 new_thread = ["ctrl-n"]  # new thread
@@ -196,8 +195,8 @@ cut = ["x"]  # cut the selection
 # navigation
 word_left = ["ctrl-left", "alt-left"]  # word left
 word_right = ["ctrl-right", "alt-right"]  # word right
-home = ["home", "ctrl-a"]  # line start
-end = ["end", "ctrl-e"]  # line end
+home = ["home"]  # line start
+end = ["end"]  # line end
 
 # text selection
 select_left = ["shift-left"]  # select left

@@ -38,6 +38,7 @@ mod say;
 mod spec;
 mod selection;
 mod tab;
+mod tasks;
 mod text_edit;
 mod thread;
 mod threads;

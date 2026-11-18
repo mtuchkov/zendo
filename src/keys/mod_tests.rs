@@ -23,7 +23,8 @@ fn keys_parse_and_match_events() {
     assert_eq!(k.action(Pane::Tree, &ev(KeyCode::Char('q'), KeyModifiers::CONTROL)), Some("quit"));
     // ctrl-shift and an arrow selects a char, as ctrl-shift-h j k l; alt-shift and an arrow, a word.
     assert_eq!(k.action(Pane::Write, &ev(KeyCode::Left, KeyModifiers::CONTROL | KeyModifiers::SHIFT)), Some("select_left"));
-    assert_eq!(k.action(Pane::Chat, &ev(KeyCode::Enter, KeyModifiers::ALT)), Some("newline"));
+    assert_eq!(k.action(Pane::Chat, &ev(KeyCode::Enter, KeyModifiers::ALT)), Some("send_now"));
+    assert_eq!(k.action(Pane::Chat, &ev(KeyCode::Enter, KeyModifiers::SHIFT)), Some("newline"));
     assert_eq!(k.action(Pane::Write, &ev(KeyCode::Char('x'), KeyModifiers::NONE)), None, "a letter in write mode is text");
     for s in ["ctrl-b", "alt-i", "shift-down", "ctrl-shift-left", "f5", "space", "J", "+", "pageup"] {
         assert!(Key::parse(s).is_ok(), "{s}");

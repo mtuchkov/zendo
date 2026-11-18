@@ -18,7 +18,6 @@ pub(crate) fn rich_action(e: &mut Editor, a: &str, pointer: &mut Pointer) -> Opt
         "bold" => mark(e, |e| e.wrap_marks("**", "**")),
         "italic" => mark(e, |e| e.wrap_marks("*", "*")),
         "underline" => mark(e, |e| e.wrap_marks("<u>", "</u>")),
-        "code" => mark(e, Editor::wrap_code),
         "delete_word" => mark(e, |e| e.delete_selection_or(Editor::delete_word_back)),
         _ => return e.line_move(a).then_some(false),
     };

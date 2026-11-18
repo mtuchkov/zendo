@@ -75,7 +75,7 @@ impl App {
         let e = self.writer.editor_mut();
         match k.code {
             KeyCode::Char(c) if !ctrl => {
-                e.type_char(c);
+                e.type_over(c);
                 // A line of prose longer than the text column breaks at a word; code only wraps.
                 if prose {
                     e.hard_wrap(w);

@@ -54,3 +54,46 @@ fn the_tail_goes_into_the_new_item() {
     e.split_line(true);
     assert_eq!(e.text(), "3. one\n4.  two");
 }
+
+// TEXT-12: a quote goes on with `>` on the next line; Enter on an empty quote line ends it.
+#[test]
+fn quotes_go_on_and_end() {
+    let e = enter_at_end("> a");
+    assert_eq!(e.lines[1], "> ");
+    let e = enter_at_end("  > a");
+    assert_eq!(e.lines[1], "  > ");
+    let e = enter_at_end("x\n> ");
+    assert_eq!(e.text(), "x\n");
+}
+
+// TEXT-13: `*`, `_`, `` ` `` and `>` typed on a selection mark it bold, italic, code or quote.
+#[test]
+fn marks_typed_on_a_selection() {
+    let sel = |text: &str, c: char| {
+        let mut e = Editor::new(text);
+        e.anchor = Some((0, 0));
+        e.end();
+        e.type_over(c);
+        e.text()
+    };
+    assert_eq!(sel("word", '*'), "**word**");
+    assert_eq!(sel("word", '_'), "_word_");
+    assert_eq!(sel("word", '`'), "`word`");
+    assert_eq!(sel("word", '>'), "> word");
+    assert_eq!(sel("**word**", '*'), "word", "again takes the mark away");
+    assert_eq!(sel("> word", '>'), "word");
+    let mut e = Editor::new("ab");
+    e.end();
+    e.type_over('*');
+    assert_eq!(e.text(), "ab*", "without a selection the char is text");
+}
+
+// TEXT-13: `>` on lines quotes each line.
+#[test]
+fn a_quote_on_lines() {
+    let mut e = Editor::new("a\nb\nc");
+    e.anchor = Some((0, 0));
+    (e.row, e.col) = (1, 1);
+    e.type_over('>');
+    assert_eq!(e.text(), "> a\n> b\nc");
+}

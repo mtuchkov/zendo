@@ -1,11 +1,12 @@
-//! The markers of list items: what Enter puts at the start of the next item (TEXT-8, TEXT-9).
+//! The markers of list items and quotes: what Enter puts at the start of the next line (TEXT-8,
+//! TEXT-9, TEXT-12).
 
 /// The marker of a list item at the start of `line`: its length in chars, with the indent and the
 /// whitespace after it, and the marker of the next item. `None`: the line is no list item.
 pub(super) fn marker(line: &str) -> Option<(usize, String)> {
     let indent: String = line.chars().take_while(|c| *c == ' ' || *c == '\t').collect();
     let body = &line[indent.len()..];
-    let (mark, next) = bullet(body).or_else(|| number(body))?;
+    let (mark, next) = bullet(body).or_else(|| number(body)).or_else(|| body.starts_with('>').then(|| (">", ">".to_string())))?;
     let rest = &body[mark.len()..];
     let space: String = rest.chars().take_while(|c| *c == ' ' || *c == '\t').collect();
     if space.is_empty() {
