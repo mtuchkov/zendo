@@ -5,7 +5,7 @@ revision: "2"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "chat-messages.md"
-next: "terminal/terminal.md"
+next: "activity.md"
 level: "the history of the messages of the user: per zendo session, the common history, and the arrows that go through it"
 note: "Agent draft of the request of the user on 2026-11-18. Revision 2: text chips in the history, `/clear` as a new thread, and a thread that sees the common history of its start, asked by the user on 2026-11-18. Approved by the user on 2026-11-18."
 ---

@@ -3,7 +3,7 @@ status: "draft"
 revision: "4"
 date: "2026-11-13"
 parent: "../zendo.md"
-prev: "../chat-history.md"
+prev: "../background.md"
 next: "../attention.md"
 children:
   - "shell-blocks.md"
@@ -19,7 +19,8 @@ note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by 
 An answer of the agent often holds a shell command. zendo shows a green play button `▶` on it. The
 user presses `F5` on the command: zendo puts it into the shell of a terminal and does not run it.
 The user reads the command, changes it if necessary, and presses `enter`. The agent never runs a
-command; only the user does (CLAUDE-3 stays).
+command that asks for permission (CLAUDE-3 stays); it runs only the commands that the settings
+of the user allow ([Activity of the agent](../activity.md)).
 
 **Terminals.** A terminal is a shell that zendo runs in the root of the repository, in a terminal
 that zendo owns, as a Claude Code session does (see [Sessions](../sessions.md) and
