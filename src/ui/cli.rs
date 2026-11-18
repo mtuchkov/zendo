@@ -52,7 +52,7 @@ pub(crate) fn draw_hold(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     let [screen, bar] = Layout::vertical([Constraint::Min(1), Constraint::Length(1)]).areas(area);
     f.render_widget(Block::new().style(Style::new().bg(t.bg).fg(t.fg)), area);
     let inner = Rect { x: screen.x + 2, width: screen.width.saturating_sub(4), ..screen };
-    let (lines, _) = crate::ui::thread::panel_lines(app, t, inner.width as usize);
+    let (lines, ..) = crate::ui::thread::panel_lines(app, t, inner.width as usize);
     let tail = lines.len().saturating_sub(inner.height as usize);
     f.render_widget(Paragraph::new(lines[tail..].to_vec()), inner);
     let mut spans = vec![

@@ -22,10 +22,11 @@ pub struct ToolUse {
     pub kind: String,
     /// Where the call is in its life (ACT-1, ACT-8).
     pub state: crate::agent::ToolState,
-    /// The first file of the call, from the root of the repository when it is inside it.
-    pub place: Option<String>,
-    /// The first line of the error of a failed call (ACT-8).
-    pub error: Option<String>,
+    /// Its file, error, input, output and exit code; the file from the root of the repository
+    /// when it is inside it (ACT-6, ACT-8, INTER-2).
+    pub info: crate::agent::ToolInfo,
+    /// The user opened the step: its input and output show under its line (INTER-2).
+    pub open: bool,
     /// When zendo got the call: a command that starts after it belongs to it (BG-1).
     pub started: Option<Instant>,
 }

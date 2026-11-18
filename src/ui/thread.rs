@@ -18,17 +18,18 @@ pub(crate) fn kind_verb(kind: &str) -> &str {
 /// The shell blocks of a thread: their first row, the row after them, their command.
 pub(crate) type Blocks = Vec<(usize, usize, String)>;
 
-pub(crate) fn panel_lines(app: &App, t: &Theme, w: usize) -> (Vec<Line<'static>>, Blocks) {
+pub(crate) fn panel_lines(app: &App, t: &Theme, w: usize) -> (Vec<Line<'static>>, Blocks, super::steps::Steps) {
     let key = app.key();
     let dim = Style::new().fg(t.dim);
     let Some(th) = app.threads.get(&key).filter(|th| !th.items.is_empty() || th.busy.is_some()) else {
         let mut out = empty_thread(app, &app.scope(), dim, w);
         out.extend(cli_line(app, t));
-        return (out, Vec::new());
+        return (out, Vec::new(), Vec::new());
     };
     let mut out: Vec<Line<'static>> = Vec::new();
     let mut blocks = Blocks::new();
-    for it in &th.items {
+    let mut steps = super::steps::Steps::new();
+    for (i, it) in th.items.iter().enumerate() {
         match it {
             Item::User(s) => out.extend(user_lines(question_of(s), t, w)),
             Item::Agent(s) => {
@@ -37,7 +38,11 @@ pub(crate) fn panel_lines(app: &App, t: &Theme, w: usize) -> (Vec<Line<'static>>
                 blocks.extend(b.into_iter().map(|(a, z, c)| (a + base, z + base, c)));
                 out.extend(lines);
             }
-            Item::Tools { uses, started, took } => out.extend(tool_lines(app, uses, took.unwrap_or_else(|| started.elapsed()), dim, w)),
+            Item::Tools { uses, started, took } => {
+                let (lines, rows) = super::steps::tool_lines(app, uses, took.unwrap_or_else(|| started.elapsed()), dim, w);
+                steps.extend(rows.into_iter().map(|(r, u)| (r + out.len(), i, u)));
+                out.extend(lines);
+            }
             Item::Blocked(s) => out.extend(markdown::wrap(vec![Span::styled(format!("blocked a shell command: {s}"), dim)], w, "", "")),
             Item::Info(s) => out.push(Line::styled(s.clone(), dim.add_modifier(Modifier::ITALIC))),
             Item::Error(s) => out.extend(markdown::wrap(vec![Span::styled(s.clone(), Style::new().fg(t.del))], w, "", "")),
@@ -45,59 +50,13 @@ pub(crate) fn panel_lines(app: &App, t: &Theme, w: usize) -> (Vec<Line<'static>>
         out.push(Line::raw(""));
     }
     if let Some(start) = th.busy {
-        out.push(Line::styled(status_line(th, start), dim));
+        out.push(Line::styled(super::steps::status_line(th, start), dim));
     }
     for q in &th.queue {
         out.extend(markdown::wrap(vec![Span::styled(format!("queued › {}", question_of(&q.question)), dim)], w, "", "         "));
     }
     out.extend(cli_line(app, t));
-    (out, blocks)
-}
-
-/// After this long without an event of the agent, the status line says so (ACT-2).
-const NO_NEWS: std::time::Duration = std::time::Duration::from_secs(60);
-
-/// The status line of a turn: the step that runs now, or `thinking`, the time of the turn, and the
-/// time since the last news when it is long (ACT-1, ACT-2).
-fn status_line(th: &crate::app::Thread, start: std::time::Instant) -> String {
-    let e = start.elapsed();
-    let step = running_step(th).map_or_else(|| "thinking".to_string(), step_label);
-    let mut s = format!("{} {step} · {} s", SPIN[(e.as_millis() / 300) as usize % 4], e.as_secs());
-    let quiet = th.news.unwrap_or(start).elapsed();
-    if quiet >= NO_NEWS {
-        s.push_str(&format!(" · no news for {} min", quiet.as_secs() / 60));
-    }
-    s
-}
-
-/// The last step of the turn that has not ended.
-fn running_step(th: &crate::app::Thread) -> Option<&crate::app::ToolUse> {
-    th.items
-        .iter()
-        .rev()
-        .take_while(|it| !matches!(it, Item::User(_)))
-        .filter_map(|it| match it {
-            Item::Tools { uses, .. } => uses.iter().rev().find(|u| !u.state.ended()),
-            _ => None,
-        })
-        .next()
-}
-
-/// What a step does, as the status line says it: `reading docs/a.md`.
-fn step_label(u: &crate::app::ToolUse) -> String {
-    let verb = match u.kind.as_str() {
-        "read" => "reading",
-        "edit" => "editing",
-        "search" => "searching",
-        "fetch" => "fetching",
-        "execute" => "running",
-        "think" => "thinking",
-        "delete" => "deleting",
-        "move" => "moving",
-        _ => "using",
-    };
-    let what = u.place.clone().filter(|p| !p.is_empty()).unwrap_or_else(|| u.title.clone());
-    format!("{verb} {what}")
+    (out, blocks, steps)
 }
 
 /// The play button of a shell block: green, at the right end of its first row (TERM-8).
@@ -187,33 +146,6 @@ fn empty_thread(app: &App, key: &str, dim: Style, w: usize) -> Vec<Line<'static>
         "Shell commands are blocked.".to_string(),
     ] {
         out.extend(markdown::wrap(vec![Span::styled(s, dim)], w, "", ""));
-    }
-    out
-}
-
-/// One line for a run of tool uses: how many of each kind, and how long; with details, each title.
-fn tool_lines(app: &App, uses: &[crate::app::ToolUse], took: std::time::Duration, dim: Style, w: usize) -> Vec<Line<'static>> {
-    let mut counts: Vec<(String, usize)> = Vec::new();
-    for u in uses {
-        let v = kind_verb(&u.kind).to_string();
-        match counts.iter_mut().find(|(k, _)| *k == v) {
-            Some((_, n)) => *n += 1,
-            None => counts.push((v, 1)),
-        }
-    }
-    let mut s: Vec<String> = counts.iter().map(|(k, n)| if *n == 1 { k.clone() } else { format!("{k} {n}") }).collect();
-    s.push(format!("{:.0} s", took.as_secs_f32()));
-    let mut out = vec![Line::styled(s.join(" · "), dim)];
-    // A failed step shows always, with the first line of its error (ACT-8).
-    for u in uses.iter().filter(|u| u.state == crate::agent::ToolState::Failed) {
-        let what = if u.title.is_empty() { u.place.clone().unwrap_or_default() } else { u.title.clone() };
-        let text = u.error.as_ref().map_or_else(|| what.clone(), |e| format!("{what}: {e}"));
-        out.extend(markdown::wrap(vec![Span::styled(text, dim)], w, "  ✗ ", "    "));
-    }
-    if app.threads.details() {
-        for u in uses {
-            out.extend(markdown::wrap(vec![Span::styled(u.title.clone(), dim)], w, "  · ", "    "));
-        }
     }
     out
 }

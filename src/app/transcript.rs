@@ -20,6 +20,8 @@ pub struct Transcript {
     stop: crate::text::softstop::SoftStop,
     /// The shell blocks of the last frame: their first row, the row after them, their command.
     blocks: Vec<(usize, usize, String)>,
+    /// The steps of the last frame: their row, their item, and the step in it (INTER-2).
+    steps: Vec<(usize, usize, Option<usize>)>,
 }
 
 impl Transcript {
@@ -103,6 +105,21 @@ impl Transcript {
     /// The draw: the shell blocks of the thread.
     pub fn show_blocks(&mut self, blocks: Vec<(usize, usize, String)>) {
         self.blocks = blocks;
+    }
+
+    /// The steps of this frame: their row, their item, and the step in it; none for a whole run.
+    pub fn show_steps(&mut self, steps: Vec<(usize, usize, Option<usize>)>) {
+        self.steps = steps;
+    }
+
+    /// A selection is under way.
+    pub fn selecting(&self) -> bool {
+        self.anchor.is_some()
+    }
+
+    /// The item and the step at `row`, when a step is there.
+    pub fn step_at(&self, row: usize) -> Option<(usize, Option<usize>)> {
+        self.steps.iter().find(|(r, ..)| *r == row).map(|(_, i, u)| (*i, *u))
     }
 
     /// The cursor on the last row with text.

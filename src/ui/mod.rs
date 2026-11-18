@@ -3,6 +3,7 @@
 pub mod theme;
 mod background;
 mod chat;
+mod steps;
 pub(crate) mod cli;
 mod code_pane;
 mod delta_pane;

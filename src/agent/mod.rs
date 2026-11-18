@@ -131,6 +131,33 @@ impl ToolState {
     }
 }
 
+/// What a tool call tells besides its state: its first file and line, the first line of its
+/// error, its input, its output, and the exit code of a command (ACT-6, ACT-8, INTER-2).
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ToolInfo {
+    pub place: Option<String>,
+    pub line: Option<u32>,
+    pub error: Option<String>,
+    pub input: Option<String>,
+    /// The lines of the output or of the diff; an update without output leaves it empty.
+    pub output: Vec<String>,
+    pub exit: Option<i32>,
+}
+
+impl ToolInfo {
+    /// Take what an update tells; what it leaves out stays.
+    pub fn merge(&mut self, new: ToolInfo) {
+        self.place = new.place.or(self.place.take());
+        self.line = new.line.or(self.line);
+        self.error = new.error.or(self.error.take());
+        self.input = new.input.or(self.input.take());
+        self.exit = new.exit.or(self.exit);
+        if !new.output.is_empty() {
+            self.output = new.output;
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum Event {
     Ready { agent: String, can_load: bool, can_image: bool },
@@ -140,9 +167,8 @@ pub enum Event {
     Replay { key: String, user: bool, text: String },
     Text { key: String, text: String },
     Thought { key: String },
-    /// A tool call or its update: `place` is its first file, `error` the first line of the error
-    /// of a failed call. An update leaves out what did not change.
-    Tool { key: String, id: String, title: String, kind: String, state: ToolState, place: Option<String>, error: Option<String> },
+    /// A tool call or its update. An update leaves out what did not change.
+    Tool { key: String, id: String, title: String, kind: String, state: ToolState, info: ToolInfo },
     Permission { key: String, request: u64, title: String, kind: String, diffs: Vec<DiffView>, choices: Vec<Choice> },
     /// A shell command was blocked by policy.
     Blocked { key: String, title: String },

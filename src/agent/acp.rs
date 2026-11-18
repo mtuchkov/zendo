@@ -171,9 +171,17 @@ fn choices_of(req: &RequestPermissionRequest) -> Vec<Choice> {
         .collect()
 }
 
+/// What zendo tells the agent that it can show: the output and the exit code of a command
+/// (ADR 0014, ACT-6).
+fn capabilities() -> agent_client_protocol::v1::schema::ClientCapabilities {
+    let mut meta = serde_json::Map::new();
+    meta.insert("terminal_output".into(), serde_json::Value::Bool(true));
+    agent_client_protocol::v1::schema::ClientCapabilities::new().meta(meta)
+}
+
 /// The connection: the handshake, then the commands of zendo until it closes.
 async fn serve(cx: agent_client_protocol::v1::ConnectionTo<Agent>, shared: Arc<Shared>, mut cmds: UnboundedReceiver<Cmd>, cwd: PathBuf) -> Result<(), agent_client_protocol::Error> {
-    let init = cx.send_request(InitializeRequest::new(ProtocolVersion::V1)).block_task().await?;
+    let init = cx.send_request(InitializeRequest::new(ProtocolVersion::V1).client_capabilities(capabilities())).block_task().await?;
     let can_load = init.agent_capabilities.load_session;
     let can_image = init.agent_capabilities.prompt_capabilities.image;
     let can_close = init.agent_capabilities.session_capabilities.close.is_some();

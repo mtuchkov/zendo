@@ -3,6 +3,7 @@
 mod at_keys;
 mod attention;
 mod background;
+mod steps;
 mod branch;
 mod chat;
 mod chat_keys;

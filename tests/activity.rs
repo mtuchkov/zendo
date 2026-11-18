@@ -4,7 +4,7 @@
 mod common;
 use common::*;
 use std::time::{Duration, Instant};
-use zendo::agent::{Event, ToolState};
+use zendo::agent::{Event, ToolInfo, ToolState};
 use zendo::app::{App, Focus, session_key};
 
 fn busy_chat(name: &str) -> (std::path::PathBuf, App) {
@@ -26,8 +26,7 @@ fn tool(id: &str, title: &str, kind: &str, state: ToolState, place: Option<&str>
         title: title.into(),
         kind: kind.into(),
         state,
-        place: place.map(Into::into),
-        error: error.map(Into::into),
+        info: ToolInfo { place: place.map(Into::into), error: error.map(Into::into), ..Default::default() },
     }
 }
 

@@ -242,6 +242,7 @@ copy = ["y", "ctrl-c"]  # copy the selection, or the message
 
 # features
 add_to_chat = ["a", "alt-a", "ctrl-shift-a", "+"]  # add the selection, or the message, to the chat
+open_step = ["o"]  # open or close a step
 
 # panes and view
 input = ["i", "enter"]  # back to the input
