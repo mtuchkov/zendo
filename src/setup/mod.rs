@@ -3,5 +3,6 @@ pub mod config;
 pub mod doctor;
 pub mod fonts;
 pub mod history;
+pub mod logs;
 pub mod state;
 pub mod sync;

@@ -124,6 +124,8 @@ copy = ["ctrl-c"]  # copy
 done = ["esc"]  # save and read; write mode saves by itself after a pause
 cut = ["ctrl-x"]  # cut
 paste = ["ctrl-v"]  # paste
+undo = ["ctrl-z"]  # undo the last change
+redo = ["ctrl-y"]  # do the undone change again
 bold = ["ctrl-b"]  # **bold** the selection or the word
 italic = ["ctrl-i", "alt-i"]  # *italic* the selection or the word
 underline = ["ctrl-u"]  # <u>underline</u> the selection or the word
@@ -168,6 +170,8 @@ delete_word = ["ctrl-w", "alt-backspace", "ctrl-backspace"]  # delete the word b
 clear = ["ctrl-u"]  # clear the input
 paste = ["ctrl-v"]  # paste
 cut = ["ctrl-x"]  # cut
+undo = ["ctrl-z"]  # undo the last change
+redo = ["ctrl-y"]  # do the undone change again
 bold = ["ctrl-b"]  # **bold** the selection or the word
 italic = ["ctrl-i", "alt-i"]  # *italic* the selection or the word
 
@@ -210,6 +214,8 @@ copy = ["ctrl-c"]  # copy
 # editing
 cut = ["ctrl-x"]  # cut
 paste = ["ctrl-v"]  # paste
+undo = ["ctrl-z"]  # undo the last change
+redo = ["ctrl-y"]  # do the undone change again
 delete_word = ["ctrl-w", "alt-backspace", "ctrl-backspace"]  # delete the word before
 clear = ["ctrl-u"]  # clear the field
 
