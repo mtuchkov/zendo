@@ -44,6 +44,7 @@ pub async fn run(
     let printed = app.cli.notify.clone();
     // The lofi music opens its output here, not in App::new, so tests play nothing (LOFI-11).
     app.start_music(crate::music::Output::System);
+    app.start_tips();
     loop {
         term.draw(|f| app.draw(f))?;
         cursor_shape(app);

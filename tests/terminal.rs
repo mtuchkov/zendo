@@ -186,9 +186,10 @@ async fn a_terminal_shows_in_the_chat_pane() {
     answer(&mut a, "true");
     f5(&mut a, true);
     assert_eq!((a.cli.pane, a.cli.view), (Some(shell(0)), None), "the chat pane, not the full screen");
-    let screen = draw(&mut a, 120, 40).join("\n");
+    let rows = draw(&mut a, 120, 40);
+    let screen = rows.join("\n");
     assert!(screen.contains("# A") || screen.contains(" A"), "the note is on the screen:\n{screen}");
-    let bar = screen.lines().last().unwrap_or_default();
+    let bar = status_bar(&rows);
     assert!(bar.contains(" SHELL ") && !bar.contains(" CHAT "), "the badge of a shell: {bar}");
     let size = stty_size(&mut a, shell(0));
     let cols: u16 = size.split_whitespace().nth(1).unwrap().parse().unwrap();

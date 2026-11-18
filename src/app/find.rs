@@ -61,16 +61,13 @@ impl App {
         self.files.find.preview = None;
     }
 
-    /// A key in the find panel: these keys are fixed, not in the keymap.
+    /// A key in the find panel: the keys of `[list]`, then the field; `esc` is fixed (PANES-48).
     pub(crate) fn key_find(&mut self, k: KeyEvent) {
-        let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
-        match k.code {
-            KeyCode::Esc => self.close_find(),
-            KeyCode::Enter => self.find_enter(),
-            KeyCode::Down | KeyCode::Tab => self.find_move(true),
-            KeyCode::Char('j') if ctrl => self.find_move(true),
-            KeyCode::Up | KeyCode::BackTab => self.find_move(false),
-            KeyCode::Char('k') if ctrl => self.find_move(false),
+        match (k.code, self.keys.local(crate::keys::Pane::List, &k)) {
+            (KeyCode::Esc, _) => self.close_find(),
+            (_, Some("open")) => self.find_enter(),
+            (_, Some("down")) => self.find_move(true),
+            (_, Some("up")) => self.find_move(false),
             _ => {
                 if self.field_key(&k, |a| Some(&mut a.files.find.query)) == Some(true) {
                     self.run_find();

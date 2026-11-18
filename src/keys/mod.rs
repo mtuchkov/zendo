@@ -14,10 +14,12 @@
 //! text is selected where the user writes, the keys of `[selection]` come before both.
 
 mod actions;
+mod free;
 mod legacy;
 mod key;
 
 pub use actions::*;
+pub use free::*;
 pub use key::*;
 
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -42,10 +44,16 @@ pub enum Pane {
     Notes,
     /// The session view: a Claude Code session on the whole screen.
     Session,
+    /// The search box, the find panel and the file name filter of the tree (PANES-48).
+    List,
+    /// The theme list (PANES-48).
+    Theme,
+    /// The question of a file: a name, a folder, or yes for a delete (PANES-48).
+    Question,
 }
 
 impl Pane {
-    pub const ALL: [Pane; 11] = [Pane::Global, Pane::Read, Pane::Write, Pane::Chat, Pane::Selected, Pane::Field, Pane::Transcript, Pane::Tree, Pane::Delta, Pane::Notes, Pane::Session];
+    pub const ALL: [Pane; 14] = [Pane::Global, Pane::Read, Pane::Write, Pane::Chat, Pane::Selected, Pane::Field, Pane::Transcript, Pane::Tree, Pane::Delta, Pane::Notes, Pane::Session, Pane::List, Pane::Theme, Pane::Question];
 
     pub fn name(self) -> &'static str {
         match self {
@@ -60,6 +68,9 @@ impl Pane {
             Pane::Delta => "delta",
             Pane::Notes => "notes",
             Pane::Session => "session",
+            Pane::List => "list",
+            Pane::Theme => "theme",
+            Pane::Question => "question",
         }
     }
 
@@ -157,10 +168,9 @@ impl Keymap {
         let mut map = Keymap::default();
         let mut custom = std::collections::HashSet::new();
         for act in ACTIONS {
-            let mut keys = parse_keys(default_keys(), act, "default", &mut Vec::new());
+            let mut keys = parse_keys(default_keys(), act, "default", &mut Vec::new()).unwrap_or_default();
             for (name, l) in &layers {
-                let mine = parse_keys(l, act, name, &mut problems);
-                if !mine.is_empty() {
+                if let Some(mine) = parse_keys(l, act, name, &mut problems) {
                     keys = mine;
                     custom.insert((act.pane, act.name));
                 }
@@ -210,6 +220,16 @@ impl Keymap {
         self.first(pane, name) == DEFAULTS.get_or_init(Keymap::defaults).first(pane, name)
     }
 
+    /// The action of a key in one pane, without the global keys and the legacy keys.
+    pub fn owner(&self, pane: Pane, key: Key) -> Option<&'static str> {
+        self.by_key.get(&(pane, key)).copied()
+    }
+
+    /// All keys of an action, the first first.
+    pub fn keys_of(&self, pane: Pane, name: &str) -> Vec<Key> {
+        self.keys.iter().find(|((p, n), _)| *p == pane && *n == name).map(|(_, ks)| ks.clone()).unwrap_or_default()
+    }
+
     /// The first key of an action, for the status bar.
     pub fn first(&self, pane: Pane, name: &str) -> String {
         self.keys.iter().find(|((p, n), _)| *p == pane && *n == name).and_then(|(_, ks)| ks.first()).map(Key::label).unwrap_or_default()
@@ -226,13 +246,15 @@ fn unknown(layer: &str, cfg: &KeyConfig) -> Vec<String> {
         .collect()
 }
 
-/// The keys that a layer gives an action; empty when it gives none, or none that parse.
-fn parse_keys(cfg: &KeyConfig, act: &Action, layer: &str, problems: &mut Vec<String>) -> Vec<Key> {
-    let Some(spec) = cfg.get(act.pane.name()).and_then(|m| m.get(act.name)) else { return Vec::new() };
-    spec.list()
-        .into_iter()
+/// The keys that a layer gives an action: None when it gives none, or none that parse; an empty
+/// list is no key (REKEY-29).
+fn parse_keys(cfg: &KeyConfig, act: &Action, layer: &str, problems: &mut Vec<String>) -> Option<Vec<Key>> {
+    let list = cfg.get(act.pane.name()).and_then(|m| m.get(act.name))?.list();
+    let keys: Vec<Key> = list
+        .iter()
         .filter_map(|s| Key::parse(s).map_err(|e| problems.push(format!("[{layer}.{}] {}: {e}", act.pane.name(), act.name))).ok())
-        .collect()
+        .collect();
+    (list.is_empty() || !keys.is_empty()).then_some(keys)
 }
 
 /// Which action a key does in each pane. A key goes to the first action that has it; a key that the

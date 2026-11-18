@@ -38,7 +38,8 @@ impl App {
         if self.field_action(&k, |a| a.files.prompt_field()).is_some() {
             return;
         }
-        let done = self.files.key_prompt(k, &self.cfg.root);
+        let act = self.keys.local(crate::keys::Pane::Question, &k);
+        let done = self.files.key_prompt(k, act, &self.cfg.root);
         self.apply(done);
     }
 

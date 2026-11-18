@@ -87,7 +87,8 @@ impl App {
             }
             return;
         }
-        match self.files.key_filter(k) {
+        let act = self.keys.local(crate::keys::Pane::List, &k);
+        match self.files.key_filter(k, act) {
             FilterKey::Done => {}
             FilterKey::Act(act) => self.tree_act(act),
             FilterKey::Open(rel) => {

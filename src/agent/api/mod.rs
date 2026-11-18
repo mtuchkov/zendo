@@ -41,6 +41,8 @@ pub struct Api {
     pub base: String,
     pub model: String,
     pub cred: Credential,
+    /// The effort of the model, as `low`: the key hints ask with low effort (REKEY-6).
+    pub effort: Option<String>,
 }
 
 /// An image for the question, in base64.
@@ -74,7 +76,7 @@ impl Api {
             Kind::Other => return None,
         };
         let model = api_model(vendor, &model?);
-        Some(Self { vendor, base: base.trim_end_matches('/').to_string(), model, cred })
+        Some(Self { vendor, base: base.trim_end_matches('/').to_string(), model, cred, effort: None })
     }
 
     /// The URL of a question.
@@ -120,6 +122,15 @@ impl Api {
     /// The body of a question: the prompt, and the image before it for Anthropic, after it for
     /// OpenAI, as their docs show.
     pub fn body(&self, prompt: &str, image: Option<&Image>) -> Value {
+        let mut body = self.plain_body(prompt, image);
+        if let Some(e) = &self.effort {
+            let key = if self.vendor == Vendor::Anthropic { "output_config" } else { "reasoning" };
+            body[key] = json!({"effort": e});
+        }
+        body
+    }
+
+    fn plain_body(&self, prompt: &str, image: Option<&Image>) -> Value {
         match self.vendor {
             Vendor::Anthropic => {
                 let img = image.map(|i| json!({"type": "image", "source": {"type": "base64", "media_type": i.media, "data": i.data}}));

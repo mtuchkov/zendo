@@ -15,7 +15,9 @@ mod overlays;
 mod paint;
 mod read;
 mod review;
+mod rekey;
 mod status;
+mod tips;
 mod thread;
 mod tree;
 mod write;
@@ -73,11 +75,8 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     let t = *app.theme();
     let area = f.area();
     app.cli.resize(area.height.saturating_sub(1), area.width);
-    fr.sound_button = None;
-    fr.music_button = None;
-    fr.overlay = None;
-    fr.spec_button = None;
-    fr.upgrade_button = None;
+    fr.clear_buttons();
+    app.rekey.follow(app.focus, app.mode);
     if app.hold.is_some() {
         fr.regions.clear();
         draw_hold(f, app, &t, area);
@@ -89,14 +88,16 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
         return draw_selection(f, app, &t);
     }
     f.render_widget(Block::new().style(Style::new().bg(t.bg).fg(t.fg)), area);
-    let ask = u16::from(app.files.prompt().is_some());
+    // The question of a file, else on a small screen the message or the tip (PANES-49).
+    let below = if app.files.prompt().is_some() { None } else { below_line(app, fr, &t, area.width) };
+    let line = u16::from(app.files.prompt().is_some() || below.is_some());
     let [top, _, main, rule, status, prompt] = Layout::vertical([
         Constraint::Length(1),
         Constraint::Length(1),
         Constraint::Min(1),
         Constraint::Length(1),
         Constraint::Length(1),
-        Constraint::Length(ask),
+        Constraint::Length(line),
     ])
     .areas(area);
 
@@ -122,16 +123,17 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
             draw_panes(f, app, fr, &t, main);
             if app.mode == Mode::Help {
                 // Over the panes and the top line, not over the status bar.
-                fr.overlay = Some(draw_help(f, app, &t, Rect { height: rule.y - area.y, ..area }));
+                fr.overlay = Some(draw_help(f, app, fr, &t, Rect { height: rule.y - area.y, ..area }));
             }
         }
     }
     // After the panes: the top line shows the blinking sessions whose buttons are not on the screen.
     draw_top(f, app, fr, &t, top);
-    draw_status(f, app, fr, &t, status);
-    draw_file_prompt(f, app, &t, prompt);
+    draw_bottom(f, app, fr, &t, [status, prompt], below);
     draw_confirm(f, app, &t, area);
     draw_questions(f, app, fr, &t, area);
+    tips::draw_tips(f, app, fr, &t, area);
+    rekey::draw_key_float(f, app, fr, &t, area);
 
     draw_selection(f, app, &t);
 }

@@ -36,6 +36,9 @@ mod new;
 mod pointer;
 mod read;
 mod reader;
+mod key_hints;
+pub mod rekey;
+pub mod tips;
 mod say;
 mod spec;
 mod selection;
@@ -186,6 +189,10 @@ pub struct App {
     /// The font tip of the theme picker and its question (FONT-13 to FONT-16, FONT-21).
     pub font_tip: FontTip,
 
+    /// The key button and the key float: the change of a key in place (REKEY-1).
+    pub rekey: rekey::Rekey,
+    /// The tip menu at start and the tip of the status bar (TIPS-1, TIPS-6).
+    pub tips: tips::Tips,
     /// The mouse: its selection, the pane edge in a drag, and the text that it copies.
     pub pointer: Pointer,
     /// What the last draw left for the mouse and the keys; `ui` builds it, the app only reads it.

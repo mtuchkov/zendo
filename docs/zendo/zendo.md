@@ -31,6 +31,7 @@ children:
   - "site.md"
   - "lofi.md"
   - "usage.md"
+  - "tips.md"
   - "fonts.md"
   - "fonts-tip.md"
 level: "what zendo is, its parts, and the qualities that hold for all parts"
@@ -73,6 +74,7 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Landing page](site.md)                      | The page in `site/`: the pixel garden, the demo, the lofi music  |
 | [Lofi music](lofi.md)                        | Calm music that zendo makes itself: `[music]` and `alt-m`        |
 | [Usage counts](usage.md)                     | Local counts of the actions of the user, by pane, for the choice of key hints |
+| [Tips](tips.md)                              | The tip menu at start and the tip in the status bar              |
 
 ## Scope
 

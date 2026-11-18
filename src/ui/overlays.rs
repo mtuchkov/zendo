@@ -52,24 +52,24 @@ fn font_tip(app: &App, t: &Theme, inner: Rect, lines: &mut Vec<Line<'static>>) -
 
 /// All keys of the pane where the help key was pressed, and the global keys, from the keymap, in
 /// groups (PANES-30); under them the keymap file and the version (PANES-31). Returns its area.
-pub(crate) fn draw_help(f: &mut Frame, app: &App, t: &Theme, area: Rect) -> Rect {
+pub(crate) fn draw_help(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) -> Rect {
     use crate::keys::Pane;
-    let mut groups = help_section(app, t, app.key_help.pane());
+    let mut groups = help_section(t, app.key_help.pane());
     // Where the user writes, the keys while text is selected (PANES-39).
     if matches!(app.key_help.pane(), Pane::Write | Pane::Chat) {
-        let mut sel = help_section(app, t, Pane::Selected);
-        sel[0].insert(0, Line::raw(""));
+        let mut sel = help_section(t, Pane::Selected);
+        sel[0].insert(0, Row::Text(Line::raw("")));
         groups.append(&mut sel);
     }
     // Where a one-line field takes keys: find and search (the global help), the tree filter (TEXT-11).
     if matches!(app.key_help.pane(), Pane::Global | Pane::Tree) {
-        let mut field = help_section(app, t, Pane::Field);
-        field[0].insert(0, Line::raw(""));
+        let mut field = help_section(t, Pane::Field);
+        field[0].insert(0, Row::Text(Line::raw("")));
         groups.append(&mut field);
     }
     if app.key_help.pane() != Pane::Global {
-        let mut global = help_section(app, t, Pane::Global);
-        global[0].insert(0, Line::raw(""));
+        let mut global = help_section(t, Pane::Global);
+        global[0].insert(0, Row::Text(Line::raw("")));
         groups.append(&mut global);
     }
     let dim = Style::new().fg(t.dim);
@@ -90,16 +90,41 @@ pub(crate) fn draw_help(f: &mut Frame, app: &App, t: &Theme, area: Rect) -> Rect
     let n = cols.len() as u32;
     let areas = Layout::horizontal((0..n).map(|_| Constraint::Ratio(1, n))).split(keys);
     for (col, a) in cols.into_iter().zip(areas.iter()) {
-        f.render_widget(Paragraph::new(col), *a);
+        let lines: Vec<Line> = col.into_iter().enumerate().map(|(i, row)| row.line(app, t, a.x, a.y + i as u16, &mut fr.key_targets)).collect();
+        f.render_widget(Paragraph::new(lines), *a);
     }
     f.render_widget(Paragraph::new(footer), bottom);
     r
 }
 
-/// The keys of one pane, a list of lines for each group: the name of the pane, then each group
+/// A row of the help: a heading, or the keys and the help of an action.
+enum Row {
+    Text(Line<'static>),
+    Action(crate::keys::Pane, &'static str),
+}
+
+impl Row {
+    /// The line at column `x`, row `y`; each key of an action is a target of a click (REKEY-1).
+    fn line(self, app: &App, t: &Theme, x: u16, y: u16, targets: &mut Vec<(Rect, crate::app::rekey::KeyTarget)>) -> Line<'static> {
+        let (pane, name) = match self {
+            Row::Text(l) => return l,
+            Row::Action(p, n) => (p, n),
+        };
+        let help = crate::keys::ACTIONS.iter().find(|a| a.pane == pane && a.name == name).map_or("", |a| a.help);
+        let help = if app.agent_can(name) { help.to_string() } else { format!("{help} (not with {})", app.agent_label()) };
+        let mut spans = vec![Span::raw("  ")];
+        spans.extend(super::rekey::help_keys(app, t, pane, name, x + 2, y, targets));
+        let width: usize = spans.iter().map(|s| s.content.width()).sum();
+        spans.push(Span::raw(" ".repeat(18usize.saturating_sub(width))));
+        spans.push(Span::styled(help, Style::new().fg(t.dim)));
+        Line::from(spans)
+    }
+}
+
+/// The keys of one pane, a list of rows for each group: the name of the pane, then each group
 /// with its heading and its actions.
-fn help_section(app: &App, t: &Theme, pane: crate::keys::Pane) -> Vec<Vec<Line<'static>>> {
-    let mut groups = vec![vec![Line::styled(format!("  {}", pane.name().to_uppercase()), Style::new().fg(t.acc).add_modifier(Modifier::BOLD))]];
+fn help_section(t: &Theme, pane: crate::keys::Pane) -> Vec<Vec<Row>> {
+    let mut groups = vec![vec![Row::Text(Line::styled(format!("  {}", pane.name().to_uppercase()), Style::new().fg(t.acc).add_modifier(Modifier::BOLD)))]];
     let mut seen = std::collections::BTreeSet::new();
     let mut group = None;
     // Two actions with one help (the edges): one row.
@@ -108,19 +133,17 @@ fn help_section(app: &App, t: &Theme, pane: crate::keys::Pane) -> Vec<Vec<Line<'
             if group.is_some() {
                 groups.push(Vec::new());
             }
-            groups.last_mut().expect("a group").push(Line::styled(format!("  {}", a.group.name()), Style::new().fg(t.acc2)));
+            groups.last_mut().expect("a group").push(Row::Text(Line::styled(format!("  {}", a.group.name()), Style::new().fg(t.acc2))));
             group = Some(a.group);
         }
-        let help = if app.agent_can(a.name) { a.help.to_string() } else { format!("{} (not with {})", a.help, app.agent_label()) };
-        let row = Line::from(vec![Span::styled(format!("  {:<16}", app.keys.label(pane, a.name)), Style::new().fg(t.fg)), Span::styled(help, Style::new().fg(t.dim))]);
-        groups.last_mut().expect("a group").push(row);
+        groups.last_mut().expect("a group").push(Row::Action(pane, a.name));
     }
     groups
 }
 
 /// The groups in columns of at most `height` lines; a group stays whole in one column.
-fn columns(groups: Vec<Vec<Line<'static>>>, height: usize) -> Vec<Vec<Line<'static>>> {
-    let mut cols: Vec<Vec<Line<'static>>> = vec![Vec::new()];
+fn columns<T>(groups: Vec<Vec<T>>, height: usize) -> Vec<Vec<T>> {
+    let mut cols: Vec<Vec<T>> = vec![Vec::new()];
     for g in groups {
         if cols.last().is_some_and(|c| !c.is_empty() && c.len() + g.len() > height) {
             cols.push(g);

@@ -5,6 +5,7 @@ revision: "4"
 date: "2026-11-18"
 parent: "../panes.md"
 prev: "../keymap.md"
+next: "../key-change.md"
 children:
   - "text-formatting.md"
   - "date-selector.md"

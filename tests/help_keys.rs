@@ -11,7 +11,7 @@ use zendo::keys::Pane;
 async fn f1_shows_the_keys_of_the_pane_from_everywhere() {
     let root = repo("help-keys", &[("docs/notes/2026-11-12-a.md", "# A\n\ntext\n")]);
     let mut a = app(&root);
-    let bar = |a: &mut zendo::app::App| draw(a, 160, 30).into_iter().rev().find(|r| r.contains("   ")).unwrap_or_default();
+    let bar = |a: &mut zendo::app::App| status_bar(&draw(a, 160, 30));
     for (setup, pane) in [(0, Pane::Read), (1, Pane::Write), (2, Pane::Chat), (3, Pane::Notes), (4, Pane::Global)] {
         a.mode = Mode::Read;
         a.threads.hide();

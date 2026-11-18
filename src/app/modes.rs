@@ -102,15 +102,13 @@ impl App {
         self.lists.search(self.files.notes());
     }
 
+    /// A key in the search box: the keys of `[list]`, then the field; `esc` is fixed (PANES-48).
     pub(crate) fn key_search(&mut self, k: KeyEvent) {
-        let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
-        match k.code {
-            KeyCode::Esc => self.mode = Mode::Read,
-            KeyCode::Down | KeyCode::Tab => self.lists.result_down(),
-            KeyCode::Char('j') if ctrl => self.lists.result_down(),
-            KeyCode::Up | KeyCode::BackTab => self.lists.result_up(),
-            KeyCode::Char('k') if ctrl => self.lists.result_up(),
-            KeyCode::Enter => {
+        match (k.code, self.keys.local(crate::keys::Pane::List, &k)) {
+            (KeyCode::Esc, _) => self.mode = Mode::Read,
+            (_, Some("down")) => self.lists.result_down(),
+            (_, Some("up")) => self.lists.result_up(),
+            (_, Some("open")) => {
                 if let Some(q) = self.lists.query().strip_prefix('?') {
                     let q = q.trim().to_string();
                     self.mode = Mode::Read;
@@ -136,21 +134,22 @@ impl App {
         }
     }
 
+    /// A key in the theme list: the keys of `[theme]`; `esc` is fixed (PANES-48).
     pub(crate) fn key_theme(&mut self, k: KeyEvent) {
         if self.font_tip.asking {
             return self.key_font_question(k);
         }
         let n = THEMES.len();
-        match k.code {
-            KeyCode::Char('a') => self.press_font_button(),
-            KeyCode::Char('j') | KeyCode::Down => self.theme = (self.theme + 1) % n,
-            KeyCode::Char('k') | KeyCode::Up => self.theme = (self.theme + n - 1) % n,
-            KeyCode::Enter => {
+        match (k.code, self.keys.local(crate::keys::Pane::Theme, &k)) {
+            (_, Some("font")) => self.press_font_button(),
+            (_, Some("down")) => self.theme = (self.theme + 1) % n,
+            (_, Some("up")) => self.theme = (self.theme + n - 1) % n,
+            (_, Some("keep")) => {
                 self.state.theme = THEMES[self.theme].name.to_string();
                 self.state.save(&self.cfg.root);
                 self.mode = Mode::Read;
             }
-            KeyCode::Esc | KeyCode::Char('q') => {
+            (KeyCode::Esc, _) | (_, Some("cancel")) => {
                 self.theme = self.theme_before;
                 self.mode = Mode::Read;
             }

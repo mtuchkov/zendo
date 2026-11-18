@@ -18,6 +18,8 @@ pub enum Question {
     /// The title of the note of the float that opened at `opened`; `old` is the title of the agent
     /// that the answer replaces (FLOAT-18, FLOAT-19).
     Title { opened: DateTime<Local>, old: Option<String> },
+    /// Free keys for the key float, for the question with this number (REKEY-6, REKEY-5).
+    Keys(u64),
 }
 
 /// A question and the text of its answer, or the error.

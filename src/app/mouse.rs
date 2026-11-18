@@ -16,6 +16,14 @@ impl App {
             self.work.input_now();
             self.tab_run.end();
         }
+        // The tip menu and the key float take the mouse: only their buttons count (TIPS-3,
+        // REKEY-12, REKEY-25, REKEY-29).
+        if self.tips.open || self.rekey.float().is_some() {
+            if m.kind == MouseEventKind::Down(MouseButton::Left) {
+                if self.tips.open { self.click_tips(m.column, m.row) } else { self.click_key_float(m.column, m.row) }
+            }
+            return;
+        }
         if m.kind == MouseEventKind::Down(MouseButton::Left) && self.click_off_panel(m.column, m.row) {
             return;
         }
@@ -75,6 +83,9 @@ impl App {
         }
         if self.mode == Mode::Theme && self.frame.font_button().is_some_and(|r| hit(&r)) {
             return self.press_font_button();
+        }
+        if self.click_key(x, y) {
+            return;
         }
         self.focus_pane_at(x, y);
         if self.frame.music_button().is_some_and(|r| hit(&r)) {

@@ -8,6 +8,8 @@ children:
   - "selection.md"
   - "keymap.md"
   - "text-input/text-input.md"
+  - "key-change.md"
+  - "key-hints.md"
 level: "the panes as a whole: layouts, widths, hiding, focus, scrolling, themes"
 note: "Agent rewrite of the reference of zendo 0.9.1. Revision 5 moves this document to panes/panes.md, and the selection and the keys to its children selection.md and keymap.md, to keep each document within two pages; no requirement changed. Revision 6 adds PANES-46: a click in a pane moves the focus and the keys there, and PANES-47: a click off a panel over the screen closes it. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
@@ -17,12 +19,13 @@ note: "Agent rewrite of the reference of zendo 0.9.1. Revision 5 moves this docu
 zendo has four panes: the file tree, the note, the chat with Claude and the delta. The note is the
 main pane. The other panes open and close on the request of the user. Each pane has its own
 document for what it shows: [Notes](../notes.md), [File tree](../files/files.md), [Claude](../claude.md),
-[Work, delta and recaps](../work.md). Three topics that hold for all panes are child documents:
-[Text selection](selection.md), [Keys, hints and help](keymap.md) and [Text input](text-input/text-input.md).
+[Work, delta and recaps](../work.md). Five topics that hold for all panes are child documents:
+[Text selection](selection.md), [Keys, hints and help](keymap.md), [Text input](text-input/text-input.md),
+[Change a key](key-change.md) and [Key hints](key-hints.md).
 
 The user has two layout presets and no other layout settings. In wide screen, the open panes stand
 side by side. In standard, the note and the chat share the screen, and the delta takes the place of
-the note. The top bar shows the file and the branch; there are no buttons, every action has a key.
+the note. The top bar shows the file and the branch; each frequently used action has a key.
 
 Keys in every pane: `tab` moves the focus to the next pane, `ctrl-shift-b` or `alt-b` opens or
 closes the file tree, `ctrl-←` and `ctrl-→` move the edge of the pane in focus, `alt-=` and `alt--`

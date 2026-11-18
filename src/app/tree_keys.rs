@@ -4,7 +4,7 @@ use super::{Effect, Files};
 use crate::app::TreeAct;
 use crate::docs::tree::Kind;
 use crate::text::field::{Field, Typed};
-use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use std::path::PathBuf;
 
 /// What `enter` on a row of the tree gives.
@@ -79,12 +79,12 @@ impl Files {
     }
 
     /// Typing in the file name filter of the tree.
-    pub fn key_filter(&mut self, k: KeyEvent) -> FilterKey {
-        let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
+    /// `act` is the action of the key in `[list]`; `esc` is fixed (PANES-48).
+    pub fn key_filter(&mut self, k: KeyEvent, act: Option<&str>) -> FilterKey {
         let last = self.tree.rows().len().saturating_sub(1);
         let Some(empty) = self.tree.find.as_ref().map(|f| f.is_empty()) else { return FilterKey::Done };
-        match k.code {
-            KeyCode::Esc => {
+        match (k.code, act) {
+            (KeyCode::Esc, _) => {
                 // The tree comes back with the match selected.
                 let picked = self.tree_file();
                 self.tree.find = None;
@@ -93,20 +93,18 @@ impl Files {
                 }
             }
             // The keys of the files work on the selected match too.
-            KeyCode::F(2) => return FilterKey::Act(TreeAct::File(self.tree_file(), 'r')),
-            KeyCode::Delete => return FilterKey::Act(TreeAct::File(self.tree_file(), 'd')),
-            KeyCode::Enter => {
+            (_, Some("rename")) => return FilterKey::Act(TreeAct::File(self.tree_file(), 'r')),
+            (_, Some("delete")) => return FilterKey::Act(TreeAct::File(self.tree_file(), 'd')),
+            (_, Some("open")) => {
                 let picked = self.tree.rows().get(self.tree.sel).map(|r| r.rel.clone());
                 self.tree.find = None;
                 if let Some(rel) = picked.filter(|r| !self.tree.deleted.contains(r)) {
                     return FilterKey::Open(rel);
                 }
             }
-            KeyCode::Backspace if empty => self.tree.find = None,
-            KeyCode::Down => self.tree.sel = (self.tree.sel + 1).min(last),
-            KeyCode::Char('n' | 'j') if ctrl => self.tree.sel = (self.tree.sel + 1).min(last),
-            KeyCode::Up => self.tree.sel = self.tree.sel.saturating_sub(1),
-            KeyCode::Char('p' | 'k') if ctrl => self.tree.sel = self.tree.sel.saturating_sub(1),
+            (KeyCode::Backspace, _) if empty => self.tree.find = None,
+            (_, Some("down")) => self.tree.sel = (self.tree.sel + 1).min(last),
+            (_, Some("up")) => self.tree.sel = self.tree.sel.saturating_sub(1),
             _ => {
                 if self.tree.find.as_mut().is_some_and(|f| f.key(None, &k) == Typed::Changed) {
                     self.tree.sel = 0;

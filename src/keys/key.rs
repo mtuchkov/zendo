@@ -99,6 +99,26 @@ impl Key {
         Ok(k)
     }
 
+    /// The key as the keymap file writes it, so that `parse` gives it back: `alt-b`,
+    /// `ctrl-shift-b`, `J`, `pageup` (REKEY-16).
+    pub fn spec(&self) -> String {
+        let name = match self.code {
+            KeyCode::Enter => "enter".to_string(),
+            KeyCode::Esc => "esc".to_string(),
+            KeyCode::Tab => "tab".to_string(),
+            KeyCode::Char(' ') => "space".to_string(),
+            KeyCode::Backspace => "backspace".to_string(),
+            KeyCode::Delete => "delete".to_string(),
+            KeyCode::PageUp => "pageup".to_string(),
+            KeyCode::PageDown => "pagedown".to_string(),
+            KeyCode::F(n) => format!("f{n}"),
+            KeyCode::Char(c) => c.to_string(),
+            c => format!("{c:?}").to_lowercase(),
+        };
+        let mods = [(self.ctrl, "ctrl-"), (self.alt, "alt-"), (self.shift, "shift-")];
+        mods.iter().filter(|(on, _)| *on).map(|(_, m)| *m).collect::<String>() + &name
+    }
+
     /// A short label for the help and the status bar: `^b`, `⇧↓`, `alt-i`, `J`.
     pub fn label(&self) -> String {
         let name = match self.code {
