@@ -1,11 +1,12 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-18"
 revision: "1"
 date: "2026-11-18"
 parent: "text-input.md"
 prev: "text-formatting.md"
 level: "the date selector of the rich editors: how it starts, its keys, how it ends"
-note: "Agent draft from the requests of the user on 2026-11-17; split from text-input.md with the approval of the user on 2026-11-18, no requirement changed. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Written from the requests of the user on 2026-11-17 and 2026-11-18; approved by the user on 2026-11-18. The code implements the requirements; the acceptance tests in tests/text_input.rs pass."
 ---
 
 # Date selector
