@@ -311,7 +311,7 @@ An upgrade does not touch your data:
 | Path | Content |
 |---|---|
 | `docs/notes/*.md` in each repository | Your notes |
-| `.zendo/db.json` in each repository | Theme, layout, Claude thread ids, visits, delta bases, recaps |
+| `.zendo/db.json` in each repository | Theme, layout, Claude thread ids, visits, delta bases, recaps, the history of the chat messages |
 | `.zendo/prompt.md` in each repository | Your instructions for Claude |
 | `~/.zendo/config.toml` | Agent command and environment from `zendo setup` |
 | `~/.local/share/zendo/agent` | The installed Claude adapter |

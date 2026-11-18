@@ -1,6 +1,7 @@
 //! Local state in `.zendo/db.json`: theme, Claude thread ids, and per-file work:
 //! engaged visits, the text you last worked on (the base for delta), and recaps.
 
+use super::history::History;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -54,6 +55,9 @@ pub struct State {
     /// The name of each Claude session that has one, keyed by its session ID (NAMES-3).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub names: BTreeMap<String, String>,
+    /// The messages of the user: of each zendo session, and the common history (HISTORY-3).
+    #[serde(default, skip_serializing_if = "History::is_empty")]
+    pub history: History,
 }
 
 /// A file that the user opened in the note pane, and when.

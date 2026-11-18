@@ -26,6 +26,7 @@ children:
   - "chat.md"
   - "chat-chips.md"
   - "chat-messages.md"
+  - "chat-history.md"
   - "activity.md"
   - "checklist.md"
   - "transcript.md"
@@ -76,6 +77,7 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Chat](chat.md)                              | The chat input: chips, attachments, `@` file suggestions        |
 | [Chips and the open document](chat-chips.md) | The chip window, images, the choice of the open document      |
 | [Chips in a question](chat-messages.md)      | How chips go to the agent and to Claude Code, and show in the transcript |
+| [Chat history](chat-history.md)              | The messages of the user per zendo session, the common history, `up` and `down` |
 | [Activity of the agent](activity.md)         | The status line, steps, questions and commands of a turn in the chat |
 | [Checklist](checklist.md)                    | The plan of the agent at the top of the transcript, closed and open |
 | [Transcript](transcript.md)                  | The time of each message; the question of the turn at the top of the transcript |
