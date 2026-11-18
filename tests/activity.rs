@@ -92,3 +92,61 @@ async fn a_failed_step_shows_its_error() {
     assert!(!s.contains("more details"), "{s}");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// ACT-4, ACT-5: a question of the agent waits with `waits for your answer`; the arrows pick a
+// choice, and `enter` sends it to the agent.
+#[tokio::test]
+async fn a_question_waits_and_the_answer_goes_to_the_agent() {
+    use ratatui::crossterm::event::KeyCode;
+    let root = repo("act-question", &[]);
+    let mut a = app(&root);
+    a.open_panel();
+    a.focus = Focus::Claude;
+    typ(&mut a, "ask me");
+    key(&mut a, KeyCode::Enter);
+    until(&mut a, |a| a.threads.get(&session_key(0)).is_some_and(|t| t.asking().is_some())).await;
+    let s = screen(&mut a);
+    assert!(s.contains("? Shall I go on?") && s.contains("● Yes") && s.contains("○ No"), "{s}");
+    assert!(s.contains("waits for your answer"), "{s}");
+    key(&mut a, KeyCode::Down);
+    assert!(screen(&mut a).contains("● No"));
+    key(&mut a, KeyCode::Enter);
+    until(&mut a, |a| a.threads.get(&session_key(0)).is_some_and(|t| t.busy.is_none())).await;
+    let s = screen(&mut a);
+    assert!(s.contains(r#"You answered: {"question_0":"no"}"#), "{s}");
+    assert!(s.contains("→ No") && !s.contains("waits for your answer"), "{s}");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// ACT-4: an own answer goes to the field of the own answer.
+#[tokio::test]
+async fn an_own_answer_goes_to_the_agent() {
+    use ratatui::crossterm::event::KeyCode;
+    let root = repo("act-own-answer", &[]);
+    let mut a = app(&root);
+    a.open_panel();
+    a.focus = Focus::Claude;
+    typ(&mut a, "ask me");
+    key(&mut a, KeyCode::Enter);
+    until(&mut a, |a| a.threads.get(&session_key(0)).is_some_and(|t| t.asking().is_some())).await;
+    typ(&mut a, "maybe later");
+    key(&mut a, KeyCode::Enter);
+    until(&mut a, |a| a.threads.get(&session_key(0)).is_some_and(|t| t.busy.is_none())).await;
+    assert!(screen(&mut a).contains(r#"{"question_0_custom":"maybe later"}"#));
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// ACT-11: a question of an agent session that the user does not see rings and blinks.
+#[tokio::test]
+async fn a_question_away_rings_and_blinks() {
+    let root = repo("act-question-away", &[]);
+    let mut a = app(&root);
+    a.attention.config = root.join("config.toml");
+    a.attention.sound = true;
+    a.switch_session(1);
+    let q = zendo::agent::Question { field: "question_0".into(), text: "Go on?".into(), choices: vec![("yes".into(), "Yes".into())], ..Default::default() };
+    a.on_agent(Event::Question { key: session_key(0), request: 1, questions: vec![q] });
+    assert_eq!(a.attention.bells, 1, "the bell");
+    assert!(a.blink(0).is_some(), "the blink of its button");
+    let _ = std::fs::remove_dir_all(&root);
+}

@@ -3,6 +3,7 @@
 mod at_keys;
 mod attention;
 mod background;
+mod questions;
 mod steps;
 mod branch;
 mod chat;
@@ -67,6 +68,7 @@ pub use composer::chips;
 pub(crate) use composer::{at, slash};
 pub use attention::Attention;
 pub use background::{Background, Bg, ran};
+pub use questions::Ask;
 pub use effect::Effect;
 pub use file_prompt::FilePrompt;
 pub use files_state::Files;
