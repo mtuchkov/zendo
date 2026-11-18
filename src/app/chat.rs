@@ -188,13 +188,13 @@ impl App {
         self.flash(format!("attached {}", label.trim_matches([chips::OPEN, chips::CLOSE])));
     }
 
-    /// Text pasted into the chat: dropped files become chips, the rest is text.
+    /// Text pasted into the chat: dropped files become chips, a long text is a chip (CLAUDE-42),
+    /// the rest is text.
     pub(crate) fn paste_into_chat(&mut self, s: &str) {
         match crate::text::select::dropped_files(s) {
-            Some(paths) => {
-                for p in paths {
-                    self.attach(Attachment::of(p));
-                }
+            Some(paths) => paths.into_iter().for_each(|p| self.attach(Attachment::of(p))),
+            None if chips::paste_is_chip(s) => {
+                self.composer.paste_chip(s);
             }
             None => self.composer.input_mut().type_str(s),
         }
