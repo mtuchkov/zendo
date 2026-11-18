@@ -54,6 +54,15 @@ pub(crate) fn tint(l: Line<'static>, bg: Color, width: usize) -> Line<'static> {
     Line { spans, style: l.style.bg(bg), alignment: l.alignment }
 }
 
+/// The same as `tint`, but a span with a background of its own, such as a chip, keeps it.
+pub(crate) fn tint_keep(l: Line<'static>, bg: Color, width: usize) -> Line<'static> {
+    let own = |s: &Span| s.style.bg.is_some_and(|b| Some(b) != l.style.bg);
+    let (keep, line): (Vec<bool>, Line<'static>) = (l.spans.iter().map(own).collect(), l.clone());
+    let mut out = tint(line, bg, width);
+    out.spans.iter_mut().zip(&l.spans).zip(keep).filter(|(_, k)| *k).for_each(|((o, s), _)| o.style.bg = s.style.bg);
+    out
+}
+
 /// Give the chars `from..to` of a line a background; past the end, one cell shows it.
 pub fn paint(l: Line<'static>, from: usize, to: usize, bg: Color) -> Line<'static> {
     let mut out = Vec::new();

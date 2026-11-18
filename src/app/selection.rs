@@ -61,7 +61,7 @@ impl App {
             Region::Panel if self.cli.pane.is_some() => format!("Text from the terminal:\n{quoted}"),
             Region::Panel => format!("Text from this chat:\n{quoted}"),
         };
-        let label = self.composer.add_chip(chips::selection_label(&text), Some(ctx), None, true);
+        let label = self.composer.add_chip(chips::text_label(&text), Some(ctx), None, true);
         self.open_panel();
         if self.threads.shown() {
             self.focus = Focus::Claude;
@@ -88,7 +88,7 @@ impl App {
             self.flash("nothing to add here");
             return;
         };
-        let label = self.composer.add_chip(chips::selection_label(&self.selection_text()), Some(ctx), None, true);
+        let label = self.composer.add_chip(chips::text_label(&self.selection_text()), Some(ctx), None, true);
         self.reader.unselect();
         let back = self.focus;
         self.open_panel();
@@ -117,7 +117,7 @@ impl App {
         let rel = self.writer.path().map(|p| self.rel(p)).unwrap_or_default();
         let quoted: String = text.lines().map(|l| format!("> {l}\n")).collect();
         let ctx = format!("Selected text from {rel} (about lines {}–{}):\n{quoted}", lo + 1, hi + 1);
-        let label = self.composer.add_chip(chips::selection_label(&text), Some(ctx), None, true);
+        let label = self.composer.add_chip(chips::text_label(&text), Some(ctx), None, true);
         let back = self.focus;
         self.open_panel();
         if self.threads.shown() {
