@@ -26,12 +26,9 @@ pub fn split(rel: &str) -> Option<(&str, &str)> {
     Some((&rel[..end], rel.get(end + 1..).filter(|r| !r.is_empty())?))
 }
 
-/// `.worktrees/3/src/main.rs` → `worktree 3 · src/main.rs` (FILES-34); any other path as it is.
-pub fn label(rel: &str) -> String {
-    match split(rel) {
-        Some((wt, rest)) => format!("worktree {} · {rest}", &wt[".worktrees/".len()..]),
-        None => rel.to_string(),
-    }
+/// `.worktrees/3/src/main.rs` → `src/main.rs`, for the top line (FILES-34); any other path as it is.
+pub fn in_worktree(rel: &str) -> String {
+    split(rel).map_or_else(|| rel.to_string(), |(_, rest)| rest.to_string())
 }
 
 /// The commit of `main` that the branch started from, or the last `main` merged into it. Git says

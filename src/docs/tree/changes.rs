@@ -41,6 +41,9 @@ impl Tree {
 
     /// Take the answer of git, when it came. True when the rows changed.
     pub fn poll(&mut self) -> bool {
+        if self.poll_text() {
+            return true;
+        }
         let Some((wt, rx)) = &self.git.pending else { return false };
         let answer = match rx.try_recv() {
             Ok(a) => a,

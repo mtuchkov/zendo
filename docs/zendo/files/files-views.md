@@ -6,7 +6,7 @@ date: "2026-11-17"
 parent: "files.md"
 next: "files-view-column.md"
 level: "the views of the file tree, folding, the marks, the bottom of the tree"
-note: "Split from files.md revision 2 (user, 2026-11-14). Revision 2 changes FILES-4: the `v` cycle has the two worktree views after folders (user, 2026-11-14); implemented in zendo 0.62.0. Revision 3, from the request of the user on 2026-11-17 and approved by the user on 2026-11-17: the all and folders views go (FILES-4, FILES-17), the folders start closed (FILES-56), `[+]` and `[-]` open and close every folder (FILES-57), and the tree follows the open document (FILES-58); implemented in zendo 0.85.0. Revision 4, from the request of the user on 2026-11-17: each start shows the structure view (FILES-66), and FILES-10 keeps only the folders between runs; approved by the user on 2026-11-17; implemented in zendo 0.89.0. Revision 5 (approved by the user on 2026-11-18): FILES-4 ends with the Notes view of files-view-column.md, and a strip of letters shows the views."
+note: "Split from files.md revision 2 (user, 2026-11-14). Revision 2 changes FILES-4: the `v` cycle has the two worktree views after folders (user, 2026-11-14); implemented in zendo 0.62.0. Revision 3, from the request of the user on 2026-11-17 and approved by the user on 2026-11-17: the all and folders views go (FILES-4, FILES-17), the folders start closed (FILES-56), `[+]` and `[-]` open and close every folder (FILES-57), and the tree follows the open document (FILES-58); implemented in zendo 0.85.0. Revision 4, from the request of the user on 2026-11-17: each start shows the structure view (FILES-66), and FILES-10 keeps only the folders between runs; approved by the user on 2026-11-17; implemented in zendo 0.89.0. Revision 5 (approved by the user on 2026-11-18): FILES-4 ends with the Notes view of files-view-column.md, and a strip of letters shows the views. FILES-79: the text view walked the files on the UI thread and hung it (the user, 2026-11-18)."
 ---
 
 # File tree: views
@@ -62,10 +62,11 @@ Two more views show the worktree of the active agent session: worktree and workt
 | FILES-56 | Ubiquitous | The system shall show each folder and each main material of the tree closed until the user or FILES-58 opens it. | User, 2026-11-17 |
 | FILES-57 | Event | When the user clicks `[+]` or `[-]` under the head of the tree, or presses its key, the system shall open or close every folder and main material of the view. | User, 2026-11-17 |
 | FILES-58 | Event | While the tree shows, when the tree opens, the agent session changes, a file opens, or the open document changes, the system shall open the folders above the open document and select its row. | User, 2026-11-17 |
+| FILES-79 | Ubiquitous | The system shall walk the files of the text view and of the worktree view on a thread of its own, so that a switch to the view and the scan every few seconds do not wait for it; the view shows `Reading the files…` until the first walk ends (ADR 0009). | User, 2026-11-18 |
 
 Tests that verify detailed requirements: `rows_join_single_folders_and_collapse` (FILES-5, FILES-6,
 FILES-56), `the_text_view_shows_every_folder` (FILES-17), `structure_view_lists_main_materials_in_file_order`
 and `the_worktree_views_follow_text_only_with_a_worktree` (FILES-4), `the_text_view_shows_every_text_file` (FILES-20),
 `expand_all_and_collapse_all` (FILES-57), `the_tree_follows_the_open_document` (FILES-58),
-`tests/tree_fold.rs` (FILES-56, FILES-57, FILES-58), `tests/tree_text.rs` (FILES-20, FILES-24), and
-`tests/tree_start.rs` (FILES-66).
+`tests/tree_fold.rs` (FILES-56, FILES-57, FILES-58), `tests/tree_text.rs` (FILES-20, FILES-24),
+`tests/tree_start.rs` (FILES-66), and `the_text_view_walks_off_the_ui_thread` (FILES-79).

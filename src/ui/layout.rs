@@ -108,9 +108,14 @@ pub(crate) fn draw_top(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, 
                 let doc = app.files.current().and_then(|p| app.doc_rel(p)).unwrap_or_default();
                 format!("{} · {doc}", app.files.peek().on.map_or("", |o| o.name()))
             }
-            // FILES-34: a file of a worktree names its worktree.
-            _ => app.note().map(|n| crate::docs::tree::worktree::label(&app.rel(&n.path))).unwrap_or_else(|| app.rel(&app.cfg.notes_dir)),
+            // FILES-34: the path in the worktree; the head of the note names the worktree.
+            _ => app.note().map(|n| crate::docs::tree::worktree::in_worktree(&app.rel(&n.path))).unwrap_or_else(|| app.rel(&app.cfg.notes_dir)),
         },
+    };
+    // FILES-80: the branch of the context stands first, before the path.
+    let left = match app.top_branch() {
+        Some(b) => format!("{b} · {left}"),
+        None => left,
     };
     f.render_widget(Paragraph::new(Line::from(vec![Span::raw("  "), Span::raw(left.clone())])).style(Style::new().fg(t.dim)), area);
     let right = draw_top_right(f, app, fr, t, area);
@@ -144,16 +149,12 @@ fn switch(t: &Theme, on: bool) -> Style {
     Style::new().fg(if on { t.ext.doc } else { t.dim })
 }
 
-/// The right of the top line: the branch of the context (FILES-59 to FILES-61), the sessions that
-/// blink while their buttons are not on the screen (ATTN-10), the music button (LOFI-10), and the
-/// sound button (ATTN-7). Returns its width.
+/// The right of the top line: the sessions that blink while their buttons are not on the screen
+/// (ATTN-10), the music button (LOFI-10), and the sound button (ATTN-7). Returns its width.
 fn draw_top_right(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) -> u16 {
     let chips: Vec<usize> = if fr.session_buttons.is_empty() { app.attention.blinks().collect() } else { Vec::new() };
     let chip = |n: usize| Style::new().fg(t.bg).bg(pulse_bg(app, t, n, if n >= crate::app::SESSIONS { t.fg } else { t.acc2 }));
-    let branch = app.top_branch().map(|b| (b, Style::new().fg(t.dim)));
-    let first = usize::from(branch.is_some());
-    let mut pieces: Vec<(String, Style)> = branch.into_iter().collect();
-    pieces.extend(chips.iter().map(|n| (format!(" {} ", titled(app, *n)), chip(*n))));
+    let mut pieces: Vec<(String, Style)> = chips.iter().map(|n| (format!(" {} ", titled(app, *n)), chip(*n))).collect();
     pieces.push((MUSIC.into(), switch(t, app.music.state() == crate::music::State::Plays)));
     pieces.push((SOUND.into(), switch(t, app.attention.sound)));
     let width = (pieces.iter().map(|(s, _)| s.width() + 2).sum::<usize>() - 2) as u16;
@@ -162,11 +163,11 @@ fn draw_top_right(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area:
         let r = Rect { x, width: (text.width() as u16).min(area.right().saturating_sub(x)), ..area };
         x += r.width + 2;
         f.render_widget(Paragraph::new(Span::styled(text, style)), r);
-        match i.checked_sub(first).map(|k| (k, chips.get(k))) {
-            Some((_, Some(n))) => fr.session_buttons.push((r, *n)),
-            Some((k, None)) if k == chips.len() => fr.music_button = Some(r),
-            Some((k, None)) if k == chips.len() + 1 => fr.sound_button = Some(r),
-            _ => {}
+        match chips.get(i) {
+            Some(n) => fr.session_buttons.push((r, *n)),
+            None if i == chips.len() => fr.music_button = Some(r),
+            None if i == chips.len() + 1 => fr.sound_button = Some(r),
+            None => {}
         }
     }
     width

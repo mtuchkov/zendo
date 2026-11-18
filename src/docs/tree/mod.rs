@@ -123,6 +123,8 @@ pub struct Tree {
     pub deleted: BTreeSet<PathBuf>,
     /// Git for the worktree changed view (ADR 0009).
     git: changes::Changes,
+    /// The walk of the text files on its thread (FILES-79).
+    walk: text_walk::TextWalk,
     docs: GlobMatcher,
 }
 
@@ -148,6 +150,7 @@ impl Default for Tree {
             worktree: None,
             deleted: BTreeSet::new(),
             git: changes::Changes::default(),
+            walk: text_walk::TextWalk::default(),
             docs: Glob::new(DOCS_GLOB).expect("valid glob").compile_matcher(),
         }
     }
@@ -160,6 +163,7 @@ struct Node {
 }
 
 mod changes;
+mod text_walk;
 mod fold;
 mod notes;
 mod scan;

@@ -37,6 +37,8 @@ fn draw_tree_body(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, inner
     }
     if rows.is_empty() {
         let msg = match app.files.tree().view {
+            // FILES-79: the walk of the text files runs on a thread.
+            View::Text | View::Worktree if app.files.tree().walking() => "Reading the files…".to_string(),
             View::Text => "No text files.".to_string(),
             View::Docs => format!("No .md files under a docs folder.{}", app.keys.key(crate::keys::Pane::Tree, "view").map(|k| format!(" Press {k} to show all.")).unwrap_or_default()),
             View::Structure => "No main materials. Mark entries with main = true in project-structure.toml.".to_string(),
