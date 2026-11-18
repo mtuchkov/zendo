@@ -7,7 +7,10 @@ const PS: &str = "    1     0     1 S  3-01:02:03 /sbin/init
   220   210   210 S       09:58 node mcp-server.js
   230   210   230 S       05:00 /bin/bash -c -l eval 'npm run dev' < /dev/null
   231   230   230 S       04:59 npm run dev
-  240   210   240 S          12 sleep 60
+  240   210   240 S          12 sh -c sleep 60; :
+  241   240   240 S          12 sleep 60
+  250   210   250 S          30 /home/u/.nvm/versions/node/v24.15.0/bin/node /home/u/.local/lib/node_modules/codegraph/mcp.js
+  251   250   250 S          30 /home/u/.local/lib/node_modules/codegraph/node_modules/.bin/indexer
   300   100   300 S       08:00 /bin/zsh
   310   300   310 S       07:00 cargo watch
   400     1   400 S       01:00 orphan-of-another-zendo
@@ -17,10 +20,11 @@ const PS: &str = "    1     0     1 S  3-01:02:03 /sbin/init
 #[test]
 fn ps_output_parses() {
     let p = parse(PS);
-    assert_eq!(p.len(), 11);
+    assert_eq!(p.len(), 14);
     assert_eq!((p[0].pid, p[0].ppid, p[0].pgid, p[0].secs), (1, 0, 1, 3 * 86400 + 3600 + 2 * 60 + 3));
     assert_eq!((p[6].secs, p[6].args.as_str()), (299, "npm run dev"));
     assert_eq!(p[7].secs, 12);
+    assert_eq!(p[13].pid, 400);
     assert!(parse("garbage\n  1 2\n").is_empty());
     assert!(parse("  9 1 9 Z 0:01 [sleep] <defunct>\n").is_empty(), "a zombie does not count");
 }
@@ -86,4 +90,20 @@ fn zendo_never_signals_its_own_group() {
 fn the_own_group_reads_from_ps() {
     assert_eq!(group_of(&parse(PS), 220), Some(210));
     assert_eq!(group_of(&parse(PS), 999), None);
+}
+
+// BG-5: an MCP server in a process group of its own runs no shell: it is not a command of the
+// agent and does not count.
+#[test]
+fn a_group_without_a_shell_does_not_count() {
+    let p = parse(PS);
+    let g = groups(&p, 100, &[300]);
+    assert!(g.iter().all(|g| g.pgid != 250), "{g:?}");
+}
+
+// BG-1: the background line names a program by its file, without its folder.
+#[test]
+fn a_short_label_drops_the_folders() {
+    assert_eq!(short("/home/u/.nvm/versions/node/v24.15.0/bin/node /home/u/x/mcp.js --stdio"), "node mcp.js --stdio");
+    assert_eq!(short("npm run dev"), "npm run dev");
 }
