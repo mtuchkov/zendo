@@ -173,6 +173,23 @@ fn a_failure_clears_without_a_new_note() {
     let _ = std::fs::remove_dir_all(&base);
 }
 
+// NOTESREP-19: zendo starts without the network and with every note pushed. When the network
+// comes back, the next interval removes "offline" from the status, also with nothing to push.
+#[test]
+fn offline_clears_when_the_network_comes_back() {
+    let (base, a, mut w) = worker_with_a_note("online");
+    w.step();
+    assert_eq!(w.state(), State::Synced);
+    let mut w = Worker::new(a.clone(), a.join("a/~"), "a", base.join("notes-sync.lock"));
+    std::fs::rename(base.join("remote.git"), base.join("away.git")).unwrap();
+    w.step();
+    assert!(matches!(w.state(), State::Offline(_)), "{:?}", w.state());
+    std::fs::rename(base.join("away.git"), base.join("remote.git")).unwrap();
+    w.step();
+    assert_eq!(w.state(), State::Synced);
+    let _ = std::fs::remove_dir_all(&base);
+}
+
 // NOTESREP-8, NOTESREP-15: at exit, a lock that stays busy gives a clear message and no git error.
 #[test]
 fn exit_with_a_busy_lock_says_who_syncs() {

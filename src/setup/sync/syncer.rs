@@ -38,7 +38,8 @@ impl Worker {
 
     /// One interval: commit, then pull and push when there is a reason to. A busy sync lock skips
     /// the interval (NOTESREP-15); an index.lock of another git shows only when it stays
-    /// (NOTESREP-16); a commit that works clears an earlier failure (NOTESREP-17).
+    /// (NOTESREP-16); a commit that works clears an earlier failure (NOTESREP-17); while offline,
+    /// each interval tries the remote again, also with nothing to push (NOTESREP-19).
     pub fn step(&mut self) {
         let state = self.state();
         if matches!(state, State::Conflict(_)) {
@@ -52,7 +53,7 @@ impl Worker {
             Err(e) => self.set(State::Failed(e)),
             Ok(made) => {
                 self.index_fails = 0;
-                let unsure = matches!(state, State::Starting | State::Failed(_));
+                let unsure = matches!(state, State::Starting | State::Failed(_) | State::Offline(_));
                 if made || unsure || ahead(&self.repo) && !matches!(state, State::Local) {
                     self.set(pull_push(&self.repo));
                 }
