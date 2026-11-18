@@ -15,7 +15,8 @@ redo](undo.md)) holds what zendo saved and the changes of its file from outside 
 git, another editor. See [ADR 0014](../../../architecture/decisions/0014-undo-loglets-with-operational-transformation.md).
 
 **Documents.** The loglet of a document holds only what zendo saved: each save is one operation.
-Write mode saves after a pause in typing, so one undo takes back the text of one burst of typing.
+Write mode saves after a pause in typing, so one undo takes back the text of one burst of typing
+(User, 2026-11-18: one undo for each save is the right size).
 The text that is not saved yet is not in the loglet. `ctrl-z` and `ctrl-y` save first, and write
 the text after the undo or redo to the file at once. zendo keeps the loglet of each document in
 `.zendo/db.log.json`, with the file of the last save as its head (Design).
@@ -85,4 +86,3 @@ UNDO-13, UNDO-14, UNDO-16), and in `tests/undo.rs`: `undo_and_redo_in_write_mode
 | Open question | Affects | Answered by |
 | ------------- | ------- | ----------- |
 | Should the question name the writer (the agent of a session, git) when zendo knows it? | UNDO-12 | User |
-| Is one undo for each autosave the right size, or should zendo save more often in write mode? | UNDO-16 | User |
