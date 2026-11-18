@@ -74,7 +74,7 @@ impl App {
             self.state.names.remove(&id);
         }
         // The messages of the old thread go into the common history (HISTORY-2).
-        self.state.history.merge(self.state.session.min(SESSIONS - 1));
+        self.state.history.merge(self.state.session.min(SESSIONS - 1), chrono::Local::now());
         self.state.save(&self.cfg.root);
         self.threads.remove(&key);
         self.flash("new thread");
@@ -129,10 +129,16 @@ impl App {
         }
     }
 
-    /// The message that goes now goes into the history of the active session (HISTORY-1).
+    /// The message that goes now goes into the history of the active session, with its text
+    /// chips (HISTORY-1, HISTORY-7). `/clear` starts a new conversation, as `ctrl-n` does: the
+    /// history of the session goes into the common history (HISTORY-2).
     fn remember_input(&mut self) {
-        let text = chips::without_chips(&self.composer.input().text());
-        self.state.history.push(self.state.session.min(SESSIONS - 1), &text, chrono::Local::now());
+        let (text, chips) = self.composer.history_entry();
+        let session = self.state.session.min(SESSIONS - 1);
+        self.state.history.push(session, &text, chips, chrono::Local::now());
+        if text.split_whitespace().next() == Some("/clear") {
+            self.state.history.merge(session, chrono::Local::now());
+        }
         self.state.save(&self.cfg.root);
     }
 

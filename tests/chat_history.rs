@@ -43,9 +43,8 @@ async fn up_and_down_go_through_the_messages_of_the_session() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// HISTORY-2, HISTORY-4: another session does not see the messages of a session before `ctrl-n`;
-// after it, the messages are in the common history, in the order of time, with the messages of
-// the other session.
+// HISTORY-2, HISTORY-4: `ctrl-n` merges the messages of a session into the common history, by
+// time. A thread that started before the merge does not see them; its next new thread does.
 #[tokio::test]
 async fn ctrl_n_merges_the_session_into_the_common_history_by_time() {
     let root = repo("history-merge", &[(A, "# A\n")]);
@@ -54,21 +53,22 @@ async fn ctrl_n_merges_the_session_into_the_common_history_by_time() {
     send(&mut a, "a one").await;
     a.switch_session(1);
     send(&mut a, "b two").await;
-    key(&mut a, KeyCode::Up);
-    assert_eq!(input(&a), "b two");
-    key(&mut a, KeyCode::Up);
-    assert_eq!(input(&a), "b two", "session 2 does not see session 1 yet");
-    key(&mut a, KeyCode::Down);
     a.switch_session(0);
     send(&mut a, "a three").await;
     ctrl(&mut a, 'n');
     a.switch_session(1);
+    key(&mut a, KeyCode::Up);
+    assert_eq!(input(&a), "b two");
+    key(&mut a, KeyCode::Up);
+    assert_eq!(input(&a), "b two", "the thread of session 2 started before the merge");
+    key(&mut a, KeyCode::Down);
+    ctrl(&mut a, 'n');
     let mut seen = Vec::new();
     for _ in 0..3 {
         key(&mut a, KeyCode::Up);
         seen.push(input(&a));
     }
-    assert_eq!(seen, ["a three", "b two", "a one"], "the common history and its own, by time");
+    assert_eq!(seen, ["a three", "b two", "a one"], "the new thread sees the common history, by time");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -86,5 +86,43 @@ async fn the_history_comes_back_after_a_restart() {
     b.focus = Focus::Claude;
     key(&mut b, KeyCode::Up);
     assert_eq!(input(&b), "kept for later");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// HISTORY-7, HISTORY-5: a pasted text chip goes into the history; `up` brings it back as a chip
+// with its text, and the text goes again as context.
+#[tokio::test]
+async fn up_brings_a_text_chip_back_as_a_chip() {
+    let root = repo("history-chips", &[(A, "# A\n")]);
+    let mut a = app(&root);
+    a.open_panel();
+    a.focus = Focus::Claude;
+    typ(&mut a, "why ");
+    a.on_paste("fn main() {\n    panic!(\"no\");\n}\n".into());
+    let label = a.composer.chips()[0].label.clone();
+    send(&mut a, "now").await;
+    assert!(a.composer.chips().is_empty());
+    key(&mut a, KeyCode::Up);
+    assert_eq!(input(&a), format!("why {label} now"));
+    let chips = a.composer.chips();
+    assert_eq!(chips.len(), 1, "the chip is a chip again");
+    assert!(chips[0].context.as_deref().is_some_and(|c| c.contains("    panic!(\"no\");")), "{chips:?}");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// HISTORY-2: `/clear` starts a new conversation, as `ctrl-n` does: the history of the session goes
+// into the common history.
+#[tokio::test]
+async fn clear_merges_the_session_into_the_common_history() {
+    let root = repo("history-clear", &[(A, "# A\n")]);
+    let mut a = app(&root);
+    a.switch_session(0);
+    send(&mut a, "before clear").await;
+    send(&mut a, "/clear").await;
+    a.switch_session(1);
+    key(&mut a, KeyCode::Up);
+    assert_eq!(input(&a), "/clear");
+    key(&mut a, KeyCode::Up);
+    assert_eq!(input(&a), "before clear");
     let _ = std::fs::remove_dir_all(&root);
 }
