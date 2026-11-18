@@ -1,4 +1,4 @@
-//! The suggestions of the light model in the key float (docs/zendo/panes/key-hints.md, ADR 0012):
+//! The suggestions of the light model in the key float (docs/zendo/panes/key-hints.md, ADR 0013):
 //! `haiku` with low effort through a mock API, without a wait for the user.
 
 mod common;

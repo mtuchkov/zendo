@@ -1,7 +1,7 @@
 //! The theme picker and the keys help.
 use super::*;
 
-pub(crate) fn draw_themes(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
+pub(crate) fn draw_themes(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
     f.render_widget(Block::new().style(Style::new().bg(t.panel)), area);
     let inner = Rect { x: area.x + 2, y: area.y + 1, width: area.width.saturating_sub(4), height: area.height.saturating_sub(1) };
     let dim = Style::new().fg(t.dim);
@@ -28,7 +28,26 @@ pub(crate) fn draw_themes(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     for s in ["The note changes as you move.", "Your choice is saved in .zendo/."] {
         lines.push(Line::styled(s, dim));
     }
+    fr.font_button = font_tip(app, t, inner, &mut lines);
     f.render_widget(Paragraph::new(lines), inner);
+}
+
+/// Under the themes: the tip while a recommended font is missing, and the font button with an
+/// agent (FONT-13, FONT-16, FONT-21). The rect of the button, when it is on the screen.
+fn font_tip(app: &App, t: &Theme, inner: Rect, lines: &mut Vec<Line<'static>>) -> Option<Rect> {
+    let button = app.font_button();
+    if !app.font_tip.missing && button.is_none() {
+        return None;
+    }
+    lines.push(Line::raw(""));
+    if app.font_tip.missing {
+        let tip = "Recommended fonts for the terminal: run `zendo setup fonts`.";
+        lines.extend(markdown::wrap(vec![Span::styled(tip, Style::new().fg(t.dim))], inner.width as usize, "", ""));
+    }
+    let b = button?;
+    let y = inner.y + lines.len() as u16;
+    lines.push(Line::styled(b, Style::new().fg(t.acc)));
+    (y < inner.bottom() && b.width() as u16 <= inner.width).then_some(Rect { x: inner.x, y, width: b.width() as u16, height: 1 })
 }
 
 /// All keys of the pane where the help key was pressed, and the global keys, from the keymap, in
@@ -147,29 +166,45 @@ pub(crate) fn draw_confirm(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     f.render_widget(Paragraph::new(lines).block(block), r);
 }
 
+/// The questions over the screen: of the music at the first start, and of the font button.
+pub(crate) fn draw_questions(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
+    draw_music_question(f, app, fr, t, area);
+    draw_font_question(f, app, fr, t, area);
+}
+
 /// The question of the first start, over the screen while the music plays: keep the lofi music on
 /// at each start, or turn it off (LOFI-12). Its two answers take a click.
-pub(crate) fn draw_music_question(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
-    fr.music_answers = None;
-    if !app.music.asking {
-        return;
-    }
-    let w = 58.min(area.width);
+fn draw_music_question(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
     let text = "zendo plays calm lofi music that it makes itself. Keep it on at each start? The [music] button and alt-m stop and start it any time.";
-    let mut lines = markdown::wrap(vec![Span::styled(text, Style::new().fg(t.fg))], w.saturating_sub(4) as usize, "  ", "  ");
-    let (keep, off) = ("[ keep on · y ]", "[ turn off · n ]");
+    fr.music_answers = app.music.asking.then(|| question(f, t, area, " lofi music ", text, ("[ keep on · y ]", "[ turn off · n ]"))).flatten();
+}
+
+/// The question of the font button: may zendo ask the agent (FONT-14). Its answers take a click.
+fn draw_font_question(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
+    let text = match app.font_tip.missing {
+        true => "May zendo ask the agent to install the recommended fonts? The agent runs `zendo setup fonts`, then asks you which font to set in your terminal.",
+        false => "May zendo ask the agent to change the font of your terminal? The agent asks you which font to use before it changes anything.",
+    };
+    fr.font_answers = app.font_tip.asking.then(|| question(f, t, area, " fonts ", text, ("[ yes · y ]", "[ no · n ]"))).flatten();
+}
+
+/// A float in the middle of the screen with a question and two answers; the rects of the answers,
+/// when the whole float fits.
+fn question(f: &mut Frame, t: &Theme, area: Rect, title: &str, text: &str, (yes, no): (&str, &str)) -> Option<(Rect, Rect)> {
+    let w = 58.min(area.width);
+    let mut lines = markdown::wrap(vec![Span::styled(text.to_string(), Style::new().fg(t.fg))], w.saturating_sub(4) as usize, "  ", "  ");
     lines.push(Line::raw(""));
-    lines.push(Line::from(vec![Span::raw("  "), Span::styled(keep, Style::new().fg(t.ext.doc)), Span::raw("   "), Span::styled(off, Style::new().fg(t.dim))]));
+    lines.push(Line::from(vec![Span::raw("  "), Span::styled(yes.to_string(), Style::new().fg(t.ext.doc)), Span::raw("   "), Span::styled(no.to_string(), Style::new().fg(t.dim))]));
     let rows = lines.len() as u16;
     let h = (rows + 2).min(area.height);
     let r = Rect { x: area.x + (area.width - w) / 2, y: area.y + (area.height - h) / 2, width: w, height: h };
     f.render_widget(Clear, r);
-    let block = Block::bordered().title(" lofi music ").border_style(Style::new().fg(t.ext.doc)).style(Style::new().bg(t.panel));
+    let block = Block::bordered().title(title.to_string()).border_style(Style::new().fg(t.ext.doc)).style(Style::new().bg(t.panel));
     f.render_widget(Paragraph::new(lines).block(block), r);
     // On a screen too small for the whole float, the answers take keys only: no rect points at a
     // line that is not drawn.
-    let fits = h == rows + 2 && w as usize >= keep.width() + off.width() + 7;
+    let fits = h == rows + 2 && w as usize >= yes.width() + no.width() + 7;
     let (y, x) = (r.bottom().saturating_sub(2), r.x + 3);
     let button = |x: u16, s: &str| Rect { x, y, width: s.width() as u16, height: 1 };
-    fr.music_answers = fits.then(|| (button(x, keep), button(x + keep.width() as u16 + 3, off)));
+    fits.then(|| (button(x, yes), button(x + yes.width() as u16 + 3, no)))
 }

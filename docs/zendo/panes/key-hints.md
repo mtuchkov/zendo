@@ -13,7 +13,7 @@ note: "Agent draft, moved out of key-change.md on 2026-11-18 to keep each docume
 
 The key float suggests free keys when the pressed key clashes. See [Change a key](key-change.md),
 [Keymap check and wizard](../cli/keymap-wizard.md) and
-[ADR 0012](../../architecture/decisions/0012-key-hints-from-a-light-model.md).
+[ADR 0013](../../architecture/decisions/0013-key-hints-from-a-light-model.md).
 
 **Suggestions.** When the float opens, zendo starts the hint channel with the keymap in effect:
 `haiku` with low effort, through the API of the agent. On a clash, the float shows the suggestions

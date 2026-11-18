@@ -117,7 +117,7 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
             let w = 40.min(main.width / 2);
             let [left, right] = Layout::horizontal([Constraint::Min(1), Constraint::Length(w)]).areas(main);
             draw_read(f, app, fr, &t, left);
-            draw_themes(f, app, &t, right);
+            draw_themes(f, app, fr, &t, right);
         }
         Mode::Read | Mode::Write | Mode::Help => {
             draw_panes(f, app, fr, &t, main);
@@ -131,7 +131,7 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     draw_top(f, app, fr, &t, top);
     draw_bottom(f, app, fr, &t, [status, prompt], below);
     draw_confirm(f, app, &t, area);
-    draw_music_question(f, app, fr, &t, area);
+    draw_questions(f, app, fr, &t, area);
     tips::draw_tips(f, app, fr, &t, area);
     rekey::draw_key_float(f, app, fr, &t, area);
 

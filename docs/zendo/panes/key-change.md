@@ -14,7 +14,7 @@ note: "Agent draft from the request of the user on 2026-11-17. Revision 2 takes 
 
 The user changes the key of one action in place, from the status bar or the help. See
 [Keys, hints and help](keymap.md), [Keymap check and wizard](../cli/keymap-wizard.md),
-[Key hints](key-hints.md), [ADR 0012](../../architecture/decisions/0012-key-hints-from-a-light-model.md) and [Tips](../tips.md).
+[Key hints](key-hints.md), [ADR 0013](../../architecture/decisions/0013-key-hints-from-a-light-model.md) and [Tips](../tips.md).
 
 **The float.** A click on a key in the status bar or in the help makes that key a button. A click
 on the button opens a small float with the action, its pane and its keys; a double click does both.

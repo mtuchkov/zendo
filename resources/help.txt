@@ -1,0 +1,34 @@
+zendo — architecture notes in your repo, with Claude beside them
+
+USAGE
+  zendo [--notes DIR] [--agent CMD | --mock | --offline]
+                                              open the notes; checks Claude first
+  zendo setup [--agent CMD] [--notes-repo DIR|URL|off]
+                                              install the Claude adapter once and check everything;
+                                              --notes-repo keeps the notes in your private notes repo
+  zendo setup fonts                            download and install the recommended fonts for the terminal
+  zendo notes move | consolidate [--agent CMD | --mock]
+                                              Claude moves docs/notes into the notes repo, or merges
+                                              the notes of this project from every machine (by origin)
+  zendo init                                   prepare this repository: project-structure.toml,
+                                              the zendo section for agents, .gitignore
+  zendo doctor [--live] [--fix [--claude]] [--agent CMD | --mock]
+                                              check each step and say what to fix; writes no file.
+                                              --fix repairs the machine and this repository;
+                                              --claude also gives project-structure.toml to Claude
+  zendo upgrade [--force]                      build the newest main, then run zendo doctor --fix
+  zendo keymap                                 print the default keys: start ~/.zendo/keymap.toml from it
+  zendo mcp --session N                        the MCP server of zendo session N (zendo starts it)
+
+OPTIONS
+  --notes DIR   notes folder, relative to the repo root (default: docs/notes, or $ZENDO_NOTES)
+  --agent CMD   ACP agent command (default: $ZENDO_AGENT, then ~/.zendo/config.toml,
+                then the adapter that `zendo setup` installed, then npx)
+  --mock        use the bundled mock agent instead of Claude
+  --offline     open the notes without Claude (no start check)
+  --live        doctor only: also send one short prompt to Claude
+  -V, --version show the version
+  -h, --help    show this help
+
+zendo uses the repo root (the nearest folder with .git) as the working folder.
+Outside a repo, zendo uses your home folder as a scratchpad.

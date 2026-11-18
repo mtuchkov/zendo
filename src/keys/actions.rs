@@ -232,6 +232,7 @@ pub const ACTIONS: &[Action] = &[
     a(Theme, Navigation, "down", "the next theme"),
     a(Theme, Navigation, "up", "the theme before"),
     a(Theme, View, "keep", "keep the theme"),
+    a(Theme, View, "font", "install the fonts of the theme"),
     a(Theme, View, "cancel", "back to the theme before; esc does it too"),
     // the question of a file
     a(Question, Editing, "complete", "complete the folder"),

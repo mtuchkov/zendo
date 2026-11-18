@@ -3746,13 +3746,14 @@ dependencies = [
 
 [[package]]
 name = "zendo"
-version = "0.97.0"
+version = "0.97.1"
 dependencies = [
  "agent-client-protocol",
  "anyhow",
  "base64 0.23.1",
  "chrono",
  "cpal",
+ "flate2",
  "globset",
  "ignore",
  "portable-pty",
@@ -3760,6 +3761,7 @@ dependencies = [
  "ratatui",
  "serde",
  "serde_json",
+ "sha2",
  "similar",
  "smart-default",
  "syn 2.0.119",

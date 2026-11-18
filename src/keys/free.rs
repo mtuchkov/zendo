@@ -1,6 +1,6 @@
 //! The free-key rules (WIZARD-10): which keys an action can take. The key float uses them for its
 //! clashes and its suggestions, and checks each key of the model with them (REKEY-3, REKEY-7,
-//! REKEY-11, REKEY-28, ADR 0012).
+//! REKEY-11, REKEY-28, ADR 0013).
 use super::*;
 
 /// Why a key is not free for an action.

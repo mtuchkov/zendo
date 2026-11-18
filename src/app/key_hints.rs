@@ -1,4 +1,4 @@
-//! The suggestions of the light model in the key float (docs/zendo/panes/key-hints.md, ADR 0012):
+//! The suggestions of the light model in the key float (docs/zendo/panes/key-hints.md, ADR 0013):
 //! one question in the background for each clash; the answer of an older question goes, and the
 //! keys of the model pass the free-key rules before they show.
 use super::*;

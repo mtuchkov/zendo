@@ -8,7 +8,7 @@ sources:
   - "ADR 0007 (keymap wizard as a state machine), ADR 0009 (no UI stalls), ADR 0010 (names through the API)"
 ---
 
-# 0012 Key hints from a light model through the API of the agent
+# 0013 Key hints from a light model through the API of the agent
 
 ## Context
 

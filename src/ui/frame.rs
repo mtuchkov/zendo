@@ -32,6 +32,9 @@ pub struct Frame {
     pub(super) spec_button: Option<Rect>,
     pub(super) upgrade_button: Option<Rect>,
     pub(super) music_answers: Option<(Rect, Rect)>,
+    /// The font button of the theme picker, and the two answers of its question (FONT-14).
+    pub(super) font_button: Option<Rect>,
+    pub(super) font_answers: Option<(Rect, Rect)>,
     /// The help or the find panel over the screen, for a click off it (PANES-47).
     pub(super) overlay: Option<Rect>,
     /// The option and `[OK]` of the tip menu (TIPS-3, TIPS-5).
@@ -146,6 +149,16 @@ impl Frame {
     /// The two answers of the music question: keep on, turn off.
     pub fn music_answers(&self) -> Option<(Rect, Rect)> {
         self.music_answers
+    }
+
+    /// The font button of the theme picker.
+    pub fn font_button(&self) -> Option<Rect> {
+        self.font_button
+    }
+
+    /// The two answers of the font question: yes, no.
+    pub fn font_answers(&self) -> Option<(Rect, Rect)> {
+        self.font_answers
     }
 
     /// The word limit of the document on the screen.

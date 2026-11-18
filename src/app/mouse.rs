@@ -78,6 +78,12 @@ impl App {
         if self.music.asking {
             return self.click_music_question(x, y);
         }
+        if self.font_tip.asking {
+            return self.click_font_question(x, y);
+        }
+        if self.mode == Mode::Theme && self.frame.font_button().is_some_and(|r| hit(&r)) {
+            return self.press_font_button();
+        }
         if self.click_key(x, y) {
             return;
         }

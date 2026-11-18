@@ -71,7 +71,7 @@ pub struct Rekey {
     pub generation: u64,
     #[default(crate::setup::config::config_path())]
     pub config: PathBuf,
-    /// The API of the light model of the hints, with low effort (REKEY-6, ADR 0012).
+    /// The API of the light model of the hints, with low effort (REKEY-6, ADR 0013).
     pub api: Option<crate::agent::api::Api>,
     /// The questions to the model on their threads.
     pub(super) asker: crate::agent::api::Asker,
