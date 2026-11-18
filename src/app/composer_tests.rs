@@ -120,3 +120,45 @@ fn a_second_pick_puts_the_input_back_and_takes_the_next_terminal() {
     assert_eq!(c.next_pick(3), 0);
     assert_eq!(c.input().text(), "see more");
 }
+
+fn history() -> Vec<String> {
+    vec!["first".into(), "two\nlines".into(), "last".into()]
+}
+
+// HISTORY-5, HISTORY-6: `up` goes back through the history, `down` comes forward, and after the
+// newest message the draft of the user comes back.
+#[test]
+fn up_and_down_go_through_the_history_and_bring_the_draft_back() {
+    let mut c = Composer::default();
+    c.input_mut().type_str("my draft");
+    let h = history();
+    assert!(c.recall_back(&h));
+    assert_eq!(c.input().text(), "last");
+    assert!(c.recall_back(&h));
+    assert_eq!(c.input().text(), "two\nlines");
+    assert_eq!((c.input().row, c.input().col), (0, 0), "the cursor is on the first row: the next up goes back");
+    assert!(c.recall_back(&h));
+    assert_eq!(c.input().text(), "first");
+    assert!(!c.recall_back(&h), "nothing before the oldest");
+    assert_eq!(c.input().text(), "first");
+    assert!(c.recall_forward(&h));
+    assert_eq!(c.input().text(), "two\nlines");
+    assert_eq!(c.input().row, 1, "the cursor is on the last row: the next down goes forward");
+    assert!(c.recall_forward(&h));
+    assert!(c.recall_forward(&h));
+    assert_eq!(c.input().text(), "my draft", "the draft comes back");
+    assert!(!c.recall_forward(&h), "down without a recall is a plain down");
+}
+
+// HISTORY-5: an empty history changes nothing, and a sent message ends the recall.
+#[test]
+fn a_send_ends_the_recall() {
+    let mut c = Composer::default();
+    assert!(!c.recall_back(&[]));
+    let h = history();
+    c.recall_back(&h);
+    c.take_message();
+    assert!(!c.recall_forward(&h), "after a send, down does not go through the history");
+    assert!(c.recall_back(&h));
+    assert_eq!(c.input().text(), "last", "a new recall starts at the newest message");
+}

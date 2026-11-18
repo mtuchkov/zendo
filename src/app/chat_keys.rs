@@ -34,8 +34,14 @@ impl App {
             }
             // In a code block, and after the fence that opens it, Enter is a new line (TEXT-10).
             Some("send") if self.composer.in_code() => self.composer.input_mut().enter(true),
-            Some("send" | "send_now") if self.cli.running(self.state.session.min(SESSIONS - 1)) => self.send_to_cli(),
-            Some("send" | "send_now") => self.send_input(),
+            Some("send" | "send_now") if self.cli.running(self.state.session.min(SESSIONS - 1)) => {
+                self.remember_input();
+                self.send_to_cli();
+            }
+            Some("send" | "send_now") => {
+                self.remember_input();
+                self.send_input();
+            }
             None => self.input_key(k),
             Some(a) => self.input_action(a),
         }
@@ -67,6 +73,8 @@ impl App {
         if let Some(id) = self.state.take_session(&self.cfg.agent, &key) {
             self.state.names.remove(&id);
         }
+        // The messages of the old thread go into the common history (HISTORY-2).
+        self.state.history.merge(self.state.session.min(SESSIONS - 1));
         self.state.save(&self.cfg.root);
         self.threads.remove(&key);
         self.flash("new thread");
@@ -99,6 +107,9 @@ impl App {
             return;
         }
         let w = self.frame.input_width().max(10);
+        if k.modifiers.is_empty() && matches!(k.code, KeyCode::Up | KeyCode::Down) && self.recall(k.code == KeyCode::Up, w) {
+            return;
+        }
         let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
         let e = self.composer.input_mut();
         match k.code {
@@ -116,5 +127,22 @@ impl App {
             KeyCode::Down => e.vertical(1, w),
             _ => {}
         }
+    }
+
+    /// The message that goes now goes into the history of the active session (HISTORY-1).
+    fn remember_input(&mut self) {
+        let text = chips::without_chips(&self.composer.input().text());
+        self.state.history.push(self.state.session.min(SESSIONS - 1), &text, chrono::Local::now());
+        self.state.save(&self.cfg.root);
+    }
+
+    /// `up` on the first row or `down` on the last row: the history of the session (HISTORY-5).
+    /// False when the cursor can move, or the history has nothing there.
+    fn recall(&mut self, back: bool, w: usize) -> bool {
+        if !self.composer.input().on_edge(if back { -1 } else { 1 }, w) {
+            return false;
+        }
+        let list = self.state.history.list(self.state.session.min(SESSIONS - 1));
+        if back { self.composer.recall_back(&list) } else { self.composer.recall_forward(&list) }
     }
 }

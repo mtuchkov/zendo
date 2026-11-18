@@ -29,6 +29,9 @@ pub struct Composer {
     about: &'static str,
     /// The last `alt-o`: the index of its terminal, and the input before it (TERM-28).
     pick: Option<(usize, Vec<String>, usize, usize)>,
+    /// `up` in the history: the index of the message on show, and the input before the first `up`
+    /// (HISTORY-5, HISTORY-6).
+    recall: Option<(usize, Editor)>,
 }
 
 impl Default for Composer {
@@ -45,6 +48,7 @@ impl Default for Composer {
             default: None,
             about: "",
             pick: None,
+            recall: None,
         }
     }
 }
@@ -83,6 +87,34 @@ impl Composer {
     pub fn clear(&mut self) {
         self.input.take();
         self.chips.clear();
+        self.recall = None;
+    }
+
+    /// `up` on the first row: the message before in `history`, the oldest first, with the cursor
+    /// on the first row. False when there is none (HISTORY-5).
+    pub fn recall_back(&mut self, history: &[String]) -> bool {
+        let at = self.recall.as_ref().map_or(history.len(), |(i, _)| *i);
+        let Some(i) = at.checked_sub(1).filter(|i| *i < history.len()) else { return false };
+        let draft = self.recall.take().map_or_else(|| self.input.clone(), |(_, d)| d);
+        self.recall = Some((i, draft));
+        self.input = Editor::new(&history[i]);
+        true
+    }
+
+    /// `down` on the last row: the next message, with the cursor at its end; after the newest, the
+    /// input from before the first `up` (HISTORY-6). False when no recall is on.
+    pub fn recall_forward(&mut self, history: &[String]) -> bool {
+        let Some((i, draft)) = self.recall.take() else { return false };
+        match history.get(i + 1) {
+            Some(next) => {
+                self.input = Editor::new(next);
+                let row = self.input.lines.len() - 1;
+                (self.input.row, self.input.col) = (row, self.input.lines[row].chars().count());
+                self.recall = Some((i + 1, draft));
+            }
+            None => self.input = draft,
+        }
+        true
     }
 
     pub fn slash(&self) -> &Slash {
@@ -158,6 +190,7 @@ impl Composer {
 
     /// The text of the input and the chips that are still in it; the input is empty after it.
     pub fn take_message(&mut self) -> (String, Vec<Chip>) {
+        self.recall = None;
         let q = self.input.take();
         let chips = std::mem::take(&mut self.chips).into_iter().filter(|c| q.contains(c.label.as_str())).collect();
         (q, chips)
@@ -174,7 +207,7 @@ impl Composer {
             let all: Vec<String> = self.context.take().into_iter().chain(ctx).collect();
             self.context = Some(all.join("\n"));
         }
-        let bare = chips::chip_ranges(&q).into_iter().rev().fold(q.clone(), |t, (a, b)| t.chars().take(a).chain(t.chars().skip(b)).collect());
+        let bare = chips::without_chips(&q);
         if bare.trim().is_empty() && self.context.is_some() {
             let default = self.default.take().unwrap_or_else(|| super::DELTA_QUESTION.into());
             q = format!("{} {default}", q.trim()).trim().to_string();

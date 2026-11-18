@@ -48,6 +48,11 @@ pub fn chip_ranges(line: &str) -> Vec<(usize, usize)> {
         .collect()
 }
 
+/// The text without its chips: what the history keeps of a message (HISTORY-7).
+pub fn without_chips(q: &str) -> String {
+    chip_ranges(q).into_iter().rev().fold(q.to_string(), |t, (a, b)| t.chars().take(a).chain(t.chars().skip(b)).collect())
+}
+
 impl Composer {
     /// Put a chip into the chat input: at the cursor, or at the end. The label is unique.
     pub fn add_chip(&mut self, base: String, context: Option<String>, attach: Option<Attachment>, at_end: bool) -> String {
