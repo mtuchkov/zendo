@@ -43,6 +43,8 @@ fn tree_in(root: &Path, view: View) -> App {
     a.toggle_tree();
     // As a click on its letter: `v` would show the hint over the tree (FILES-73, FILES-74).
     a.show_tree_view(view);
+    // FILES-79: the text views walk the files on a thread.
+    a.settle_tree();
     a
 }
 
@@ -131,6 +133,7 @@ fn the_changed_view_selects_the_open_file_when_git_answers() {
     let mut a = tree_in(&root, View::Worktree);
     a.open_file(root.join(".worktrees/1/c.md"));
     key(&mut a, KeyCode::Char('v'));
+    a.settle_tree();
     assert_eq!(a.files.tree().view, View::WorktreeChanged);
     settle(&mut a);
     let t = a.files.tree();
@@ -176,14 +179,17 @@ async fn the_worktree_views_follow_the_agent_session() {
     let mut a = tree_in(&root, View::Worktree);
     assert_eq!(a.files.tree().worktree.as_deref(), Some(Path::new(".worktrees/1")));
     a.switch_session(1);
+    a.settle_tree();
     assert_eq!(a.files.tree().worktree, None, "agent session 2 has no worktree");
     assert!(a.files.tree().files.is_empty(), "{:?}", a.files.tree().files);
     let screen = draw(&mut a, 120, 30).join("\n");
     assert!(screen.contains("has no") && screen.contains("worktree yet"), "{screen}");
     a.files.set_view(View::Text);
     key(&mut a, KeyCode::Char('v'));
+    a.settle_tree();
     assert!(!a.files.tree().view.is_worktree(), "v skips the worktree views: {:?}", a.files.tree().view);
     a.switch_session(0);
+    a.settle_tree();
     assert_eq!(a.files.tree().worktree.as_deref(), Some(Path::new(".worktrees/1")));
 }
 
@@ -197,7 +203,9 @@ fn a_file_of_the_worktree_opens_with_the_worktree_in_its_head() {
     key(&mut a, KeyCode::Enter);
     assert_eq!(a.files.current_path(), Some(root.join(".worktrees/1/a.md").as_path()));
     let screen = draw(&mut a, 120, 30);
-    assert!(screen[0].contains("worktree 1 · a.md"), "{}", screen[0]);
+    assert!(screen[0].contains(" a.md") && !screen[0].contains("worktree 1"), "the top line has the path in the worktree: {}", screen[0]);
+    let title = screen.iter().find(|r| r.contains("worktree 1")).expect("the worktree in the head of the note");
+    assert!(title.trim_end().ends_with("worktree 1") && title.contains('a'), "at the right end of the title: {title}");
     // The delta compares with the HEAD of the worktree, not of the main checkout.
     assert_eq!(a.git_head(".worktrees/1/a.md").as_deref(), Some("# a\n"));
 }
@@ -317,8 +325,10 @@ async fn a_question_names_the_document_of_its_session() {
     let root = two_worktrees("ask");
     let mut a = app(&root);
     a.switch_session(0);
+    a.settle_tree();
     a.open_file(root.join(".worktrees/1/a.md"));
     a.switch_session(1);
+    a.settle_tree();
     ask(&mut a).await;
     assert_eq!(attached(&a, 1).as_deref(), Some(".worktrees/2/a.md"));
     let _ = std::fs::remove_dir_all(&root);
@@ -330,13 +340,16 @@ async fn choosing_a_session_shows_its_version_of_the_document() {
     let root = two_worktrees("choose");
     let mut a = app(&root);
     a.switch_session(0);
+    a.settle_tree();
     a.open_file(root.join("a.md"));
     assert_eq!(a.files.current_path(), Some(root.join(".worktrees/1/a.md").as_path()), "a file opens in the version of the session");
     a.focus = Focus::Note;
     assert!(screen(&mut a).contains("body one"));
     a.switch_session(1);
+    a.settle_tree();
     assert!(screen(&mut a).contains("body two"));
     a.switch_session(2);
+    a.settle_tree();
     assert!(screen(&mut a).contains("body main"), "no worktree: the main checkout");
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -348,16 +361,20 @@ async fn a_missing_document_says_so_and_comes_back() {
     write(root.join(".worktrees/1/new.md"), "# new\n\nonly in one\n");
     let mut a = app(&root);
     a.switch_session(0);
+    a.settle_tree();
     a.open_file(root.join(".worktrees/1/new.md"));
     a.switch_session(1);
+    a.settle_tree();
     a.focus = Focus::Note;
     let s = screen(&mut a);
     assert!(s.contains("This document does not exist in this session.") && !s.contains("only in one"), "{s}");
     ask(&mut a).await;
     assert_eq!(attached(&a, 1), None, "a question without a note file");
     a.switch_session(0);
+    a.settle_tree();
     assert!(screen(&mut a).contains("only in one"), "back in its session");
     a.switch_session(1);
+    a.settle_tree();
     write(root.join(".worktrees/2/new.md"), "# new\n\nnow in two\n");
     a.files.look_again();
     a.tick();
@@ -372,6 +389,7 @@ async fn choosing_a_terminal_keeps_the_document() {
     let mut a = app(&root);
     a.cli.shell = Some("/bin/sh".into());
     a.switch_session(1);
+    a.settle_tree();
     a.open_file(root.join("a.md"));
     a.focus = Focus::Note;
     key(&mut a, KeyCode::F(5));
@@ -390,6 +408,7 @@ async fn holding_m_and_u_shows_main_and_the_disk_until_the_key_goes_up() {
     write(root.join(".worktrees/1/new.md"), "# new\n\nonly in one\n");
     let mut a = app(&root);
     a.switch_session(0);
+    a.settle_tree();
     a.open_file(root.join("a.md"));
     a.focus = Focus::Note;
     key(&mut a, KeyCode::Char('m'));
@@ -415,6 +434,7 @@ async fn a_new_note_is_saved_in_the_checkout_of_the_session() {
     let root = two_worktrees("new-note");
     let mut a = app(&root);
     a.switch_session(0);
+    a.settle_tree();
     a.start_write(true);
     for c in "idea\n\nwritten in one".chars() {
         key(&mut a, if c == '\n' { KeyCode::Enter } else { KeyCode::Char(c) });
@@ -426,6 +446,7 @@ async fn a_new_note_is_saved_in_the_checkout_of_the_session() {
     a.mode = zendo::app::Mode::Read;
     assert!(screen(&mut a).contains("written in one"));
     a.switch_session(2);
+    a.settle_tree();
     a.start_write(true);
     for c in "other".chars() {
         key(&mut a, KeyCode::Char(c));
@@ -453,6 +474,7 @@ async fn a_new_note_of_a_notes_repo_stays_in_the_notes_repo() {
     })
     .unwrap();
     a.switch_session(0);
+    a.settle_tree();
     a.start_write(true);
     for c in "kept".chars() {
         key(&mut a, KeyCode::Char(c));
@@ -482,19 +504,25 @@ async fn a_session_opens_its_last_document_again() {
     let root = two_worktrees("last-doc");
     let mut a = app(&root);
     a.switch_session(0);
+    a.settle_tree();
     open_in(&mut a, &root, "a.md");
     a.switch_session(1);
+    a.settle_tree();
     open_in(&mut a, &root, "b.md");
     a.switch_session(0);
+    a.settle_tree();
     assert_eq!(current(&a, &root), ".worktrees/1/a.md", "back in session 1: its last document");
     a.focus = Focus::Note;
     assert!(screen(&mut a).contains("body one"));
     a.switch_session(1);
+    a.settle_tree();
     assert_eq!(current(&a, &root), ".worktrees/2/b.md", "back in session 2: its last document");
     a.switch_session(2);
+    a.settle_tree();
     assert_eq!(current(&a, &root), "b.md", "no last document: the open document stays");
     std::fs::remove_file(root.join(".worktrees/1/a.md")).unwrap();
     a.switch_session(0);
+    a.settle_tree();
     assert_eq!(current(&a, &root), ".worktrees/1/b.md", "the last document is gone: the open document stays");
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -505,12 +533,15 @@ async fn the_last_document_of_a_session_stays_after_a_restart() {
     let root = two_worktrees("last-doc-restart");
     let mut a = app(&root);
     a.switch_session(1);
+    a.settle_tree();
     open_in(&mut a, &root, "c.md");
     a.switch_session(2);
+    a.settle_tree();
     open_in(&mut a, &root, "b.md");
     drop(a);
     let mut a = app(&root);
     a.switch_session(1);
+    a.settle_tree();
     assert_eq!(current(&a, &root), ".worktrees/2/c.md");
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -521,8 +552,10 @@ async fn the_last_document_of_a_session_follows_a_rename() {
     let root = two_worktrees("last-doc-rename");
     let mut a = app(&root);
     a.switch_session(2);
+    a.settle_tree();
     open_in(&mut a, &root, "b.md");
     a.switch_session(3);
+    a.settle_tree();
     open_in(&mut a, &root, "c.md");
     a.files.ask(zendo::app::FilePrompt::Rename(PathBuf::from("b.md"), "b.md".into()));
     for _ in 0.."b.md".len() {
@@ -534,6 +567,7 @@ async fn the_last_document_of_a_session_follows_a_rename() {
     key(&mut a, KeyCode::Enter);
     assert!(root.join("beta.md").exists());
     a.switch_session(2);
+    a.settle_tree();
     assert_eq!(current(&a, &root), "beta.md");
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -567,14 +601,17 @@ async fn a_session_goes_back_to_the_place_in_its_last_document() {
     long_doc(&root);
     let mut a = app(&root);
     a.switch_session(0);
+    a.settle_tree();
     open_in(&mut a, &root, ".worktrees/1/long.md");
     scroll_down(&mut a, 80);
     let left = place(&a);
     assert!(left.0 > 0, "the view scrolled: {left:?}");
     a.switch_session(1);
+    a.settle_tree();
     open_in(&mut a, &root, "b.md");
     assert_eq!(place(&a), (0, 0), "another document starts at the top");
     a.switch_session(0);
+    a.settle_tree();
     screen(&mut a);
     assert_eq!(place(&a), left, "back where the user left it");
     let _ = std::fs::remove_dir_all(&root);
@@ -587,8 +624,10 @@ async fn zendo_starts_on_the_last_document_of_the_active_session() {
     long_doc(&root);
     let mut a = app(&root);
     a.switch_session(1);
+    a.settle_tree();
     open_in(&mut a, &root, "c.md");
     a.switch_session(0);
+    a.settle_tree();
     open_in(&mut a, &root, ".worktrees/1/long.md");
     scroll_down(&mut a, 80);
     let left = place(&a);

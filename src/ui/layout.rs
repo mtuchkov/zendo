@@ -108,8 +108,8 @@ pub(crate) fn draw_top(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, 
                 let doc = app.files.current().and_then(|p| app.doc_rel(p)).unwrap_or_default();
                 format!("{} · {doc}", app.files.peek().on.map_or("", |o| o.name()))
             }
-            // FILES-34: a file of a worktree names its worktree.
-            _ => app.note().map(|n| crate::docs::tree::worktree::label(&app.rel(&n.path))).unwrap_or_else(|| app.rel(&app.cfg.notes_dir)),
+            // FILES-34: the path in the worktree; the head of the note names the worktree.
+            _ => app.note().map(|n| crate::docs::tree::worktree::in_worktree(&app.rel(&n.path))).unwrap_or_else(|| app.rel(&app.cfg.notes_dir)),
         },
     };
     f.render_widget(Paragraph::new(Line::from(vec![Span::raw("  "), Span::raw(left.clone())])).style(Style::new().fg(t.dim)), area);

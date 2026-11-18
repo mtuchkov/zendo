@@ -4,6 +4,10 @@ use super::*;
 impl Tree {
     /// Walk the repo. `.gitignore`, `.git/info/exclude`, the global gitignore and hidden files are skipped.
     pub fn scan(&mut self, root: &Path) {
+        // FILES-79: the text views open each file to see that it is text, on a thread.
+        if self.view == View::Text || self.view == View::Worktree && self.worktree.is_some() {
+            return self.walk_text(root);
+        }
         if self.view.is_worktree() {
             return self.scan_worktree(root);
         }
@@ -46,7 +50,7 @@ impl Tree {
 
     /// Older than the scan interval, or never filled; not while git reads the changes (ADR 0009).
     pub fn stale(&self) -> bool {
-        !self.scanning() && self.scanned.is_none_or(|t| t.elapsed() > Duration::from_secs(5))
+        !self.scanning() && !self.walking() && self.scanned.is_none_or(|t| t.elapsed() > Duration::from_secs(5))
     }
 
     /// The files whose path has every word of `q`, in any case; more words in the file name come first.

@@ -10,6 +10,17 @@ pub(crate) fn title_rows(title: &str, width: usize, t: &Theme) -> Vec<Line<'stat
 /// The head of a note in both modes: the title rows, the date and the tags, and the recap.
 pub(crate) fn note_head(app: &App, note: &Note, width: usize, t: &Theme, title: Vec<Line<'static>>) -> Vec<Line<'static>> {
     let mut lines = title;
+    // FILES-34: a file of a worktree names its worktree at the right end of the title.
+    if let Some((wt, _)) = crate::docs::tree::worktree::split(&app.rel(&note.path)) {
+        let name = format!("worktree {}", &wt[".worktrees/".len()..]);
+        if let Some(first) = lines.first_mut() {
+            let room = width.saturating_sub(first.width());
+            if room > name.width() {
+                first.spans.push(Span::raw(" ".repeat(room - name.width())));
+                first.spans.push(Span::styled(name, Style::new().fg(t.dim)));
+            }
+        }
+    }
     let mut meta = vec![Span::styled(date_label(note), Style::new().fg(t.dim))];
     for tag in note.tags() {
         meta.push(Span::styled(" ", Style::new()));

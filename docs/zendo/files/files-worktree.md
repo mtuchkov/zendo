@@ -39,7 +39,8 @@ not open.
 
 **Opening a file.** `enter` opens the file of the worktree in the note pane, with read, write, delta
 and Claude (FILES-3). The same path can exist in the main checkout, so the head of the note names
-the worktree.
+the worktree at the right end of the title, `worktree 1`; the top line shows the path in the
+worktree (the user, 2026-11-18).
 
 **Actions on files.** In both views, the user can rename, move, delete and make files as in the
 other views ([Actions](files-actions.md)). While the agent of the session answers, it can change
