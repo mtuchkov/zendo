@@ -68,10 +68,10 @@ fn under<'a>(procs: &'a [Proc], pid: u32, skip: &[u32]) -> Vec<(u32, &'a Proc)> 
 }
 
 /// The background processes under `root`: each process that leads a group of its own, is not a
-/// direct child of `root`, and is not under another such process. The subtrees of `skip`, such as
-/// the terminals of the user, do not count.
+/// direct child of `root`, runs a command, and is not under another such process. The subtrees of
+/// `skip`, such as the terminals of the user, do not count.
 pub fn groups(procs: &[Proc], root: u32, skip: &[u32]) -> Vec<Group> {
-    let leads: Vec<(u32, &Proc)> = under(procs, root, skip).into_iter().filter(|(top, p)| p.pid == p.pgid && p.pid != *top && !agent(&p.args)).collect();
+    let leads: Vec<(u32, &Proc)> = under(procs, root, skip).into_iter().filter(|(top, p)| p.pid == p.pgid && p.pid != *top && !agent(&p.args) && command(procs, p)).collect();
     let pids: Vec<u32> = leads.iter().map(|(_, p)| p.pid).collect();
     let mut out: Vec<Group> = leads
         .iter()
@@ -102,6 +102,17 @@ pub fn label(leader: &Proc, procs: &[Proc]) -> String {
         return e.split('\'').next().unwrap_or(e).to_string();
     }
     a.split_once(" -c ").map_or_else(|| a.clone(), |(_, c)| c.trim_start_matches("-l ").to_string())
+}
+
+/// True when the group of `leader` runs a command of the agent: a shell or the background terminal
+/// of Claude Code runs in it. An MCP server, or a helper that it starts, runs no shell (BG-5).
+fn command(procs: &[Proc], leader: &Proc) -> bool {
+    procs.iter().filter(|p| p.pgid == leader.pgid).any(|p| is_shell(&p.args) || p.args.contains("bg-pty-host"))
+}
+
+/// A command line as the background line shows it: each path only by its file (BG-1).
+pub fn short(args: &str) -> String {
+    args.split(' ').map(|w| if w.starts_with('/') { w.rsplit('/').next().unwrap_or(w) } else { w }).collect::<Vec<_>>().join(" ")
 }
 
 /// The processes of an agent itself: the adapters and Claude Code in the mode of an SDK.

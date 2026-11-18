@@ -23,6 +23,10 @@ pub struct Background {
     scans: Option<Receiver<Vec<Proc>>>,
     /// The quit asked about the background processes at this time (BG-4).
     pub quit_asked: Option<Instant>,
+    /// The next key answers the question of the quit: `enter` or `esc` (BG-4).
+    quit_open: bool,
+    /// The list of the background processes is open under `⏷` (BG-11).
+    pub open: bool,
 }
 
 impl Background {
@@ -163,6 +167,7 @@ impl App {
         }
         self.quit = false;
         self.bg.quit_asked = Some(Instant::now());
+        self.bg.quit_open = true;
         let n = self.bg.list.len();
         let (s, run, them) = if n == 1 { ("", "runs", "it") } else { ("es", "run", "them") };
         self.flash(format!("{n} background process{s} {run}: quit again or enter stops {them}, esc leaves {them} running"));
@@ -170,8 +175,9 @@ impl App {
     }
 
     /// `enter` or `esc` right after the question of BG-4. True when the key went to the question.
+    /// Another key, such as the quit key again, goes on as usual, and a second quit stops them.
     pub(crate) fn background_quit_key(&mut self, k: &KeyEvent) -> bool {
-        if !self.bg.quit_asked.is_some_and(|t| t.elapsed() < crate::session::QUIT_AGAIN) {
+        if !std::mem::take(&mut self.bg.quit_open) || !self.bg.quit_asked.is_some_and(|t| t.elapsed() < crate::session::QUIT_AGAIN) {
             return false;
         }
         match k.code {
@@ -180,12 +186,14 @@ impl App {
                 self.bg.list.clear();
                 self.quit = true;
             }
-            _ => {
-                self.bg.quit_asked = None;
-                return false;
-            }
+            _ => return false,
         }
         true
+    }
+
+    /// `⏵` of the background line opens the list of the processes, `⏷` closes it (BG-11).
+    pub fn toggle_background_list(&mut self) {
+        self.bg.open = !self.bg.open;
     }
 }
 
