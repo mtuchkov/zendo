@@ -2,6 +2,7 @@
 
 mod at_keys;
 mod attention;
+mod branch;
 mod chat;
 mod chat_keys;
 mod count;

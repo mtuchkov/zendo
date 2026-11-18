@@ -65,7 +65,7 @@ fn float_rect(app: &App, fr: &Cache, area: Rect) -> Rect {
 }
 
 /// The top line of the float: the path of the note, or the notes folder and `new note` before the
-/// first save; the branch and the key that closes the float (FLOAT-6).
+/// first save; the branch of the note (FILES-62) and the key that closes the float (FLOAT-6).
 fn draw_float_top(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     let path = match app.writer.path() {
         Some(p) => app.rel(p),
@@ -73,7 +73,7 @@ fn draw_float_top(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     };
     let esc = app.keys.first(crate::keys::Pane::Write, "done");
     let mut right = vec![Span::styled("[ ", Style::new().fg(t.dim)), Span::styled(esc, Style::new().fg(t.bg).bg(t.fg)), Span::styled(" close ]", Style::new().fg(t.dim))];
-    if let Some(b) = app.files.branch().filter(|b| !b.is_empty()) {
+    if let Some(b) = app.doc_branch() {
         right.insert(0, Span::styled(format!("{b}  "), Style::new().fg(t.dim)));
     }
     let rw: u16 = right.iter().map(|s| s.content.width() as u16).sum();
