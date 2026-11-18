@@ -75,7 +75,7 @@ fn the_search_box_takes_its_keys_from_the_keymap() {
 fn the_question_of_a_file_takes_its_keys_from_the_keymap() {
     let mut a = remapped("box-question");
     a.files.ask_file(Some("docs/notes/2026-11-18-a.md".into()), 'm');
-    let text = |a: &App| a.files.prompt().and_then(|p| p.field().cloned()).unwrap_or_default();
+    let text = |a: &App| a.files.prompt().and_then(|p| p.field().map(|f| f.text().to_string())).unwrap_or_default();
     assert_eq!(text(&a), "docs/notes");
     for _ in 0..5 {
         press(&mut a, KeyCode::Backspace, KeyModifiers::NONE);

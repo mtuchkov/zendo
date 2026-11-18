@@ -79,8 +79,30 @@ pub(super) fn heading(s: &str) -> Option<(usize, &str)> {
     }
 }
 
+/// The box of a task item: open or done; `None` for a line that is no task.
+pub fn task_box(s: &str) -> Option<char> {
+    let s = s.trim_start();
+    let rest = ["- ", "* ", "+ "].into_iter().find_map(|p| s.strip_prefix(p))?;
+    match rest.get(..4)? {
+        "[ ] " => Some(TASK_OPEN),
+        "[x] " | "[X] " => Some(TASK_DONE),
+        _ => None,
+    }
+}
+
+/// The line with its task checked, or open again; `None` for a line that is no task (TEXT-14).
+pub fn toggle_task(line: &str) -> Option<String> {
+    let at = line.len() - line.trim_start().len() + 2;
+    let next = if task_box(line)? == TASK_OPEN { "[x]" } else { "[ ]" };
+    Some(format!("{}{next}{}", &line[..at], &line[at + 3..]))
+}
+
+/// The box of an open task and of a done task on the screen.
+pub const TASK_OPEN: char = '☐';
+pub const TASK_DONE: char = '☑';
+
 pub(super) fn bullet(s: &str) -> Option<&str> {
-    for p in ["- [ ] ", "- [x] ", "- ", "* ", "+ "] {
+    for p in ["- [ ] ", "- [x] ", "- [X] ", "* [ ] ", "* [x] ", "+ [ ] ", "+ [x] ", "- ", "* ", "+ "] {
         if let Some(r) = s.strip_prefix(p) {
             return Some(r);
         }

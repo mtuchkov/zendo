@@ -64,19 +64,20 @@ async fn the_chat_header_does_not_name_the_open_document() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// CLAUDE-15: the status bar names alt-enter for a new line: a terminal without the kitty keyboard protocol
-// sends shift-enter as enter. PANES-33: the badge of the chat pane is `CHAT`.
+// CLAUDE-15, CLAUDE-30: the status bar names ctrl-j for a new line: a terminal without the kitty
+// keyboard protocol sends shift-enter as enter. alt-enter sends (TEXT-10). PANES-33: the badge of the
+// chat pane is `CHAT`.
 #[tokio::test]
-async fn alt_enter_is_a_new_line_and_the_status_bar_says_so() {
+async fn ctrl_j_is_a_new_line_and_the_status_bar_says_so() {
     let root = repo("chat-alt-enter", &files());
     let mut a = app(&root);
     a.open_panel();
     a.focus = Focus::Claude;
     let screen = draw(&mut a, 160, 30);
     let bar = screen.iter().rev().find(|r| r.contains(" CHAT ")).unwrap();
-    assert!(bar.contains("alt-enter new line"), "{bar}");
+    assert!(bar.contains("^j new line"), "{bar}");
     typ(&mut a, "one");
-    a.on_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::ALT));
+    a.on_key(KeyEvent::new(KeyCode::Char('j'), KeyModifiers::CONTROL));
     typ(&mut a, "two");
     assert_eq!(a.composer.input().text(), "one\ntwo");
     key(&mut a, KeyCode::Left);

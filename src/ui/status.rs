@@ -197,13 +197,13 @@ pub(crate) fn draw_file_prompt(f: &mut Frame, app: &App, t: &Theme, area: Rect) 
         spans.push(Span::styled(format!("{yes} / n"), Style::new().fg(t.dim)));
         return f.render_widget(Paragraph::new(Line::from(spans)), area);
     };
-    let ghost = app.complete_folder(text).and_then(|c| c.strip_prefix(text.as_str()).map(str::to_string)).unwrap_or_default();
-    spans.push(Span::styled(text.clone(), Style::new().fg(t.fg).bg(t.panel)));
+    let ghost = app.complete_folder(text.text()).and_then(|c| c.strip_prefix(text.text()).map(str::to_string)).unwrap_or_default();
+    spans.extend(super::field::spans(text, Style::new().fg(t.fg).bg(t.panel), Style::new().fg(t.fg).bg(t.sel)));
     spans.push(Span::styled(format!("{ghost} "), Style::new().fg(t.dim).bg(t.panel)));
     let key = |a| app.keys.first(crate::keys::Pane::Question, a);
     let tab = if ghost.is_empty() { String::new() } else { format!("   {} complete", key("complete")) };
     spans.push(Span::styled(format!("{tab}   {} ok   esc cancel", key("ok")), Style::new().fg(t.dim)));
-    f.set_cursor_position((area.x + (used + text.width()) as u16, area.y));
+    f.set_cursor_position((area.x + (used + text.cursor_width()) as u16, area.y));
     f.render_widget(Paragraph::new(Line::from(spans)), area);
 }
 

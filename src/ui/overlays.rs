@@ -42,6 +42,12 @@ pub(crate) fn draw_help(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, are
         sel[0].insert(0, Row::Text(Line::raw("")));
         groups.append(&mut sel);
     }
+    // Where a one-line field takes keys: find and search (the global help), the tree filter (TEXT-11).
+    if matches!(app.key_help.pane(), Pane::Global | Pane::Tree) {
+        let mut field = help_section(t, Pane::Field);
+        field[0].insert(0, Row::Text(Line::raw("")));
+        groups.append(&mut field);
+    }
     if app.key_help.pane() != Pane::Global {
         let mut global = help_section(t, Pane::Global);
         global[0].insert(0, Row::Text(Line::raw("")));

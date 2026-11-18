@@ -7,6 +7,7 @@ next: "../notes.md"
 children:
   - "selection.md"
   - "keymap.md"
+  - "text-input/text-input.md"
   - "key-change.md"
   - "key-hints.md"
 level: "the panes as a whole: layouts, widths, hiding, focus, scrolling, themes"
@@ -18,8 +19,9 @@ note: "Agent rewrite of the reference of zendo 0.9.1. Revision 5 moves this docu
 zendo has four panes: the file tree, the note, the chat with Claude and the delta. The note is the
 main pane. The other panes open and close on the request of the user. Each pane has its own
 document for what it shows: [Notes](../notes.md), [File tree](../files/files.md), [Claude](../claude.md),
-[Work, delta and recaps](../work.md). Two topics that hold for all panes are child documents:
-[Text selection](selection.md), [Keys, hints and help](keymap.md), [Change a key](key-change.md) and [Key hints](key-hints.md).
+[Work, delta and recaps](../work.md). Five topics that hold for all panes are child documents:
+[Text selection](selection.md), [Keys, hints and help](keymap.md), [Text input](text-input/text-input.md),
+[Change a key](key-change.md) and [Key hints](key-hints.md).
 
 The user has two layout presets and no other layout settings. In wide screen, the open panes stand
 side by side. In standard, the note and the chat share the screen, and the delta takes the place of

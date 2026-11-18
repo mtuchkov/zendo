@@ -10,6 +10,7 @@ mod table;
 mod wrap;
 
 use blocks::*;
+pub use blocks::{TASK_DONE, TASK_OPEN, task_box, toggle_task};
 use code::*;
 pub use code::FILE_FENCE;
 pub use inline::*;
@@ -245,7 +246,8 @@ impl Renderer<'_> {
         let indent = raw.len() - trimmed.len();
         let pad_in = " ".repeat(indent.min(8));
         if let Some(rest) = bullet(trimmed) {
-            let first = format!("{pad_in}• ");
+            // A task shows its box; a click on it checks the task (TEXT-14).
+            let first = format!("{pad_in}{} ", task_box(trimmed).unwrap_or('•'));
             let hang = " ".repeat(first.width());
             let lines = wrap(inline(rest, base, t), width, &first, &hang);
             self.out.extend(lines.into_iter().enumerate().map(|(i, mut l)| {

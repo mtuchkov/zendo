@@ -109,7 +109,7 @@ impl App {
             self.did(Pane::Global, "help");
             return self.open_help(Pane::Write);
         }
-        if self.selection_key(Pane::Write, &k) {
+        if self.date_key(Pane::Write, &k) || self.selection_key(Pane::Write, &k) {
             return;
         }
         let local = self.keys.local(Pane::Write, &k);

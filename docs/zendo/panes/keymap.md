@@ -4,7 +4,7 @@ revision: "1"
 date: "2026-11-14"
 parent: "panes.md"
 prev: "selection.md"
-next: "key-change.md"
+next: "text-input/text-input.md"
 level: "where the keys of zendo come from, and how the status bar and the help show them"
 note: "Agent draft, split from panes.md on 2026-11-14; no requirement changed. On 2026-11-17 the user changed PANES-18: a key for each frequently used action, not for every action; on 2026-11-18, frequent by the usage counts from real use, and every key in the keymap except `esc` (PANES-48); the user approved PANES-18 and PANES-48 on 2026-11-18. The other requirements are not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---

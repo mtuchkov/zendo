@@ -21,7 +21,7 @@ pub struct FindItem {
 
 #[derive(Default)]
 pub struct Find {
-    pub query: String,
+    pub query: crate::text::field::Field,
     pub items: Vec<FindItem>,
     pub sel: usize,
     /// The selected file, read for the preview.
@@ -61,28 +61,18 @@ impl App {
         self.files.find.preview = None;
     }
 
-    /// A key in the find panel: the keys of `[list]`; `esc` is fixed, a plain char types
-    /// (PANES-48).
+    /// A key in the find panel: the keys of `[list]`, then the field; `esc` is fixed (PANES-48).
     pub(crate) fn key_find(&mut self, k: KeyEvent) {
-        let plain = !k.modifiers.intersects(KeyModifiers::CONTROL | KeyModifiers::ALT);
         match (k.code, self.keys.local(crate::keys::Pane::List, &k)) {
             (KeyCode::Esc, _) => self.close_find(),
             (_, Some("open")) => self.find_enter(),
             (_, Some("down")) => self.find_move(true),
             (_, Some("up")) => self.find_move(false),
-            (_, Some("delete_char")) => {
-                self.files.find.query.pop();
-                self.run_find();
+            _ => {
+                if self.field_key(&k, |a| Some(&mut a.files.find.query)) == Some(true) {
+                    self.run_find();
+                }
             }
-            (_, Some("clear")) => {
-                self.files.find.query.clear();
-                self.run_find();
-            }
-            (KeyCode::Char(c), None) if plain => {
-                self.files.find.query.push(c);
-                self.run_find();
-            }
-            _ => {}
         }
     }
 

@@ -86,7 +86,7 @@ pub struct Tree {
     /// The folders of the repository, in the text view.
     pub dirs: Vec<PathBuf>,
     /// The file name filter (`/` in the tree): while it is on, the tree is a flat list of matches.
-    pub find: Option<String>,
+    pub find: Option<crate::text::field::Field>,
     /// The notes folder in the notes repo, while the notes repo is on (FILES-25).
     pub notes: Option<PathBuf>,
     /// The markdown files of the notes folder, relative to it.

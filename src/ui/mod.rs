@@ -5,6 +5,7 @@ mod chat;
 pub(crate) mod cli;
 mod code_pane;
 mod delta_pane;
+mod field;
 mod find;
 mod float;
 pub mod frame;

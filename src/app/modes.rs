@@ -102,10 +102,8 @@ impl App {
         self.lists.search(self.files.notes());
     }
 
-    /// A key in the search box: the keys of `[list]`; `esc` is fixed, a char without ctrl types
-    /// (PANES-48).
+    /// A key in the search box: the keys of `[list]`, then the field; `esc` is fixed (PANES-48).
     pub(crate) fn key_search(&mut self, k: KeyEvent) {
-        let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
         match (k.code, self.keys.local(crate::keys::Pane::List, &k)) {
             (KeyCode::Esc, _) => self.mode = Mode::Read,
             (_, Some("down")) => self.lists.result_down(),
@@ -128,21 +126,11 @@ impl App {
                     self.reader.unselect();
                 }
             }
-            (_, Some("delete_char")) => {
-                self.lists.edit_query(|q| {
-                    q.pop();
-                });
-                self.run_search();
+            _ => {
+                if self.field_key(&k, |a| Some(a.lists.query_mut())) == Some(true) {
+                    self.run_search();
+                }
             }
-            (_, Some("clear")) => {
-                self.lists.edit_query(String::clear);
-                self.run_search();
-            }
-            (KeyCode::Char(c), None) if !ctrl => {
-                self.lists.edit_query(|q| q.push(c));
-                self.run_search();
-            }
-            _ => {}
         }
     }
 

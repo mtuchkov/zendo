@@ -3,7 +3,8 @@
 use super::{Effect, Files};
 use crate::app::TreeAct;
 use crate::docs::tree::Kind;
-use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crate::text::field::{Field, Typed};
+use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use std::path::PathBuf;
 
 /// What `enter` on a row of the tree gives.
@@ -69,7 +70,7 @@ impl Files {
                 None => {}
             },
             "search" => {
-                self.tree.find = Some(String::new());
+                self.tree.find = Some(Field::default());
                 self.tree.sel = 0;
             }
             _ => return false,
@@ -77,13 +78,11 @@ impl Files {
         true
     }
 
-    /// Typing in the file name filter of the tree: `act` is the action of the key in `[list]`;
-    /// `esc` is fixed, a plain char types (PANES-48).
+    /// Typing in the file name filter of the tree.
+    /// `act` is the action of the key in `[list]`; `esc` is fixed (PANES-48).
     pub fn key_filter(&mut self, k: KeyEvent, act: Option<&str>) -> FilterKey {
-        let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
         let last = self.tree.rows().len().saturating_sub(1);
-        let Some(empty) = self.tree.find.as_ref().map(String::is_empty) else { return FilterKey::Done };
-        let typed = !ctrl && !k.modifiers.contains(KeyModifiers::ALT);
+        let Some(empty) = self.tree.find.as_ref().map(|f| f.is_empty()) else { return FilterKey::Done };
         match (k.code, act) {
             (KeyCode::Esc, _) => {
                 // The tree comes back with the match selected.
@@ -103,24 +102,25 @@ impl Files {
                     return FilterKey::Open(rel);
                 }
             }
-            (_, Some("delete_char")) if empty => self.tree.find = None,
-            (_, Some("delete_char")) => self.edit_filter(|q| {
-                q.pop();
-            }),
+            (KeyCode::Backspace, _) if empty => self.tree.find = None,
             (_, Some("down")) => self.tree.sel = (self.tree.sel + 1).min(last),
             (_, Some("up")) => self.tree.sel = self.tree.sel.saturating_sub(1),
-            (_, Some("clear")) => self.edit_filter(String::clear),
-            (KeyCode::Char(c), None) if typed => self.edit_filter(|q| q.push(c)),
-            _ => {}
+            _ => {
+                if self.tree.find.as_mut().is_some_and(|f| f.key(None, &k) == Typed::Changed) {
+                    self.tree.sel = 0;
+                }
+            }
         }
         FilterKey::Done
     }
 
-    /// Change the text of the filter: the first match is selected.
-    fn edit_filter(&mut self, edit: impl FnOnce(&mut String)) {
-        if let Some(q) = self.tree.find.as_mut() {
-            edit(q);
-        }
+    /// The field of the filter, for the keys of the field.
+    pub(crate) fn filter_field(&mut self) -> Option<&mut Field> {
+        self.tree.find.as_mut()
+    }
+
+    /// The text of the filter changed: the first match is selected.
+    pub(crate) fn filter_changed(&mut self) {
         self.tree.sel = 0;
     }
 

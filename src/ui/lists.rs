@@ -102,11 +102,7 @@ pub(crate) fn draw_search(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
         let m: usize = app.lists.results().iter().map(|g| g.count).sum();
         format!("{m} matches · {} notes", app.lists.results().len())
     };
-    let q = app.lists.query().to_string();
-    let pad = (w as usize).saturating_sub(q.width() + count.width() + 8);
-    let line = Line::from(vec![Span::styled("  / ", Style::new().fg(t.acc)), Span::raw(q.clone()), Span::raw(" ".repeat(pad)), Span::styled(count, dim)]);
-    f.render_widget(Paragraph::new(line), Rect { y: boxr.y + 1, height: 1, ..boxr });
-    f.set_cursor_position((boxr.x + 4 + q.width() as u16, boxr.y + 1));
+    super::field::draw_query(f, t, boxr, app.lists.query_field(), Span::styled(count, dim));
 
     let list = Rect { y: col.y + 4, height: col.height.saturating_sub(4), ..col };
     let mut lines: Vec<Line> = Vec::new();
