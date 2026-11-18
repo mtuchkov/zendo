@@ -2,6 +2,7 @@
 
 mod at_keys;
 mod attention;
+mod background;
 mod branch;
 mod chat;
 mod chat_keys;
@@ -64,6 +65,7 @@ pub use composer::Composer;
 pub use composer::chips;
 pub(crate) use composer::{at, slash};
 pub use attention::Attention;
+pub use background::{Background, Bg, ran};
 pub use effect::Effect;
 pub use file_prompt::FilePrompt;
 pub use files_state::Files;
@@ -188,6 +190,8 @@ pub struct App {
     pub hold: Option<Hold>,
     /// The bell and the blinking buttons when a turn ends, and the sound button (ATTN-1 to ATTN-11).
     pub attention: Attention,
+    /// The background processes of the agent and of the Claude Code sessions (BG-1 to BG-10).
+    pub bg: Background,
     /// The lofi music, its button, and the question at the first start (LOFI-8 to LOFI-15).
     pub music: crate::music::Music,
     /// The font tip of the theme picker and its question (FONT-13 to FONT-16, FONT-21).

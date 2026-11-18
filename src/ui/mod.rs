@@ -1,6 +1,7 @@
 //! Drawing. One calm column of text, a status bar, and a side panel for Claude.
 
 pub mod theme;
+mod background;
 mod chat;
 pub(crate) mod cli;
 mod code_pane;
@@ -102,10 +103,7 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     .areas(area);
 
     fr.regions.clear();
-    fr.session_buttons.clear();
-    fr.play_buttons.clear();
-    fr.new_terminal_button = None;
-    fr.tree_fold.clear();
+    fr.clear_pane_buttons();
     f.render_widget(Paragraph::new("─".repeat(rule.width as usize)).style(Style::new().fg(t.line)), rule);
     fr.view_height = main.height as usize;
 

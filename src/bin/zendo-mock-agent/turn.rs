@@ -34,6 +34,10 @@ pub(super) async fn turn(cx: Cx, p: PromptRequest) -> Result<StopReason> {
     if question.to_lowercase().contains("shell") {
         return ask_shell(&cx, &sid, n).await;
     }
+    if let Some(secs) = question.strip_prefix("background ") {
+        background(&cx, &sid, n, secs).await?;
+        return if question.contains("slow") { slow(&cx, &sid, n).await } else { Ok(StopReason::EndTurn) };
+    }
     if question.contains("slow") {
         return slow(&cx, &sid, n).await;
     }
@@ -105,6 +109,18 @@ async fn slow(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, n: u6
     tokio::time::sleep(Duration::from_secs(8)).await;
     stream(cx, sid, "Done.").await?;
     Ok(StopReason::EndTurn)
+}
+
+/// `background 6101 6102`: a step for each number starts `sleep <number>` in a process group of
+/// its own and leaves it running, as Claude Code does with a command in the background (BG-1).
+async fn background(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, n: u64, secs: &str) -> Result<()> {
+    use std::os::unix::process::CommandExt;
+    for (i, s) in secs.split_whitespace().filter(|s| s.parse::<u32>().is_ok()).enumerate() {
+        let _ = std::process::Command::new("sleep").arg(s).process_group(0).stdout(std::process::Stdio::null()).spawn();
+        let call = ToolCall::new(format!("bg-{n}-{i}"), format!("sleep {s}")).kind(ToolKind::Execute).status(ToolCallStatus::Completed);
+        cx.send_notification(SessionNotification::new(sid.clone(), SessionUpdate::ToolCall(call)))?;
+    }
+    stream(cx, sid, "It runs in the background. ").await
 }
 
 /// A question about the shell: the mock asks to run a command, and zendo must reject it.

@@ -105,16 +105,8 @@ impl App {
             self.did_by_mouse(crate::keys::Pane::Read, "upgrade");
             return self.upgrade();
         }
-        if let Some(n) = self.frame.session_buttons().iter().find(|(r, _)| hit(r)).map(|(_, n)| *n) {
-            self.count_session_button(n);
-            return if n < SESSIONS { self.switch_session(n) } else { self.open_terminal(n - SESSIONS) };
-        }
-        if self.frame.new_terminal_button().is_some_and(|r| hit(&r)) {
-            return self.new_terminal();
-        }
-        if let Some(cmd) = self.frame.play_buttons().iter().find(|(r, _)| hit(r)).map(|(_, c)| c.to_string()) {
-            self.did_by_mouse(crate::keys::Pane::Global, "terminal");
-            return self.put_into_terminal(&cmd, false);
+        if self.click_panel_button(&hit) {
+            return;
         }
         if let Some(open) = self.frame.tree_fold().iter().find(|(r, _)| hit(r)).map(|(_, o)| *o) {
             return self.fold_all(open);
@@ -143,6 +135,25 @@ impl App {
 
     /// A click off a panel that stands over the screen closes it, as `esc` does: the help, the
     /// find panel, or the float under them (PANES-47). True when the click closed a panel.
+    /// A button of the chat panel: a session, a new terminal, the background line (BG-3, BG-8), or
+    /// the play button of a shell block. True when the click hit one.
+    fn click_panel_button(&mut self, hit: &impl Fn(&Rect) -> bool) -> bool {
+        if let Some(n) = self.frame.session_buttons().iter().find(|(r, _)| hit(r)).map(|(_, n)| *n) {
+            self.count_session_button(n);
+            if n < SESSIONS { self.switch_session(n) } else { self.open_terminal(n - SESSIONS) }
+        } else if self.frame.new_terminal_button().is_some_and(|r| hit(&r)) {
+            self.new_terminal();
+        } else if let Some((_, pgid, stop)) = self.frame.bg_buttons().iter().find(|(r, ..)| hit(r)).copied() {
+            if stop { self.stop_background(pgid) } else { self.show_background(pgid) }
+        } else if let Some(cmd) = self.frame.play_buttons().iter().find(|(r, _)| hit(r)).map(|(_, c)| c.to_string()) {
+            self.did_by_mouse(crate::keys::Pane::Global, "terminal");
+            self.put_into_terminal(&cmd, false);
+        } else {
+            return false;
+        }
+        true
+    }
+
     fn click_off_panel(&mut self, x: u16, y: u16) -> bool {
         let off = |r: Option<Rect>| r.is_some_and(|r| !r.contains(ratatui::layout::Position::new(x, y)));
         match self.mode {

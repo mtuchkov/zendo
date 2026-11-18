@@ -26,6 +26,8 @@ pub struct ToolUse {
     pub place: Option<String>,
     /// The first line of the error of a failed call (ACT-8).
     pub error: Option<String>,
+    /// When zendo got the call: a command that starts after it belongs to it (BG-1).
+    pub started: Option<Instant>,
 }
 
 #[derive(Clone, Debug)]

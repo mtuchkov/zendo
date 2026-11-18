@@ -10,6 +10,9 @@ pub const EXTERNAL_QUESTION: &str = "The next undo takes back a change of the fi
 
 impl App {
     pub fn on_key(&mut self, k: KeyEvent) {
+        if self.background_quit_key(&k) {
+            return;
+        }
         self.key_in(k);
         self.commit_edits();
     }
