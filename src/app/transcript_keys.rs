@@ -12,7 +12,11 @@ impl App {
         }
         match act {
             "copy" => self.copy_transcript(),
+            "add_to_chat" if self.step_to_chat() => {}
             "add_to_chat" => self.transcript_to_chat(),
+            "open_step" => {
+                self.toggle_step();
+            }
             _ => {}
         }
     }

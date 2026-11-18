@@ -174,6 +174,7 @@ pub const ACTIONS: &[Action] = &[
     a(Transcript, Selection, "select_word_right", "select a word right"),
     a(Transcript, Selection, "copy", "copy the selection, or the message"),
     a(Transcript, Features, "add_to_chat", "add the selection, or the message, to the chat"),
+    a(Transcript, Features, "open_step", "open or close a step"),
     a(Transcript, View, "input", "back to the input"),
     a(Transcript, View, "back", "clear the selection / back to the input"),
     // tree

@@ -39,10 +39,10 @@ impl App {
                 }
             }
             Event::Thought { key } => self.thread(&key).thinking = true,
-            Event::Tool { key, id, title, kind, state, place, error } => {
-                let place = place.map(|p| self.in_root(&p));
-                let error = error.and_then(|e| e.lines().map(str::trim).find(|l| !l.is_empty()).map(str::to_string));
-                self.on_tool(key, ToolUse { id, title, kind, state, place, error, started: None })
+            Event::Tool { key, id, title, kind, state, mut info } => {
+                info.place = info.place.map(|p| self.in_root(&p));
+                info.error = info.error.and_then(|e| e.lines().map(str::trim).find(|l| !l.is_empty()).map(str::to_string));
+                self.on_tool(key, ToolUse { id, title, kind, state, info, ..Default::default() })
             }
             // The agent edits without a question to the user (CLAUDE-33); the tool line shows it.
             Event::Permission { request, choices, .. } => {
@@ -149,8 +149,7 @@ impl App {
                 if new.state != crate::agent::ToolState::Pending {
                     u.state = new.state;
                 }
-                u.place = new.place.or(u.place.take());
-                u.error = new.error.or(u.error.take());
+                u.info.merge(new.info);
             }
             // An update for a call we never saw (e.g. the edit behind a proposal).
             None if new.title.is_empty() => {}

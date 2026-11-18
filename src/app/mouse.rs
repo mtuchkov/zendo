@@ -126,7 +126,10 @@ impl App {
             return self.interact(1);
         }
         match region {
-            Region::Panel if self.focus == Focus::Claude && self.cli.pane.is_none() => self.threads.click(dy, rect.height as usize, dx),
+            Region::Panel if self.focus == Focus::Claude && self.cli.pane.is_none() => {
+                self.threads.click(dy, rect.height as usize, dx);
+                self.click_step();
+            }
             Region::Panel => {}
             Region::Note if self.mode == Mode::Read => self.place_reader(dy, dx),
             _ => self.interact(1),
