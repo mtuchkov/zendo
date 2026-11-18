@@ -121,6 +121,16 @@ impl Threads {
         self.scroll = max - start;
         start
     }
+
+    /// A click on row `y` and column `x` of a view of `h` rows: the transcript gets the keys, with
+    /// the cursor under the pointer, so the view does not move (PANES-46).
+    pub fn click(&mut self, y: usize, h: usize, x: usize) {
+        let rows = self.transcript.rows();
+        let max = rows.len().saturating_sub(h);
+        let row = (max - self.scroll.min(max) + y).min(rows.len().saturating_sub(1));
+        let col = rows.get(row).map_or(0, |r| crate::text::select::col_at(r, x));
+        self.transcript.enter_at(row, col);
+    }
 }
 
 impl<Q: AsRef<str> + ?Sized> std::ops::Index<&Q> for Threads {

@@ -16,6 +16,17 @@ pub enum Region {
     Panel,
 }
 
+/// The char of `row` under column `x` of the screen; past the end of the text, its last char.
+pub fn col_at(row: &str, x: usize) -> usize {
+    let text = row.trim_end();
+    let mut w = 0;
+    let under = text.chars().take_while(|c| {
+        w += unicode_width::UnicodeWidthChar::width(*c).unwrap_or(0);
+        w <= x
+    });
+    under.count().min(text.chars().count().saturating_sub(1))
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct Selection {
     pub region: Region,

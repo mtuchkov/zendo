@@ -67,6 +67,7 @@ impl App {
         if self.music.asking {
             return self.click_music_question(x, y);
         }
+        self.focus_pane_at(x, y);
         if self.frame.music_button().is_some_and(|r| hit(&r)) {
             return self.toggle_music();
         }
@@ -94,7 +95,6 @@ impl App {
         }
         let row = self.frame.tree_rows().iter().find(|(r, _)| hit(r)).map(|(_, i)| *i);
         if let Some(i) = row {
-            self.focus = Focus::Tree;
             self.files.select_row(i);
             self.did_by_mouse(crate::keys::Pane::Tree, "preview");
             self.tree_activate(false);
@@ -102,28 +102,35 @@ impl App {
         }
         let Some((region, rect)) = self.region_at(x, y) else { return };
         self.pointer.press(Some(Selection::start(region, rect, x, y)));
-        if matches!(self.mode, Mode::Read | Mode::Write) {
-            self.focus = match region {
-                Region::Panel => Focus::Claude,
-                Region::Delta => Focus::Delta,
-                Region::Note => Focus::Note,
-            };
+        let (dx, dy) = ((x - rect.x) as usize, (y - rect.y) as usize);
+        match region {
+            Region::Panel if self.focus == Focus::Claude && self.cli.pane.is_none() => self.threads.click(dy, rect.height as usize, dx),
+            Region::Panel => {}
+            Region::Note if self.mode == Mode::Read => self.place_reader(dy, dx),
+            _ => self.interact(1),
         }
-        if region != Region::Panel {
-            self.interact(1);
+    }
+
+    /// A click in a pane moves the focus there, as `tab` does; in the chat pane the keys go to the
+    /// input, and to the transcript only for a click in it (PANES-46).
+    fn focus_pane_at(&mut self, x: u16, y: u16) {
+        if !matches!(self.mode, Mode::Read | Mode::Write) {
+            return;
         }
-        if region == Region::Note && self.mode == Mode::Read {
-            let at = self.reader.scroll() + (y - rect.y) as usize;
-            let row = self.frame.read_text().get(at).cloned().unwrap_or_default();
-            let mut w = 0;
-            let want = (x - rect.x) as usize;
-            let col = row.trim_end().chars().take_while(|c| {
-                w += unicode_width::UnicodeWidthChar::width(*c).unwrap_or(0);
-                w <= want
-            }).count().min(row.trim_end().chars().count().saturating_sub(1));
-            self.reader.place(at, col);
-            self.reader.unselect();
+        let under = self.frame.pane_rects().iter().find(|(_, r)| r.contains(ratatui::layout::Position::new(x, y)));
+        if let Some(&(pane, _)) = under {
+            self.focus = pane;
+            self.threads.transcript_mut().focus(false);
         }
+    }
+
+    /// A click in the note in read mode: the cursor goes to the char under the pointer.
+    fn place_reader(&mut self, dy: usize, dx: usize) {
+        self.interact(1);
+        let at = self.reader.scroll() + dy;
+        let row = self.frame.read_text().get(at).cloned().unwrap_or_default();
+        self.reader.place(at, crate::text::select::col_at(&row, dx));
+        self.reader.unselect();
     }
 
     /// The wheel scrolls the pane under the pointer.

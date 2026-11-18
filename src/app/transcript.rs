@@ -49,6 +49,13 @@ impl Transcript {
         (self.row, self.col, self.want) = (row, col, col);
     }
 
+    /// A click: the keys go to the transcript, with the cursor at `row` and `col` (PANES-46).
+    pub fn enter_at(&mut self, row: usize, col: usize) {
+        self.on = true;
+        self.anchor = None;
+        self.place(row, col);
+    }
+
     pub fn blocks(&self) -> &[(usize, usize, String)] {
         &self.blocks
     }

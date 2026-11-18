@@ -1,14 +1,14 @@
 ---
 status: "draft"
-revision: "5"
-date: "2026-11-14"
+revision: "6"
+date: "2026-11-17"
 parent: "../zendo.md"
 next: "../notes.md"
 children:
   - "selection.md"
   - "keymap.md"
 level: "the panes as a whole: layouts, widths, hiding, focus, scrolling, themes"
-note: "Agent rewrite of the reference of zendo 0.9.1. Revision 5 moves this document to panes/panes.md, and the selection and the keys to its children selection.md and keymap.md, to keep each document within two pages; no requirement changed. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent rewrite of the reference of zendo 0.9.1. Revision 5 moves this document to panes/panes.md, and the selection and the keys to its children selection.md and keymap.md, to keep each document within two pages; no requirement changed. Revision 6 adds PANES-46: a click in a pane moves the focus and the keys there. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Panes and layouts
@@ -64,6 +64,7 @@ own: most terminals change it with `ctrl-+` and `ctrl--`. In read mode: `w` swit
 | PANES-11 | Ubiquitous | The system shall keep a minimum width for the note, and give the note the width that the other panes do not use.                    | Design           |
 | PANES-12 | Event      | When the user changes the width of a pane, the system shall keep the width for the repository.                                       | Design           |
 | PANES-14 | Event      | When the user turns the mouse wheel, the system shall scroll the pane under the pointer.                                             | Design           |
+| PANES-46 | Event      | When the user clicks in a pane, the system shall move the focus and the keys to that pane, as `tab` does; in the chat pane, to the transcript for a click in the transcript, with its cursor under the pointer, and to the chat input for a click in any other place of the pane. | User, 2026-11-17 |
 | PANES-20 | Event      | When scroll events come faster than one each 40 ms, as from a trackpad, the system shall scroll one line for each event and draw once for all the events that are waiting. | User, 2026-11-12 |
 | PANES-15 | Event      | When the user presses `t`, the system shall show the next of the four themes, and keep the choice.                                   | User, 2026-11-11 |
 | PANES-21 | Event      | When the user opens the delta and it does not fit beside the file tree, the system shall close the file tree. | User, 2026-11-12 |
@@ -71,7 +72,9 @@ own: most terminals change it with `ctrl-+` and `ctrl--`. In read mode: `w` swit
 
 Tests that verify detailed requirements: `the_delta_closes_the_tree_when_it_does_not_fit` (PANES-21),
 `the_width_keys_change_the_text_column` and `the_width_keys_change_the_code_column_on_a_code_file`
-(PANES-22).
+(PANES-22), the tests of `tests/pane_click.rs`,
+`a_click_puts_the_cursor_of_the_transcript_under_the_pointer` and
+`col_at_finds_the_char_under_the_pointer` (PANES-46).
 
 The other `PANES` identifiers are in [Text selection](selection.md) (PANES-3, PANES-13, PANES-34 to
 PANES-45) and in [Keys, hints and help](keymap.md) (PANES-16 to PANES-19, PANES-23 to PANES-33).
