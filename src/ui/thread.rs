@@ -45,15 +45,59 @@ pub(crate) fn panel_lines(app: &App, t: &Theme, w: usize) -> (Vec<Line<'static>>
         out.push(Line::raw(""));
     }
     if let Some(start) = th.busy {
-        let e = start.elapsed();
-        let word = if th.thinking { "thinking" } else { "working" };
-        out.push(Line::styled(format!("{word} {} {} s", SPIN[(e.as_millis() / 300) as usize % 4], e.as_secs()), dim));
+        out.push(Line::styled(status_line(th, start), dim));
     }
     for q in &th.queue {
         out.extend(markdown::wrap(vec![Span::styled(format!("queued › {}", question_of(&q.question)), dim)], w, "", "         "));
     }
     out.extend(cli_line(app, t));
     (out, blocks)
+}
+
+/// After this long without an event of the agent, the status line says so (ACT-2).
+const NO_NEWS: std::time::Duration = std::time::Duration::from_secs(60);
+
+/// The status line of a turn: the step that runs now, or `thinking`, the time of the turn, and the
+/// time since the last news when it is long (ACT-1, ACT-2).
+fn status_line(th: &crate::app::Thread, start: std::time::Instant) -> String {
+    let e = start.elapsed();
+    let step = running_step(th).map_or_else(|| "thinking".to_string(), step_label);
+    let mut s = format!("{} {step} · {} s", SPIN[(e.as_millis() / 300) as usize % 4], e.as_secs());
+    let quiet = th.news.unwrap_or(start).elapsed();
+    if quiet >= NO_NEWS {
+        s.push_str(&format!(" · no news for {} min", quiet.as_secs() / 60));
+    }
+    s
+}
+
+/// The last step of the turn that has not ended.
+fn running_step(th: &crate::app::Thread) -> Option<&crate::app::ToolUse> {
+    th.items
+        .iter()
+        .rev()
+        .take_while(|it| !matches!(it, Item::User(_)))
+        .filter_map(|it| match it {
+            Item::Tools { uses, .. } => uses.iter().rev().find(|u| !u.state.ended()),
+            _ => None,
+        })
+        .next()
+}
+
+/// What a step does, as the status line says it: `reading docs/a.md`.
+fn step_label(u: &crate::app::ToolUse) -> String {
+    let verb = match u.kind.as_str() {
+        "read" => "reading",
+        "edit" => "editing",
+        "search" => "searching",
+        "fetch" => "fetching",
+        "execute" => "running",
+        "think" => "thinking",
+        "delete" => "deleting",
+        "move" => "moving",
+        _ => "using",
+    };
+    let what = u.place.clone().filter(|p| !p.is_empty()).unwrap_or_else(|| u.title.clone());
+    format!("{verb} {what}")
 }
 
 /// The play button of a shell block: green, at the right end of its first row (TERM-8).
@@ -160,6 +204,12 @@ fn tool_lines(app: &App, uses: &[crate::app::ToolUse], took: std::time::Duration
     let mut s: Vec<String> = counts.iter().map(|(k, n)| if *n == 1 { k.clone() } else { format!("{k} {n}") }).collect();
     s.push(format!("{:.0} s", took.as_secs_f32()));
     let mut out = vec![Line::styled(s.join(" · "), dim)];
+    // A failed step shows always, with the first line of its error (ACT-8).
+    for u in uses.iter().filter(|u| u.state == crate::agent::ToolState::Failed) {
+        let what = if u.title.is_empty() { u.place.clone().unwrap_or_default() } else { u.title.clone() };
+        let text = u.error.as_ref().map_or_else(|| what.clone(), |e| format!("{what}: {e}"));
+        out.extend(markdown::wrap(vec![Span::styled(text, dim)], w, "  ✗ ", "    "));
+    }
     if app.threads.details() {
         for u in uses {
             out.extend(markdown::wrap(vec![Span::styled(u.title.clone(), dim)], w, "  · ", "    "));

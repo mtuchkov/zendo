@@ -103,6 +103,7 @@ impl App {
         let t = self.thread(&key);
         t.push(Item::User(out.question));
         t.busy = Some(Instant::now());
+        t.news = t.busy;
         t.dropped = false;
         t.primed |= !out.command;
         t.files.push(out.sent);
