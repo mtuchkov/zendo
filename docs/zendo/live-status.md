@@ -59,4 +59,4 @@ Tests: `tests/live_status.rs`, with the mock agent.
 
 | Open question | Affects | Answered by |
 | ------------- | ------- | ----------- |
-| The rate limit comes in an extension of the Claude adapter, not of ACP; [ADR 0012](../architecture/decisions/0012-agent-activity-from-acp-and-hooks.md) (draft) uses it. Does the user approve the record? | LIVE-2 | User |
+| The rate limit comes in an extension of the Claude adapter, not of ACP; [ADR 0014](../architecture/decisions/0014-agent-activity-from-acp-and-hooks.md) (draft) uses it. Does the user approve the record? | LIVE-2 | User |

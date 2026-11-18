@@ -4,9 +4,9 @@ revision: "3"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "live-status.md"
-next: "terminal/terminal.md"
-level: "what the user can do during a turn without Claude Code: steer the turn, open a step, take the next question, stop one task, change the mode"
-note: "Agent draft from the request of the user on 2026-11-18 in chat: a more interactive chat. The status line is in live-status.md. Revision 2: no queue during a turn; a key makes the agent read the steering now (User, 2026-11-18). Revision 3: `ctrl-s` stays, a click opens a step, the keys do not clash (User, 2026-11-18). Background tasks on ACP v2 behind `--experimental` (ADR 0013, User, 2026-11-18). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+next: "background.md"
+level: "what the user can do during a turn without Claude Code: steer the turn, open a step, take the next question, change the mode"
+note: "Agent draft from the request of the user on 2026-11-18 in chat: a more interactive chat. The status line is in live-status.md. Revision 2: no queue during a turn; a key makes the agent read the steering now (User, 2026-11-18). Revision 3: `ctrl-s` stays, a click opens a step, the keys do not clash (User, 2026-11-18). Background processes and their stop are in background.md (User, 2026-11-18). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Interactivity of the chat
@@ -22,7 +22,7 @@ so the agent does not lose its work. The transcript shows it at its place with `
 the turn ends first, it goes as the next question. The new action `steer_now` (`ctrl-s`; `ctrl-x`
 is cut, and the keymap has no key pairs) gives the waiting questions and the text of the input to
 the agent at once: the agent stops what it writes and reads them, and a command that runs goes on
-in the background. `↑` in the empty input takes a waiting question back. Where the agent cannot
+in the background. `up` brings a waiting question back into the input, as for the history (HISTORY-5), and takes it out of the waiting questions. Where the agent cannot
 steer, a question during a turn waits for the end of the turn, as now.
 
 **Open a step.** In the transcript, a click on a step or `o` on it opens it under its line: the
@@ -35,9 +35,7 @@ file at its line in the note pane. `a` adds the result of the step to the questi
 input shows it in the dim color. `→` puts it into the input and does not send it. The first key
 that types text removes the suggestion.
 
-**Stop one task.** With `--experimental` on ACP v2 ([ADR 0013](../architecture/decisions/0013-acp-v2-behind-experimental.md)), `x` on the step of a command
-or a monitor that runs in the background stops only that task; the turn goes on. A click on `×` at
-its name in the `background` line (ACT-12) does the same. Without it, these keys are off.
+**Stop one task.** The stop of one background process is in [Background processes](background.md).
 
 **The mode.** When the mode of the agent is not the default one, such as `plan` or `accept edits`,
 the status line shows it. `shift-tab` in the chat input changes to the next mode, as in Claude Code.
@@ -49,7 +47,6 @@ the status line shows it. `shift-tab` in the chat input changes to the next mode
 | INTER-1  | Event   | When the user sends a question while a turn runs, where the agent can steer, the system shall give the question to the agent in the running turn when the step that runs now ends. | User, 2026-11-18 |
 | INTER-2  | Event   | When the user opens a step, the system shall show the input, the output, the diff, or the error of the step under its line. | User, 2026-11-18 |
 | INTER-3  | Event   | When a turn ends with a suggested next question, the system shall show it in the empty chat input in the dim color, and put it into the input on `→` without sending it. | User, 2026-11-18 |
-| INTER-4  | Optional | Where zendo runs with `--experimental` on ACP v2, when the user stops a task that runs in the background, the system shall stop only that task and let the turn go on. | User, 2026-11-18 |
 | INTER-5  | Event   | When the user presses `shift-tab` in the chat input, the system shall change the agent to its next mode and show the mode in the status line. | User, 2026-11-18 |
 
 ### Acceptance tests
@@ -76,13 +73,6 @@ Tests: `tests/interactivity.rs`, with the mock agent.
 - When the user presses `→`.
 - Then the input holds `run the tests`, and nothing went to the agent.
 
-**`one_task_stops_and_the_turn_goes_on`** (mock agent; verifies INTER-4)
-
-- Given zendo with `--experimental` on ACP v2, and a running turn with one command in the
-  background.
-- When the user presses `x` on its step.
-- Then the agent gets a stop for that task only, and the turn still runs.
-
 **`shift_tab_changes_the_mode`** (mock agent; verifies INTER-5)
 
 - Given a mock agent with the modes `default` and `plan`.
@@ -99,12 +89,13 @@ Tests: `tests/interactivity.rs`, with the mock agent.
 | INTER-9  | Event      | When the user clicks the file of a step, the system shall open the file at its line in the note pane. | Design |
 | INTER-10 | Event      | When the user presses `a` on a step, the system shall add the result of the step to the question as a chip. | Design |
 | INTER-11 | Event      | When the user types text into the input that shows a suggestion, the system shall remove the suggestion. | Design |
-| INTER-12 | Optional   | Where zendo runs with `--experimental` on ACP v2, when the user clicks `×` at the name of a task in the `background` line, the system shall stop that task (INTER-4). | Design |
 | INTER-13 | Event      | When the turn ends while a question that steers it waits, the system shall send the question as the next question. | Design |
-| INTER-14 | Event      | When the user presses `↑` in the empty chat input while a question that steers the turn waits, the system shall take the last waiting question back into the input. | Design |
+| INTER-14 | Event      | When the user brings a waiting question that steers the turn back into the input with `up` (HISTORY-5), the system shall take it out of the waiting questions. | Design |
+
+Retired: INTER-4 and INTER-12 (the stop of one task on ACP v2 only), because BG-3 of [Background processes](background.md) covers them on every version (User, 2026-11-18).
 
 ## Open points
 
 | Open question | Affects | Answered by |
 | ------------- | ------- | ----------- |
-| Steering and the suggestion are extensions of the Claude adapter; [ADR 0012](../architecture/decisions/0012-agent-activity-from-acp-and-hooks.md) (draft) uses them. Does the user approve the record? | INTER-1, INTER-3 | User |
+| Steering and the suggestion are extensions of the Claude adapter; [ADR 0014](../architecture/decisions/0014-agent-activity-from-acp-and-hooks.md) (draft) uses them. Does the user approve the record? | INTER-1, INTER-3 | User |

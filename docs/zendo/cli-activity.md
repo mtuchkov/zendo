@@ -49,8 +49,9 @@ question in the chat goes away.
 **What the user can do.** A question that the user sends during a turn goes into Claude Code
 (SESSIONS-4), and Claude Code takes it into the running turn itself: this is the steering of a
 Claude Code session. `shift-tab` in the chat input goes to Claude Code and changes its mode. A
-click or `o` opens a step (INTER-2). `steer_now`, the next question, and the stop of one task are
-off for a Claude Code session, because its hooks do not give them (CLAUDE-14).
+click or `o` opens a step (INTER-2). `steer_now` and the next question are off for a Claude Code
+session, because its hooks do not give them (CLAUDE-14). Its background processes show and stop as
+for the agent ([Background processes](background.md)).
 
 ## Architecturally significant requirements
 
@@ -93,7 +94,7 @@ Tests: `tests/cli_activity.rs`, with the mock command line of [Sessions](session
 | CLIACT-6  | State      | While Claude Code thinks and the transcript has the text of the thought, the system shall show the last line of the thought in the status line of its chat. | Design |
 | CLIACT-7  | Event      | When a turn of Claude Code ends with an error, the system shall show the reason in its chat. | Design |
 | CLIACT-8  | Event      | When the user presses `shift-tab` in the chat input of a Claude Code session, the system shall send it to Claude Code. | Design |
-| CLIACT-9  | Ubiquitous | The system shall turn off `steer_now`, the next question, and the stop of one task in the chat of a Claude Code session. | Design |
+| CLIACT-9  | Ubiquitous | The system shall turn off `steer_now` and the next question in the chat of a Claude Code session. | Design |
 | CLIACT-11 | Event     | When the user answers a question of Claude Code in the session view first, the system shall remove the question from its chat. | Design |
 | CLIACT-12 | Ubiquitous | The system shall work with the latest version of Claude Code at the date of the release of zendo. | User, 2026-11-18 |
 

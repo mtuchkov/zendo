@@ -6,7 +6,7 @@ parent: "zendo.md"
 prev: "chat-history.md"
 next: "checklist.md"
 level: "what the chat shows about the work of the agent during a turn: the status line, the steps, the questions, the commands, the signs of life"
-note: "Agent draft from the request of the user on 2026-11-18 in chat: the chat shall show the current state of the agent, so that the user is calm and does not switch to Claude Code to see it. Revision 2: the answers of the user on 2026-11-18 (questions on, allowed commands run and show). Revision 3: `no news` after 1 min, the output of a command only in an open step, the same detail for a Claude Code session (User, 2026-11-18). Revision 4: the checklist moved to checklist.md, to keep the document within two pages (User, 2026-11-18). Background tasks on ACP v2 behind `--experimental` (ADR 0013, User, 2026-11-18). Not reviewed by the user as a document. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft from the request of the user on 2026-11-18 in chat: the chat shall show the current state of the agent, so that the user is calm and does not switch to Claude Code to see it. Revision 2: the answers of the user on 2026-11-18 (questions on, allowed commands run and show). Revision 3: `no news` after 1 min, the output of a command only in an open step, the same detail for a Claude Code session (User, 2026-11-18). Revision 4: the checklist moved to checklist.md, to keep the document within two pages (User, 2026-11-18). Background processes are in background.md (User, 2026-11-18). Not reviewed by the user as a document. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Activity of the agent
@@ -37,9 +37,8 @@ wait for the user.
 A command that the settings of the user allow runs without a question, and so does a monitor: the
 user allowed it, so zendo does not block it (User, 2026-11-18).
 Its step shows the command and its exit code. The last three lines of its output show only when the
-user opens the step ([Interactivity of the chat](interactivity.md)), and change while it runs. With `--experimental`
-on ACP v2, one `background` line under the status line names each command or monitor that runs
-in the background ([ADR 0013](../architecture/decisions/0013-acp-v2-behind-experimental.md)).
+user opens the step ([Interactivity of the chat](interactivity.md)), and change while it runs.
+A command that goes on in the background shows in the background line ([Background processes](background.md)).
 
 The chat of a running Claude Code session shows the same activity from its hooks
 ([Activity of a Claude Code session](cli-activity.md)).
@@ -90,11 +89,12 @@ Tests: `tests/activity.rs`, with the mock agent.
 | ACT-8  | Event    | When a step fails, the system shall mark it as failed and show the first line of its error. | Design |
 | ACT-9  | Optional | Where the agent tells how full the context of the thread is, the system shall show it in the status line as a percentage. | Design |
 | ACT-11 | Event    | When a question of the agent waits and the user does not see its session, the system shall ring and blink as at the end of a turn (ATTN-1, ATTN-2). | Design |
-| ACT-12 | Optional | Where zendo runs with `--experimental` on ACP v2, while commands or monitors of the agent run in the background, the system shall name each in one `background` line under the status line, and show one line in the chat when each ends. | User, 2026-11-18 |
 | ACT-13 | Ubiquitous | The system shall show a subagent as one step with its description, the step that it runs now, and its time. | Design |
+
+Retired: ACT-12 (the background line on ACP v2 only), because BG-1 of [Background processes](background.md) covers it on every version (User, 2026-11-18).
 
 ## Open points
 
 | Open question | Affects | Answered by |
 | ------------- | ------- | ----------- |
-| What zendo tells the adapter that it shows, and the extensions of the adapter that it uses, are in [ADR 0012](../architecture/decisions/0012-agent-activity-from-acp-and-hooks.md), a draft. Does the user approve it? | ACT-3 to ACT-7 | User |
+| What zendo tells the adapter that it shows, and the extensions of the adapter that it uses, are in [ADR 0014](../architecture/decisions/0014-agent-activity-from-acp-and-hooks.md), a draft. Does the user approve it? | ACT-3 to ACT-7 | User |

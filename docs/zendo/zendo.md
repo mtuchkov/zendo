@@ -32,6 +32,7 @@ children:
   - "transcript.md"
   - "live-status.md"
   - "interactivity.md"
+  - "background.md"
   - "terminal/terminal.md"
   - "attention.md"
   - "project-structure.md"
@@ -82,7 +83,8 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Checklist](checklist.md)                    | The plan of the agent at the top of the transcript, closed and open |
 | [Transcript](transcript.md)                  | The time of each message; the question of the turn at the top of the transcript |
 | [A status line that is alive](live-status.md) | The thought, the waits of the agent, and the pulse in the status line |
-| [Interactivity of the chat](interactivity.md) | Steer a turn, open a step, the next question, stop one task, the mode |
+| [Interactivity of the chat](interactivity.md) | Steer a turn, open a step, the next question, the mode |
+| [Background processes](background.md)        | That background processes of the agent still run, which ones, their end, their stop |
 | [Terminal](terminal/terminal.md)             | Shell blocks in the chat, the `F5` and `[>]` terminals in the chat pane, their output for the agent |
 | [Attention](attention.md)                    | The bell and the blinking button when a turn ends; `[sound]`   |
 | [Project structure](project-structure.md)    | `project-structure.toml`: use and repair                      |

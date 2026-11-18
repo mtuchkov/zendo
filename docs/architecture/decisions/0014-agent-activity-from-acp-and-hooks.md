@@ -10,7 +10,7 @@ sources:
   - "ADR 0001 (Claude through ACP), ADR 0005 (sessions in own terminals)"
 ---
 
-# 0012 The activity of the agent comes from ACP and from the hooks of Claude Code
+# 0014 The activity of the agent comes from ACP and from the hooks of Claude Code
 
 ## Context
 
@@ -63,9 +63,8 @@ Proposal of the agent, not yet approved: the second option.
 - zendo shall send `_session/steering` only when the adapter advertises it. zendo shall hold a
   question until the step that runs ends, and send it at once only on `steer_now` (INTER-1,
   INTER-7).
-- zendo shall not declare the `_meta.jetbrains.air` namespace. On ACP v1, the `background` line
-  (ACT-12) and the stop of one task (INTER-4, INTER-12) stay off; ADR 0013 gives them on ACP v2
-  behind `--experimental`.
+- zendo shall not declare the `_meta.jetbrains.air` namespace. The background processes come from
+  the process tree of zendo on every version (ADR 0016).
 - For a Claude Code session, zendo shall read the activity only from the hooks of its run and from
   its transcript (CLIACT-2), and shall answer a permission or a question through a blocking
   `PermissionRequest` hook (CLIACT-10).
@@ -91,5 +90,5 @@ Proposal of the agent, not yet approved: the second option.
 
 ## Decision record
 
-Draft of the agent, 2026-11-18. Waits for the review of the user. The background tasks: ADR 0013
-(ACP v2 behind `--experimental`), not the capability of JetBrains AIR.
+Draft of the agent, 2026-11-18. Waits for the review of the user. The background processes: ADR 0016
+(the process tree of zendo), not the capability of JetBrains AIR.

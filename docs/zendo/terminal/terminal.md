@@ -3,7 +3,7 @@ status: "draft"
 revision: "4"
 date: "2026-11-13"
 parent: "../zendo.md"
-prev: "../interactivity.md"
+prev: "../background.md"
 next: "../attention.md"
 children:
   - "shell-blocks.md"

@@ -27,7 +27,7 @@ again (Design).
 
 - Claude Code waits for an answer or a permission (CLIACT-3).
 - A tool, a subagent or a background task of Claude Code runs: a background task would end with
-  the process.
+  the process ([Background processes](background.md)).
 - The user typed keys in the session view after the last prompt that Claude Code got: the text
   that the user did not send would be lost. zendo knows the keys that it gave to Claude Code; it
   does not read the screen (CLIACT-2).
