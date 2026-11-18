@@ -42,10 +42,16 @@ pub enum Pane {
     Notes,
     /// The session view: a Claude Code session on the whole screen.
     Session,
+    /// The search box, the find panel and the file name filter of the tree (PANES-48).
+    List,
+    /// The theme list (PANES-48).
+    Theme,
+    /// The question of a file: a name, a folder, or yes for a delete (PANES-48).
+    Question,
 }
 
 impl Pane {
-    pub const ALL: [Pane; 10] = [Pane::Global, Pane::Read, Pane::Write, Pane::Chat, Pane::Selected, Pane::Transcript, Pane::Tree, Pane::Delta, Pane::Notes, Pane::Session];
+    pub const ALL: [Pane; 13] = [Pane::Global, Pane::Read, Pane::Write, Pane::Chat, Pane::Selected, Pane::Transcript, Pane::Tree, Pane::Delta, Pane::Notes, Pane::Session, Pane::List, Pane::Theme, Pane::Question];
 
     pub fn name(self) -> &'static str {
         match self {
@@ -59,6 +65,9 @@ impl Pane {
             Pane::Delta => "delta",
             Pane::Notes => "notes",
             Pane::Session => "session",
+            Pane::List => "list",
+            Pane::Theme => "theme",
+            Pane::Question => "question",
         }
     }
 

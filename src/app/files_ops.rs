@@ -24,28 +24,29 @@ impl Files {
         None
     }
 
-    /// The keys while a question is open: `y` or not for a delete; typing, `tab`, `enter` and `esc`
-    /// for a name or a folder. `root` is the repository.
-    pub fn key_prompt(&mut self, k: KeyEvent, root: &Path) -> Option<Effect> {
+    /// The keys while a question is open: `yes` or not for a delete; typing, `complete`, `ok` and
+    /// `esc` for a name or a folder. `act` is the action of the key in `[question]`; `esc` is fixed
+    /// (PANES-48). `root` is the repository.
+    pub fn key_prompt(&mut self, k: KeyEvent, act: Option<&str>, root: &Path) -> Option<Effect> {
         let mut prompt = self.prompt.take()?;
         let Some(text) = prompt.field_mut() else {
-            return match (&prompt, k.code) {
-                (FilePrompt::Delete(rel), KeyCode::Char('y' | 'Y')) => self.delete(root, rel),
+            return match (&prompt, act) {
+                (FilePrompt::Delete(rel), Some("yes")) => self.delete(root, rel),
                 _ => None,
             };
         };
-        match k.code {
-            KeyCode::Esc => return None,
-            KeyCode::Enter => return self.finish(prompt, root),
-            KeyCode::Tab => {
+        match (k.code, act) {
+            (KeyCode::Esc, _) => return None,
+            (_, Some("ok")) => return self.finish(prompt, root),
+            (_, Some("complete")) => {
                 if let Some(t) = complete_folder(root, text) {
                     *text = t;
                 }
             }
-            KeyCode::Backspace => {
+            (_, Some("delete_char")) => {
                 text.pop();
             }
-            KeyCode::Char(c) if !k.modifiers.intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) => text.push(c),
+            (KeyCode::Char(c), None) if !k.modifiers.intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) => text.push(c),
             _ => {}
         }
         self.prompt = Some(prompt);

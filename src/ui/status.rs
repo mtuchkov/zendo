@@ -100,8 +100,12 @@ fn status_keys(app: &App, fr: &Cache, t: &Theme, claude: bool) -> (&'static str,
             ("WRITE", t.acc2, v)
         }
         Mode::Notes => ("NOTES", t.acc, hints(Pane::Notes, &[("down", "move"), ("open", "open"), ("new", "new"), ("rename", "rename"), ("tags", "by tag"), ("close", "close")])),
-        m @ (Mode::Search | Mode::Find) => if m == Mode::Find { ("FIND", t.acc, list_keys("open")) } else { ("SEARCH", t.acc, list_keys("open at match")) },
-        Mode::Theme => ("THEME", t.acc, vec![("j k".into(), "preview".into(), Vec::new()), ("enter".into(), "keep".into(), Vec::new()), ("esc".into(), "cancel".into(), Vec::new())]),
+        m @ (Mode::Search | Mode::Find) => if m == Mode::Find { ("FIND", t.acc, list_keys(app, "open")) } else { ("SEARCH", t.acc, list_keys(app, "open at match")) },
+        Mode::Theme => {
+            let mut v = hints(Pane::Theme, &[("down", "preview"), ("keep", "keep")]);
+            v.push(("esc".into(), "cancel".into(), Vec::new()));
+            ("THEME", t.acc, v)
+        }
     }
 }
 
@@ -189,14 +193,16 @@ pub(crate) fn draw_file_prompt(f: &mut Frame, app: &App, t: &Theme, area: Rect) 
     let mut spans = vec![Span::raw("  "), Span::styled(format!(" {badge} "), Style::new().bg(t.acc2).fg(t.bg).add_modifier(Modifier::BOLD)), Span::raw("  "), Span::styled(ask.clone(), Style::new().fg(t.fg))];
     let used = 2 + badge.width() + 2 + 2 + ask.width();
     let Some(text) = p.field() else {
-        spans.push(Span::styled("y / n", Style::new().fg(t.dim)));
+        let yes = app.keys.first(crate::keys::Pane::Question, "yes");
+        spans.push(Span::styled(format!("{yes} / n"), Style::new().fg(t.dim)));
         return f.render_widget(Paragraph::new(Line::from(spans)), area);
     };
     let ghost = app.complete_folder(text).and_then(|c| c.strip_prefix(text.as_str()).map(str::to_string)).unwrap_or_default();
     spans.push(Span::styled(text.clone(), Style::new().fg(t.fg).bg(t.panel)));
     spans.push(Span::styled(format!("{ghost} "), Style::new().fg(t.dim).bg(t.panel)));
-    let tab = if ghost.is_empty() { "" } else { "   tab complete" };
-    spans.push(Span::styled(format!("{tab}   enter ok   esc cancel"), Style::new().fg(t.dim)));
+    let key = |a| app.keys.first(crate::keys::Pane::Question, a);
+    let tab = if ghost.is_empty() { String::new() } else { format!("   {} complete", key("complete")) };
+    spans.push(Span::styled(format!("{tab}   {} ok   esc cancel", key("ok")), Style::new().fg(t.dim)));
     f.set_cursor_position((area.x + (used + text.width()) as u16, area.y));
     f.render_widget(Paragraph::new(Line::from(spans)), area);
 }
@@ -213,7 +219,9 @@ pub fn group_label(labels: &[&str]) -> String {
     format!("{}{}", first[..prefix].iter().collect::<String>(), tails.join("/"))
 }
 
-/// The fixed keys of the search box and of the find panel.
-fn list_keys(open: &str) -> Hints {
-    vec![("↑ ↓".into(), "move".into(), Vec::new()), ("enter".into(), open.into(), Vec::new()), ("esc".into(), "back".into(), Vec::new())]
+/// The keys of the search box and of the find panel, from `[list]`; `esc` is fixed (PANES-48).
+fn list_keys(app: &App, open: &str) -> Hints {
+    let mut v = hints(app, crate::keys::Pane::List, &[("down", "move"), ("open", open)]);
+    v.push(("esc".into(), "back".into(), Vec::new()));
+    v
 }

@@ -197,4 +197,22 @@ pub const ACTIONS: &[Action] = &[
     a(Notes, View, "close", "close"),
     // session
     a(Session, View, "leave", "back to zendo; the program runs on"),
+    // the search box, the find panel and the file name filter of the tree (PANES-48)
+    a(List, Navigation, "down", "the next item"),
+    a(List, Navigation, "up", "the item before"),
+    a(List, Editing, "delete_char", "delete the char before"),
+    a(List, Editing, "clear", "clear the text"),
+    a(List, Editing, "rename", "the file name filter: rename the file"),
+    a(List, Editing, "delete", "the file name filter: delete the file"),
+    a(List, View, "open", "open the item"),
+    // the theme list
+    a(Theme, Navigation, "down", "the next theme"),
+    a(Theme, Navigation, "up", "the theme before"),
+    a(Theme, View, "keep", "keep the theme"),
+    a(Theme, View, "cancel", "back to the theme before; esc does it too"),
+    // the question of a file
+    a(Question, Editing, "complete", "complete the folder"),
+    a(Question, Editing, "delete_char", "delete the char before"),
+    a(Question, App, "ok", "do it"),
+    a(Question, App, "yes", "yes: delete the file"),
 ];

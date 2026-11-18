@@ -34,7 +34,8 @@ impl App {
 
     /// The keys while a question about a file is open.
     pub(crate) fn key_file_prompt(&mut self, k: KeyEvent) {
-        let done = self.files.key_prompt(k, &self.cfg.root);
+        let act = self.keys.local(crate::keys::Pane::Question, &k);
+        let done = self.files.key_prompt(k, act, &self.cfg.root);
         self.apply(done);
     }
 

@@ -32,6 +32,8 @@ fn related(pane: Pane) -> Vec<Pane> {
         Pane::Global => Pane::ALL.to_vec(),
         Pane::Write | Pane::Chat => vec![pane, Pane::Selected, Pane::Global],
         Pane::Selected => vec![pane, Pane::Write, Pane::Chat, Pane::Global],
+        // The boxes and the theme list take their keys before the global keys.
+        Pane::List | Pane::Theme | Pane::Question => vec![pane],
         p => vec![p, Pane::Global],
     }
 }
@@ -46,7 +48,7 @@ pub fn clash(map: &Keymap, pane: Pane, action: &str, key: Key) -> Option<Clash> 
         return None;
     }
     let plain = matches!(key.code, KeyCode::Char(_)) && !key.ctrl && !key.alt;
-    if plain && matches!(pane, Pane::Global | Pane::Write | Pane::Chat) {
+    if plain && matches!(pane, Pane::Global | Pane::Write | Pane::Chat | Pane::List | Pane::Question) {
         return Some(Clash::Text);
     }
     related(pane).into_iter().find_map(|p| map.owner(p, key).filter(|n| *n != action).map(|n| Clash::Taken(p, n)))
@@ -109,6 +111,9 @@ const FREQUENT: &[(Pane, &[&str])] = &[
     (Pane::Delta, &["base", "ask", "recap", "close"]),
     (Pane::Notes, &["down", "open", "new", "rename", "tags", "close"]),
     (Pane::Session, &["leave"]),
+    (Pane::List, &["down", "up", "open", "delete_char"]),
+    (Pane::Theme, &["down", "keep"]),
+    (Pane::Question, &["ok", "yes", "delete_char"]),
 ];
 
 /// The action is frequently used: it keeps at least one key (PANES-18, REKEY-31).

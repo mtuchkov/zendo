@@ -77,14 +77,15 @@ impl Files {
         true
     }
 
-    /// Typing in the file name filter of the tree.
-    pub fn key_filter(&mut self, k: KeyEvent) -> FilterKey {
+    /// Typing in the file name filter of the tree: `act` is the action of the key in `[list]`;
+    /// `esc` is fixed, a plain char types (PANES-48).
+    pub fn key_filter(&mut self, k: KeyEvent, act: Option<&str>) -> FilterKey {
         let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
         let last = self.tree.rows().len().saturating_sub(1);
         let Some(empty) = self.tree.find.as_ref().map(String::is_empty) else { return FilterKey::Done };
         let typed = !ctrl && !k.modifiers.contains(KeyModifiers::ALT);
-        match k.code {
-            KeyCode::Esc => {
+        match (k.code, act) {
+            (KeyCode::Esc, _) => {
                 // The tree comes back with the match selected.
                 let picked = self.tree_file();
                 self.tree.find = None;
@@ -93,25 +94,23 @@ impl Files {
                 }
             }
             // The keys of the files work on the selected match too.
-            KeyCode::F(2) => return FilterKey::Act(TreeAct::File(self.tree_file(), 'r')),
-            KeyCode::Delete => return FilterKey::Act(TreeAct::File(self.tree_file(), 'd')),
-            KeyCode::Enter => {
+            (_, Some("rename")) => return FilterKey::Act(TreeAct::File(self.tree_file(), 'r')),
+            (_, Some("delete")) => return FilterKey::Act(TreeAct::File(self.tree_file(), 'd')),
+            (_, Some("open")) => {
                 let picked = self.tree.rows().get(self.tree.sel).map(|r| r.rel.clone());
                 self.tree.find = None;
                 if let Some(rel) = picked.filter(|r| !self.tree.deleted.contains(r)) {
                     return FilterKey::Open(rel);
                 }
             }
-            KeyCode::Backspace if empty => self.tree.find = None,
-            KeyCode::Backspace => self.edit_filter(|q| {
+            (_, Some("delete_char")) if empty => self.tree.find = None,
+            (_, Some("delete_char")) => self.edit_filter(|q| {
                 q.pop();
             }),
-            KeyCode::Down => self.tree.sel = (self.tree.sel + 1).min(last),
-            KeyCode::Char('n' | 'j') if ctrl => self.tree.sel = (self.tree.sel + 1).min(last),
-            KeyCode::Up => self.tree.sel = self.tree.sel.saturating_sub(1),
-            KeyCode::Char('p' | 'k') if ctrl => self.tree.sel = self.tree.sel.saturating_sub(1),
-            KeyCode::Char('u') if ctrl => self.edit_filter(String::clear),
-            KeyCode::Char(c) if typed => self.edit_filter(|q| q.push(c)),
+            (_, Some("down")) => self.tree.sel = (self.tree.sel + 1).min(last),
+            (_, Some("up")) => self.tree.sel = self.tree.sel.saturating_sub(1),
+            (_, Some("clear")) => self.edit_filter(String::clear),
+            (KeyCode::Char(c), None) if typed => self.edit_filter(|q| q.push(c)),
             _ => {}
         }
         FilterKey::Done
