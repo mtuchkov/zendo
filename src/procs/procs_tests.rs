@@ -69,3 +69,21 @@ fn a_group_is_alive_while_a_process_of_it_runs() {
     assert!(alive(&p, 230) && alive(&p, 400));
     assert!(!alive(&p, 999));
 }
+
+// BG-3, BG-9: zendo signals only the group of a background process: never group 0 (the group of
+// the caller), group 1 (every process), or the group of zendo itself; and nothing while the group of
+// zendo is unknown.
+#[test]
+fn zendo_never_signals_its_own_group() {
+    assert!(may_stop(230, Some(100)));
+    assert!(!may_stop(100, Some(100)), "the group of zendo");
+    assert!(!may_stop(0, Some(100)) && !may_stop(1, Some(100)));
+    assert!(!may_stop(230, None), "the group of zendo is unknown");
+}
+
+// BG-3: zendo finds its own group in the output of `ps`.
+#[test]
+fn the_own_group_reads_from_ps() {
+    assert_eq!(group_of(&parse(PS), 220), Some(210));
+    assert_eq!(group_of(&parse(PS), 999), None);
+}
