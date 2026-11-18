@@ -1,5 +1,6 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-18"
 revision: "4"
 date: "2026-11-18"
 parent: "../panes.md"
@@ -9,7 +10,7 @@ children:
   - "text-formatting.md"
   - "date-selector.md"
 level: "the kinds of text input and the keys that every input has"
-note: "Agent draft from the requests of the user on 2026-11-17. Revision 4 moves the formatting and the date selector to the children text-formatting.md and date-selector.md, with the approval of the user on 2026-11-18; no requirement changed. Not reviewed by the user. The requirement IDs TEXT-1 to TEXT-17 are proposals until the user reviews this document."
+note: "Written from the requests of the user on 2026-11-17 and 2026-11-18; approved by the user on 2026-11-18. The code implements the requirements; the acceptance tests in tests/text_input.rs pass."
 ---
 
 # Text input

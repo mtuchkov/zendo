@@ -46,6 +46,44 @@ fn without_marks_enter_to_free() {
     assert_eq!((o.command.as_str(), o.exit, o.text.as_str(), o.done), ("$ echo plain", None, "plain", true));
 }
 
+// TERM-27: a command that is quiet for a long time (`sleep 1; echo first`) ends only when the
+// terminal is free and quiet: the output that the shell prints just after the free terminal counts.
+#[test]
+fn without_marks_the_quiet_time_starts_at_the_free_terminal() {
+    let t0 = std::time::Instant::now();
+    let ms = |n| t0 + std::time::Duration::from_millis(n);
+    let mut r = Recorder::default();
+    r.enter("sleep 1; echo first");
+    r.feed(b"sleep 1; echo first\r\n");
+    r.poll_free(false, ms(5), ms(10));
+    r.poll_free(true, ms(5), ms(500));
+    // `sleep` ended: the terminal is free, and its last output is 1 s old.
+    r.poll_free(false, ms(5), ms(1000));
+    assert!(r.waits(), "the shell did not print the rest yet");
+    r.feed(b"first\r\n# ");
+    r.poll_free(false, ms(1002), ms(1100));
+    assert!(r.waits(), "not quiet for long enough");
+    r.poll_free(false, ms(1002), ms(1400));
+    let o = r.result().unwrap();
+    assert_eq!((o.text.as_str(), o.done), ("first", true));
+}
+
+// TERM-27: a command that prints and ends at once ends after the quiet time, and a busy terminal
+// does not end it.
+#[test]
+fn without_marks_a_free_quiet_terminal_ends_the_command() {
+    let t0 = std::time::Instant::now();
+    let ms = |n| t0 + std::time::Duration::from_millis(n);
+    let mut r = Recorder::default();
+    r.enter("echo second");
+    r.feed(b"echo second\r\nsecond\r\n# ");
+    r.poll_free(true, ms(5), ms(400));
+    assert!(r.waits(), "busy");
+    r.poll_free(false, ms(5), ms(410));
+    r.poll_free(false, ms(5), ms(720));
+    assert_eq!(r.result().map(|o| (o.text, o.done)), Some(("second".to_string(), true)));
+}
+
 // TERM-26: once the shell sends marks, enter and free do not decide.
 #[test]
 fn marks_win_over_enter() {

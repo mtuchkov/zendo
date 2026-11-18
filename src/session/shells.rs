@@ -66,11 +66,8 @@ impl Sessions {
     /// command ended (TERM-27).
     pub(super) fn free_shells(&mut self) {
         for c in self.slots[SESSIONS..].iter().flatten() {
-            let since = c.with_recorder(|r| r.waits_since());
-            let last = c.last_output();
-            if since.is_some_and(|t| last > t && last.elapsed() > Duration::from_millis(300) && !c.busy()) {
-                c.with_recorder(super::output::Recorder::free);
-            }
+            let (busy, last) = (c.busy(), c.last_output());
+            c.with_recorder(|r| r.poll_free(busy, last, std::time::Instant::now()));
         }
     }
 
