@@ -21,7 +21,7 @@ pub struct FindItem {
 
 #[derive(Default)]
 pub struct Find {
-    pub query: String,
+    pub query: crate::text::field::Field,
     pub items: Vec<FindItem>,
     pub sel: usize,
     /// The selected file, read for the preview.
@@ -63,7 +63,6 @@ impl App {
 
     /// A key in the find panel: these keys are fixed, not in the keymap.
     pub(crate) fn key_find(&mut self, k: KeyEvent) {
-        let plain = !k.modifiers.intersects(KeyModifiers::CONTROL | KeyModifiers::ALT);
         let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
         match k.code {
             KeyCode::Esc => self.close_find(),
@@ -72,19 +71,11 @@ impl App {
             KeyCode::Char('j') if ctrl => self.find_move(true),
             KeyCode::Up | KeyCode::BackTab => self.find_move(false),
             KeyCode::Char('k') if ctrl => self.find_move(false),
-            KeyCode::Backspace => {
-                self.files.find.query.pop();
-                self.run_find();
+            _ => {
+                if self.field_key(&k, |a| Some(&mut a.files.find.query)) == Some(true) {
+                    self.run_find();
+                }
             }
-            KeyCode::Char('u') if ctrl => {
-                self.files.find.query.clear();
-                self.run_find();
-            }
-            KeyCode::Char(c) if plain => {
-                self.files.find.query.push(c);
-                self.run_find();
-            }
-            _ => {}
         }
     }
 

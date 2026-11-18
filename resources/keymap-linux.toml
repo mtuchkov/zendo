@@ -127,6 +127,7 @@ paste = ["ctrl-v"]  # paste
 bold = ["ctrl-b"]  # **bold** the selection or the word
 italic = ["ctrl-i", "alt-i"]  # *italic* the selection or the word
 underline = ["ctrl-u"]  # <u>underline</u> the selection or the word
+code = ["alt-c", "alt-`"]  # `code` the selection or the word; lines: a code block
 delete_word = ["ctrl-w", "alt-backspace", "ctrl-backspace"]  # delete the word before
 indent = ["tab"]  # indent
 
@@ -154,6 +155,11 @@ select_left = ["ctrl-shift-h", "ctrl-shift-left", "shift-left"]  # select left
 select_right = ["ctrl-shift-l", "ctrl-shift-right", "shift-right"]  # select right
 select_word_left = ["alt-shift-h", "alt-shift-left"]  # select a word left
 select_word_right = ["alt-shift-l", "alt-shift-right"]  # select a word right
+select_up = ["ctrl-shift-k", "ctrl-shift-up", "alt-shift-k", "shift-up"]  # select up
+select_down = ["ctrl-shift-j", "ctrl-shift-down", "alt-shift-j", "shift-down"]  # select down
+select_home = ["shift-home"]  # select to the line start
+select_end = ["shift-end"]  # select to the line end
+copy = ["ctrl-c"]  # copy
 
 # editing
 send = ["enter"]  # send
@@ -161,6 +167,10 @@ newline = ["alt-enter", "shift-enter", "ctrl-j"]  # new line
 delete_word = ["ctrl-w", "alt-backspace", "ctrl-backspace"]  # delete the word before
 clear = ["ctrl-u"]  # clear the input
 paste = ["ctrl-v"]  # paste
+cut = ["ctrl-x"]  # cut
+bold = ["ctrl-b"]  # **bold** the selection or the word
+italic = ["ctrl-i", "alt-i"]  # *italic* the selection or the word
+code = ["alt-c", "alt-`"]  # `code` the selection or the word; lines: a code block
 
 # features
 new_thread = ["ctrl-n"]  # new thread
@@ -178,6 +188,31 @@ back = ["esc"]  # stop the answer / back to the note
 # text selection
 copy = ["c"]  # copy the selection
 cut = ["x"]  # cut the selection
+
+[textbox]
+# Every one-line text field: find, search, the tree filter, a file name. The arrows, backspace and
+# delete work as in every field.
+
+# navigation
+word_left = ["ctrl-left", "alt-left"]  # word left
+word_right = ["ctrl-right", "alt-right"]  # word right
+home = ["home", "ctrl-a"]  # line start
+end = ["end", "ctrl-e"]  # line end
+
+# text selection
+select_left = ["shift-left"]  # select left
+select_right = ["shift-right"]  # select right
+select_word_left = ["alt-shift-left", "ctrl-shift-left", "alt-shift-h"]  # select a word left
+select_word_right = ["alt-shift-right", "ctrl-shift-right", "alt-shift-l"]  # select a word right
+select_home = ["shift-home"]  # select to the line start
+select_end = ["shift-end"]  # select to the line end
+copy = ["ctrl-c"]  # copy
+
+# editing
+cut = ["ctrl-x"]  # cut
+paste = ["ctrl-v"]  # paste
+delete_word = ["ctrl-w", "alt-backspace", "ctrl-backspace"]  # delete the word before
+clear = ["ctrl-u"]  # clear the field
 
 [transcript]
 # navigation

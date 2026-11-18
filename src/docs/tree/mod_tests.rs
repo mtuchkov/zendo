@@ -36,7 +36,7 @@ fn find_filters_files_by_name() {
     t.find = Some("docs a".into());
     let rows: Vec<String> = t.rows().iter().map(|r| r.name.clone()).collect();
     assert_eq!(rows[0], "docs/notes/a.md", "a match in the file name comes first: {rows:?}");
-    t.find = Some(String::new());
+    t.find = Some(Default::default());
     assert!(t.rows().iter().any(|r| r.kind != Kind::File), "an empty filter shows the tree");
     let _ = std::fs::remove_dir_all(&root);
 }

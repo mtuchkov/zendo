@@ -1,6 +1,8 @@
 //! A plain-text editor with soft wrap, made for prose.
 
 mod edit;
+mod fence;
+mod list;
 mod wrap;
 mod motion;
 mod select;
@@ -153,3 +155,11 @@ mod tests;
 #[cfg(test)]
 #[path = "select_tests.rs"]
 mod select_tests;
+
+#[cfg(test)]
+#[path = "list_tests.rs"]
+mod list_tests;
+
+#[cfg(test)]
+#[path = "fence_tests.rs"]
+mod fence_tests;

@@ -4,6 +4,7 @@ revision: "1"
 date: "2026-11-14"
 parent: "panes.md"
 prev: "selection.md"
+next: "text-input.md"
 level: "where the keys of zendo come from, and how the status bar and the help show them"
 note: "Agent draft, split from panes.md on 2026-11-14; no requirement changed. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
