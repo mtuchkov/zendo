@@ -159,6 +159,23 @@ impl Op {
         end
     }
 
+    /// The char index `at` of the old text in the new text: a position in a deleted range goes
+    /// to the start of the range (UNDO-13).
+    pub fn map(&self, at: usize) -> usize {
+        let (mut old, mut new) = (0, 0);
+        for p in &self.0 {
+            let n = p.len();
+            match p {
+                Part::Retain(_) if at <= old + n => return new + at - old,
+                Part::Retain(_) => (old, new) = (old + n, new + n),
+                Part::Insert(_) => new += n,
+                Part::Delete(_) if at < old + n => return new,
+                Part::Delete(_) => old += n,
+            }
+        }
+        new + at.saturating_sub(old)
+    }
+
     /// The one change of a simple operation: where it starts, and the inserted or the deleted
     /// text. `None` when the operation changes more than one place, or inserts and deletes.
     pub fn single(&self) -> Option<(usize, &str, &str)> {

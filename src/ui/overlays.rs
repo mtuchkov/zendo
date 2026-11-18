@@ -170,6 +170,14 @@ pub(crate) fn draw_confirm(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
 pub(crate) fn draw_questions(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
     draw_music_question(f, app, fr, t, area);
     draw_font_question(f, app, fr, t, area);
+    draw_external_question(f, app, fr, t, area);
+}
+
+/// The question before the undo of a change of another writer (UNDO-12). Its answers take a click.
+pub(crate) fn draw_external_question(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
+    let text = crate::app::EXTERNAL_QUESTION;
+    let ask = app.writer.asks_external();
+    fr.external_answers = ask.then(|| question(f, t, area, " external change ", text, ("[ undo it · y ]", "[ keep it · n ]"))).flatten();
 }
 
 /// The question of the first start, over the screen while the music plays: keep the lofi music on

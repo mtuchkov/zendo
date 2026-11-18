@@ -1,11 +1,12 @@
 ---
 status: "draft"
-revision: "1"
+revision: "2"
 date: "2026-11-18"
 parent: "text-input.md"
 prev: "date-selector.md"
+next: "undo-external.md"
 level: "undo and redo in every input: the keys, the loglets, where zendo keeps them"
-note: "Written by the agent from the request of the user on 2026-11-18; not reviewed by the user."
+note: "Written by the agent from the requests of the user on 2026-11-18; revision 2 moved the changes from outside to undo-external.md. Not reviewed by the user."
 ---
 
 # Undo and redo
@@ -30,13 +31,10 @@ ends the group. Every other change is an operation of its own: a paste, a cut, a
 **Documents.** zendo keeps the loglet of each document in `.zendo/db.log.json`, with the text at
 its head (Design, see [ADR 0014](../../../architecture/decisions/0014-undo-loglets-with-operational-transformation.md)).
 So undo works after the user leaves write mode, opens the document again, or starts zendo again.
+A change of the file from outside zendo is an operation of the loglet too: see
+[External changes and undo](undo-external.md).
 The chat input and the text fields keep their loglets in memory only; they go when zendo stops. A
 sent question starts a new loglet in the chat input.
-
-**Changes of other writers.** The agent, git or another editor can change a document. When zendo
-sees such a change, it transforms the operations of the loglet over the change (operational
-transformation). Then undo takes back only the changes of the user, and the change of the other
-writer stays.
 
 ## Architecturally significant requirements
 
@@ -47,7 +45,6 @@ writer stays.
 | UNDO-3 | Event      | When the user makes a change other than redo after an undo, the system shall remove the operations after the head of the loglet. | User, 2026-11-18 |
 | UNDO-4 | Ubiquitous | The system shall keep the loglet of each document in `.zendo/db.log.json`, so that undo works after the document opens again and after a restart. | User, 2026-11-18 |
 | UNDO-5 | Ubiquitous | The system shall keep the loglets of the chat input and of the text fields only in memory. | User, 2026-11-18 |
-| UNDO-6 | Event      | When a document changes outside its editor, the system shall transform the operations of its loglet over the change, so that undo and redo keep the change of the other writer. | User, 2026-11-18 |
 
 ### Acceptance tests
 
@@ -74,13 +71,6 @@ writer stays.
 - Given `hello world` in the chat input, and `zen` in the find panel.
 - When the user presses `ctrl-z` and `ctrl-y` in each of them.
 - Then each input undoes and redoes its own change, and `.zendo/db.log.json` is not there.
-
-**`undo_keeps_the_change_of_the_agent`** (mock agent; verifies UNDO-6)
-
-- Given a note in write mode where the user typed `mine` at the end and zendo saved it, and then
-  the agent writes `theirs` at the start of the file.
-- When the user presses `ctrl-z`.
-- Then the text starts with `theirs` and does not hold `mine`.
 
 ## Detailed requirements
 

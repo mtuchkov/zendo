@@ -43,6 +43,7 @@ impl App {
         };
         match notes::save(&path, &body) {
             Ok(()) => {
+                self.writer.editor_mut().saved_as(text.trim_end());
                 self.keep_log(&path);
                 self.writer.saved(path.clone());
                 self.files.saved(path);

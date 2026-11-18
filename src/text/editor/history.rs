@@ -1,6 +1,6 @@
-//! Undo and redo: the loglet of the editor (UNDO-1 to UNDO-11, ADR 0014). The app commits after
+//! Undo and redo: the loglet of the editor (UNDO-1 to UNDO-15, ADR 0014). The app commits after
 //! each key, paste and mouse event: the difference between the text at the head of the loglet and
-//! the text now is one operation.
+//! the text now is one operation. A change of the file by another writer is one external operation.
 use super::*;
 use crate::text::loglet::Loglet;
 use crate::text::ot::Op;
@@ -15,11 +15,14 @@ pub struct History {
     open: bool,
     /// The cursor at the last commit: a move ends the group (UNDO-7).
     at: (usize, usize),
+    /// The text of the file as zendo last read or saved it: a file that differs from it changed
+    /// outside zendo (UNDO-6).
+    disk: String,
 }
 
 impl History {
     pub(super) fn of(text: &str) -> Self {
-        Self { logged: text.to_string(), ..Default::default() }
+        Self { logged: text.to_string(), disk: text.to_string(), ..Default::default() }
     }
 }
 
@@ -96,27 +99,65 @@ impl Editor {
         true
     }
 
-    /// Another writer changed the text to `text`: the loglet moves over the change, so that undo
-    /// keeps it (UNDO-6). The cursor stays in its line, if the line is still there.
-    pub fn rebase_to(&mut self, text: &str) {
+    /// The file is `disk` now. When it differs from the file that zendo last read or saved, the
+    /// change goes into the loglet as one external operation, merged with the text that is not
+    /// saved yet, and the cursor moves with it (UNDO-6, UNDO-13). True when the file changed.
+    pub fn external(&mut self, disk: &str) -> bool {
+        if disk == self.history.disk {
+            return false;
+        }
         self.commit();
-        self.set_lines(text);
-        self.row = self.row.min(self.lines.len() - 1);
+        let h = &mut self.history;
+        let theirs = Op::diff(&h.disk, disk);
+        let (merged, _) = Op::transform(&theirs, &Op::diff(&h.disk, &h.logged));
+        h.disk = disk.to_string();
+        let Some(text) = merged.apply(&h.logged) else { return false };
+        let at = merged.map(self.offset());
+        self.set_lines(&text);
+        (self.row, self.col) = self.position(at);
+        self.anchor = None;
+        let h = &mut self.history;
+        h.log.record_external(merged);
+        (h.logged, h.open, h.at) = (text, false, (self.row, self.col));
+        true
+    }
+
+    /// The next undo takes back a change of another writer (UNDO-12).
+    pub fn external_next(&self) -> bool {
+        self.history.log.external_next()
+    }
+
+    /// Keep the external change before the head: the next undo takes back the change of the user
+    /// before it (UNDO-14).
+    pub fn keep_external(&mut self) {
+        self.history.log.keep_external();
+    }
+
+    /// The editor saved its text as `disk`: the file of the last save is no external change.
+    pub fn saved_as(&mut self, disk: &str) {
+        self.history.disk = disk.to_string();
+    }
+
+    /// Go on with a stored loglet: `head` is the text at its head, `disk` the file of its last
+    /// save, and the text of the editor the file now. The trim of the save moves the loglet; a
+    /// change of the file since then is one external operation (UNDO-4, UNDO-6, UNDO-15).
+    pub fn resume(&mut self, log: Loglet, head: &str, disk: &str) {
+        let now = self.text();
+        self.history = History { log, logged: head.to_string(), disk: disk.to_string(), ..Default::default() };
+        self.set_lines(disk);
+        self.absorb();
+        let (row, col) = (self.row, self.col);
+        self.external(&now);
+        (self.row, self.col) = (row.min(self.lines.len() - 1), col);
         self.col = self.col.min(self.len(self.row));
-        self.absorb();
     }
 
-    /// Go on with a stored loglet whose head text is `head`. The text now may differ: the loglet
-    /// moves over the difference (UNDO-4, UNDO-6).
-    pub fn resume(&mut self, log: Loglet, head: &str) {
-        self.history = History { log, logged: head.to_string(), ..Default::default() };
-        self.absorb();
-    }
-
-    /// The loglet and the text at its head, for the file of the document (UNDO-4).
-    pub fn history(&mut self) -> (Loglet, String) {
+    /// The loglet, the text at its head and the file of the last save, for `.zendo/db.log.json`
+    /// (UNDO-4).
+    pub fn history(&mut self) -> (Loglet, String, String) {
         self.commit();
-        (self.history.log.clone(), self.history.logged.clone())
+        let h = &self.history;
+        (h.log.clone(), h.logged.clone(), h.disk.clone())
     }
 
     /// Empty the text and keep the loglet: the clear can be undone.
@@ -126,8 +167,8 @@ impl Editor {
         self.touch();
     }
 
-    /// The text now differs from the head of the loglet by the change of another writer. A
-    /// loglet that does not fit the old text goes (UNDO-11).
+    /// The text now differs from the head of the loglet by a change that is no edit, such as the
+    /// trim of a save: the loglet moves over it. A loglet that does not fit goes (UNDO-11).
     fn absorb(&mut self) {
         let now = self.text();
         let h = &mut self.history;
@@ -143,6 +184,11 @@ impl Editor {
 
     fn set_lines(&mut self, text: &str) {
         self.lines = text.split('\n').map(str::to_string).collect();
+    }
+
+    /// The char index of the cursor in the text.
+    fn offset(&self) -> usize {
+        self.lines[..self.row].iter().map(|l| l.chars().count() + 1).sum::<usize>() + self.col
     }
 
     /// The (line, char) of the char index `at` in the text.

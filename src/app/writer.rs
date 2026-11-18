@@ -15,12 +15,14 @@ pub struct Draft {
     path: Option<PathBuf>,
     last_edit: Instant,
     saved_at: Option<DateTime<Local>>,
+    /// The question before the undo of a change of another writer is open (UNDO-12).
+    asks_external: bool,
 }
 
 impl Draft {
     /// An empty editor, as before write mode.
     fn empty() -> Self {
-        Self { editor: Editor::new(""), path: None, last_edit: Instant::now(), saved_at: None }
+        Self { editor: Editor::new(""), path: None, last_edit: Instant::now(), saved_at: None, asks_external: false }
     }
 
     /// A new note: an empty title line, the cursor on the first line of the body (FLOAT-17).
@@ -107,6 +109,15 @@ impl Writer {
 
     pub fn saved_at(&self) -> Option<DateTime<Local>> {
         self.draft.saved_at
+    }
+
+    /// The question before the undo of an external change is open (UNDO-12).
+    pub fn asks_external(&self) -> bool {
+        self.draft.asks_external
+    }
+
+    pub fn set_asks_external(&mut self, on: bool) {
+        self.draft.asks_external = on;
     }
 
     /// A key changed the text now.

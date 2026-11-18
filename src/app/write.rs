@@ -48,6 +48,7 @@ impl App {
                 }
             },
             "indent" => self.writer.editor_mut().type_str("  "),
+            "undo" => return self.write_undo(),
             "select_up" | "select_down" => {
                 let e = self.writer.editor();
                 let anchor = e.anchor.unwrap_or((e.row, e.col));

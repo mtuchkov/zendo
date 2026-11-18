@@ -59,6 +59,8 @@ impl App {
             _ if self.tips.open => self.key_tips(k),
             // The key float takes every key: the next key is the new key (REKEY-2, REKEY-14).
             _ if self.rekey.float().is_some() => self.key_key_float(k),
+            // The question before the undo of an external change takes every key (UNDO-12).
+            _ if self.writer.asks_external() => self.key_external_question(k),
             _ if self.writer.float().is_some() => self.key_float(k),
             _ if global == Some("new_note") => drop(self.global_key("new_note", crate::keys::Pane::Global)),
             _ if global == Some("music") => drop(self.global_key("music", crate::keys::Pane::Global)),

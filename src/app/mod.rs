@@ -78,6 +78,7 @@ pub use lists::Lists;
 pub use update::Update;
 pub use hold::{CONTINUE, HOLD_AGAIN, Hold};
 pub use say::{SAY_HERE, Say};
+pub use undo::EXTERNAL_QUESTION;
 pub use spec::{SPEC_BUTTON, spec_question, spec_task};
 pub use slash::Slash;
 pub use tab::{TAB_PAUSE, TabRun};

@@ -25,6 +25,9 @@ pub struct DocLog {
     /// The text at the head of the loglet: a change on disk shows as a difference (UNDO-6).
     pub text: String,
     pub log: Loglet,
+    /// The file of the last save: the trim of a save is no change of another writer.
+    #[serde(default)]
+    pub disk: String,
     /// The last save of the document.
     pub at: DateTime<Local>,
 }
@@ -56,12 +59,12 @@ impl Logs {
 
     /// The loglet of the document `rel` and the text at its head. An empty loglet takes the
     /// document out; over MAX_DOCS, the document saved first goes.
-    pub fn put(&mut self, rel: &str, log: Loglet, text: String) {
+    pub fn put(&mut self, rel: &str, log: Loglet, text: String, disk: String) {
         if log.is_empty() {
             self.docs.remove(rel);
             return;
         }
-        self.docs.insert(rel.to_string(), DocLog { text, log, at: Local::now() });
+        self.docs.insert(rel.to_string(), DocLog { text, log, disk, at: Local::now() });
         while self.docs.len() > MAX_DOCS {
             let oldest = self.docs.iter().min_by_key(|(_, d)| d.at).map(|(k, _)| k.clone());
             oldest.map(|k| self.docs.remove(&k));

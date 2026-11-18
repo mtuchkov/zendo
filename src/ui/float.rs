@@ -41,6 +41,7 @@ pub(crate) fn draw_float(f: &mut Frame, app: &mut App, fr: &mut Cache) {
         fr.overlay = Some(draw_help(f, app, fr, &t, area));
     }
     draw_selection(f, app, &t);
+    overlays::draw_external_question(f, app, fr, &t, area);
 }
 
 /// The screen behind the float: one dim color, and no key hints in the status bar (FLOAT-2).

@@ -1,5 +1,5 @@
 //! Undo and redo in every input, with the loglets of documents in `.zendo/db.log.json`
-//! (UNDO-1 to UNDO-10).
+//! (UNDO-1 to UNDO-15).
 
 mod common;
 use common::*;
@@ -104,10 +104,10 @@ async fn undo_in_the_chat_input_and_a_field() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// UNDO-6: the agent writes the note; undo takes back the change of the user and keeps the agent's.
-#[tokio::test]
-async fn undo_keeps_the_change_of_the_agent() {
-    let root = repo("undo-agent", &files());
+/// Write mode where the user typed `mine` and zendo saved it; then the agent writes `theirs` at
+/// the start of the file, and zendo sees the change.
+fn agent_wrote(name: &str) -> (std::path::PathBuf, App) {
+    let root = repo(name, &files());
     let mut a = writing(&root);
     typ(&mut a, "mine");
     a.save();
@@ -115,8 +115,71 @@ async fn undo_keeps_the_change_of_the_agent() {
     std::fs::write(root.join(NOTE), format!("theirs\n\n{disk}")).unwrap();
     a.reload_after_agent();
     assert!(text(&a).starts_with("theirs") && text(&a).ends_with("mine"), "{}", text(&a));
+    (root, a)
+}
+
+// UNDO-6, UNDO-12: the change of the agent is one operation; its undo asks first, and `y` undoes it.
+#[tokio::test]
+async fn the_undo_of_an_external_change_asks_first() {
+    let (root, mut a) = agent_wrote("undo-agent-yes");
     ctrl(&mut a, 'z');
+    assert!(a.writer.asks_external());
+    let screen = draw(&mut a, 120, 30).join("\n");
+    assert!(screen.contains("undo it · y") && screen.contains("keep it · n"), "{screen}");
+    assert!(text(&a).starts_with("theirs"), "nothing changes before the answer");
+    key(&mut a, KeyCode::Char('y'));
+    assert!(!a.writer.asks_external());
+    assert!(!text(&a).contains("theirs") && text(&a).ends_with("mine"), "{}", text(&a));
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// UNDO-14: `n` keeps the change of the agent and undoes the change of the user before it; `esc`
+// does nothing.
+#[tokio::test]
+async fn undo_keeps_the_change_of_the_agent() {
+    let (root, mut a) = agent_wrote("undo-agent-no");
+    ctrl(&mut a, 'z');
+    key(&mut a, KeyCode::Esc);
+    assert!(!a.writer.asks_external() && text(&a).ends_with("mine"), "esc does nothing");
+    ctrl(&mut a, 'z');
+    key(&mut a, KeyCode::Char('n'));
     assert!(text(&a).starts_with("theirs") && !text(&a).contains("mine"), "{}", text(&a));
+    ctrl(&mut a, 'z');
+    assert!(!a.writer.asks_external(), "the change of the agent is no question any more");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// UNDO-13: a change of the agent merges with the text that is not saved yet; the save keeps both.
+#[tokio::test]
+async fn an_external_change_merges_with_unsaved_text() {
+    let root = repo("undo-merge", &files());
+    let mut a = writing(&root);
+    typ(&mut a, "unsaved");
+    let disk = std::fs::read_to_string(root.join(NOTE)).unwrap();
+    std::fs::write(root.join(NOTE), format!("theirs\n\n{disk}")).unwrap();
+    a.reload_after_agent();
+    a.save();
+    let saved = std::fs::read_to_string(root.join(NOTE)).unwrap();
+    assert!(saved.starts_with("theirs") && saved.trim_end().ends_with("unsaved"), "{saved}");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// UNDO-15: a change while the note was closed is one external operation when the note opens again.
+#[tokio::test]
+async fn a_change_while_the_note_was_closed() {
+    let root = repo("undo-closed", &files());
+    let mut a = writing(&root);
+    typ(&mut a, "mine");
+    key(&mut a, KeyCode::Esc);
+    let disk = std::fs::read_to_string(root.join(NOTE)).unwrap();
+    std::fs::write(root.join(NOTE), format!("theirs\n\n{disk}")).unwrap();
+    a.reload_after_agent();
+    key(&mut a, KeyCode::Char('i'));
+    assert_eq!(a.mode, Mode::Write);
+    ctrl(&mut a, 'z');
+    assert!(a.writer.asks_external());
+    key(&mut a, KeyCode::Char('y'));
+    assert!(!text(&a).contains("theirs") && text(&a).contains("mine"), "{}", text(&a));
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -149,5 +212,20 @@ fn undo_keys_are_in_the_keymap() {
     key(&mut a, KeyCode::F(1));
     let screen = draw(&mut a, 200, 70).join("\n");
     assert!(screen.contains("undo the last change"), "{screen}");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// UNDO-15: back in the terminal, write mode looks at the file at once.
+#[tokio::test]
+async fn the_focus_brings_the_external_change() {
+    let root = repo("undo-focus", &files());
+    let mut a = writing(&root);
+    typ(&mut a, "mine");
+    a.save();
+    let disk = std::fs::read_to_string(root.join(NOTE)).unwrap();
+    std::fs::write(root.join(NOTE), format!("theirs\n\n{disk}")).unwrap();
+    a.on_focus(false);
+    a.on_focus(true);
+    assert!(text(&a).starts_with("theirs") && a.writer.editor().external_next(), "{}", text(&a));
     let _ = std::fs::remove_dir_all(&root);
 }

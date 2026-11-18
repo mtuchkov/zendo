@@ -60,3 +60,12 @@ fn an_operation_goes_to_json_and_back() {
     let json = serde_json::to_string(&op).unwrap();
     assert_eq!(serde_json::from_str::<Op>(&json).unwrap(), op);
 }
+
+// UNDO-13: the cursor moves with the change of another writer.
+#[test]
+fn a_position_moves_over_a_change() {
+    let op = Op::diff("abcd", "abXcd");
+    assert_eq!((op.map(1), op.map(3)), (1, 4));
+    assert_eq!(Op::diff("abcdef", "af").map(3), 1, "in a deleted range: its start");
+    assert_eq!(Op::diff("abcdef", "af").map(6), 2);
+}

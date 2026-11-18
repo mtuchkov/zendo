@@ -51,7 +51,7 @@ fn a_new_operation_trims_the_tail() {
     assert!(log.redo().is_none(), "the undone operation is gone");
 }
 
-// UNDO-6: a change of another writer stays after undo and redo.
+// UNDO-6: a silent change (the trim of a save) moves every operation over it.
 #[test]
 fn rebase_keeps_the_change_of_another_writer() {
     let (mut log, t) = edited(&["note", "note mine", "note mine more"]);
@@ -106,4 +106,40 @@ fn a_loglet_goes_to_json_and_back() {
     let back: Loglet = serde_json::from_str(&serde_json::to_string(&log).unwrap()).unwrap();
     assert_eq!(back, log);
     assert_eq!(redo(&mut back.clone(), &t), "a b");
+}
+
+// UNDO-6: a change of another writer is one operation of the loglet, marked as external.
+#[test]
+fn an_external_change_is_an_operation() {
+    let (mut log, t) = edited(&["note", "note mine"]);
+    assert!(!log.external_next());
+    let theirs = "theirs note mine";
+    log.record_external(Op::diff(&t, theirs));
+    assert!(log.external_next());
+    assert_eq!(log.len(), 2);
+    let t = undo(&mut log, theirs);
+    assert_eq!(t, "note mine");
+    assert!(!log.external_next(), "the change of the user is next");
+    assert_eq!(redo(&mut log, &t), theirs);
+}
+
+// UNDO-3: an external change after an undo trims the tail too.
+#[test]
+fn an_external_change_trims_the_tail() {
+    let (mut log, t) = edited(&["", "a", "a b"]);
+    let t = undo(&mut log, &t);
+    log.record_external(Op::diff(&t, "x a"));
+    assert!(log.redo().is_none());
+}
+
+// UNDO-14: keep the external change: it leaves the loglet, and the operations before it move over
+// it, so that the next undo keeps it.
+#[test]
+fn keep_an_external_change() {
+    let (mut log, t) = edited(&["note", "note mine"]);
+    let theirs = format!("theirs {t}");
+    log.record_external(Op::diff(&t, &theirs));
+    log.keep_external();
+    assert_eq!((log.len(), log.head(), log.external_next()), (1, 1, false));
+    assert_eq!(undo(&mut log, &theirs), "theirs note");
 }

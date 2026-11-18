@@ -81,6 +81,9 @@ impl App {
         if self.font_tip.asking {
             return self.click_font_question(x, y);
         }
+        if self.writer.asks_external() {
+            return self.click_external_question(x, y);
+        }
         if self.mode == Mode::Theme && self.frame.font_button().is_some_and(|r| hit(&r)) {
             return self.press_font_button();
         }
