@@ -74,6 +74,7 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     app.cli.resize(area.height.saturating_sub(1), area.width);
     fr.sound_button = None;
     fr.music_button = None;
+    fr.overlay = None;
     fr.spec_button = None;
     fr.upgrade_button = None;
     if app.hold.is_some() {
@@ -108,7 +109,7 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     match app.mode {
         Mode::Notes => draw_notes(f, app, &t, main),
         Mode::Search => draw_search(f, app, &t, main),
-        Mode::Find => draw_find(f, app, &t, main),
+        Mode::Find => fr.overlay = Some(draw_find(f, app, &t, main)),
         Mode::Theme => {
             let w = 40.min(main.width / 2);
             let [left, right] = Layout::horizontal([Constraint::Min(1), Constraint::Length(w)]).areas(main);
@@ -119,7 +120,7 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
             draw_panes(f, app, fr, &t, main);
             if app.mode == Mode::Help {
                 // Over the panes and the top line, not over the status bar.
-                draw_help(f, app, &t, Rect { height: rule.y - area.y, ..area });
+                fr.overlay = Some(draw_help(f, app, &t, Rect { height: rule.y - area.y, ..area }));
             }
         }
     }

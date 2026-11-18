@@ -54,7 +54,7 @@ impl App {
     }
 
     /// `esc`: the screen as it was under the panel (FIND-12).
-    fn close_find(&mut self) {
+    pub(crate) fn close_find(&mut self) {
         let (mode, focus, view) = self.files.find.back.take().unwrap_or((Mode::Read, self.focus, None));
         (self.mode, self.focus, self.cli.view) = (mode, focus, view);
         self.files.find.items.clear();

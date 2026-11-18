@@ -6,7 +6,8 @@ use crate::app::FindItem;
 /// A panel narrower than this shows the preview under the list (FIND-13).
 const SIDE_BY_SIDE: u16 = 100;
 
-pub(crate) fn draw_find(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
+/// Returns the area of the panel.
+pub(crate) fn draw_find(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) -> Rect {
     let w = area.width.saturating_sub(4).min(160);
     let col = Rect { x: area.x + (area.width - w) / 2, y: area.y + 1, width: w, height: area.height.saturating_sub(1) };
     let boxr = Rect { height: 3, ..col };
@@ -31,6 +32,7 @@ pub(crate) fn draw_find(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) {
     };
     draw_list(f, app, t, list);
     draw_preview(f, app, t, preview);
+    col
 }
 
 /// The rows of the list: each file, and under a match in the text its lines; the row of the

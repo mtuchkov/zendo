@@ -1,10 +1,11 @@
-//! A click in a pane moves the focus and the keys there, as `tab` does (PANES-46).
+//! A click in a pane moves the focus and the keys there, as `tab` does (PANES-46); a click off a
+//! panel that stands over the screen closes it, as `esc` does (PANES-47).
 
 mod common;
 use common::*;
-use ratatui::crossterm::event::{KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::layout::Rect;
-use zendo::app::{App, Focus};
+use zendo::app::{App, Focus, Mode};
 use zendo::keys::Pane;
 use zendo::text::select::Region;
 
@@ -86,5 +87,45 @@ fn a_click_in_the_note_takes_the_keys_from_the_chat() {
     draw(&mut a, 160, 30);
     assert_eq!(a.focus, Focus::Claude);
     assert_eq!(a.key_pane(), Pane::Chat);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// PANES-47: a click off the float closes it as `esc` does; a click in it does not.
+#[tokio::test]
+async fn a_click_off_the_float_closes_it() {
+    let (root, mut a) = three_panes("pane-click-float");
+    a.on_key(KeyEvent::new(KeyCode::Char('n'), KeyModifiers::ALT));
+    draw(&mut a, 160, 30);
+    let r = a.writer.float().expect("the float is open").rect;
+    click(&mut a, r.x + 5, r.y + 3);
+    assert!(a.writer.float().is_some(), "a click in the float keeps it");
+    click(&mut a, r.x - 1, r.y + 3);
+    assert!(a.writer.float().is_none(), "a click off the float closes it");
+    assert_eq!((a.mode, a.focus), (Mode::Read, Focus::Note), "the screen as it was before the float");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// PANES-47: a click off the help closes it.
+#[test]
+fn a_click_off_the_help_closes_it() {
+    let (root, mut a) = three_panes("pane-click-help");
+    a.open_help(Pane::Read);
+    draw(&mut a, 160, 30);
+    // The status bar is under the help.
+    click(&mut a, 0, 29);
+    assert_eq!(a.mode, Mode::Read);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// PANES-47: a click off the find panel closes it, and the screen is as it was under it.
+#[test]
+fn a_click_off_the_find_panel_closes_it() {
+    let (root, mut a) = three_panes("pane-click-find");
+    a.open_find();
+    draw(&mut a, 160, 30);
+    click(&mut a, 40, 10);
+    assert_eq!(a.mode, Mode::Find, "a click in the panel keeps it");
+    click(&mut a, 0, 10);
+    assert_eq!((a.mode, a.focus), (Mode::Read, Focus::Note));
     let _ = std::fs::remove_dir_all(&root);
 }

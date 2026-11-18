@@ -32,8 +32,8 @@ pub(crate) fn draw_themes(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
 }
 
 /// All keys of the pane where the help key was pressed, and the global keys, from the keymap, in
-/// groups (PANES-30); under them the keymap file and the version (PANES-31).
-pub(crate) fn draw_help(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
+/// groups (PANES-30); under them the keymap file and the version (PANES-31). Returns its area.
+pub(crate) fn draw_help(f: &mut Frame, app: &App, t: &Theme, area: Rect) -> Rect {
     use crate::keys::Pane;
     let mut groups = help_section(app, t, app.key_help.pane());
     // Where the user writes, the keys while text is selected (PANES-39).
@@ -68,6 +68,7 @@ pub(crate) fn draw_help(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
         f.render_widget(Paragraph::new(col), *a);
     }
     f.render_widget(Paragraph::new(footer), bottom);
+    r
 }
 
 /// The keys of one pane, a list of lines for each group: the name of the pane, then each group

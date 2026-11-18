@@ -16,6 +16,9 @@ impl App {
             self.work.input_now();
             self.tab_run.end();
         }
+        if m.kind == MouseEventKind::Down(MouseButton::Left) && self.click_off_panel(m.column, m.row) {
+            return;
+        }
         // The float takes the mouse: only what happens over it counts.
         if let Some(fl) = self.writer.float() {
             if !fl.rect.contains(ratatui::layout::Position::new(m.column, m.row)) {
@@ -109,6 +112,20 @@ impl App {
             Region::Note if self.mode == Mode::Read => self.place_reader(dy, dx),
             _ => self.interact(1),
         }
+    }
+
+    /// A click off a panel that stands over the screen closes it, as `esc` does: the help, the
+    /// find panel, or the float under them (PANES-47). True when the click closed a panel.
+    fn click_off_panel(&mut self, x: u16, y: u16) -> bool {
+        let off = |r: Option<Rect>| r.is_some_and(|r| !r.contains(ratatui::layout::Position::new(x, y)));
+        match self.mode {
+            Mode::Help if off(self.frame.overlay()) => self.mode = self.back,
+            Mode::Find if off(self.frame.overlay()) => self.close_find(),
+            Mode::Help | Mode::Find => return false,
+            _ if off(self.writer.float().map(|fl| fl.rect)) => self.close_float(),
+            _ => return false,
+        }
+        true
     }
 
     /// A click in a pane moves the focus there, as `tab` does; in the chat pane the keys go to the

@@ -30,6 +30,8 @@ pub struct Frame {
     pub(super) spec_button: Option<Rect>,
     pub(super) upgrade_button: Option<Rect>,
     pub(super) music_answers: Option<(Rect, Rect)>,
+    /// The help or the find panel over the screen, for a click off it (PANES-47).
+    pub(super) overlay: Option<Rect>,
 }
 
 impl Frame {
@@ -121,6 +123,11 @@ impl Frame {
     /// The upgrade button, for the mouse (CMD-11).
     pub fn upgrade_button(&self) -> Option<Rect> {
         self.upgrade_button
+    }
+
+    /// The help or the find panel that stands over the screen, for a click off it (PANES-47).
+    pub fn overlay(&self) -> Option<Rect> {
+        self.overlay
     }
 
     /// The two answers of the music question: keep on, turn off.
