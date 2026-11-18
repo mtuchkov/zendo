@@ -1,13 +1,13 @@
 ---
 status: "implemented"
 approved: "2026-11-18"
-revision: "3"
+revision: "4"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "tips.md"
 next: "fonts-tip.md"
 level: "which fonts zendo recommends, and what `zendo setup fonts` does on the machine"
-note: "Agent draft of the decisions of the user on 2026-11-17 and 2026-11-18. Revision 2: the answers of the user on 2026-11-18 (Iosevka and Iosevka Term, Fira Code without italic); the theme picker tip moved to fonts-tip.md. Approved by the user on 2026-11-18. Revision 3: implemented in zendo 0.96.0; the test names as in the code."
+note: "Agent draft of the decisions of the user on 2026-11-17 and 2026-11-18. Revision 2: the answers of the user on 2026-11-18 (Iosevka and Iosevka Term, Fira Code without italic); the theme picker tip moved to fonts-tip.md. Approved by the user on 2026-11-18. Revision 3: implemented in zendo 0.96.0; the test names as in the code. Revision 4: iA Writer Mono, on the request of the user on 2026-11-18, in zendo 0.103.0."
 ---
 
 # Fonts
@@ -16,9 +16,9 @@ Sources: the requests and answers of the user on 2026-11-17 and 2026-11-18.
 
 ## What the user sees and does
 
-The terminal draws the font, not zendo. zendo recommends seven monospace fonts and helps the user
+The terminal draws the font, not zendo. zendo recommends eight monospace fonts and helps the user
 get them: JetBrains Mono, Atkinson Hyperlegible Mono, IBM Plex Mono, Iosevka, Iosevka Term, Fira
-Code, and Cascadia Code. The fonts are optional.
+Code, Cascadia Code, and iA Writer Mono. The fonts are optional.
 
 `zendo setup fonts` downloads each font from the release of its project, at a version and a
 checksum that zendo pins. It installs Regular, Bold, Italic and Bold Italic of each font, with its
@@ -37,7 +37,7 @@ How the user finds the command, and how the agent sets the font of the terminal,
   [ADR 0012](../architecture/decisions/0012-fonts-from-their-releases.md).
 - Design: zendo installs the files, and the agent changes the terminal. Each terminal keeps its
   font in another place and format; the agent can read the config and ask the user.
-- All seven fonts use the SIL Open Font License 1.1. zendo installs the files without change, so no
+- All eight fonts use the SIL Open Font License 1.1. zendo installs the files without change, so no
   reserved font name needs a new name.
 
 ## Architecturally significant requirements
@@ -75,7 +75,7 @@ FONT-9, FONT-11, FONT-20)
 
 | ID      | Pattern    | Requirement | Source |
 | ------- | ---------- | ----------- | ------ |
-| FONT-7  | Event      | When `zendo setup fonts` runs, the system shall install Regular, Bold, Italic and Bold Italic of JetBrains Mono, Atkinson Hyperlegible Mono, IBM Plex Mono, Iosevka, Iosevka Term, Fira Code, and Cascadia Code. | User, 2026-11-17; User, 2026-11-18 |
+| FONT-7  | Event      | When `zendo setup fonts` runs, the system shall install Regular, Bold, Italic and Bold Italic of JetBrains Mono, Atkinson Hyperlegible Mono, IBM Plex Mono, Iosevka, Iosevka Term, Fira Code, Cascadia Code, and iA Writer Mono. | User, 2026-11-17; User, 2026-11-18 |
 | FONT-8  | Unwanted   | If a font has no italic style, as Fira Code, then the system shall install only its Regular and Bold. | User, 2026-11-18 |
 | FONT-9  | Unwanted   | If a font is already in the font folder of the user, then the system shall not install it again and shall say so. | Design |
 | FONT-10 | Unwanted   | If the download of a font fails, then the system shall name the font and the failure, install the other fonts, and end with an exit status that is not zero. | Design |
@@ -85,5 +85,5 @@ FONT-9, FONT-11, FONT-20)
 
 Tests that verify detailed requirements: `a_failed_download_names_the_failure_and_installs_the_others`
 (FONT-10), `a_font_on_the_machine_is_not_installed_again` (FONT-9),
-`the_catalog_has_the_seven_fonts_and_their_styles` (FONT-7, FONT-8, FONT-11),
+`the_catalog_has_the_eight_fonts_and_their_styles` (FONT-7, FONT-8, FONT-11),
 `a_zip_gives_a_stored_and_a_deflated_member` (FONT-1).

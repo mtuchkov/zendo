@@ -151,9 +151,9 @@ most terminals change it with `ctrl-+` and `ctrl--`.
 
 ## Fonts
 
-The terminal draws the font, not zendo. zendo recommends seven monospace fonts: JetBrains Mono,
-Atkinson Hyperlegible Mono, IBM Plex Mono, Iosevka, Iosevka Term, Fira Code, and Cascadia Code. Get
-them with one command:
+The terminal draws the font, not zendo. zendo recommends eight monospace fonts: JetBrains Mono,
+Atkinson Hyperlegible Mono, IBM Plex Mono, Iosevka, Iosevka Term, Fira Code, Cascadia Code, and iA
+Writer Mono. Get them with one command:
 
 ```sh
 zendo setup fonts
