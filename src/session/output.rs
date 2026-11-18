@@ -1,5 +1,6 @@
 //! The result of the last command of a terminal (docs/zendo/terminal/terminal-output.md): the OSC 133 marks
 //! of the shell, or the time from `enter` to a free terminal when the shell sends no marks.
+use std::time::{Duration, Instant};
 
 /// The lines of the output that a result keeps, from the end (TERM-32).
 pub const KEEP: usize = 500;
@@ -40,10 +41,14 @@ pub struct Recorder {
     carry: Vec<u8>,
     /// The command line at the last `enter`, and its time.
     entered: Option<(String, std::time::Instant)>,
+    /// Without marks: the moment that the terminal became free while a command waits (TERM-27).
+    free_since: Option<Instant>,
     last: Option<Output>,
 }
 
 const MARK: &[u8] = b"\x1b]133;";
+/// Without marks, the time that a free terminal is quiet before its command counts as ended.
+const FREE_QUIET: Duration = Duration::from_millis(300);
 
 impl Recorder {
     /// The bytes of the shell, in the order that it prints them.
@@ -87,6 +92,21 @@ impl Recorder {
             return;
         }
         self.finish(None);
+    }
+
+    /// Without marks: the command ended when it printed after `enter`, and the terminal is free and
+    /// quiet for `FREE_QUIET`, from its last output or from the moment it became free, whichever
+    /// is later. So the output that the shell prints just after a quiet command counts (TERM-27).
+    pub fn poll_free(&mut self, busy: bool, last_output: Instant, now: Instant) {
+        let Some(entered) = self.waits_since().filter(|_| !busy) else {
+            self.free_since = None;
+            return;
+        };
+        let free_since = *self.free_since.get_or_insert(now);
+        if last_output > entered && now.saturating_duration_since(last_output.max(free_since)) > FREE_QUIET {
+            self.free_since = None;
+            self.free();
+        }
     }
 
     /// A command started without marks and did not end yet.
