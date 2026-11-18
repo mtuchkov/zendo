@@ -1,13 +1,13 @@
 ---
 status: "implemented"
-approved: "2026-11-13"
+approved: "2026-11-18"
 revision: "4"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "float-title.md"
 next: "notes-repo.md"
 level: "the find panel: recent files, search by path and by text, the preview"
-note: "Revision 2 was approved by the user on 2026-11-13 and implemented. Revision 3 adds FIND-18 (the notes of the notes repo), approved by the user on 2026-11-13. Revision 4 adds FIND-19 and FIND-20 (find the selection); the user asked for it on 2026-11-18, and the rows are a draft until the user reviews them."
+note: "Revision 2 was approved by the user on 2026-11-13 and implemented. Revision 3 adds FIND-18 (the notes of the notes repo), approved by the user on 2026-11-13. Revision 4 adds FIND-19 and FIND-20 (find the selection), approved by the user on 2026-11-18 and implemented."
 ---
 
 # Find: recent files and search
