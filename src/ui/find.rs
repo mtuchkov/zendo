@@ -107,7 +107,8 @@ fn draw_preview(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
 /// The columns of the query in a row, without regard to letter case.
 fn match_cols(l: &Line, query: &str) -> Option<(usize, usize)> {
     let text: String = l.spans.iter().map(|s| s.content.as_ref()).collect::<String>().to_lowercase();
-    let q = query.trim().to_lowercase();
+    // A query across lines marks its first line (FIND-20).
+    let q = query.split(crate::docs::search::NEW_LINE).next().unwrap_or("").trim().to_lowercase();
     let at = text.find(&q).filter(|_| !q.is_empty())?;
     let a = text[..at].chars().count();
     Some((a, a + q.chars().count()))

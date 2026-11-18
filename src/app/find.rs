@@ -36,18 +36,20 @@ pub struct Find {
 }
 
 impl App {
-    /// `alt-/`, `/` in read mode: open the find panel with the recent files (FIND-1, FIND-15).
+    /// `alt-/`, `/` in read mode: open the find panel with the recent files, or with the selected
+    /// text as the query (FIND-1, FIND-15, FIND-19).
     pub fn open_find(&mut self) {
         if self.mode == Mode::Find {
             return;
         }
         self.track_recent();
+        let seed = self.find_seed();
         if self.mode == Mode::Write {
             self.save();
         }
         self.hold = None;
         self.files.find.back = Some((self.mode, self.focus, self.cli.view.take()));
-        self.files.find.query.clear();
+        self.files.find.query.set(&seed);
         (self.files.find.files, self.files.find.docs) = (Vec::new(), Vec::new());
         self.mode = Mode::Find;
         self.run_find();
@@ -105,11 +107,13 @@ impl App {
     }
 
     /// The list for the query: the recent files, the notes with a tag, or the files by path and
-    /// then by text (FIND-2, FIND-9, FIND-14).
+    /// then by text (FIND-2, FIND-9, FIND-14, FIND-20).
     pub(crate) fn run_find(&mut self) {
         let q = self.files.find.query.trim().to_string();
         self.files.find.items = match q.chars().next() {
             None => self.recent_items(),
+            // A query across lines is text, also when it starts with `#` or `?` (FIND-20).
+            Some(_) if q.contains(search::NEW_LINE) => self.query_items(&q),
             Some('?') => Vec::new(),
             Some('#') => items_of(self.files.notes(), search::search(self.files.notes(), &q)),
             Some(_) => self.query_items(&q),
