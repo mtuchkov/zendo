@@ -2,5 +2,6 @@
 pub mod delta;
 pub mod notes;
 pub mod search;
+mod search_lines;
 pub mod structure;
 pub mod tree;
