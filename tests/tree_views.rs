@@ -230,3 +230,26 @@ async fn a_low_tree_keeps_every_letter() {
     assert_eq!(letters, "SDTN");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// FILES-74: the hint dims the tree under it: the chars of the tree stay in the dim color, on the
+// background of the tree, not the float color.
+#[tokio::test]
+async fn the_hint_dims_the_tree() {
+    let (root, mut a) = tree_app("tree-hint-dim");
+    key(&mut a, KeyCode::Char('v'));
+    let b = screen(&mut a);
+    let t = *a.theme();
+    let names = a.frame.view_buttons().to_vec();
+    let area = names.iter().map(|(r, _)| *r).reduce(|x, y| x.union(y)).unwrap();
+    for y in area.y..area.bottom() {
+        for x in area.x..area.x + 14 {
+            if names.iter().any(|(r, _)| r.contains((x, y).into())) {
+                continue;
+            }
+            let c = &b[(x, y)];
+            assert_eq!(c.bg, t.panel, "the background of the tree at {x},{y}");
+            assert!(c.symbol() == " " || c.fg == t.dim, "the tree under the hint is dim at {x},{y}: {:?}", c.symbol());
+        }
+    }
+    let _ = std::fs::remove_dir_all(&root);
+}

@@ -44,8 +44,10 @@ pub(crate) fn draw_strip(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, ar
     let hint = app.files.view_hint();
     let w = if hint { 14.min(area.width) } else { 1 };
     if hint {
+        // The hint dims the tree under it; the chars of the tree stay (FILES-74).
         let bottom = rows.last().map_or(area.y, |(_, y)| y + 1);
-        f.render_widget(Block::new().style(Style::new().bg(t.float)), Rect { width: w + 1, height: bottom - area.y, ..area });
+        let under = Rect { width: w + 1, height: bottom - area.y, ..area }.intersection(f.area());
+        f.buffer_mut().set_style(under, Style::new().fg(t.dim).bg(t.panel).remove_modifier(Modifier::BOLD));
     }
     if let Some(y) = rule {
         f.render_widget(Paragraph::new(Line::styled("─".repeat(w as usize), Style::new().fg(t.dim))), Rect { y, width: w, height: 1, ..area });
