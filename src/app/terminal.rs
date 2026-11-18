@@ -9,10 +9,27 @@ impl App {
     /// terminal that does not run a command; without a block, the `F5` terminal shows (TERM-1,
     /// TERM-4, TERM-11, TERM-21).
     pub(crate) fn terminal_key(&mut self, run: bool) {
-        let on_block = self.threads.shown() && self.focus == Focus::Claude && self.threads.transcript().on();
+        let on_block = self.threads.shown() && self.focus == Focus::Claude && self.cli.pane.is_none() && self.threads.transcript().on();
         match self.threads.transcript().block().filter(|_| on_block).map(str::to_string) {
             Some(command) => self.put_into_terminal(&command, run),
-            None => self.open_terminal(0),
+            None => self.next_terminal(),
+        }
+    }
+
+    /// `F5` without a block: the `F5` terminal; in a terminal, the next one that is open, in a
+    /// ring: `F5`, then the `[>]` terminals from the top (TERM-11, TERM-52).
+    pub(crate) fn next_terminal(&mut self) {
+        let shown = self.cli.view.or(self.cli.pane).filter(|n| *n >= SESSIONS);
+        let open: Vec<usize> = (0..TERMINALS).filter(|i| *i == 0 || self.cli.running(shell(*i))).map(shell).collect();
+        let next = shown.map_or(shell(0), |n| ring_step(&open, n, true));
+        self.open_terminal(next - SESSIONS);
+    }
+
+    /// `[+]`: a new `[>]` terminal in the chat pane (TERM-54).
+    pub(crate) fn new_terminal(&mut self) {
+        match (1..TERMINALS).find(|i| !self.cli.running(shell(*i))) {
+            Some(i) => self.open_terminal(i),
+            None => self.flash(format!("all {} [>] terminals are open", TERMINALS - 1)),
         }
     }
 
@@ -123,9 +140,6 @@ impl App {
 fn ring_step(all: &[usize], now: usize, forward: bool) -> usize {
     let step = if forward { 1 } else { all.len().saturating_sub(1) };
     all.iter().position(|n| *n == now).map_or(all.first().copied().unwrap_or(0), |i| all[(i + step) % all.len()])
-}
-
-impl App {
 }
 
 /// A result as text for the input: the terminal, the command, the exit code, the output

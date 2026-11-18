@@ -226,6 +226,7 @@ async fn alt_bracket_goes_through_the_terminals() {
     answer(&mut a, "sleep 30");
     f5(&mut a, true);
     wait(&mut a, 10, |a| a.cli.busy(0));
+    alt_q(&mut a);
     answer(&mut a, "true");
     f5(&mut a, false);
     assert_eq!(a.cli.pane, Some(shell(1)), "a [>] terminal runs");
@@ -290,6 +291,7 @@ async fn alt_bracket_keeps_the_full_screen() {
     answer(&mut a, "sleep 30");
     f5(&mut a, true);
     wait(&mut a, 10, |a| a.cli.busy(0));
+    alt_q(&mut a);
     answer(&mut a, "true");
     f5(&mut a, false);
     assert_eq!(a.cli.pane, Some(shell(1)), "a [>] terminal runs");
@@ -305,5 +307,58 @@ async fn alt_bracket_keeps_the_full_screen() {
     assert_eq!((a.cli.view, a.cli.pane, a.state.session), (None, None, SESSIONS - 1), "agent session 5 runs no Claude Code: its chat");
     alt(&mut a, PREV);
     assert_eq!((a.cli.view, a.cli.pane, a.state.session), (None, None, SESSIONS - 2), "from the chat: the ring of the chat");
+    done(&root, &mut a);
+}
+
+/// A left click at column `x`, row `y`.
+fn click(a: &mut App, x: u16, y: u16) {
+    use ratatui::crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
+    a.on_mouse(MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: x, row: y, modifiers: KeyModifiers::NONE });
+}
+
+/// Draw, and click the `[+]` button; false when the screen has no `[+]`.
+fn click_plus(a: &mut App) -> bool {
+    let screen = draw(a, 120, 40);
+    let Some((y, line)) = screen.iter().enumerate().find(|(_, l)| l.contains("[+]")) else { return false };
+    let x = line[..line.find("[+]").unwrap()].chars().count() + 1;
+    click(a, x as u16, y as u16);
+    true
+}
+
+// TERM-53, TERM-54: the [+] button under the terminal buttons starts a new [>] terminal and shows
+// it in the chat pane; with four [>] terminals open, the button goes away.
+#[tokio::test(flavor = "multi_thread")]
+async fn the_plus_button_opens_a_new_terminal() {
+    let (root, mut a) = app_with_shell("term-plus");
+    for i in 1..5 {
+        assert!(click_plus(&mut a), "the [+] button with {} [>] terminals", i - 1);
+        assert_eq!((a.cli.pane, a.cli.running(shell(i))), (Some(shell(i)), true), "[+] opens [>] {i}");
+    }
+    let screen = draw(&mut a, 120, 40).join("\n");
+    assert_eq!(screen.lines().filter(|l| l.trim_end().ends_with("[>]")).count(), 4, "four [>] buttons:\n{screen}");
+    assert!(!screen.contains("[+]"), "no [+] with four [>] terminals:\n{screen}");
+    done(&root, &mut a);
+}
+
+// TERM-11, TERM-52: F5 outside a terminal shows the F5 terminal; F5 in a terminal shows the next
+// one: F5, the [>] terminals from the top, then F5 again; on the full screen too, in the chat pane.
+#[tokio::test(flavor = "multi_thread")]
+async fn f5_goes_through_the_terminals() {
+    let (root, mut a) = app_with_shell("term-f5-ring");
+    assert!(click_plus(&mut a) && click_plus(&mut a), "two [>] terminals");
+    alt_q(&mut a);
+    a.focus = Focus::Note;
+    f5(&mut a, false);
+    assert_eq!(a.cli.pane, Some(shell(0)), "F5 outside a terminal: the F5 terminal");
+    f5(&mut a, false);
+    assert_eq!(a.cli.pane, Some(shell(1)), "then the first [>] terminal");
+    f5(&mut a, false);
+    assert_eq!(a.cli.pane, Some(shell(2)), "then the second [>] terminal");
+    f5(&mut a, false);
+    assert_eq!(a.cli.pane, Some(shell(0)), "then F5 again");
+    ctrl(&mut a, 'o');
+    assert_eq!(a.cli.view, Some(shell(0)), "the full screen");
+    f5(&mut a, false);
+    assert_eq!((a.cli.pane, a.cli.view), (Some(shell(1)), None), "F5 on the full screen: the next one in the chat pane");
     done(&root, &mut a);
 }

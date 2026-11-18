@@ -271,7 +271,7 @@ fn draw_agent_column(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, ar
 }
 
 /// The buttons of the terminals on the right edge, in the color of the text, and the one in the chat
-/// pane in the accent color: `F5`, then each `[>]`. Under the agent buttons when they are on the right edge, after a line; else from the top of the
+/// pane in the accent color: `F5`, then each `[>]`, then `[+]` while a `[>]` is free (TERM-53). Under the agent buttons when they are on the right edge, after a line; else from the top of the
 /// edge (TERM-14, TERM-15).
 fn draw_terminals(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect, under_agents: bool) {
     let w = area.width as usize;
@@ -280,8 +280,14 @@ fn draw_terminals(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area:
         f.render_widget(Paragraph::new("─".repeat(w)).style(Style::new().fg(t.dim)), Rect { y: rule, height: 1, ..area });
     }
     let top = if under_agents { rule + 2 } else { area.y + 2 };
-    let terms = (0..crate::session::TERMINALS).filter(|i| *i == 0 || app.cli.running(crate::session::shell(*i)));
-    for (y, n) in terms.enumerate().map(|(k, i)| (top + 2 * k as u16, crate::session::shell(i))).filter(|(y, _)| *y < area.bottom()) {
+    let terms: Vec<usize> = (0..crate::session::TERMINALS).filter(|i| *i == 0 || app.cli.running(crate::session::shell(*i))).collect();
+    let plus = top + 2 * terms.len() as u16;
+    if terms.len() < crate::session::TERMINALS && plus < area.bottom() {
+        let r = Rect { y: plus, height: 1, ..area };
+        f.render_widget(Paragraph::new(Line::styled(format!("{:^w$}", "[+]"), Style::new().fg(t.fg).add_modifier(Modifier::BOLD))), r);
+        fr.new_terminal_button = Some(r);
+    }
+    for (y, n) in terms.into_iter().enumerate().map(|(k, i)| (top + 2 * k as u16, crate::session::shell(i))).filter(|(y, _)| *y < area.bottom()) {
         let r = Rect { y, height: 1, ..area };
         let bg = pulse_bg(app, t, n, if n == shown_session(app) { t.acc } else { t.fg });
         let label = button_label(app, n);

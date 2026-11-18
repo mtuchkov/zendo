@@ -61,7 +61,7 @@ impl App {
             return self.step_full_screen(a == "next_session");
         }
         if global == Some("terminal") {
-            return self.open_terminal(0);
+            return self.next_terminal();
         }
         let session = global.and_then(|a| a.strip_prefix("session_")).and_then(|s| s.parse::<usize>().ok());
         if let Some(m) = session.and_then(|m| m.checked_sub(1)) {

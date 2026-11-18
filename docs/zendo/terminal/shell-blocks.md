@@ -63,7 +63,7 @@ The tests are in `tests/terminal.rs`. They put answers with ` ```sh ` blocks int
 | TERM-8  | Ubiquitous | The system shall show a green play button `▶` on the first line of each shell block in the transcript. | User, 2026-11-12 |
 | TERM-9  | Event      | When the user takes a block with `$ ` prompts, the system shall put into the shell only the text after each prompt, one command on each line. | Design |
 | TERM-10 | Event      | When the user clicks the play button of a shell block, the system shall do what `F5` does. | Design |
-| TERM-11 | Event      | When the user presses `F5` outside a shell block, or in another pane, the system shall show the `F5` terminal. | User, 2026-11-12 |
+| TERM-11 | Event      | When the user presses `F5` outside a shell block, or in another pane, while no terminal is on the screen, the system shall show the `F5` terminal; in a terminal, `F5` goes to the next terminal (TERM-52). | User, 2026-11-12; User, 2026-11-17 |
 
 Tests that verify detailed requirements: `play_button_and_terminal_buttons` in `tests/terminal.rs`
 (TERM-8, TERM-11, TERM-14), `shell_blocks_are_shell_fences_and_prompt_blocks` and

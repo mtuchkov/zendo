@@ -102,6 +102,7 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     fr.regions.clear();
     fr.session_buttons.clear();
     fr.play_buttons.clear();
+    fr.new_terminal_button = None;
     fr.tree_fold.clear();
     f.render_widget(Paragraph::new("─".repeat(rule.width as usize)).style(Style::new().fg(t.line)), rule);
     fr.view_height = main.height as usize;

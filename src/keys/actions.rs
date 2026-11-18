@@ -21,7 +21,7 @@ pub const ACTIONS: &[Action] = &[
     a(Global, Sessions, "session_5", "agent session 5"),
     a(Global, Sessions, "next_session", "the next agent session"),
     a(Global, Sessions, "prev_session", "the previous agent session or terminal"),
-    a(Global, Sessions, "terminal", "put the shell block under the cursor into a terminal; elsewhere the F5 terminal"),
+    a(Global, Sessions, "terminal", "put the shell block under the cursor into a terminal; elsewhere the F5 terminal, in a terminal the next one"),
     a(Global, Sessions, "terminal_run", "put the shell block under the cursor into a terminal and run it"),
     a(Global, View, "toggle_tree", "file tree"),
     a(Global, View, "wider", "a wider text column"),

@@ -16,6 +16,8 @@ pub struct Frame {
     pub(super) tree_fold: Vec<(Rect, bool)>,
     pub(super) session_buttons: Vec<(Rect, usize)>,
     pub(super) play_buttons: Vec<(Rect, String)>,
+    /// `[+]` under the terminal buttons: a new `[>]` terminal (TERM-53).
+    pub(super) new_terminal_button: Option<Rect>,
     pub(super) read_text: Vec<String>,
     pub(super) read_rows: Vec<usize>,
     pub(super) write_rows: Vec<RowSpan>,
@@ -68,6 +70,11 @@ impl Frame {
     /// The buttons of the agent sessions, for mouse clicks.
     pub fn session_buttons(&self) -> &[(Rect, usize)] {
         &self.session_buttons
+    }
+
+    /// `[+]` under the terminal buttons, for mouse clicks (TERM-54).
+    pub fn new_terminal_button(&self) -> Option<Rect> {
+        self.new_terminal_button
     }
 
     /// The play buttons of the shell blocks, and their commands (TERM-10).

@@ -89,6 +89,9 @@ impl App {
             self.count_session_button(n);
             return if n < SESSIONS { self.switch_session(n) } else { self.open_terminal(n - SESSIONS) };
         }
+        if self.frame.new_terminal_button().is_some_and(|r| hit(&r)) {
+            return self.new_terminal();
+        }
         if let Some(cmd) = self.frame.play_buttons().iter().find(|(r, _)| hit(r)).map(|(_, c)| c.to_string()) {
             self.did_by_mouse(crate::keys::Pane::Global, "terminal");
             return self.put_into_terminal(&cmd, false);
