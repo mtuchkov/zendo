@@ -1,13 +1,13 @@
 ---
 status: "implemented"
 approved: "2026-11-18"
-revision: "4"
+revision: "5"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "float-title.md"
 next: "notes-repo.md"
 level: "the find panel: recent files, search by path and by text, the preview"
-note: "Revision 2 was approved by the user on 2026-11-13 and implemented. Revision 3 adds FIND-18 (the notes of the notes repo), approved by the user on 2026-11-13. Revision 4 adds FIND-19 and FIND-20 (find the selection), approved by the user on 2026-11-18 and implemented."
+note: "Revision 2 was approved by the user on 2026-11-13 and implemented. Revision 3 adds FIND-18 (the notes of the notes repo), approved by the user on 2026-11-13. Revision 4 adds FIND-19 and FIND-20 (find the selection), approved by the user on 2026-11-18 and implemented. Revision 5 adds FIND-21 (the keys do not wait for the text search) as a draft, implemented, not reviewed by the user."
 ---
 
 # Find: recent files and search
@@ -117,6 +117,7 @@ the query. `enter` opens the selected file in the note pane in read mode, at the
 | FIND-18 | State      | While the notes repo is on, the system shall search the notes of the repository in the notes repo by path and by text, as the markdown files of the repository (FIND-9, FILES-25). | User, 2026-11-13 |
 | FIND-19 | Event      | When the user presses `/` in read mode or `alt-/` while text is selected, the system shall open the find panel with the selected text as the query, each line break of the text as `⏎`. | User, 2026-11-18 |
 | FIND-20 | Event      | When the query has `⏎`, the system shall list the markdown files whose text has the lines of the query one after another, with a line break for each `⏎`, without regard to letter case, indentation, the marks of headings, quotes and lists, and blank lines. | User, 2026-11-18 |
+| FIND-21 | State      | While the system searches the text of the files for a query, the system shall take the keys of the find panel and show the files by path, and then add the files by text when the search ends. | Draft, 2026-11-18 |
 
 Tests that verify detailed requirements: `the_row_shows_title_path_and_time` (FIND-5),
 `a_tree_preview_is_not_recent` and `a_note_from_the_float_is_recent` (FIND-6), `a_deleted_file_is_not_recent` (FIND-7),
@@ -126,5 +127,6 @@ Tests that verify detailed requirements: `the_row_shows_title_path_and_time` (FI
 `alt_slash_opens_find_over_a_full_screen_session` in `tests/terminal.rs` (FIND-15), `ignored_files_are_not_searched`
 (FIND-16), `slash_in_the_notes_list_searches_the_notes` (FIND-17), and
 `a_query_finds_the_notes_of_the_notes_repo` (FIND-18), the tests of `tests/find_selection.rs` (FIND-19,
-FIND-20), and the tests of `src/docs/search_lines_tests.rs` (FIND-20).
+FIND-20), the tests of `src/docs/search_lines_tests.rs` (FIND-20), and `typing_does_not_wait_for_the_text_search`
+(FIND-21).
 

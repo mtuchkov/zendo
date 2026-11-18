@@ -22,6 +22,7 @@ mod files_apply;
 mod files_state;
 mod field_keys;
 mod find;
+mod find_worker;
 mod float;
 mod fonts;
 mod jobs;
@@ -100,7 +101,7 @@ pub use worktree::{RECAP_EVERY, TreeAct, WorktreeUi};
 use crate::agent::{self, Attachment, Cmd, Event};
 use crate::text::editor::Editor;
 use crate::docs::notes::{self, Note, Store};
-use crate::docs::search::{self, Group};
+use crate::docs::search;
 use crate::setup::state::{self, State};
 use crate::ui::theme::{self, THEMES, Theme};
 use crate::agent::work::RECAP_PREFIX;
@@ -213,6 +214,8 @@ pub struct App {
 impl App {
     /// Draw the screen, and keep what the draw leaves for the mouse and the keys.
     pub fn draw(&mut self, f: &mut ratatui::Frame) {
+        // FIND-21: the text matches that the search thread found since the last draw.
+        self.poll_find();
         // FILES-58: while the tree shows, it shows the open document, whatever changed it.
         if self.state.tree {
             self.files.follow_current();

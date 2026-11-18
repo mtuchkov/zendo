@@ -46,7 +46,8 @@ pub fn search(notes: &[Note], query: &str) -> Vec<Group> {
 /// The notes with the query in a line.
 fn by_line(notes: &[Note], needle: &str) -> Vec<Group> {
     let mut groups = Vec::new();
-    for (i, note) in notes.iter().enumerate() {
+    // A note without the query in its text needs no look at its lines.
+    for (i, note) in notes.iter().enumerate().filter(|(_, n)| has(&n.body, needle)) {
         let mut count = 0;
         let mut snippets = Vec::new();
         for (ln, line) in note.body.lines().enumerate() {
@@ -69,12 +70,50 @@ fn by_line(notes: &[Note], needle: &str) -> Vec<Group> {
     groups
 }
 
-/// Case-insensitive matches, as byte ranges into `hay`.
+/// Case-insensitive matches, as byte ranges into `hay`. ASCII text needs no lower-case copy.
 pub(super) fn find_all(hay: &str, needle_lower: &str) -> Vec<(usize, usize)> {
     if needle_lower.is_empty() {
         return vec![];
     }
-    // Map each char of the lowercased text back to the original byte offset.
+    if hay.is_ascii() && needle_lower.is_ascii() {
+        return find_ascii(hay.as_bytes(), needle_lower.as_bytes());
+    }
+    if !lower(hay).contains(needle_lower) {
+        return vec![];
+    }
+    find_mapped(hay, needle_lower)
+}
+
+/// The text has the query, without regard to letter case.
+pub(super) fn has(hay: &str, needle_lower: &str) -> bool {
+    if hay.is_ascii() && needle_lower.is_ascii() {
+        return first_ascii(hay.as_bytes(), needle_lower.as_bytes()).is_some();
+    }
+    lower(hay).contains(needle_lower)
+}
+
+/// The text in lower case, char by char, as `find_mapped` reads it.
+fn lower(hay: &str) -> String {
+    hay.chars().flat_map(char::to_lowercase).collect()
+}
+
+fn find_ascii(hay: &[u8], needle: &[u8]) -> Vec<(usize, usize)> {
+    let mut out = Vec::new();
+    let mut from = 0;
+    while let Some(at) = first_ascii(&hay[from..], needle) {
+        let s = from + at;
+        out.push((s, s + needle.len()));
+        from = s + needle.len();
+    }
+    out
+}
+
+fn first_ascii(hay: &[u8], needle: &[u8]) -> Option<usize> {
+    hay.windows(needle.len()).position(|w| w.eq_ignore_ascii_case(needle))
+}
+
+/// The matches in any text: a lower-case copy, with each char mapped back to its byte offset.
+fn find_mapped(hay: &str, needle_lower: &str) -> Vec<(usize, usize)> {
     let mut lower = String::new();
     let mut map = Vec::new();
     for (b, c) in hay.char_indices() {
@@ -83,20 +122,14 @@ pub(super) fn find_all(hay: &str, needle_lower: &str) -> Vec<(usize, usize)> {
             lower.push(lc);
         }
     }
-    let orig = |lb: usize, start: bool| -> usize {
-        map.iter()
-            .find(|(l, _, _)| *l >= lb)
-            .map(|(_, s, e)| if start { *s } else { *e })
-            .unwrap_or(hay.len())
-    };
+    let orig = |lb: usize| -> usize { map.iter().find(|(l, _, _)| *l >= lb).map_or(hay.len(), |(_, s, _)| *s) };
     let mut out = Vec::new();
     let mut from = 0;
     while let Some(pos) = lower[from..].find(needle_lower) {
         let s = from + pos;
         let e = s + needle_lower.len();
-        let os = orig(s, true);
-        let oe = map.iter().rev().find(|(l, _, _)| *l < e).map(|(_, _, e)| *e).unwrap_or(hay.len());
-        out.push((os, oe));
+        let oe = map.iter().rev().find(|(l, _, _)| *l < e).map_or(hay.len(), |(_, _, e)| *e);
+        out.push((orig(s), oe));
         from = e;
     }
     out

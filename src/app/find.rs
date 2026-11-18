@@ -1,5 +1,6 @@
-//! Find (FIND-1 to FIND-17): the recent files with an empty query; with a query the files by path,
-//! then the markdown files by text; the preview of the selected file.
+//! Find (FIND-1 to FIND-21): the recent files with an empty query; with a query the files by path,
+//! then the markdown files by text from the search thread; the preview of the selected file.
+use super::find_worker::{Found, Worker, items_of};
 use super::*;
 use crate::setup::state::Opened;
 
@@ -30,9 +31,28 @@ pub struct Find {
     pub(crate) seen: Option<PathBuf>,
     /// What the panel stands over: the mode, the focus, a session on the full screen (FIND-12).
     back: Option<(Mode, Focus, Option<usize>)>,
-    /// The files of the repository and the markdown files with their text, read at the first query.
+    /// The files of the repository, from the search thread.
     files: Vec<PathBuf>,
-    docs: Vec<Note>,
+    /// The thread of the text search, while the panel is open (FIND-21).
+    worker: Option<Worker>,
+    /// The number of the newest query, and of the query whose text matches the list shows.
+    asked: u64,
+    answered: u64,
+    /// The rows of the query: the files by path, and the markdown files by text.
+    by_path: Vec<FindItem>,
+    by_text: Vec<FindItem>,
+}
+
+impl Find {
+    /// The search thread has not answered the newest query yet.
+    pub fn searching(&self) -> bool {
+        self.asked != self.answered
+    }
+}
+
+/// A query of text: not empty, not a tag, not a question; or a query across lines (FIND-20).
+fn is_text(q: &str) -> bool {
+    q.contains(search::NEW_LINE) || !matches!(q.chars().next(), None | Some('?' | '#'))
 }
 
 impl App {
@@ -50,7 +70,9 @@ impl App {
         self.hold = None;
         self.files.find.back = Some((self.mode, self.focus, self.cli.view.take()));
         self.files.find.query.set(&seed);
-        (self.files.find.files, self.files.find.docs) = (Vec::new(), Vec::new());
+        self.files.find.files = Vec::new();
+        // The thread reads the files now, while the user types the query (FIND-21).
+        self.files.find.worker = Some(Worker::start(self.cfg.root.clone(), self.repo_notes_outside(), self.cli.notify.clone()));
         self.mode = Mode::Find;
         self.run_find();
     }
@@ -59,8 +81,10 @@ impl App {
     pub(crate) fn close_find(&mut self) {
         let (mode, focus, view) = self.files.find.back.take().unwrap_or((Mode::Read, self.focus, None));
         (self.mode, self.focus, self.cli.view) = (mode, focus, view);
-        self.files.find.items.clear();
-        self.files.find.preview = None;
+        let f = &mut self.files.find;
+        (f.worker, f.answered) = (None, f.asked);
+        (f.items, f.by_path, f.by_text) = (Vec::new(), Vec::new(), Vec::new());
+        f.preview = None;
     }
 
     /// A key in the find panel: the keys of `[list]`, then the field; `esc` is fixed (PANES-48).
@@ -87,6 +111,8 @@ impl App {
     /// `enter`: open the selected file in the note pane at the line of the match (FIND-11); after
     /// `?`, ask the agent about all notes (FIND-14).
     fn find_enter(&mut self) {
+        // `enter` opens what the query finds, also when the text search has not answered yet.
+        self.settle_find();
         if let Some(q) = self.files.find.query.strip_prefix('?').map(|q| q.trim().to_string()) {
             self.close_find();
             self.mode = Mode::Read;
@@ -110,16 +136,73 @@ impl App {
     /// then by text (FIND-2, FIND-9, FIND-14, FIND-20).
     pub(crate) fn run_find(&mut self) {
         let q = self.files.find.query.trim().to_string();
-        self.files.find.items = match q.chars().next() {
-            None => self.recent_items(),
-            // A query across lines is text, also when it starts with `#` or `?` (FIND-20).
-            Some(_) if q.contains(search::NEW_LINE) => self.query_items(&q),
-            Some('?') => Vec::new(),
-            Some('#') => items_of(self.files.notes(), search::search(self.files.notes(), &q)),
-            Some(_) => self.query_items(&q),
-        };
+        self.files.find.asked += 1;
+        if is_text(&q) {
+            // The files by path now; the text comes from the search thread (FIND-21).
+            self.files.find.by_path = self.path_items(&q);
+            self.ask_text(&q);
+            self.files.find.items = self.files.find.rows();
+        } else {
+            let f = &mut self.files.find;
+            (f.answered, f.by_path, f.by_text) = (f.asked, Vec::new(), Vec::new());
+            self.files.find.items = match q.chars().next() {
+                None => self.recent_items(),
+                Some('#') => items_of(self.files.notes(), search::search(self.files.notes(), &q)),
+                _ => Vec::new(),
+            };
+        }
         self.files.find.sel = 0;
         self.load_preview();
+    }
+
+    fn ask_text(&mut self, q: &str) {
+        if self.files.find.worker.is_none() {
+            self.files.find.worker = Some(Worker::start(self.cfg.root.clone(), self.repo_notes_outside(), self.cli.notify.clone()));
+        }
+        if let Some(w) = &self.files.find.worker {
+            w.ask(self.files.find.asked, q);
+        }
+    }
+
+    /// The results that the search thread sent, without a wait: before each draw (FIND-21).
+    pub(crate) fn poll_find(&mut self) {
+        while let Some(found) = self.files.find.worker.as_ref().and_then(Worker::try_take) {
+            self.on_found(found);
+        }
+    }
+
+    /// Wait until the search thread answered the newest query: `enter`, and the tests.
+    pub fn settle_find(&mut self) {
+        self.poll_find();
+        while self.files.find.searching() {
+            let Some(found) = self.files.find.worker.as_ref().and_then(Worker::take) else { break };
+            self.on_found(found);
+        }
+    }
+
+    /// A result of the search thread: the list gets it, and the selected file stays selected.
+    fn on_found(&mut self, found: Found) {
+        let q = self.files.find.query.trim().to_string();
+        match found {
+            Found::Files(files) => {
+                self.files.find.files = files;
+                if is_text(&q) {
+                    self.files.find.by_path = self.path_items(&q);
+                }
+            }
+            Found::Text(n, items) if n == self.files.find.asked => (self.files.find.by_text, self.files.find.answered) = (items, n),
+            Found::Text(..) => return,
+        }
+        let f = &mut self.files.find;
+        if !is_text(&q) {
+            return;
+        }
+        let kept = f.items.get(f.sel).map(|i| i.path.clone());
+        f.items = f.rows();
+        f.sel = kept.and_then(|p| f.items.iter().position(|i| i.path == p)).unwrap_or(0);
+        if f.preview.as_ref().map(|n| &n.path) != f.items.get(f.sel).map(|i| &i.path) {
+            self.load_preview();
+        }
     }
 
     fn load_preview(&mut self) {
@@ -137,35 +220,22 @@ impl App {
         self.state.recent.iter().filter_map(item).collect()
     }
 
-    /// The text files whose path has every word, recent first; then the markdown files whose text
-    /// has the query (FIND-9, FIND-16).
-    fn query_items(&mut self, q: &str) -> Vec<FindItem> {
-        if self.files.find.files.is_empty() {
-            let root = self.cfg.root.clone();
-            self.files.find.files = crate::app::at::repo_files(&root);
-            // FIND-18: the notes of the notes repo, by their absolute path (`root.join` keeps it).
-            if let Some(dir) = self.repo_notes_outside() {
-                let md = crate::app::at::repo_files(&dir).into_iter().filter(|f| f.extension().is_some_and(|x| x == "md"));
-                self.files.find.files.extend(md.map(|f| dir.join(f)));
-            }
-            self.files.find.docs = self.files.find.files.iter().filter(|f| !code::is_code(f)).filter_map(|f| notes::load(&root.join(f)).ok()).collect();
-        }
+    /// The text files whose path has every word, recent first (FIND-9, FIND-16); a note of the
+    /// notes repo by its absolute path, which `root.join` keeps (FIND-18).
+    fn path_items(&self, q: &str) -> Vec<FindItem> {
         let notes_dir = self.repo_notes_outside();
         let words: Vec<String> = q.to_lowercase().split_whitespace().map(str::to_string).collect();
         let rank = |rel: &str| self.state.recent.iter().position(|o| o.path == rel).unwrap_or(RECENT);
         let mut by_path: Vec<&PathBuf> = self.files.find.files.iter().filter(|f| has_words(&shown_path(f, notes_dir.as_deref()), &words)).collect();
         by_path.sort_by_key(|f| (rank(&f.display().to_string()), f.to_path_buf()));
         let root = &self.cfg.root;
-        let mut items: Vec<FindItem> = by_path
+        by_path
             .into_iter()
             .map(|f| root.join(f))
             .filter(|p| !code::is_code(p) || crate::docs::tree::is_text(p))
             .take(BY_PATH)
             .filter_map(|path| Some(FindItem { title: notes::load(&path).ok()?.title, path, at: None, snippets: Vec::new() }))
-            .collect();
-        let text = items_of(&self.files.find.docs, search::search(&self.files.find.docs, q));
-        items.extend(text.into_iter().filter(|t| !items.iter().any(|i| i.path == t.path)).collect::<Vec<_>>());
-        items
+            .collect()
     }
 
     /// After a key or a tick: the file in the note pane is the most recent file, unless the float,
@@ -212,9 +282,12 @@ fn shown_path(f: &Path, notes_dir: Option<&Path>) -> PathBuf {
     }
 }
 
-/// The rows of the matches in the text.
-fn items_of(docs: &[Note], groups: Vec<Group>) -> Vec<FindItem> {
-    groups.into_iter().map(|g| FindItem { path: docs[g.note].path.clone(), title: docs[g.note].title.clone(), at: None, snippets: g.snippets }).collect()
+impl Find {
+    /// The files by path, then the files by text that are not in the list yet (FIND-9).
+    fn rows(&self) -> Vec<FindItem> {
+        let text = self.by_text.iter().filter(|t| !self.by_path.iter().any(|i| i.path == t.path));
+        self.by_path.iter().chain(text).cloned().collect()
+    }
 }
 
 use crate::text::code;

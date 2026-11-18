@@ -51,12 +51,15 @@ pub fn status_bar(rows: &[String]) -> String {
     rows[rule + 1].clone()
 }
 
+/// A key, and then the answer of the text search of the find panel (FIND-21).
 pub fn key(app: &mut App, code: KeyCode) {
     app.on_key(KeyEvent::new(code, KeyModifiers::NONE));
+    app.settle_find();
 }
 
 pub fn ctrl(app: &mut App, c: char) {
     app.on_key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::CONTROL));
+    app.settle_find();
 }
 
 /// Type text, one key for each char.

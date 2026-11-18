@@ -22,6 +22,7 @@ fn files() -> Vec<(&'static str, &'static str)> {
 
 fn alt(a: &mut App, c: char) {
     a.on_key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::ALT));
+    a.settle_find();
 }
 
 /// Open a file as the user does, and let zendo see it.
@@ -176,6 +177,28 @@ async fn a_rename_keeps_the_recent_place() {
     assert!(root.join("docs/alpha.md").exists());
     alt(&mut a, '/');
     assert_eq!(listed(&a, &root), vec![B, "docs/alpha.md"]);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FIND-21: a key in the find panel does not wait for the text search; the files by text come
+// when the search thread answers.
+#[tokio::test]
+async fn typing_does_not_wait_for_the_text_search() {
+    let root = repo("find-async", &[("docs/design.md", "# Design\n\nWe drink TEA here.\n"), ("docs/tea-notes.md", "# Notes\n\nNothing.\n")]);
+    let mut a = app(&root);
+    alt(&mut a, '/');
+    for c in "tea".chars() {
+        a.on_key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::NONE));
+    }
+    assert!(a.files.find().searching(), "the key comes back before the search thread answers");
+    assert!(!listed(&a, &root).contains(&"docs/design.md".to_string()), "no text match before the answer");
+    a.settle_find();
+    assert!(!a.files.find().searching());
+    assert_eq!(listed(&a, &root), vec!["docs/tea-notes.md", "docs/design.md"]);
+    key(&mut a, KeyCode::Down);
+    key(&mut a, KeyCode::Char('x'));
+    key(&mut a, KeyCode::Backspace);
+    assert_eq!(a.files.find().items[a.files.find().sel].path, root.join("docs/tea-notes.md"), "a new query selects its first row");
     let _ = std::fs::remove_dir_all(&root);
 }
 
