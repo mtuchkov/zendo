@@ -1,5 +1,6 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-18"
 date: "2026-11-18"
 sources:
   - "The user, 2026-11-18: show that background processes still run, and which ones; much asked for."
@@ -34,7 +35,7 @@ stays one when it goes to the background. zendo already reads process groups for
 
 ## Decision
 
-Proposal of the agent, not yet approved: the third option, with the data of the agent on top.
+Approved by the user on 2026-11-18: the third option, with the data of the agent on top.
 
 - zendo shall read, about once per second, the processes under the agent process and under each
   Claude Code process. A background process is a process group under them that runs a command of
@@ -70,4 +71,4 @@ Proposal of the agent, not yet approved: the third option, with the data of the 
 
 ## Decision record
 
-Draft of the agent, 2026-11-18, from the request of the user. Waits for the review of the user.
+Draft of the agent, 2026-11-18. Approved by the user on 2026-11-18 in chat, with PR #26.

@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-18"
 revision: "1"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "transcript.md"
 next: "interactivity.md"
 level: "how the status line of a turn shows that the agent is alive: the thought, the waits of the agent, the pulse"
-note: "Agent draft from the request of the user on 2026-11-18 in chat: a more alive status. Split from Interactivity of the chat to keep each document within two pages. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft from the request of the user on 2026-11-18 in chat: a more alive status. Split from Interactivity of the chat to keep each document within two pages. Approved by the user on 2026-11-18."
 ---
 
 # A status line that is alive
@@ -57,6 +58,4 @@ Tests: `tests/live_status.rs`, with the mock agent.
 
 ## Open points
 
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| The rate limit comes in an extension of the Claude adapter, not of ACP; [ADR 0014](../architecture/decisions/0014-agent-activity-from-acp-and-hooks.md) (draft) uses it. Does the user approve the record? | LIVE-2 | User |
+None. The user answered the open points on 2026-11-18.

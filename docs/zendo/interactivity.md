@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-18"
 revision: "3"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "live-status.md"
 next: "background.md"
 level: "what the user can do during a turn without Claude Code: steer the turn, open a step, take the next question, change the mode"
-note: "Agent draft from the request of the user on 2026-11-18 in chat: a more interactive chat. The status line is in live-status.md. Revision 2: no queue during a turn; a key makes the agent read the steering now (User, 2026-11-18). Revision 3: `ctrl-s` stays, a click opens a step, the keys do not clash (User, 2026-11-18). Background processes and their stop are in background.md (User, 2026-11-18). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft from the request of the user on 2026-11-18 in chat: a more interactive chat. The status line is in live-status.md. Revision 2: no queue during a turn; a key makes the agent read the steering now (User, 2026-11-18). Revision 3: `ctrl-s` stays, a click opens a step, the keys do not clash (User, 2026-11-18). Background processes and their stop are in background.md (User, 2026-11-18). Approved by the user on 2026-11-18."
 ---
 
 # Interactivity of the chat
@@ -96,6 +97,4 @@ Retired: INTER-4 and INTER-12 (the stop of one task on ACP v2 only), because BG-
 
 ## Open points
 
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| Steering and the suggestion are extensions of the Claude adapter; [ADR 0014](../architecture/decisions/0014-agent-activity-from-acp-and-hooks.md) (draft) uses them. Does the user approve the record? | INTER-1, INTER-3 | User |
+None. The user answered the open points on 2026-11-18.

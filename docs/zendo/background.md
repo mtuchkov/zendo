@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-18"
 revision: "1"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "interactivity.md"
 next: "terminal/terminal.md"
 level: "the background processes of the agent and of Claude Code: that they still run, which ones, their end, their stop, and the quit"
-note: "Agent draft from the request of the user on 2026-11-18 in chat: show that background processes still run, and which ones; much asked for. It replaces ACT-12, INTER-4 and INTER-12, which are retired. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft from the request of the user on 2026-11-18 in chat: show that background processes still run, and which ones; much asked for. It replaces ACT-12, INTER-4 and INTER-12, which are retired. Approved by the user on 2026-11-18."
 ---
 
 # Background processes
@@ -46,7 +47,8 @@ Claude Code session ends, zendo keeps them in the line until they end. When zend
 Claude Code session to the agent ([Back to the agent](back-to-the-agent.md)), the processes stay.
 
 **Quit.** When the user quits zendo while background processes run, zendo asks first, as for the
-terminals (SESSIONS-6): stop them, or leave them running.
+terminals (SESSIONS-6): stop them, or leave them running. The default answer stops them (User,
+2026-11-18).
 
 ## Architecturally significant requirements
 
@@ -55,7 +57,7 @@ terminals (SESSIONS-6): stop them, or leave them running.
 | BG-1 | State      | While a background process of the agent or of a Claude Code session of an agent session runs, the system shall show its command and its time in one background line of the chat of that session, also between turns. | User, 2026-11-18 |
 | BG-2 | Ubiquitous | The system shall find the background processes in the processes that zendo started for the agent and for each Claude Code session, with each agent and on each ACP version. | User, 2026-11-18; Design |
 | BG-3 | Event      | When the user stops one background process, the system shall end only that process and the processes that it started, and the turn and the agent shall go on. | User, 2026-11-18 |
-| BG-4 | Unwanted   | If background processes run when the user quits zendo, then the system shall ask the user whether to stop them or to leave them running. | Design |
+| BG-4 | Unwanted   | If background processes run when the user quits zendo, then the system shall ask the user whether to stop them or to leave them running, with stop as the default answer. | User, 2026-11-18 |
 
 ### Acceptance tests
 
@@ -84,7 +86,7 @@ child processes in a folder of its own.
 
 - Given one background process of the agent.
 - When the user quits zendo.
-- Then zendo asks whether to stop it or to leave it running.
+- Then zendo asks whether to stop it or to leave it running, and `enter` stops it.
 
 ## Detailed requirements
 
@@ -102,6 +104,4 @@ ACP v2 only), because BG-1 to BG-3 cover them on every version (User, 2026-11-18
 
 ## Open points
 
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| On quit, what is the default answer: stop the background processes, or leave them running? | BG-4 | User |
+None. The user answered the open points on 2026-11-18.

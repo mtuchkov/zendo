@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-18"
 revision: "4"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "chat-history.md"
 next: "checklist.md"
 level: "what the chat shows about the work of the agent during a turn: the status line, the steps, the questions, the commands, the signs of life"
-note: "Agent draft from the request of the user on 2026-11-18 in chat: the chat shall show the current state of the agent, so that the user is calm and does not switch to Claude Code to see it. Revision 2: the answers of the user on 2026-11-18 (questions on, allowed commands run and show). Revision 3: `no news` after 1 min, the output of a command only in an open step, the same detail for a Claude Code session (User, 2026-11-18). Revision 4: the checklist moved to checklist.md, to keep the document within two pages (User, 2026-11-18). Background processes are in background.md (User, 2026-11-18). Not reviewed by the user as a document. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft from the request of the user on 2026-11-18 in chat: the chat shall show the current state of the agent, so that the user is calm and does not switch to Claude Code to see it. Revision 2: the answers of the user on 2026-11-18 (questions on, allowed commands run and show). Revision 3: `no news` after 1 min, the output of a command only in an open step, the same detail for a Claude Code session (User, 2026-11-18). Revision 4: the checklist moved to checklist.md, to keep the document within two pages (User, 2026-11-18). Background processes are in background.md (User, 2026-11-18). Approved by the user on 2026-11-18."
 ---
 
 # Activity of the agent
@@ -95,6 +96,4 @@ Retired: ACT-12 (the background line on ACP v2 only), because BG-1 of [Backgroun
 
 ## Open points
 
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| What zendo tells the adapter that it shows, and the extensions of the adapter that it uses, are in [ADR 0014](../architecture/decisions/0014-agent-activity-from-acp-and-hooks.md), a draft. Does the user approve it? | ACT-3 to ACT-7 | User |
+None. The user answered the open points on 2026-11-18.

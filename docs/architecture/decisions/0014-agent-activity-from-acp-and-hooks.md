@@ -1,5 +1,6 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-18"
 date: "2026-11-18"
 sources:
   - "The user, 2026-11-18: the chat shall show the current state of the agent, so that the user is calm and does not switch to Claude Code; the same detail for a Claude Code session; answers to Claude Code in the chat; the latest Claude Code."
@@ -53,7 +54,7 @@ also carries the answers to a question, or `deny`.
 
 ## Decision
 
-Proposal of the agent, not yet approved: the second option.
+Approved by the user on 2026-11-18: the second option.
 
 - In the handshake, zendo shall declare `elicitation.form`, `_meta.terminal_output`, and
   `session.compaction`.
@@ -90,5 +91,4 @@ Proposal of the agent, not yet approved: the second option.
 
 ## Decision record
 
-Draft of the agent, 2026-11-18. Waits for the review of the user. The background processes: ADR 0016
-(the process tree of zendo), not the capability of JetBrains AIR.
+Draft of the agent, 2026-11-18. Approved by the user on 2026-11-18 in chat, with PR #26.

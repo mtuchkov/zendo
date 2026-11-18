@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-18"
 revision: "1"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "activity.md"
 next: "transcript.md"
 level: "the checklist of a turn: where it shows, closed and open, and where it goes when the turn ends"
-note: "Agent draft from the requests of the user on 2026-11-18 in chat. Moved from activity.md (revision 4) to keep that document within two pages; the IDs stay. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft from the requests of the user on 2026-11-18 in chat. Moved from activity.md (revision 4) to keep that document within two pages; the IDs stay. Approved by the user on 2026-11-18."
 ---
 
 # Checklist

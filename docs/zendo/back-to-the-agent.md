@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-18"
 revision: "1"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "cli-activity.md"
 next: "zendo-session.md"
 level: "when zendo ends a quiet Claude Code session by itself, so that the thread goes back to the agent of the chat through ACP"
-note: "Agent draft from the request of the user on 2026-11-18 in chat: when the user is back in the chat for long enough, catch a good pause of the Claude Code session and switch the thread back to ACP. It changes SESSIONS-1. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft from the request of the user on 2026-11-18 in chat: when the user is back in the chat for long enough, catch a good pause of the Claude Code session and switch the thread back to ACP. It changes SESSIONS-1. Approved by the user on 2026-11-18."
 ---
 
 # Back to the agent
@@ -20,7 +21,7 @@ on, with the full detail of [Activity of the agent](activity.md). `ctrl-o` start
 with a resume (SESSIONS-7).
 
 **Long enough.** The user left the session view (`alt-q`) at least 5 min ago, and did not open it
-again (Design).
+again (User, 2026-11-18). `back_to_agent = false` in `~/.zendo/config.toml` turns the switch off.
 
 **A good pause.** Claude Code is idle: its turn ended at least 30 s ago, and no hook came since
 (Design). A pause is not good, and zendo waits for the next one, while one of these is true:
@@ -77,9 +78,8 @@ Tests: `tests/back_to_the_agent.rs`, with the mock agent, the mock command line,
 | RETURN-4 | Unwanted   | If the user types in the chat input, or typed there in the last 10 s, then the system shall not end the Claude Code session. | Design |
 | RETURN-5 | Event      | When the system ends a Claude Code session for RETURN-1, the system shall show `back to the chat agent · ctrl-o opens Claude Code again` in its chat. | Design |
 | RETURN-6 | Event      | When the user opens the session view again before the switch, the system shall start the 5 min again from the next `alt-q`. | Design |
+| RETURN-7 | Optional   | Where `~/.zendo/config.toml` has `back_to_agent = false`, the system shall not end a Claude Code session for RETURN-1. | User, 2026-11-18 |
 
 ## Open points
 
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| Are 5 min out of the session view and 30 s of idle the right times? Shall the user set them, or turn the switch off? | RETURN-1 | User |
+None. The user answered the open points on 2026-11-18.

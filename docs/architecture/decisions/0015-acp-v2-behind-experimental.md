@@ -1,5 +1,6 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-18"
 date: "2026-11-18"
 sources:
   - "The user, 2026-11-18: make sure that ACP v2 is not abandoned; capture it as a decision record, and plan to support it as `--experimental`."
@@ -44,7 +45,7 @@ will be common for some time. The Rust SDK has v2 only behind the crate feature
 
 ## Decision
 
-Proposal of the agent, not yet approved: v2 behind `--experimental`.
+Approved by the user on 2026-11-18: v2 behind `--experimental`.
 
 - zendo shall have the start flag `--experimental`. It turns on the features that depend on a
   draft protocol. ACP v2 is the first of them.
@@ -86,5 +87,4 @@ Proposal of the agent, not yet approved: v2 behind `--experimental`.
 
 ## Decision record
 
-Draft of the agent, 2026-11-18, from the request of the user to support ACP v2 as
-`--experimental`. Waits for the review of the user.
+Draft of the agent, 2026-11-18. Approved by the user on 2026-11-18 in chat, with PR #26.
