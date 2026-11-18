@@ -5,6 +5,7 @@ date: "2026-11-18"
 sources:
   - "../../zendo/fonts.md"
   - "The requests of the user on 2026-11-17 and 2026-11-18: ship six recommended fonts (seven with Iosevka Term); a tip in the theme picker to run `zendo setup fonts`; ask the user before the agent installs them; four styles; Iosevka and Iosevka Term; `zendo setup` names the fonts only when the list changed; iA Writer Mono, added on 2026-11-18"
+note: "The change of the terminal by the agent of the chat is replaced by ADR 0013 (draft of 2026-11-18)."
 ---
 
 # 0012 Download the recommended fonts from their releases

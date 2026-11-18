@@ -1,13 +1,13 @@
 ---
-status: "implemented"
+status: "draft"
 approved: "2026-11-18"
-revision: "4"
+revision: "5"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "tips.md"
 next: "fonts-tip.md"
 level: "which fonts zendo recommends, and what `zendo setup fonts` does on the machine"
-note: "Agent draft of the decisions of the user on 2026-11-17 and 2026-11-18. Revision 2: the answers of the user on 2026-11-18 (Iosevka and Iosevka Term, Fira Code without italic); the theme picker tip moved to fonts-tip.md. Approved by the user on 2026-11-18. Revision 3: implemented in zendo 0.96.0; the test names as in the code. Revision 4: iA Writer Mono, on the request of the user on 2026-11-18, in zendo 0.104.0."
+note: "Agent draft of the decisions of the user on 2026-11-17 and 2026-11-18. Revision 2: the answers of the user on 2026-11-18 (Iosevka and Iosevka Term, Fira Code without italic); the theme picker tip moved to fonts-tip.md. Approved by the user on 2026-11-18. Revision 3: implemented in zendo 0.96.0; the test names as in the code. Revision 4: iA Writer Mono, on the request of the user on 2026-11-18, in zendo 0.104.0. Revision 5, a draft of the request of the user on 2026-11-18: after the install, Claude writes the recipe of the terminal font (fonts-recipe.md); FONT-17 is retired. Not reviewed by the user."
 ---
 
 # Fonts
@@ -23,11 +23,12 @@ Code, Cascadia Code, and iA Writer Mono. The fonts are optional.
 `zendo setup fonts` downloads each font from the release of its project, at a version and a
 checksum that zendo pins. It installs Regular, Bold, Italic and Bold Italic of each font, with its
 license, in the font folder of the user. Fira Code has no italic, so it gets Regular and Bold. The
-command needs no admin rights and asks nothing, so an agent can run it. A second run changes
-nothing. At its end, it names the installed fonts and tells how to open the theme picker and change
-the font there.
+command needs no admin rights. A second run installs nothing again. Then, while the terminal has no
+working recipe for its font, the command offers an interactive Claude session that writes the
+recipe ([Font recipe](fonts-recipe.md)). At its end, it names the installed fonts and tells how to
+open the theme picker and set the font there.
 
-How the user finds the command, and how the agent sets the font of the terminal, is in
+The font list of the theme picker, and how the user finds the command, is in
 [Font tip](fonts-tip.md).
 
 ## Main design choices
@@ -35,8 +36,8 @@ How the user finds the command, and how the agent sets the font of the terminal,
 - Design: zendo pulls the fonts; it does not carry them. The binary and the history of git keep no
   font files. The options are in
   [ADR 0012](../architecture/decisions/0012-fonts-from-their-releases.md).
-- Design: zendo installs the files, and the agent changes the terminal. Each terminal keeps its
-  font in another place and format; the agent can read the config and ask the user.
+- Design: zendo installs the files; Claude writes once how to set a font in the terminal, and zendo
+  sets fonts by that recipe ([ADR 0013](../architecture/decisions/0013-terminal-font-by-a-recipe.md)).
 - All eight fonts use the SIL Open Font License 1.1. zendo installs the files without change, so no
   reserved font name needs a new name.
 
@@ -52,7 +53,7 @@ How the user finds the command, and how the agent sets the font of the terminal,
 ### Acceptance tests
 
 **`setup fonts installs the pinned styles`** (unit test; verifies FONT-1, FONT-4, FONT-7, FONT-8,
-FONT-9, FONT-11, FONT-20)
+FONT-9, FONT-11, FONT-39)
 
 - Given an empty font folder in the test folder and local copies of the release archives.
 - When `zendo setup fonts` runs two times.
@@ -81,7 +82,6 @@ FONT-9, FONT-11, FONT-20)
 | FONT-10 | Unwanted   | If the download of a font fails, then the system shall name the font and the failure, install the other fonts, and end with an exit status that is not zero. | Design |
 | FONT-11 | Ubiquitous | The system shall install the license of each font beside its files. | Design |
 | FONT-12 | Event      | When the system installs a font on Linux, the system shall refresh the font cache of the user. | Design |
-| FONT-17 | Ubiquitous | `zendo setup fonts` shall not wait for input. | Design |
 
 Tests that verify detailed requirements: `a_failed_download_names_the_failure_and_installs_the_others`
 (FONT-10), `a_font_on_the_machine_is_not_installed_again` (FONT-9),
