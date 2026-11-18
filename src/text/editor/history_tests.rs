@@ -107,30 +107,56 @@ fn a_change_without_a_commit_goes_in_before_undo() {
     assert_eq!(e.text(), "a");
 }
 
-// UNDO-6, UNDO-13: a change of another writer is one external operation, merged with the text
-// that is not saved yet; the cursor moves with it.
-#[test]
-fn an_external_change_merges_with_the_unsaved_text() {
-    let mut e = Editor::new("note");
+/// A document editor: its loglet takes only what zendo saved (UNDO-16).
+fn document(text: &str) -> Editor {
+    let mut e = Editor::new(text);
+    e.as_document(text);
     e.move_to_end();
+    e
+}
+
+// UNDO-16: a document records only the saved text, one operation for each save.
+#[test]
+fn a_document_records_what_it_saved() {
+    let mut e = document("note");
+    type_keys(&mut e, " one two");
+    assert!(!e.undo(), "nothing saved yet");
+    assert_eq!(e.text(), "note one two");
+    e.flush("note one two");
+    type_keys(&mut e, " three");
+    e.flush("note one two three");
+    e.undo();
+    assert_eq!(e.text(), "note one two");
+    e.undo();
+    assert_eq!(e.text(), "note");
+    e.redo();
+    assert_eq!(e.text(), "note one two");
+}
+
+// UNDO-6, UNDO-13: a change of another writer is appended to the loglet as one external
+// operation; the text that is not saved stays out of the loglet and moves over the change.
+#[test]
+fn an_external_change_is_appended() {
+    let mut e = document("note");
     type_keys(&mut e, " mine");
-    assert!(e.external("theirs note"));
-    assert_eq!(e.text(), "theirs note mine");
-    assert_eq!(e.col, 16, "the cursor stays after the typed text");
+    e.flush("note mine");
+    type_keys(&mut e, " unsaved");
+    assert!(e.external("theirs note mine"));
+    assert_eq!(e.text(), "theirs note mine unsaved");
+    assert_eq!(e.col, 24, "the cursor stays after the typed text");
     assert!(e.external_next());
     e.undo();
-    assert_eq!(e.text(), "note mine", "undo of the external change");
+    assert_eq!(e.text(), "note mine", "the unsaved text was never in the loglet");
     e.undo();
     assert_eq!(e.text(), "note");
 }
 
-// UNDO-6: the file as zendo saved it is no external change.
+// UNDO-6: the file of the last save is no external change.
 #[test]
-fn the_saved_text_is_no_external_change() {
-    let mut e = Editor::new("note");
-    e.move_to_end();
+fn the_saved_file_is_no_external_change() {
+    let mut e = document("note");
     type_keys(&mut e, " mine  ");
-    e.saved_as("note mine");
+    e.flush("note mine");
     assert!(!e.external("note mine"));
     assert!(!e.external_next());
 }
@@ -138,10 +164,9 @@ fn the_saved_text_is_no_external_change() {
 // UNDO-14: keep the external change: the next undo takes back the change of the user before it.
 #[test]
 fn keep_the_external_change() {
-    let mut e = Editor::new("note");
-    e.move_to_end();
+    let mut e = document("note");
     type_keys(&mut e, " mine");
-    e.saved_as("note mine");
+    e.flush("note mine");
     e.external("theirs note mine");
     e.keep_external();
     assert!(!e.external_next());
@@ -149,20 +174,19 @@ fn keep_the_external_change() {
     assert_eq!(e.text(), "theirs note");
 }
 
-// UNDO-4, UNDO-6: a stored loglet resumes on a text that changed while the document was closed:
-// the change is one external operation; the trim of the save is none.
+// UNDO-4, UNDO-6: a stored loglet resumes on the file; a change since the last save is one
+// external operation.
 #[test]
-fn resume_on_a_changed_text() {
-    let mut e = Editor::new("note");
-    e.move_to_end();
-    type_keys(&mut e, " mine  ");
-    e.saved_as("note mine");
-    let (log, head, disk) = e.history();
+fn resume_on_a_changed_file() {
+    let mut e = document("note");
+    type_keys(&mut e, " mine");
+    e.flush("note mine");
+    let (log, head) = e.history();
     let mut same = Editor::new("note mine");
-    same.resume(log.clone(), &head, &disk);
-    assert!(!same.external_next(), "only the trim of the save");
+    same.resume(log.clone(), &head);
+    assert!(!same.external_next());
     let mut back = Editor::new("theirs note mine");
-    back.resume(log, &head, &disk);
+    back.resume(log, &head);
     assert!(back.external_next());
     back.undo();
     assert_eq!(back.text(), "note mine");
@@ -176,7 +200,7 @@ fn a_loglet_that_does_not_fit_goes() {
     let mut log = Loglet::default();
     log.record(Op::diff("something else", "something else entirely"));
     let mut e = Editor::new("note");
-    e.resume(log, "note", "note");
+    e.resume(log, "note");
     assert!(!e.undo());
     assert_eq!(e.text(), "note");
     assert!(e.history().0.is_empty());
@@ -195,3 +219,18 @@ fn take_starts_a_new_loglet_and_clear_keeps_it() {
     assert_eq!(e.text(), "draft");
 }
 
+
+// UNDO-16: a new note has no file: undo of its first save empties it, and redo brings it back.
+#[test]
+fn undo_of_the_first_save_of_a_new_note() {
+    let mut e = Editor::new("# \n\n");
+    e.as_document("");
+    e.move_to_end();
+    type_keys(&mut e, "body");
+    e.flush("# \n\nbody".trim_end());
+    e.undo();
+    assert_eq!(e.text(), "");
+    e.flush("");
+    assert!(e.redo(), "the empty file is no new change");
+    assert_eq!(e.text(), "# \n\nbody");
+}

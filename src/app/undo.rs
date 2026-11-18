@@ -1,7 +1,8 @@
-//! Undo and redo in every input (UNDO-1 to UNDO-15, ADR 0014). After each key, paste and mouse
-//! event, the editors record their changes in their loglets. The loglet of a document goes to
-//! `.zendo/db.log.json` with each save, and comes back when the document opens in write mode. The
-//! undo of a change of another writer asks first.
+//! Undo and redo in every input (UNDO-1 to UNDO-16, ADR 0014). After each key, paste and mouse
+//! event, the chat input records its changes in its loglet; the text fields do it by themselves.
+//! A document records only what zendo saves: its loglet goes to `.zendo/db.log.json` with each
+//! save, and comes back when the document opens in write mode. The undo of a change of another
+//! writer asks first.
 use super::*;
 
 /// The question before the undo of an external change (UNDO-12).
@@ -23,22 +24,38 @@ impl App {
         self.commit_edits();
     }
 
-    /// The editors of write mode and of the chat input record what changed (UNDO-2). The text
-    /// fields record their changes by themselves.
+    /// The chat input records what changed (UNDO-2). The text fields record their changes by
+    /// themselves; a document records at each save (UNDO-16).
     pub(crate) fn commit_edits(&mut self) {
-        self.writer.editor_mut().commit();
         self.composer.input_mut().commit();
     }
 
-    /// `undo` in write mode. Before a change of another writer, the question opens and nothing
-    /// changes yet (UNDO-12). `Some(edited)`, or `None` when the question is open.
+    /// `undo` in write mode: the save comes first, so the loglet has the text of the user, and
+    /// the file gets the text after the undo. Before a change of another writer, the question
+    /// opens and nothing changes yet (UNDO-12, UNDO-16). `None`: the work is done.
     pub(super) fn write_undo(&mut self) -> Option<bool> {
-        let e = self.writer.editor_mut();
-        if e.external_next() {
+        self.save();
+        if self.writer.editor().external_next() {
             self.writer.set_asks_external(true);
             return None;
         }
-        Some(e.undo())
+        self.undone(Editor::undo);
+        None
+    }
+
+    /// `redo` in write mode: the save comes first, so a new change trims the tail (UNDO-3).
+    pub(super) fn write_redo(&mut self) -> Option<bool> {
+        self.save();
+        self.undone(Editor::redo);
+        None
+    }
+
+    /// Undo or redo the document, and write the text after it to the file at once: the file is
+    /// the head of the loglet again.
+    fn undone(&mut self, step: fn(&mut Editor) -> bool) {
+        if step(self.writer.editor_mut()) {
+            self.write_note();
+        }
     }
 
     /// A key while the question is open: `y` undoes the external change, `n` keeps it and undoes
@@ -63,16 +80,13 @@ impl App {
 
     fn answer_external(&mut self, undo_it: Option<bool>) {
         self.writer.set_asks_external(false);
-        let edited = match undo_it {
-            Some(true) => self.writer.editor_mut().undo(),
+        match undo_it {
+            Some(true) => self.undone(Editor::undo),
             Some(false) => {
                 self.writer.editor_mut().keep_external();
-                self.write_undo().unwrap_or(false)
+                self.write_undo();
             }
-            None => false,
-        };
-        if edited {
-            self.writer.touch();
+            None => {}
         }
     }
 
@@ -81,16 +95,15 @@ impl App {
     pub(crate) fn resume_log(&mut self) {
         let Some(path) = self.writer.path().cloned() else { return };
         let Some(d) = self.logs.get(&self.rel(&path)) else { return };
-        let disk = if d.disk.is_empty() { d.text.clone() } else { d.disk.clone() };
         let (log, text) = (d.log.clone(), d.text.clone());
-        self.writer.editor_mut().resume(log, &text, &disk);
+        self.writer.editor_mut().resume(log, &text);
     }
 
     /// The document is on disk in `path`: its loglet goes to `.zendo/db.log.json` (UNDO-4).
     pub(crate) fn keep_log(&mut self, path: &Path) {
-        let (log, text, disk) = self.writer.editor_mut().history();
+        let (log, text) = self.writer.editor_mut().history();
         let rel = self.rel(path);
-        self.logs.put(&rel, log, text, disk);
+        self.logs.put(&rel, log, text);
         self.logs.save(&self.cfg.root);
     }
 }

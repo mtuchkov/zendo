@@ -51,30 +51,6 @@ fn a_new_operation_trims_the_tail() {
     assert!(log.redo().is_none(), "the undone operation is gone");
 }
 
-// UNDO-6: a silent change (the trim of a save) moves every operation over it.
-#[test]
-fn rebase_keeps_the_change_of_another_writer() {
-    let (mut log, t) = edited(&["note", "note mine", "note mine more"]);
-    let t = undo(&mut log, &t);
-    assert_eq!(t, "note mine");
-    let theirs = format!("theirs {t}");
-    log.rebase(Op::diff(&t, &theirs));
-    let t = undo(&mut log, &theirs);
-    assert_eq!(t, "theirs note");
-    let t = redo(&mut log, &t);
-    assert_eq!(t, "theirs note mine");
-    assert_eq!(redo(&mut log, &t), "theirs note mine more");
-}
-
-// UNDO-6: the other writer deletes text that an operation changed: undo keeps the delete.
-#[test]
-fn rebase_over_a_delete_of_the_other_writer() {
-    let (mut log, t) = edited(&["a b c", "a bb c"]);
-    let theirs = "c";
-    log.rebase(Op::diff(&t, theirs));
-    assert_eq!(undo(&mut log, theirs), "c");
-}
-
 // UNDO-2: a loglet keeps a limited number of operations; the oldest go.
 #[test]
 fn a_loglet_drops_the_oldest_operations() {

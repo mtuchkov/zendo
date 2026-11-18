@@ -34,29 +34,43 @@ fn log_file(root: &std::path::Path) -> std::path::PathBuf {
     root.join(".zendo/db.log.json")
 }
 
-// UNDO-1, UNDO-2: ctrl-z undoes the last change in write mode, ctrl-y does it again.
+fn disk(root: &std::path::Path) -> String {
+    std::fs::read_to_string(root.join(NOTE)).unwrap()
+}
+
+// UNDO-1, UNDO-16: ctrl-z undoes the last save in write mode, ctrl-y does it again; the file
+// follows.
 #[tokio::test]
 async fn undo_and_redo_in_write_mode() {
     let root = repo("undo-write", &files());
     let mut a = writing(&root);
-    typ(&mut a, "alpha beta");
+    typ(&mut a, "alpha");
+    a.save();
+    typ(&mut a, " beta");
     ctrl(&mut a, 'z');
-    assert!(text(&a).ends_with("\n\nalpha "), "{}", text(&a));
+    assert!(text(&a).ends_with("\n\nalpha"), "{}", text(&a));
+    assert!(disk(&root).ends_with("\n\nalpha\n"), "{}", disk(&root));
     ctrl(&mut a, 'y');
     assert!(text(&a).ends_with("\n\nalpha beta"), "{}", text(&a));
+    assert!(disk(&root).ends_with("alpha beta\n"), "{}", disk(&root));
+    ctrl(&mut a, 'z');
+    ctrl(&mut a, 'z');
+    assert_eq!(text(&a), "# Undo\n\nThe first paragraph.");
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// UNDO-3: a new change after undo trims the tail: the undone word does not come back.
+// UNDO-3: a new change after undo trims the tail: the undone save does not come back.
 #[tokio::test]
 async fn a_new_change_after_undo_trims_the_tail() {
     let root = repo("undo-trim", &files());
     let mut a = writing(&root);
-    typ(&mut a, "alpha beta");
+    typ(&mut a, "alpha");
+    a.save();
+    typ(&mut a, " beta");
     ctrl(&mut a, 'z');
     typ(&mut a, "x");
     ctrl(&mut a, 'y');
-    assert!(text(&a).ends_with("alpha x"), "{}", text(&a));
+    assert!(text(&a).ends_with("alphax"), "{}", text(&a));
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -72,8 +86,8 @@ async fn undo_works_after_a_restart() {
     assert!(log.contains(NOTE), "{log}");
     drop(a);
     let mut b = writing(&root);
-    // writing() pressed enter twice: take those back first, then the word.
-    ctrl(&mut b, 'z');
+    // writing() pressed enter twice: the save of ctrl-z takes them, the first undo takes them
+    // back, the second the word.
     ctrl(&mut b, 'z');
     ctrl(&mut b, 'z');
     assert!(!text(&b).contains("added"), "{}", text(&b));
@@ -130,6 +144,7 @@ async fn the_undo_of_an_external_change_asks_first() {
     key(&mut a, KeyCode::Char('y'));
     assert!(!a.writer.asks_external());
     assert!(!text(&a).contains("theirs") && text(&a).ends_with("mine"), "{}", text(&a));
+    assert!(!disk(&root).contains("theirs"), "the file follows the undo");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -149,7 +164,7 @@ async fn undo_keeps_the_change_of_the_agent() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// UNDO-13: a change of the agent merges with the text that is not saved yet; the save keeps both.
+// UNDO-13: the text that is not saved yet moves over a change of the agent; the save keeps both.
 #[tokio::test]
 async fn an_external_change_merges_with_unsaved_text() {
     let root = repo("undo-merge", &files());
@@ -188,11 +203,13 @@ async fn a_change_while_the_note_was_closed() {
 async fn undo_moves_the_cursor_to_the_change() {
     let root = repo("undo-cursor", &files());
     let mut a = writing(&root);
-    typ(&mut a, "alpha beta");
+    typ(&mut a, "alpha");
+    a.save();
+    typ(&mut a, " beta");
     key(&mut a, KeyCode::Home);
     ctrl(&mut a, 'z');
     let e = a.writer.editor();
-    assert_eq!((e.col, e.lines[e.row].as_str()), (6, "alpha "));
+    assert_eq!((e.col, e.lines[e.row].as_str()), (5, "alpha"));
     let _ = std::fs::remove_dir_all(&root);
 }
 

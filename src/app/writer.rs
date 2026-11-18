@@ -22,7 +22,7 @@ pub struct Draft {
 impl Draft {
     /// An empty editor, as before write mode.
     fn empty() -> Self {
-        Self { editor: Editor::new(""), path: None, last_edit: Instant::now(), saved_at: None, asks_external: false }
+        Self { editor: document(""), path: None, last_edit: Instant::now(), saved_at: None, asks_external: false }
     }
 
     /// A new note: an empty title line, the cursor on the first line of the body (FLOAT-17).
@@ -37,7 +37,17 @@ pub const NEW_NOTE: &str = "# \n\n";
 
 fn new_note_editor() -> Editor {
     let mut editor = Editor::new(NEW_NOTE);
+    // No file yet: the first save is the first operation of the loglet (UNDO-16).
+    editor.as_document("");
     editor.move_to_end();
+    editor
+}
+
+/// An editor of a document with the text of its file: its loglet takes only the saved text
+/// (UNDO-16).
+fn document(text: &str) -> Editor {
+    let mut editor = Editor::new(text);
+    editor.as_document(text);
     editor
 }
 
@@ -91,7 +101,7 @@ impl Writer {
 
     /// Write mode on the text of a file.
     pub fn start_on(&mut self, text: &str, path: PathBuf) {
-        self.draft.editor = Editor::new(text);
+        self.draft.editor = document(text);
         self.draft.path = Some(path);
     }
 

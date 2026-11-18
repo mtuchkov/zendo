@@ -20,7 +20,7 @@ fn loglet(a: &str, b: &str) -> Loglet {
 fn a_loglet_goes_to_the_file_and_back() {
     let root = dir("back");
     let mut logs = Logs::default();
-    logs.put("docs/a.md", loglet("a", "ab"), "ab".into(), "ab".into());
+    logs.put("docs/a.md", loglet("a", "ab"), "ab".into());
     logs.save(&root);
     let back = Logs::load(&root);
     let doc = back.get("docs/a.md").expect("the loglet");
@@ -35,7 +35,7 @@ fn a_loglet_goes_to_the_file_and_back() {
 fn the_oldest_documents_go() {
     let mut logs = Logs::default();
     for i in 0..MAX_DOCS + 3 {
-        logs.put(&format!("docs/{i}.md"), loglet("", "x"), "x".into(), "x".into());
+        logs.put(&format!("docs/{i}.md"), loglet("", "x"), "x".into());
     }
     assert_eq!(logs.len(), MAX_DOCS);
     assert!(logs.get("docs/0.md").is_none() && logs.get(&format!("docs/{}.md", MAX_DOCS + 2)).is_some());
@@ -55,7 +55,7 @@ fn a_broken_file_gives_no_loglets() {
 #[test]
 fn an_empty_loglet_goes() {
     let mut logs = Logs::default();
-    logs.put("docs/a.md", loglet("a", "ab"), "ab".into(), "ab".into());
-    logs.put("docs/a.md", Loglet::default(), "ab".into(), "ab".into());
+    logs.put("docs/a.md", loglet("a", "ab"), "ab".into());
+    logs.put("docs/a.md", Loglet::default(), "ab".into());
     assert_eq!(logs.len(), 0);
 }

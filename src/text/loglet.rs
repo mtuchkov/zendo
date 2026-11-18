@@ -88,21 +88,6 @@ impl Loglet {
         move_down(&mut self.ops[..self.head], x);
     }
 
-    /// A change at the head that is no change of a writer, such as the trim of a save: every
-    /// operation moves over it, and the loglet fits the new text.
-    pub fn rebase(&mut self, x: Op) {
-        if x.is_noop() {
-            return;
-        }
-        move_down(&mut self.ops[..self.head], x.clone());
-        let mut up = x;
-        for e in &mut self.ops[self.head..] {
-            let (moved, next) = Op::transform(&e.op, &up);
-            e.op = moved;
-            up = next;
-        }
-    }
-
     pub fn head(&self) -> usize {
         self.head
     }

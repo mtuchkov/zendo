@@ -1,6 +1,10 @@
-//! Undo and redo: the loglet of the editor (UNDO-1 to UNDO-15, ADR 0014). The app commits after
-//! each key, paste and mouse event: the difference between the text at the head of the loglet and
-//! the text now is one operation. A change of the file by another writer is one external operation.
+//! Undo and redo: the loglet of the editor (UNDO-1 to UNDO-16, ADR 0014).
+//!
+//! The chat input and the text fields keep their loglets in memory: the app commits after each
+//! key, paste and mouse event, and the difference since the head of the loglet is one operation.
+//! A document records only what zendo saved: each save is one operation (UNDO-16), and the text
+//! that is not saved yet stays out of the loglet. A change of the file by another writer is
+//! appended as one external operation (UNDO-6).
 use super::*;
 use crate::text::loglet::Loglet;
 use crate::text::ot::Op;
@@ -9,20 +13,20 @@ use crate::text::ot::Op;
 #[derive(Clone, Debug, Default)]
 pub struct History {
     log: Loglet,
-    /// The text after the last done operation.
+    /// The text after the last done operation. For a document: the file as zendo last saved or
+    /// read it.
     logged: String,
     /// The last operation is a typed char or one deleted char: the next one can join it (UNDO-7).
     open: bool,
     /// The cursor at the last commit: a move ends the group (UNDO-7).
     at: (usize, usize),
-    /// The text of the file as zendo last read or saved it: a file that differs from it changed
-    /// outside zendo (UNDO-6).
-    disk: String,
+    /// The editor holds a document: only `flush` records (UNDO-16).
+    document: bool,
 }
 
 impl History {
     pub(super) fn of(text: &str) -> Self {
-        Self { logged: text.to_string(), disk: text.to_string(), ..Default::default() }
+        Self { logged: text.to_string(), ..Default::default() }
     }
 }
 
@@ -45,11 +49,20 @@ fn joins(last: &Op, next: &Op) -> bool {
 }
 
 impl Editor {
+    /// The editor holds a document whose file is `file`, empty for a new note: its loglet takes
+    /// only the saved text (UNDO-16).
+    pub fn as_document(&mut self, file: &str) {
+        self.history = History { document: true, ..History::of(file) };
+    }
+
     /// Record the change since the last commit as an operation of the loglet (UNDO-2, UNDO-7).
-    /// A new operation trims the undone ones (UNDO-3).
+    /// A new operation trims the undone ones (UNDO-3). A document records only at `flush`.
     pub fn commit(&mut self) {
         let now = self.text();
         let h = &mut self.history;
+        if h.document {
+            return;
+        }
         if now == h.logged {
             if h.at != (self.row, self.col) {
                 h.open = false;
@@ -68,7 +81,16 @@ impl Editor {
         h.at = (self.row, self.col);
     }
 
-    /// `ctrl-z`: take back the last change (UNDO-1). False when there is none (UNDO-9).
+    /// The document is on disk as `saved`: the change since the last save is one operation
+    /// (UNDO-16). A new operation trims the undone ones (UNDO-3).
+    pub fn flush(&mut self, saved: &str) {
+        let h = &mut self.history;
+        h.log.record(Op::diff(&h.logged, saved));
+        h.logged = saved.to_string();
+    }
+
+    /// `ctrl-z`: take back the last change (UNDO-1). False when there is none (UNDO-9). In a
+    /// document the app saves first, so the undo starts from the saved text.
     pub fn undo(&mut self) -> bool {
         self.commit();
         let Some(op) = self.history.log.undo() else { return false };
@@ -86,39 +108,38 @@ impl Editor {
     /// operation that does not fit the text: the loglet goes, the text stays (UNDO-11).
     fn apply_logged(&mut self, op: &Op) -> bool {
         let Some(text) = op.apply(&self.history.logged) else {
-            self.history = History::of(&self.history.logged);
+            self.history = History { document: self.history.document, ..History::of(&self.history.logged) };
             return false;
         };
         self.set_lines(&text);
         (self.row, self.col) = self.position(op.end());
         self.anchor = None;
-        self.history.logged = text;
-        self.history.open = false;
-        self.history.at = (self.row, self.col);
+        let h = &mut self.history;
+        (h.logged, h.open) = (text, false);
+        h.at = (self.row, self.col);
         self.touch();
         true
     }
 
-    /// The file is `disk` now. When it differs from the file that zendo last read or saved, the
-    /// change goes into the loglet as one external operation, merged with the text that is not
-    /// saved yet, and the cursor moves with it (UNDO-6, UNDO-13). True when the file changed.
+    /// The file of the document is `disk` now. When it differs from the file of the last save,
+    /// the change is appended to the loglet as one external operation (UNDO-6). The text that is
+    /// not saved stays out of the loglet: it moves over the change, and so does the cursor
+    /// (UNDO-13). True when the file changed.
     pub fn external(&mut self, disk: &str) -> bool {
-        if disk == self.history.disk {
+        if disk == self.history.logged {
             return false;
         }
-        self.commit();
-        let h = &mut self.history;
-        let theirs = Op::diff(&h.disk, disk);
-        let (merged, _) = Op::transform(&theirs, &Op::diff(&h.disk, &h.logged));
-        h.disk = disk.to_string();
-        let Some(text) = merged.apply(&h.logged) else { return false };
-        let at = merged.map(self.offset());
+        let theirs = Op::diff(&self.history.logged, disk);
+        let unsaved = Op::diff(&self.history.logged, &self.text());
+        let (_, over) = Op::transform(&unsaved, &theirs);
+        let Some(text) = over.apply(&self.text()) else { return false };
+        let at = over.map(self.offset());
         self.set_lines(&text);
         (self.row, self.col) = self.position(at);
         self.anchor = None;
         let h = &mut self.history;
-        h.log.record_external(merged);
-        (h.logged, h.open, h.at) = (text, false, (self.row, self.col));
+        h.log.record_external(theirs);
+        (h.logged, h.open) = (disk.to_string(), false);
         true
     }
 
@@ -133,31 +154,31 @@ impl Editor {
         self.history.log.keep_external();
     }
 
-    /// The editor saved its text as `disk`: the file of the last save is no external change.
-    pub fn saved_as(&mut self, disk: &str) {
-        self.history.disk = disk.to_string();
-    }
-
-    /// Go on with a stored loglet: `head` is the text at its head, `disk` the file of its last
-    /// save, and the text of the editor the file now. The trim of the save moves the loglet; a
-    /// change of the file since then is one external operation (UNDO-4, UNDO-6, UNDO-15).
-    pub fn resume(&mut self, log: Loglet, head: &str, disk: &str) {
+    /// A document goes on with a stored loglet whose head is the file of its last save, `head`.
+    /// The text of the editor is the file now: a change since then is one external operation
+    /// (UNDO-4, UNDO-6, UNDO-15). A loglet that does not fit its head goes (UNDO-11).
+    pub fn resume(&mut self, log: Loglet, head: &str) {
+        let fits = log.last().is_none_or(|op| op.invert().apply(head).is_some());
+        let log = if fits { log } else { Loglet::default() };
         let now = self.text();
-        self.history = History { log, logged: head.to_string(), disk: disk.to_string(), ..Default::default() };
-        self.set_lines(disk);
-        self.absorb();
-        let (row, col) = (self.row, self.col);
-        self.external(&now);
-        (self.row, self.col) = (row.min(self.lines.len() - 1), col);
-        self.col = self.col.min(self.len(self.row));
+        self.history = History { log, logged: head.to_string(), document: true, ..Default::default() };
+        if now != head {
+            self.history.log.record_external(Op::diff(head, &now));
+            self.history.logged = now;
+        }
     }
 
-    /// The loglet, the text at its head and the file of the last save, for `.zendo/db.log.json`
-    /// (UNDO-4).
-    pub fn history(&mut self) -> (Loglet, String, String) {
+    /// The loglet and the text at its head, for `.zendo/db.log.json` (UNDO-4).
+    pub fn history(&mut self) -> (Loglet, String) {
         self.commit();
-        let h = &self.history;
-        (h.log.clone(), h.logged.clone(), h.disk.clone())
+        (self.history.log.clone(), self.history.logged.clone())
+    }
+
+    /// A new text from the app, such as a title of the agent; the loglet stays.
+    pub fn set_text(&mut self, text: &str) {
+        self.set_lines(text);
+        self.anchor = None;
+        self.touch();
     }
 
     /// Empty the text and keep the loglet: the clear can be undone.
@@ -165,21 +186,6 @@ impl Editor {
         self.set_lines("");
         (self.row, self.col, self.anchor) = (0, 0, None);
         self.touch();
-    }
-
-    /// The text now differs from the head of the loglet by a change that is no edit, such as the
-    /// trim of a save: the loglet moves over it. A loglet that does not fit goes (UNDO-11).
-    fn absorb(&mut self) {
-        let now = self.text();
-        let h = &mut self.history;
-        let fits = h.log.last().is_none_or(|op| op.invert().apply(&h.logged).is_some());
-        if !fits {
-            h.log = Loglet::default();
-        }
-        h.log.rebase(Op::diff(&h.logged, &now));
-        h.logged = now;
-        h.open = false;
-        h.at = (self.row, self.col);
     }
 
     fn set_lines(&mut self, text: &str) {
