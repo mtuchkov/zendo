@@ -3,6 +3,7 @@
 use super::{Effect, Files};
 use crate::app::TreeAct;
 use crate::docs::tree::Kind;
+use crate::text::field::{Field, Typed};
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::path::PathBuf;
 
@@ -69,7 +70,7 @@ impl Files {
                 None => {}
             },
             "search" => {
-                self.tree.find = Some(String::new());
+                self.tree.find = Some(Field::default());
                 self.tree.sel = 0;
             }
             _ => return false,
@@ -81,8 +82,7 @@ impl Files {
     pub fn key_filter(&mut self, k: KeyEvent) -> FilterKey {
         let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
         let last = self.tree.rows().len().saturating_sub(1);
-        let Some(empty) = self.tree.find.as_ref().map(String::is_empty) else { return FilterKey::Done };
-        let typed = !ctrl && !k.modifiers.contains(KeyModifiers::ALT);
+        let Some(empty) = self.tree.find.as_ref().map(|f| f.is_empty()) else { return FilterKey::Done };
         match k.code {
             KeyCode::Esc => {
                 // The tree comes back with the match selected.
@@ -103,25 +103,26 @@ impl Files {
                 }
             }
             KeyCode::Backspace if empty => self.tree.find = None,
-            KeyCode::Backspace => self.edit_filter(|q| {
-                q.pop();
-            }),
             KeyCode::Down => self.tree.sel = (self.tree.sel + 1).min(last),
             KeyCode::Char('n' | 'j') if ctrl => self.tree.sel = (self.tree.sel + 1).min(last),
             KeyCode::Up => self.tree.sel = self.tree.sel.saturating_sub(1),
             KeyCode::Char('p' | 'k') if ctrl => self.tree.sel = self.tree.sel.saturating_sub(1),
-            KeyCode::Char('u') if ctrl => self.edit_filter(String::clear),
-            KeyCode::Char(c) if typed => self.edit_filter(|q| q.push(c)),
-            _ => {}
+            _ => {
+                if self.tree.find.as_mut().is_some_and(|f| f.key(None, &k) == Typed::Changed) {
+                    self.tree.sel = 0;
+                }
+            }
         }
         FilterKey::Done
     }
 
-    /// Change the text of the filter: the first match is selected.
-    fn edit_filter(&mut self, edit: impl FnOnce(&mut String)) {
-        if let Some(q) = self.tree.find.as_mut() {
-            edit(q);
-        }
+    /// The field of the filter, for the keys of the field.
+    pub(crate) fn filter_field(&mut self) -> Option<&mut Field> {
+        self.tree.find.as_mut()
+    }
+
+    /// The text of the filter changed: the first match is selected.
+    pub(crate) fn filter_changed(&mut self) {
         self.tree.sel = 0;
     }
 

@@ -32,29 +32,22 @@ impl Editor {
         }
     }
 
-    /// Enter. With `continue_list`, a bullet line starts the next bullet.
+    /// Enter. With `continue_list`, a list item starts the next item, and Enter on an empty item
+    /// ends the list (TEXT-8, TEXT-9).
     pub fn split_line(&mut self, continue_list: bool) {
         let b = self.byte(self.row, self.col);
-        let tail = self.lines[self.row].split_off(b);
         let mut prefix = String::new();
-        if continue_list {
-            let line = &self.lines[self.row];
-            let indent: String = line.chars().take_while(|c| *c == ' ').collect();
-            let body = &line[indent.len()..];
-            for p in ["- [ ] ", "- ", "* "] {
-                if body.starts_with(p) {
-                    if body.len() == p.len() && tail.is_empty() {
-                        // Enter on an empty bullet ends the list.
-                        self.lines[self.row].clear();
-                        self.col = 0;
-                        self.touch();
-                        return;
-                    }
-                    prefix = format!("{indent}{p}");
-                    break;
-                }
+        let item = list::marker(&self.lines[self.row]).filter(|(len, _)| continue_list && self.col >= *len);
+        if let Some((len, next)) = item {
+            if len == self.len(self.row) {
+                self.lines[self.row].clear();
+                self.col = 0;
+                self.touch();
+                return;
             }
+            prefix = next;
         }
+        let tail = self.lines[self.row].split_off(b);
         self.row += 1;
         self.lines.insert(self.row, format!("{prefix}{tail}"));
         self.col = prefix.chars().count();

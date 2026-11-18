@@ -1,7 +1,7 @@
 //! Delete, rename and move a file, from the file tree or the notes list. The files do the work on
 //! disk; the thread and the session of the file follow through an `Effect`.
 use super::{Effect, FilePrompt, Files};
-use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use std::path::{Path, PathBuf};
 
 impl Files {
@@ -18,14 +18,14 @@ impl Files {
         let dir = rel.parent().map(|p| p.display().to_string()).unwrap_or_default();
         self.prompt = Some(match what {
             'd' => FilePrompt::Delete(rel),
-            'r' => FilePrompt::Rename(rel, name),
-            _ => FilePrompt::Move(rel, dir),
+            'r' => FilePrompt::Rename(rel, name.into()),
+            _ => FilePrompt::Move(rel, dir.into()),
         });
         None
     }
 
-    /// The keys while a question is open: `y` or not for a delete; typing, `tab`, `enter` and `esc`
-    /// for a name or a folder. `root` is the repository.
+    /// The keys while a question is open: `y` or not for a delete; `tab`, `enter` and `esc` for a
+    /// name or a folder. `root` is the repository. The app gives the other keys to the field.
     pub fn key_prompt(&mut self, k: KeyEvent, root: &Path) -> Option<Effect> {
         let mut prompt = self.prompt.take()?;
         let Some(text) = prompt.field_mut() else {
@@ -38,15 +38,11 @@ impl Files {
             KeyCode::Esc => return None,
             KeyCode::Enter => return self.finish(prompt, root),
             KeyCode::Tab => {
-                if let Some(t) = complete_folder(root, text) {
-                    *text = t;
+                if let Some(t) = complete_folder(root, text.text()) {
+                    text.set(&t);
                 }
             }
-            KeyCode::Backspace => {
-                text.pop();
-            }
-            KeyCode::Char(c) if !k.modifiers.intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) => text.push(c),
-            _ => {}
+            _ => drop(text.key(None, &k)),
         }
         self.prompt = Some(prompt);
         None
@@ -55,10 +51,10 @@ impl Files {
     fn finish(&mut self, prompt: FilePrompt, root: &Path) -> Option<Effect> {
         match prompt {
             FilePrompt::Delete(rel) => self.delete(root, &rel),
-            FilePrompt::Rename(rel, name) => self.rename(root, &rel, &name),
-            FilePrompt::Move(rel, folder) => self.move_to(root, &rel, &folder),
-            FilePrompt::NewFile(path) => self.make_file(root, &path),
-            FilePrompt::NewFolder(path) => self.make_folder(root, &path),
+            FilePrompt::Rename(rel, name) => self.rename(root, &rel, name.text()),
+            FilePrompt::Move(rel, folder) => self.move_to(root, &rel, folder.text()),
+            FilePrompt::NewFile(path) => self.make_file(root, path.text()),
+            FilePrompt::NewFolder(path) => self.make_folder(root, path.text()),
         }
     }
 

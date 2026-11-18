@@ -65,6 +65,12 @@ impl Composer {
         e.col > 0 && e.lines[e.row].chars().nth(e.col - 1) == Some('\\')
     }
 
+    /// The cursor is in a code block of the input, or at the end of the fence that opens one:
+    /// `enter` there is a new line (TEXT-10).
+    pub fn in_code(&self) -> bool {
+        self.input.in_fence() || self.input.opens_fence()
+    }
+
     pub fn chips(&self) -> &[Chip] {
         &self.chips
     }

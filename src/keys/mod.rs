@@ -34,6 +34,8 @@ pub enum Pane {
     /// Keys while text is selected where the user writes: the note in write mode, the chat input.
     /// They come before the keys of the pane (PANES-37).
     Selected,
+    /// Keys of every one-line text field: find, search, the tree filter, a file name (TEXT-11).
+    Field,
     Transcript,
     Tree,
     Delta,
@@ -43,7 +45,7 @@ pub enum Pane {
 }
 
 impl Pane {
-    pub const ALL: [Pane; 10] = [Pane::Global, Pane::Read, Pane::Write, Pane::Chat, Pane::Selected, Pane::Transcript, Pane::Tree, Pane::Delta, Pane::Notes, Pane::Session];
+    pub const ALL: [Pane; 11] = [Pane::Global, Pane::Read, Pane::Write, Pane::Chat, Pane::Selected, Pane::Field, Pane::Transcript, Pane::Tree, Pane::Delta, Pane::Notes, Pane::Session];
 
     pub fn name(self) -> &'static str {
         match self {
@@ -52,6 +54,7 @@ impl Pane {
             Pane::Write => "write",
             Pane::Chat => "chat",
             Pane::Selected => "selection",
+            Pane::Field => "textbox",
             Pane::Transcript => "transcript",
             Pane::Tree => "tree",
             Pane::Delta => "delta",

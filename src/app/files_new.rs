@@ -20,7 +20,7 @@ impl Files {
     /// `f3` or `f4` in the tree.
     pub fn ask_new(&mut self, folder: bool) {
         let at = self.suggested_folder();
-        self.prompt = Some(if folder { FilePrompt::NewFolder(at) } else { FilePrompt::NewFile(at) });
+        self.prompt = Some(if folder { FilePrompt::NewFolder(at.into()) } else { FilePrompt::NewFile(at.into()) });
     }
 
     /// A new file; a name without an extension is a markdown note with its title.

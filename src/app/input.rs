@@ -116,7 +116,7 @@ impl App {
             return self.key_tree_find(k);
         }
         let pane = self.key_pane();
-        if self.selection_key(pane, &k) {
+        if self.date_key(pane, &k) || self.selection_key(pane, &k) {
             return;
         }
         let local = self.keys.local(pane, &k);

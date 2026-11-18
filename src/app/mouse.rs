@@ -109,6 +109,10 @@ impl App {
         let Some((region, rect)) = self.region_at(x, y) else { return };
         self.pointer.press(Some(Selection::start(region, rect, x, y)));
         let (dx, dy) = ((x - rect.x) as usize, (y - rect.y) as usize);
+        if region == Region::Note && self.click_task(dy, dx) {
+            self.pointer.clear();
+            return self.interact(1);
+        }
         match region {
             Region::Panel if self.focus == Focus::Claude && self.cli.pane.is_none() => self.threads.click(dy, rect.height as usize, dx),
             Region::Panel => {}

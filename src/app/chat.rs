@@ -205,6 +205,9 @@ impl App {
             return;
         }
         self.tab_run.end();
+        if self.paste_into_field(&s) {
+            return;
+        }
         if let Some(n) = self.cli.view.or_else(|| self.pane_terminal()) {
             self.paste_cli(n, &s);
         } else if self.threads.shown() && self.focus == Focus::Claude {
@@ -212,9 +215,6 @@ impl App {
         } else if self.mode == Mode::Write {
             self.writer.editor_mut().type_str(&s);
             self.writer.touch();
-        } else if self.mode == Mode::Search {
-            self.lists.edit_query(|q| q.push_str(s.lines().next().unwrap_or("")));
-            self.run_search();
         }
     }
 
