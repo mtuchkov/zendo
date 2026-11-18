@@ -9,6 +9,47 @@ If you feel that something can be better, you are welcome to
 a hint that names the wrong key, a pane that opens in the wrong place. Tell us what you did, what you
 expected, and what got in the way.
 
+## What is uncommon
+
+These features are rare in editors, terminals and agent tools, and they have the most effect on how
+zendo feels. The most important come first.
+
+1. **Write mode looks like read mode.** Only the line with the cursor shows its markdown source.
+   When you change the mode, the cursor stays on the same char, at the same height on the screen.
+   You edit the real text and never lose your place.
+2. **The delta starts at your last real visit.** zendo tells a short look at a file from real work
+   on it. The delta shows, word by word, what changed since you last worked on the file, also when
+   Claude Code, git or another editor made the change. You do not read the whole file again to see
+   what the agent did.
+3. **Recaps while you are away.** zendo writes a short recap of a file while you and the agent are
+   idle: what the file is about and what its changes do. When you come back, it is there.
+4. **Say it here.** `alt-s` puts the place of the cursor into the chat as a chip. You write the
+   idea; the agent writes it at that place, in the style and the level of detail of the document,
+   as one edit that changes nothing else.
+5. **One thread for the chat and Claude Code.** Each agent session is one Claude Code session.
+   `ctrl-o` opens Claude Code with the whole discussion behind it, also in the middle of an answer:
+   Claude Code starts when the turn ends, and `ctrl-o` twice stops the turn and lets Claude Code
+   continue it. After `alt-q`, the chat shows the prompts, the steps and the answers of Claude Code.
+6. **Ask during an answer.** A question that you send while the agent answers waits in a queue.
+   `esc` stops the answer and gives you the queue back to edit.
+7. **The agent never runs a command.** `F5` puts a command into your shell, and you press `enter`.
+   The agent sees the output only when you put it in with `alt-o`: the command, the exit code, and
+   the output without colors.
+8. **A call only when you do not look.** The bell rings and the session button blinks only for a
+   session that is not on the screen, or while the terminal has no focus. A turn that you watch
+   makes no noise.
+9. **Parallel sessions that do not collide.** Each of the five agent sessions changes code only in
+   its own git worktree. The file tree shows the worktree of the session and its changed files;
+   hold `m` to see the document in `main`.
+10. **Tables are cells, not lines.** A drag down a column copies only that column, with a tab
+    between cells, and the selection keys stop at the edge of a cell. A drag with `alt` puts the
+    selection into the chat in place of the clipboard.
+11. **Every hint names your key.** Each hint, help text and message takes its key from your keymap,
+    and an action without a key shows no hint. `ctrl-c` copies and never quits.
+12. **Documents that stay short.** Past the word limit, the text turns red. `S` asks the agent to
+    split the document by the Keep the Altitude rule: one level of detail in each document, with
+    every requirement and its ID kept.
+
 ## What zendo does today
 
 The features are in groups. In each group, the features with the most effect come first. The keys
@@ -24,7 +65,8 @@ are the default keys; the [keymap](#keymap) can change all of them.
   when the turn ends. `esc` stops the answer and puts the queue back into the input.
 - **Work goes on in the background.** Claude Code sessions and terminal commands keep running
   when you go back to the document. `ctrl-o` works also while the chat answers: Claude Code starts
-  when the turn ends. `ctrl-o` twice stops the turn, and Claude Code continues it.
+  when the turn ends. `ctrl-o` twice stops the turn, and Claude Code continues it. After `alt-q`,
+  the chat shows what Claude Code did: each prompt, the steps of each turn, and the answer.
 - **zendo calls you back.** When a turn or a command ends while you look elsewhere, zendo rings
   once and the session button blinks until you look. On a Mac, zendo plays a system sound, also
   where the bell of the terminal is off. `[sound]` in the top line turns the sound off.
@@ -87,6 +129,9 @@ are the default keys; the [keymap](#keymap) can change all of them.
 - The open file goes with the question, with the rules of the project for that file. You do not
   attach it. When the agent session has a worktree, the question takes the version of that
   worktree.
+- Each agent session changes code only in its own git worktree, so five sessions work in one
+  repository and do not change the files of each other. zendo gives each agent the rules of its
+  worktree at the start.
 - `a` asks about the selection or the paragraph. `alt-a` adds the selection to the input as a
   chip.
 - `@` completes a file name, also with a typo. Pasted paths and dropped files become chips, and so
@@ -108,7 +153,7 @@ are the default keys; the [keymap](#keymap) can change all of them.
 - A green `▶` marks a shell command in an answer. `F5` puts it into a terminal and you press
   `enter`; `alt-F5` runs it at once. `$ ` prompts are removed. The agent never runs a command.
 - `alt-o` puts the result of the last command into the chat input: the command, the exit code and
-  the output. `alt-o` again takes the next terminal.
+  the output, without colors and cut to the last 500 lines. `alt-o` again takes the next terminal.
 - A terminal shows in the chat pane, and the document stays on the screen. `ctrl-o` makes it full
   screen; `alt-q` goes back. On the full screen, every key goes to the program, except `alt-q`,
   `F5` to `F10`, the session keys, `alt-n` and `alt-/`.

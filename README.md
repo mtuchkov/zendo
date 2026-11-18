@@ -125,8 +125,8 @@ When an agent cannot do something, only that key is off. With Codex, that is
 
 Ergonomics is a requirement for every part of zendo: no save key, no question for each edit, a
 hint for every key, and a keymap that you can change. If something gets in your way, open an issue.
-[ERGONOMICS.md](ERGONOMICS.md) lists what zendo does today and how to suggest a change of the
-default keys.
+[ERGONOMICS.md](ERGONOMICS.md) lists the uncommon features first, then all that zendo does today,
+and how to suggest a change of the default keys.
 
 ## Install
 
