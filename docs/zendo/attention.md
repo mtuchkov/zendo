@@ -1,13 +1,13 @@
 ---
 status: "approved"
 approved: "2026-11-14"
-revision: "3"
-date: "2026-11-14"
+revision: "4"
+date: "2026-11-18"
 parent: "zendo.md"
 prev: "terminal/terminal.md"
 next: "project-structure.md"
 level: "how zendo calls the user back when a turn of an agent or a command of a terminal ends: the bell, the blinking button, the sound button"
-note: "From the requests of the user on 2026-11-12 and 2026-11-14. Approved by the user on 2026-11-14. It answers the open point on the bell in sessions.md."
+note: "From the requests of the user on 2026-11-12 and 2026-11-14. Approved by the user on 2026-11-14. On 2026-11-18 the user moved the branch left of the buttons (ATTN-7). It answers the open point on the bell in sessions.md."
 ---
 
 # Attention
@@ -48,7 +48,7 @@ terminal bell, and the terminal decides what the user hears.
 | ATTN-1 | Event    | When a turn ends while the user does not see its session, the system shall play its sound once, where the sound is on. | User, 2026-11-12 |
 | ATTN-2 | Event    | When a turn ends while the user does not see its session, the system shall blink the button of that session. | User, 2026-11-12 |
 | ATTN-3 | State    | While a button blinks, the system shall change its background color smoothly from its color to the accent color and back, with a period of 2 s and at least 20 shades in each period. | User, 2026-11-12 |
-| ATTN-7 | Ubiquitous | The system shall show the sound button `[sound]` left of the name of the git branch in the top line: in the blue of the theme while the sound is on, in the gray of the theme while it is off. | User, 2026-11-12; User, 2026-11-14 |
+| ATTN-7 | Ubiquitous | The system shall show the sound button `[sound]` right of the name of the git branch in the top line: in the blue of the theme while the sound is on, in the gray of the theme while it is off. | User, 2026-11-12; User, 2026-11-14; User, 2026-11-18 |
 | ATTN-8 | Event    | When the user clicks the sound button, the system shall turn the sound off or on and save the setting `sound` in `~/.zendo/config.toml`. | User, 2026-11-12 |
 
 ### Acceptance tests
@@ -91,7 +91,7 @@ The tests are in `tests/attention.rs`, with the mock command line of [Sessions](
 
 - Given the branch `main` in the top line.
 - When the user clicks `[sound]`, a turn ends, and the user clicks again.
-- Then `[sound]` is left of `main`; after the first click it is struck through, the config has
+- Then `[sound]` is right of `main`; after the first click it is struck through, the config has
   `sound = false`, and the turn only blinks; after the second, `sound = true`.
 
 ## Detailed requirements

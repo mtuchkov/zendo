@@ -55,8 +55,8 @@ fn saved(root: &std::path::Path) -> String {
     std::fs::read_to_string(root.join("config.toml")).unwrap()
 }
 
-// LOFI-8, LOFI-10: the music button left of the sound button stops and starts the music, blue while
-// it plays and gray while it is stopped, and saves the setting.
+// LOFI-8, LOFI-10: the music button between the branch and the sound button stops and starts the
+// music, blue while it plays and gray while it is stopped, and saves the setting.
 #[test]
 fn lofi_toggles() {
     let (root, mut a) = app_with("lofi-toggles", Some(true), Output::Test);
@@ -65,6 +65,8 @@ fn lofi_toggles() {
     let at = find(&buf, "[music]").expect("the music button");
     let sound = find(&buf, "[sound]").expect("the sound button");
     assert!(at.1 == sound.1 && at.0 < sound.0, "left of the sound button");
+    let branch = find(&buf, "main").expect("the branch");
+    assert!(branch.1 == at.1 && branch.0 < at.0, "right of the branch");
     assert_eq!(buf[at].fg, blue);
     let mut seen = vec![];
     for _ in 0..3 {
