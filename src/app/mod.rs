@@ -20,6 +20,7 @@ mod files_state;
 mod field_keys;
 mod find;
 mod float;
+mod fonts;
 mod jobs;
 mod key_help;
 mod link;
@@ -65,6 +66,7 @@ pub use files_state::Files;
 pub use files_state::tree_keys::{FilterKey, Picked};
 pub use find::{Find, FindItem};
 pub use float::Float;
+pub use fonts::FontTip;
 pub use jobs::*;
 pub use key_help::KeyHelp;
 pub use link::AgentLink;
@@ -181,6 +183,8 @@ pub struct App {
     pub attention: Attention,
     /// The lofi music, its button, and the question at the first start (LOFI-8 to LOFI-15).
     pub music: crate::music::Music,
+    /// The font tip of the theme picker and its question (FONT-13 to FONT-16, FONT-21).
+    pub font_tip: FontTip,
 
     /// The mouse: its selection, the pane edge in a drag, and the text that it copies.
     pub pointer: Pointer,

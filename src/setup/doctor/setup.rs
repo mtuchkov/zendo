@@ -55,6 +55,8 @@ pub async fn setup(paths: &Paths, agent_flag: Option<String>, notes_repo: Option
         let n = cfg.notes.clone().expect("set above");
         moved = move_notes(paths, None, &n, &mut o).await;
     }
+    // The recommended fonts, when their list is new to this machine (FONT-18).
+    fonts::fonts_note(&o);
     println!();
     if ok {
         println!("  Ready. Run `zendo` in a repository.");
