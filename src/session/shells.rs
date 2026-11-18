@@ -51,7 +51,7 @@ impl Sessions {
             let mut bytes = keys::paste(&crate::text::shell::for_shell(&text, bracketed), bracketed);
             if run {
                 bytes.push(b'\r');
-                c.with_recorder(|r| r.enter(&text));
+                c.with_recorder(|r| r.run(&text));
             }
             c.write(&bytes);
         }

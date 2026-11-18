@@ -34,6 +34,9 @@ enum Phase {
 pub struct Recorder {
     /// The shell sent an OSC 133 mark (TERM-26).
     marks: bool,
+    /// The shell sent a C mark: the output starts there. `sh` sends no C mark, so its output
+    /// starts at `enter` (TERM-34).
+    c_mark: bool,
     phase: Phase,
     command: Vec<u8>,
     out: Vec<u8>,
@@ -71,13 +74,27 @@ impl Recorder {
         self.carry = rest[rest.len() - keep..].to_vec();
     }
 
-    /// The user or zendo pressed `enter` in the shell; `line` is the command line. Without marks,
-    /// the command starts here (TERM-27).
+    /// The user pressed `enter` in the shell; `line` is the command line on the screen, with the
+    /// prompt. Without marks, the command starts here (TERM-27); with marks, the command is the
+    /// text after the B mark.
     pub fn enter(&mut self, line: &str) {
-        self.entered = Some((line.trim().to_string(), std::time::Instant::now()));
-        if !self.marks {
-            (self.phase, self.command, self.out) = (Phase::Output, line.trim().as_bytes().to_vec(), Vec::new());
+        let typed = plain(&self.command).trim().to_string();
+        self.start(line, if self.marks { typed } else { line.trim().to_string() });
+    }
+
+    /// zendo puts `command` into the shell and presses `enter` (TERM-1).
+    pub fn run(&mut self, command: &str) {
+        self.start(command, command.trim().to_string());
+    }
+
+    /// The output of `command` starts here, unless a C mark starts it. With marks, an empty command
+    /// line keeps the last result.
+    fn start(&mut self, line: &str, command: String) {
+        self.entered = Some((line.trim().to_string(), Instant::now()));
+        if self.c_mark || (self.marks && command.is_empty()) {
+            return;
         }
+        (self.phase, self.command, self.out) = (Phase::Output, command.into_bytes(), Vec::new());
     }
 
     /// The terminal is free again: without marks, the command ended (TERM-27). An empty command
@@ -141,8 +158,8 @@ impl Recorder {
         let mut parts = body.split(|b| *b == b';');
         match (parts.next().unwrap_or_default(), self.phase) {
             (b"B", _) => (self.phase, self.command) = (Phase::Command, Vec::new()),
-            (b"C", Phase::Output) => {}
-            (b"C", _) => (self.phase, self.out) = (Phase::Output, Vec::new()),
+            (b"C", Phase::Output) if self.c_mark => {}
+            (b"C", _) => (self.c_mark, self.phase, self.out) = (true, Phase::Output, Vec::new()),
             (b"D", Phase::Output) => {
                 let code = parts.next().and_then(|c| std::str::from_utf8(c).ok()).and_then(|c| c.trim().parse().ok());
                 self.finish(Some(code.unwrap_or(0)));
@@ -154,7 +171,8 @@ impl Recorder {
 
     fn finish(&mut self, exit: Option<i32>) {
         self.last = Some(self.output(exit, true));
-        (self.phase, self.out) = (Phase::Idle, Vec::new());
+        // fish sends no B mark: the next command must not take this one.
+        (self.phase, self.command, self.out) = (Phase::Idle, Vec::new(), Vec::new());
     }
 
     fn output(&self, exit: Option<i32>, done: bool) -> Output {
@@ -162,15 +180,16 @@ impl Recorder {
         // Without the B mark, the command line at `enter`.
         let command = if typed.is_empty() { self.entered.as_ref().map(|(l, _)| l.clone()).unwrap_or_default() } else { typed };
         let mut lines: Vec<String> = plain(&self.out).lines().map(str::to_string).collect();
-        // Without marks the output starts with the echo of the command and ends with the prompt.
-        if !self.marks {
+        // Without a C mark the output starts at enter, with the echo of the command.
+        if !self.c_mark {
             let short = command.rsplit("$ ").next().unwrap_or(&command).trim().to_string();
             if lines.first().is_some_and(|l| l.trim().is_empty() || (!short.is_empty() && l.trim_end().ends_with(&short))) {
                 lines.remove(0);
             }
-            if done {
-                lines.pop();
-            }
+        }
+        // Without marks it ends with the prompt; with marks, D comes before the prompt.
+        if done && !self.marks {
+            lines.pop();
         }
         while lines.last().is_some_and(|l| l.trim().is_empty()) {
             lines.pop();

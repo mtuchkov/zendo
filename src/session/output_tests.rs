@@ -95,6 +95,65 @@ fn marks_win_over_enter() {
     assert_eq!(r.result(), None);
 }
 
+/// The prompt of `sh` with the marks of zendo: the end of the last command, then A and B (TERM-34).
+fn sh_prompt(code: i32) -> Vec<u8> {
+    format!("\x1b]133;D;{code}\x07\x1b]133;A\x07# \x1b]133;B\x07").into_bytes()
+}
+
+// TERM-26, TERM-34: `sh` sends no C mark: the output starts at enter, and D gives the end and the
+// exit code. A command that zendo puts in.
+#[test]
+fn marks_without_c_start_the_output_at_enter() {
+    let mut r = Recorder::default();
+    r.feed(&sh_prompt(0));
+    r.run("echo hi; false");
+    marks(&mut r, &[b"echo hi; false\r\nhi\r\n", &sh_prompt(1)]);
+    let o = r.result().unwrap();
+    assert_eq!((o.command.as_str(), o.exit, o.text.as_str(), o.done), ("echo hi; false", Some(1), "hi", true));
+}
+
+// TERM-26, TERM-34: with marks, a command that is quiet and does not run a program (a loop of the
+// shell) does not end before its D mark, however long it is quiet.
+#[test]
+fn marks_without_c_wait_for_the_end_of_a_quiet_command() {
+    let t0 = std::time::Instant::now();
+    let mut r = Recorder::default();
+    r.feed(&sh_prompt(0));
+    r.run("while :; do :; done; echo first");
+    r.feed(b"while :; do :; done; echo first\r\n");
+    r.poll_free(false, t0, t0 + std::time::Duration::from_secs(60));
+    assert_eq!(r.result().map(|o| o.done), Some(false), "it runs");
+    marks(&mut r, &[b"first\r\n", &sh_prompt(0)]);
+    let o = r.result().unwrap();
+    assert_eq!((o.exit, o.text.as_str(), o.done), (Some(0), "first", true));
+}
+
+// TERM-27, TERM-34: the user types the command; the command is the text after the B mark, without
+// the prompt. An empty command line keeps the last result.
+#[test]
+fn marks_without_c_take_the_typed_command() {
+    let mut r = Recorder::default();
+    marks(&mut r, &[&sh_prompt(0), b"echo hi"]);
+    r.enter("# echo hi");
+    marks(&mut r, &[b"\r\nhi\r\n", &sh_prompt(0)]);
+    r.enter("# ");
+    marks(&mut r, &[b"\r\n", &sh_prompt(0)]);
+    let o = r.result().unwrap();
+    assert_eq!((o.command.as_str(), o.exit, o.text.as_str()), ("echo hi", Some(0), "hi"));
+}
+
+// TERM-26: bash, the first command after the start: the C mark comes after enter, and the output
+// starts at C.
+#[test]
+fn a_c_mark_after_enter_starts_the_output_again() {
+    let mut r = Recorder::default();
+    marks(&mut r, &[b"\x1b]133;A\x07$ \x1b]133;B\x07", b"echo hi"]);
+    r.enter("$ echo hi");
+    marks(&mut r, &[b"\r\n\x1b]133;C\x07hi\r\n\x1b]133;D;0\x07"]);
+    let o = r.result().unwrap();
+    assert_eq!((o.command.as_str(), o.exit, o.text.as_str()), ("echo hi", Some(0), "hi"));
+}
+
 // TERM-32: of a long output, the last 500 lines and the number of the lines dropped.
 #[test]
 fn a_long_output_keeps_the_last_lines() {
