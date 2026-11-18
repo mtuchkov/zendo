@@ -1,6 +1,7 @@
 //! Chips in the chat input: `⟦label⟧` tokens for a text (a selection, a paste) or a file. The
 //! arrows and the delete keys take a chip as one unit.
 use super::Composer;
+use crate::setup::history::SavedChip;
 use super::super::*;
 
 pub const OPEN: char = '⟦';
@@ -46,6 +47,16 @@ pub fn chip_ranges(line: &str) -> Vec<(usize, usize)> {
         .filter(|(_, c)| **c == OPEN)
         .filter_map(|(i, _)| chars[i..].iter().position(|c| *c == CLOSE).map(|j| (i, i + j + 1)))
         .collect()
+}
+
+/// The text without its chips.
+pub fn without_chips(q: &str) -> String {
+    cut(q, chip_ranges(q))
+}
+
+/// The text without the char ranges, in the order of `chip_ranges`.
+fn cut(q: &str, ranges: Vec<(usize, usize)>) -> String {
+    ranges.into_iter().rev().fold(q.to_string(), |t, (a, b)| t.chars().take(a).chain(t.chars().skip(b)).collect())
 }
 
 impl Composer {
@@ -121,6 +132,17 @@ impl Composer {
             }
         }
         true
+    }
+
+    /// What the history keeps of the message in the input: the text with the labels of its text
+    /// chips, and those chips; the labels of file and image chips leave the text (HISTORY-7).
+    pub fn history_entry(&self) -> (String, Vec<SavedChip>) {
+        let text = self.input.text();
+        let is_text = |c: &Chip| c.attach.is_none() && c.context.is_some() && text.contains(c.label.as_str());
+        let kept: Vec<SavedChip> = self.chips.iter().filter(|c| is_text(c)).map(|c| SavedChip { label: c.label.clone(), text: c.context.clone().unwrap_or_default() }).collect();
+        let label = |&(a, b): &(usize, usize)| text.chars().skip(a).take(b - a).collect::<String>();
+        let drop = chip_ranges(&text).into_iter().filter(|r| !kept.iter().any(|c| c.label == label(r))).collect();
+        (cut(&text, drop), kept)
     }
 
     /// The chip at the cursor: the one the arrows stand on.

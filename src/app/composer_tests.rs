@@ -1,6 +1,7 @@
 //! The composer without an app (ADR 0008).
 use super::*;
 use crate::agent::Command;
+use crate::setup::history::{SavedChip, Sent};
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 fn key(code: KeyCode) -> KeyEvent {
@@ -119,4 +120,86 @@ fn a_second_pick_puts_the_input_back_and_takes_the_next_terminal() {
     c.input_mut().type_str("more");
     assert_eq!(c.next_pick(3), 0);
     assert_eq!(c.input().text(), "see more");
+}
+
+fn sent(text: &str, chips: Vec<SavedChip>) -> Sent {
+    Sent { text: text.into(), at: chrono::Local::now(), chips, merged: None }
+}
+
+fn history() -> Vec<Sent> {
+    vec![sent("first", vec![]), sent("two\nlines", vec![]), sent("last", vec![])]
+}
+
+// HISTORY-5, HISTORY-6: `up` goes back through the history, `down` comes forward, and after the
+// newest message the draft of the user comes back.
+#[test]
+fn up_and_down_go_through_the_history_and_bring_the_draft_back() {
+    let mut c = Composer::default();
+    c.input_mut().type_str("my draft");
+    let h = history();
+    assert!(c.recall_back(&h));
+    assert_eq!(c.input().text(), "last");
+    assert!(c.recall_back(&h));
+    assert_eq!(c.input().text(), "two\nlines");
+    assert_eq!((c.input().row, c.input().col), (0, 0), "the cursor is on the first row: the next up goes back");
+    assert!(c.recall_back(&h));
+    assert_eq!(c.input().text(), "first");
+    assert!(!c.recall_back(&h), "nothing before the oldest");
+    assert_eq!(c.input().text(), "first");
+    assert!(c.recall_forward(&h));
+    assert_eq!(c.input().text(), "two\nlines");
+    assert_eq!(c.input().row, 1, "the cursor is on the last row: the next down goes forward");
+    assert!(c.recall_forward(&h));
+    assert!(c.recall_forward(&h));
+    assert_eq!(c.input().text(), "my draft", "the draft comes back");
+    assert!(!c.recall_forward(&h), "down without a recall is a plain down");
+}
+
+// HISTORY-5: an empty history changes nothing, and a sent message ends the recall.
+#[test]
+fn a_send_ends_the_recall() {
+    let mut c = Composer::default();
+    assert!(!c.recall_back(&[]));
+    let h = history();
+    c.recall_back(&h);
+    c.take_message();
+    assert!(!c.recall_forward(&h), "after a send, down does not go through the history");
+    assert!(c.recall_back(&h));
+    assert_eq!(c.input().text(), "last", "a new recall starts at the newest message");
+}
+
+// HISTORY-7, HISTORY-5, HISTORY-6: a message from the history brings its text chips back as
+// chips: one unit for the keys, and their text goes as context. The draft gets its own chips back.
+#[test]
+fn a_recalled_message_brings_its_text_chips_back() {
+    let mut c = Composer::default();
+    c.paste_chip("draft text\nof two lines");
+    let label = "⟦fn main · 3 lines⟧";
+    let h = vec![sent(&format!("why {label}"), vec![SavedChip { label: label.into(), text: "fn main() {}".into() }])];
+    assert!(c.recall_back(&h));
+    assert_eq!(c.chips().len(), 1);
+    assert_eq!(c.chips()[0].label, label);
+    c.input_mut().move_to_end();
+    assert!(c.chip_key(KeyCode::Left), "the recalled chip is one unit");
+    assert!(c.recall_forward(&h));
+    assert_eq!(c.chips().len(), 1);
+    assert!(c.chips()[0].label.starts_with("⟦draft text"), "the draft has its own chip again");
+    assert!(c.recall_back(&h));
+    assert_eq!(c.take_question(), format!("why {label}"));
+    assert_eq!(c.take_context().as_deref(), Some("fn main() {}"));
+}
+
+// HISTORY-7: the history keeps the text chips of a message and their labels; the labels of file
+// and image chips leave the text.
+#[test]
+fn the_history_entry_keeps_text_chips_and_drops_file_chips() {
+    let mut c = Composer::default();
+    c.input_mut().type_str("see ");
+    let text = c.add_chip("sel".into(), Some("selected".into()), None, false);
+    let file = c.add_chip("file".into(), None, Some(Attachment::File("/tmp/a.md".into())), false);
+    c.input_mut().type_str("now");
+    let (t, chips) = c.history_entry();
+    assert_eq!(t, format!("see {text}  now"));
+    assert!(!t.contains(&file));
+    assert_eq!(chips, [SavedChip { label: text, text: "selected".into() }]);
 }

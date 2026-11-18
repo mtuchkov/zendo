@@ -5,7 +5,7 @@ revision: "1"
 date: "2026-11-17"
 parent: "zendo.md"
 prev: "chat-chips.md"
-next: "terminal/terminal.md"
+next: "chat-history.md"
 level: "how the chips of a question go to the agent and to Claude Code, and how the transcript shows them"
 note: "Agent draft of the requests of the user on 2026-11-17, with the answers of the user to the open questions in the chat on 2026-11-17, and the escapes of CLAUDE-61 asked by the user on 2026-11-17. Approved by the user on 2026-11-17."
 ---

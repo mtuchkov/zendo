@@ -50,3 +50,17 @@ fn utf8_safe() {
     e.delete_word_back();
     assert_eq!(e.text(), "кэш");
 }
+
+// HISTORY-5: the first and the last visual row, also of a wrapped line: there `up` or `down`
+// cannot move, so the chat input goes through the history.
+#[test]
+fn the_cursor_knows_the_first_and_the_last_visual_row() {
+    let mut e = Editor::new("short\na line that wraps at ten");
+    assert!(e.on_edge(-1, 10) && !e.on_edge(1, 10));
+    e.row = 1;
+    e.col = 2;
+    assert!(!e.on_edge(-1, 10) && !e.on_edge(1, 10), "the first row of a wrapped line is not the last row");
+    e.col = 24;
+    assert!(e.on_edge(1, 10));
+    assert!(Editor::new("").on_edge(-1, 10) && Editor::new("").on_edge(1, 10));
+}
