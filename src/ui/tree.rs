@@ -107,12 +107,18 @@ fn tree_head(f: &mut Frame, app: &App, t: &Theme, head: Rect) {
         let n = app.files.tree().rows().len();
         let count = if q.trim().is_empty() { "enter open · esc".to_string() } else { format!("{n} · esc") };
         let room = (w.saturating_sub(4 + count.width())).max(1);
-        let shown: String = if q.width() > room { q.chars().rev().take(room).collect::<Vec<_>>().into_iter().rev().collect() } else { q.clone() };
-        let line = Line::from(vec![Span::styled("/ ", Style::new().fg(t.acc)), Span::styled(shown.clone(), Style::new().fg(t.fg))]);
+        // A long filter shows its end; the cursor stays in the field.
+        let (text, x) = if q.width() > room {
+            let tail: String = q.chars().rev().take(room).collect::<Vec<_>>().into_iter().rev().collect();
+            (vec![Span::styled(tail, Style::new().fg(t.fg))], q.cursor_width().saturating_sub(q.width() - room))
+        } else {
+            (super::field::spans(&q, Style::new().fg(t.fg), Style::new().fg(t.fg).bg(t.sel)), q.cursor_width())
+        };
+        let line = Line::from([Span::styled("/ ", Style::new().fg(t.acc))].into_iter().chain(text).collect::<Vec<_>>());
         f.render_widget(Paragraph::new(line), Rect { x: head.x + 1, width: head.width.saturating_sub(1), ..head });
         f.render_widget(Paragraph::new(Line::styled(count.clone(), dim)), Rect { x: head.right().saturating_sub(count.width() as u16), width: count.width() as u16, ..head });
         if app.focus == Focus::Tree {
-            f.set_cursor_position((head.x + 3 + shown.width() as u16, head.y));
+            f.set_cursor_position((head.x + 3 + x as u16, head.y));
         }
         return;
     }

@@ -65,7 +65,7 @@ async fn alt_slash_opens_find_from_every_pane() {
         } else {
             alt(&mut a, '/');
         }
-        assert_eq!((a.mode, a.files.find().query.as_str()), (Mode::Find, ""), "{name}");
+        assert_eq!((a.mode, a.files.find().query.text()), (Mode::Find, ""), "{name}");
         assert!(!std::fs::read_to_string(root.join(A)).unwrap().contains('/'), "{name}: no `/` typed");
         a.cli.stop_all();
     }

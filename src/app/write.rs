@@ -32,11 +32,6 @@ impl App {
                 self.toggle_chat();
             }
             "add_to_chat" => self.add_line_to_chat(),
-            "copy" => {
-                if let Some(t) = self.writer.editor_mut().selected_text() {
-                    self.pointer.copy(t);
-                }
-            }
             _ => return self.write_edit(a),
         }
         None
@@ -45,14 +40,6 @@ impl App {
     /// The actions that change the text, then the moves.
     fn write_edit(&mut self, a: &str) -> Option<bool> {
         match a {
-            "bold" => self.writer.editor_mut().wrap_marks("**", "**"),
-            "italic" => self.writer.editor_mut().wrap_marks("*", "*"),
-            "underline" => self.writer.editor_mut().wrap_marks("<u>", "</u>"),
-            "cut" => {
-                let t = self.writer.editor_mut().selected_text()?;
-                self.pointer.copy(t);
-                self.writer.editor_mut().delete_selection();
-            }
             "paste" => match crate::text::select::paste().or_else(|| self.pointer.last_copy()) {
                 Some(t) => self.writer.editor_mut().type_str(&t),
                 None => {
@@ -60,44 +47,17 @@ impl App {
                     return None;
                 }
             },
-            "delete_word" => self.writer.editor_mut().delete_selection_or(Editor::delete_word_back),
             "indent" => self.writer.editor_mut().type_str("  "),
-            _ => {
-                self.write_move(a);
+            "select_up" | "select_down" => {
+                let e = self.writer.editor();
+                let anchor = e.anchor.unwrap_or((e.row, e.col));
+                self.write_vertical(if a == "select_up" { -1 } else { 1 });
+                self.writer.editor_mut().anchor = Some(anchor);
                 return Some(false);
             }
+            _ => return text_edit::rich_action(self.writer.editor_mut(), a, &mut self.pointer),
         }
         Some(true)
-    }
-
-    fn write_move(&mut self, a: &str) {
-        if let Some(delta) = [("select_up", -1), ("select_down", 1)].iter().find(|(n, _)| *n == a).map(|(_, d)| *d) {
-            let anchor = self.writer.editor_mut().anchor.unwrap_or((self.writer.editor_mut().row, self.writer.editor_mut().col));
-            self.write_vertical(delta);
-            self.writer.editor_mut().anchor = Some(anchor);
-            return;
-        }
-        let e = self.writer.editor_mut();
-        if a.starts_with("select_") {
-            match a {
-                "select_left" => e.select_with(|e| e.left()),
-                "select_right" => e.select_with(|e| e.right()),
-                "select_word_left" => e.select_with(|e| e.word_left()),
-                "select_word_right" => e.select_with(|e| e.word_right()),
-                "select_home" => e.select_with(|e| e.home()),
-                "select_end" => e.select_with(|e| e.end()),
-                _ => {}
-            }
-            return;
-        }
-        e.clear_selection();
-        match a {
-            "word_left" => e.word_left(),
-            "word_right" => e.word_right(),
-            "home" => e.home(),
-            "end" => e.end(),
-            _ => {}
-        }
     }
 
     /// A key with no action: typing, deleting and the arrows. True when the text changed.
@@ -115,21 +75,17 @@ impl App {
         let e = self.writer.editor_mut();
         match k.code {
             KeyCode::Char(c) if !ctrl => {
-                e.type_char(c);
+                e.type_over(c);
+                if prose && c == '/' {
+                    Self::slashes_to_date(e);
+                }
                 // A line of prose longer than the text column breaks at a word; code only wraps.
                 if prose {
                     e.hard_wrap(w);
                 }
             }
-            KeyCode::Enter => {
-                e.delete_selection();
-                // Prose goes on with the list; code keeps the indent of the line.
-                let indent: String = e.lines[e.row].chars().take_while(|c| c.is_whitespace()).collect();
-                e.split_line(prose);
-                if !prose {
-                    e.type_str(&indent);
-                }
-            }
+            // Prose goes on with the list and closes a fence; code keeps the indent of the line.
+            KeyCode::Enter => e.enter(prose),
             KeyCode::Backspace => e.delete_selection_or(Editor::backspace),
             KeyCode::Delete => e.delete_selection_or(Editor::delete),
             _ => {

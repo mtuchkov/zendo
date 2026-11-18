@@ -30,10 +30,12 @@ impl App {
             // kitty keyboard protocol sends Shift-Enter as a plain Enter.
             Some("send") if self.composer.ends_with_backslash() => {
                 self.composer.input_mut().backspace();
-                self.composer.input_mut().type_str("\n");
+                self.composer.input_mut().enter(true);
             }
-            Some("send") if self.cli.running(self.state.session.min(SESSIONS - 1)) => self.send_to_cli(),
-            Some("send") => self.send_input(),
+            // In a code block, and after the fence that opens it, Enter is a new line (TEXT-10).
+            Some("send") if self.composer.in_code() => self.composer.input_mut().enter(true),
+            Some("send" | "send_now") if self.cli.running(self.state.session.min(SESSIONS - 1)) => self.send_to_cli(),
+            Some("send" | "send_now") => self.send_input(),
             None => self.input_key(k),
             Some(a) => self.input_action(a),
         }
@@ -70,14 +72,12 @@ impl App {
         self.flash("new thread");
     }
 
-    /// The edit actions of the chat input.
+    /// The edit actions of the chat input; the shared ones are in `text_edit.rs` (TEXT-4, TEXT-5).
     fn input_action(&mut self, a: &str) {
+        let w = self.frame.input_width().max(10);
         match a {
-            "newline" => self.composer.input_mut().type_str("\n"),
-            "delete_word" => self.composer.input_mut().delete_selection_or(Editor::delete_word_back),
-            "clear" => {
-                self.composer.clear();
-            }
+            "newline" => self.composer.input_mut().enter(true),
+            "clear" => self.composer.clear(),
             "paste" => {
                 // An image on the clipboard is an attachment; text may be dropped files.
                 if let Some(p) = crate::text::select::paste_image() {
@@ -87,15 +87,9 @@ impl App {
                 }
             }
             "templates" => self.pick_template(),
-            "select_left" => self.composer.input_mut().select_with(|e| e.left()),
-            "select_right" => self.composer.input_mut().select_with(|e| e.right()),
-            "select_word_left" => self.composer.input_mut().select_with(|e| e.word_left()),
-            "select_word_right" => self.composer.input_mut().select_with(|e| e.word_right()),
-            "word_left" => self.composer.input_mut().word_left(),
-            "word_right" => self.composer.input_mut().word_right(),
-            "home" => self.composer.input_mut().home(),
-            "end" => self.composer.input_mut().end(),
-            _ => {}
+            "select_up" => self.composer.input_mut().select_with(|e| e.vertical(-1, w)),
+            "select_down" => self.composer.input_mut().select_with(|e| e.vertical(1, w)),
+            _ => drop(text_edit::rich_action(self.composer.input_mut(), a, &mut self.pointer)),
         }
     }
 
@@ -108,7 +102,12 @@ impl App {
         let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
         let e = self.composer.input_mut();
         match k.code {
-            KeyCode::Char(c) if !ctrl => e.type_char(c),
+            KeyCode::Char(c) if !ctrl => {
+                e.type_over(c);
+                if c == '/' {
+                    Self::slashes_to_date(e);
+                }
+            }
             KeyCode::Backspace => e.delete_selection_or(Editor::backspace),
             KeyCode::Delete => e.delete(),
             KeyCode::Left => e.left(),

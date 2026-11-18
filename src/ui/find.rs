@@ -18,10 +18,7 @@ pub(crate) fn draw_find(f: &mut Frame, app: &mut App, t: &Theme, area: Rect) -> 
         Some('?') => "enter asks Claude",
         Some(_) => "",
     };
-    let pad = (w as usize).saturating_sub(q.width() + hint.width() + 8);
-    let line = Line::from(vec![Span::styled("  / ", Style::new().fg(t.acc)), Span::raw(q.clone()), Span::raw(" ".repeat(pad)), Span::styled(hint, Style::new().fg(t.dim))]);
-    f.render_widget(Paragraph::new(line), Rect { y: boxr.y + 1, height: 1, ..boxr });
-    f.set_cursor_position((boxr.x + 4 + q.width() as u16, boxr.y + 1));
+    super::field::draw_query(f, t, boxr, &q, Span::styled(hint, Style::new().fg(t.dim)));
     let body = Rect { y: col.y + 4, height: col.height.saturating_sub(4), ..col };
     let (list, preview) = if w >= SIDE_BY_SIDE {
         let lw = (w * 9 / 20).max(40);

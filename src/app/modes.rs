@@ -128,21 +128,11 @@ impl App {
                     self.reader.unselect();
                 }
             }
-            KeyCode::Backspace => {
-                self.lists.edit_query(|q| {
-                    q.pop();
-                });
-                self.run_search();
+            _ => {
+                if self.field_key(&k, |a| Some(a.lists.query_mut())) == Some(true) {
+                    self.run_search();
+                }
             }
-            KeyCode::Char('u') if ctrl => {
-                self.lists.edit_query(String::clear);
-                self.run_search();
-            }
-            KeyCode::Char(c) if !ctrl => {
-                self.lists.edit_query(|q| q.push(c));
-                self.run_search();
-            }
-            _ => {}
         }
     }
 

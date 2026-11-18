@@ -61,3 +61,26 @@ impl Editor {
         self.col = col;
     }
 }
+
+impl Editor {
+    /// A move inside the line by its action name, `select_` and the move for a selection:
+    /// `left`, `right`, `word_left`, `word_right`, `home`, `end`. False when `a` is none of them.
+    pub fn line_move(&mut self, a: &str) -> bool {
+        let step: fn(&mut Editor) = match a.strip_prefix("select_").unwrap_or(a) {
+            "left" => Editor::left,
+            "right" => Editor::right,
+            "word_left" => Editor::word_left,
+            "word_right" => Editor::word_right,
+            "home" => Editor::home,
+            "end" => Editor::end,
+            _ => return false,
+        };
+        if a.starts_with("select_") {
+            self.select_with(step);
+        } else {
+            self.clear_selection();
+            step(self);
+        }
+        true
+    }
+}

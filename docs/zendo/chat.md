@@ -16,8 +16,9 @@ The chat input is where the user writes to the agent. The connection, threads an
 [Claude](claude.md).
 
 **The chat input** is an editor: the arrows and the word keys move in it, every word can change.
-`alt-enter` (or `shift-enter`, `ctrl-j`) adds a line; the status bar names `alt-enter`, because
-a terminal without the kitty keyboard protocol sends `shift-enter` as `enter`. A `\` at the end of the line and `enter`
+`ctrl-j` (or `shift-enter`) adds a line; the status bar names `ctrl-j`, because
+a terminal without the kitty keyboard protocol sends `shift-enter` as `enter`. `alt-enter` (or
+`ctrl-enter`) sends, also from a code block ([Text input](panes/text-input/text-formatting.md)). A `\` at the end of the line and `enter`
 also add a line, in every terminal. The input grows up to a quarter of the panel, then scrolls.
 
 **Chips.** A text chip shows the first 15 chars of its text and always the number of its lines, as
@@ -59,7 +60,7 @@ data when the agent takes images, and every other file as a link to it.
 | ID        | Pattern    | Requirement | Source |
 | --------- | ---------- | ----------- | ------ |
 | CLAUDE-15 | Ubiquitous | The system shall let the user move and edit anywhere in the chat input, and show it on up to a quarter of the panel height. | User, 2026-11-11 |
-| CLAUDE-30 | Event      | When the user presses `alt-enter`, `shift-enter` or `ctrl-j` in the chat input, the system shall add a line, and the status bar shall name `alt-enter`. | User, 2026-11-12 |
+| CLAUDE-30 | Event      | When the user presses `ctrl-j` or `shift-enter` in the chat input, the system shall add a line, and the status bar shall name `ctrl-j`. | User, 2026-11-12; changed by the user, 2026-11-17: `alt-enter` sends |
 | CLAUDE-16 | Event      | When the user drops or pastes the paths of existing files into the chat input, the system shall show one chip for each file and send the files with the question. | User, 2026-11-12 |
 | CLAUDE-17 | Event      | When the user pastes an image from the clipboard into the chat input, the system shall save it and show it as an `Image #n` chip, where n is the lowest number that no chip in the input has. | User, 2026-11-12 |
 | CLAUDE-37 | Event      | When the user pastes an image from the clipboard into the chat input, the system shall ask the model that `[name_models]` names (NAMES-12) for a name of 1 to 3 words of what the image shows, without a message in the thread. | User, 2026-11-14 |
@@ -90,7 +91,7 @@ Tests that verify detailed requirements: `dropped_files_are_paths_and_nothing_el
 (CLAUDE-21), `files_match_by_start_part_and_typo` (CLAUDE-22), `user_and_agent_messages_look_different` (CLAUDE-24), `templates_are_named_ones_and_those_of_templates_folders`,
 `ctrl_t_suggests_only_templates` (CLAUDE-25), `a_name_that_starts_with_the_query_comes_first` and
 `slash_commands_come_from_the_agent_and_go_to_it_as_typed` (CLAUDE-28),
-`alt_enter_is_a_new_line_and_the_status_bar_says_so` (CLAUDE-15, CLAUDE-30),
+`ctrl_j_is_a_new_line_and_the_status_bar_says_so` (CLAUDE-15, CLAUDE-30),
 `the_cursor_moves_and_selects_in_the_transcript` and `tab_goes_to_the_transcript_to_select_copy_and_add` (CLAUDE-29),
 `the_first_tab_goes_to_the_sister_pane_of_the_chat` (CLAUDE-36), `at_adds_a_file_chip_that_moves_and_goes_as_one`
 (CLAUDE-22, CLAUDE-23), `a_question_while_the_agent_answers_waits_in_the_queue` (CLAUDE-33) and
