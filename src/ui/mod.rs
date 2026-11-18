@@ -88,14 +88,16 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
         return draw_selection(f, app, &t);
     }
     f.render_widget(Block::new().style(Style::new().bg(t.bg).fg(t.fg)), area);
-    let ask = u16::from(app.files.prompt().is_some());
+    // The question of a file, else on a small screen the message or the tip (PANES-49).
+    let below = if app.files.prompt().is_some() { None } else { below_line(app, fr, &t, area.width) };
+    let line = u16::from(app.files.prompt().is_some() || below.is_some());
     let [top, _, main, rule, status, prompt] = Layout::vertical([
         Constraint::Length(1),
         Constraint::Length(1),
         Constraint::Min(1),
         Constraint::Length(1),
         Constraint::Length(1),
-        Constraint::Length(ask),
+        Constraint::Length(line),
     ])
     .areas(area);
 
@@ -127,8 +129,7 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     }
     // After the panes: the top line shows the blinking sessions whose buttons are not on the screen.
     draw_top(f, app, fr, &t, top);
-    draw_status(f, app, fr, &t, status);
-    draw_file_prompt(f, app, &t, prompt);
+    draw_bottom(f, app, fr, &t, [status, prompt], below);
     draw_confirm(f, app, &t, area);
     draw_music_question(f, app, fr, &t, area);
     tips::draw_tips(f, app, fr, &t, area);

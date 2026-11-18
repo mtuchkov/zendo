@@ -1,17 +1,55 @@
 //! The status bar.
 use super::*;
 
-pub(crate) fn draw_status(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
-    let claude = app.threads.shown() && app.focus == Focus::Claude && matches!(app.mode, Mode::Read | Mode::Write);
-    let (badge, color, mut keys) = status_keys(app, fr, t, claude);
-    // The key of the help, in every pane and mode, first: it is always on the screen.
-    // An action without a key has no hint (PANES-29).
+/// The chat pane has the keys.
+fn claude(app: &App) -> bool {
+    app.threads.shown() && app.focus == Focus::Claude && matches!(app.mode, Mode::Read | Mode::Write)
+}
+
+/// The badge, its color, and the key hints with the key of the help first: it is always on the
+/// screen. An action without a key has no hint (PANES-29).
+fn bar_keys(app: &App, fr: &Cache, t: &Theme) -> (&'static str, Color, Hints) {
+    let (badge, color, mut keys) = status_keys(app, fr, t, claude(app));
     keys.retain(|(k, v, _)| v != "keys" && !k.is_empty());
     if let Some(help) = app.keys.key(crate::keys::Pane::Global, "help") {
         keys.insert(0, (help, "keys".into(), vec![(crate::keys::Pane::Global, "help")]));
     }
+    (badge, color, keys)
+}
+
+/// What goes to the line below the status bar on a small screen: the message, else the tip, when it
+/// does not fit after all key hints (PANES-49, TIPS-9).
+pub(crate) fn below_line(app: &App, fr: &Cache, t: &Theme, width: u16) -> Option<(String, bool)> {
+    let (badge, _, keys) = bar_keys(app, fr, t);
+    let used = 2 + badge.width() + 2 + 2 + keys.iter().map(|(k, v, _)| k.width() + v.width() + 4).sum::<usize>();
+    let room = (width as usize).saturating_sub(used + 2);
+    match &app.flash {
+        Some((msg, _)) => (msg.width() > room).then(|| (msg.clone(), false)),
+        None => (app.tips.status().width() + 3 + status_right(app, fr, claude(app)).width() > room).then(|| (app.tips.status().to_string(), true)),
+    }
+}
+
+/// The status bar and the line below it: the question of a file, or the message or the tip.
+pub(crate) fn draw_bottom(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, [status, line]: [Rect; 2], below: Option<(String, bool)>) {
+    draw_status(f, app, fr, t, status, below.is_some());
+    match below {
+        Some(b) => draw_below(f, t, b, line),
+        None => draw_file_prompt(f, app, t, line),
+    }
+}
+
+/// The line below the status bar: a message, or the tip in italics.
+pub(crate) fn draw_below(f: &mut Frame, t: &Theme, (text, tip): (String, bool), area: Rect) {
+    let style = if tip { Style::new().fg(t.dim).add_modifier(Modifier::ITALIC) } else { Style::new().fg(t.fg) };
+    f.render_widget(Paragraph::new(Line::from(vec![Span::raw("  "), Span::styled(text, style)])), area);
+}
+
+/// The status bar; with `below`, the message or the tip is in the line below it (PANES-49).
+pub(crate) fn draw_status(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect, below: bool) {
+    let (badge, color, keys) = bar_keys(app, fr, t);
     let mut spans = vec![Span::raw("  "), Span::styled(format!(" {badge} "), Style::new().bg(color).fg(t.bg).add_modifier(Modifier::BOLD)), Span::raw("  ")];
-    let right = status_right(app, fr, claude);
+    let message = app.flash.as_ref().filter(|_| !below).map(|(m, _)| m.clone());
+    let right = message.unwrap_or_else(|| status_right(app, fr, claude(app)));
     // The right side shows whole: the hints at the end give way, the help key stays.
     let room = (area.width as usize).saturating_sub(right.width() + 2 + spans.iter().map(|s| s.content.width()).sum::<usize>());
     let fit = keys.iter().scan(0, |w, (k, v, _)| {
@@ -36,7 +74,7 @@ pub(crate) fn draw_status(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, a
     let mut pad = (area.width as usize).saturating_sub(used + right.width() + 2);
     // A tip after the hints, when no message shows and it has room: it gives way first (TIPS-6).
     let tip = app.tips.status();
-    if app.flash.is_none() && pad >= tip.width() + 3 {
+    if app.flash.is_none() && !below && pad >= tip.width() + 3 {
         spans.push(Span::styled(tip, Style::new().fg(t.dim).add_modifier(Modifier::ITALIC)));
         pad -= tip.width();
     }
@@ -144,10 +182,8 @@ fn mouse_selection(t: &Theme) -> (&'static str, Color, Hints) {
 }
 
 /// The right side: a flash, the sync, the agent, or the words of the note.
+/// The right side without a message: the sync, the agent, or the words of the note.
 fn status_right(app: &App, fr: &Cache, claude: bool) -> String {
-    if let Some((msg, _)) = &app.flash {
-        return msg.clone();
-    }
     if let Some(s) = app.sync_label() {
         return s;
     }

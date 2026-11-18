@@ -48,7 +48,8 @@ pub fn press(a: &mut App, code: KeyCode, m: KeyModifiers) {
 }
 
 pub fn status_row(buf: &Buffer) -> u16 {
-    buf.area.height - 1
+    let row = |y: u16| (0..buf.area.width).map(|x| buf[(x, y)].symbol().to_string()).collect::<String>();
+    (0..buf.area.height).rev().find(|y| row(*y).starts_with("────")).expect("the rule") + 1
 }
 
 /// Two clicks on `alt-b` in the status bar: the key float of `toggle_tree`.

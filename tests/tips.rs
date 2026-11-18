@@ -79,7 +79,7 @@ fn the_tip_menu_comes_at_each_start() {
     assert_eq!(UserConfig::load_from(&cfg).tips, None);
 }
 
-/// TIPS-6: the tip shows only with room and without a message.
+/// TIPS-6: the tip shows in the status bar only with room and without a message.
 #[test]
 fn the_status_bar_shows_a_tip_only_with_room_and_no_message() {
     let (root, cfg) = repo_with("tips-bar", "music = false\ntips = false\n");
@@ -87,7 +87,30 @@ fn the_status_bar_shows_a_tip_only_with_room_and_no_message() {
     let last = |a: &mut App, w: u16| draw(a, w, 30).last().cloned().unwrap();
     let row = last(&mut a, 260);
     assert!(row.contains(TIP), "{row}");
-    assert!(!last(&mut a, 80).contains(TIP), "no room");
+    let small = draw(&mut a, 80, 30);
+    assert!(!small[28].contains(TIP) && small[29].contains(TIP), "no room: the tip goes below (TIPS-9)");
     a.flash("saved");
     assert!(!last(&mut a, 260).contains(TIP), "a message comes first");
+}
+
+/// TIPS-9, PANES-49: on a small screen, the tip, then a message, take a line below the status bar;
+/// the status bar keeps the key hints.
+#[test]
+fn on_a_small_screen_the_tip_and_the_message_go_below_the_hints() {
+    let (root, cfg) = repo_with("tips-small", "music = false\ntips = false\n");
+    let mut a = start(&root, &cfg);
+    let rows = draw(&mut a, 100, 30);
+    let (status, below) = (&rows[28], &rows[29]);
+    assert!(status.contains("READ") && status.contains("keys"), "{status}");
+    assert!(!status.contains(TIP));
+    assert!(below.contains(TIP), "{below}");
+    let hints = status.matches("   ").count();
+    let msg = "toggle_tree: alt-b → alt-t, saved in /home/user/.zendo/keymap.toml";
+    a.flash(msg);
+    let rows = draw(&mut a, 100, 30);
+    assert!(rows[29].contains(msg) && !rows[29].contains(TIP), "{}", rows[29]);
+    assert!(rows[28].contains("READ") && !rows[28].contains("saved in"), "{}", rows[28]);
+    assert!(rows[28].matches("   ").count() >= hints, "the message takes no hint away: {}", rows[28]);
+    let wide = draw(&mut a, 260, 30);
+    assert!(wide[29].contains(msg) && wide[29].contains("READ"), "a wide screen keeps one line: {}", wide[29]);
 }

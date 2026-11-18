@@ -44,6 +44,13 @@ pub fn draw(app: &mut App, w: u16, h: u16) -> Vec<String> {
     (0..h).map(|y| (0..w).map(|x| buf[(x, y)].symbol().to_string()).collect::<String>()).collect()
 }
 
+/// The status bar of a screen: the row under the rule. On a small screen a line with a message or
+/// the tip can come under it (PANES-49).
+pub fn status_bar(rows: &[String]) -> String {
+    let rule = rows.iter().rposition(|r| r.starts_with("────")).expect("the rule over the status bar");
+    rows[rule + 1].clone()
+}
+
 pub fn key(app: &mut App, code: KeyCode) {
     app.on_key(KeyEvent::new(code, KeyModifiers::NONE));
 }
