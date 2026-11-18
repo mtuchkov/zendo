@@ -99,7 +99,7 @@ fn syncer_commits_on_its_own_and_at_exit() {
     let (base, a, _) = two_machines("syncer");
     let dir = a.join("a/~");
     prepare(&dir, &Location { machine: "a".into(), path: "/h".into(), origin: None }).unwrap();
-    let s = Syncer::start(a.clone(), dir.clone(), "a", Duration::from_millis(300));
+    let s = Syncer::start(Worker::new(a.clone(), dir.clone(), "a", base.join("notes-sync.lock")), Duration::from_millis(300));
     std::fs::write(dir.join("one.md"), "# one\n").unwrap();
     std::thread::sleep(Duration::from_millis(1500));
     assert_eq!(s.state(), State::Synced);
@@ -107,6 +107,80 @@ fn syncer_commits_on_its_own_and_at_exit() {
     assert_eq!(s.finish(), State::Synced);
     let log = git(&base.join("remote.git"), &["log", "--format=%s", "main"], Duration::from_secs(5)).unwrap();
     assert!(log.lines().count() >= 2 && log.lines().all(|l| l == "notes: a ~"), "{log}");
+    let _ = std::fs::remove_dir_all(&base);
+}
+
+/// One note in the folder of machine `a`, and a worker for that folder.
+fn worker_with_a_note(name: &str) -> (PathBuf, PathBuf, Worker) {
+    let (base, a, _) = two_machines(name);
+    let dir = a.join("a/~");
+    prepare(&dir, &Location { machine: "a".into(), path: "/h".into(), origin: None }).unwrap();
+    std::fs::write(dir.join("one.md"), "# one\n").unwrap();
+    let w = Worker::new(a.clone(), dir, "a", base.join("notes-sync.lock"));
+    (base, a, w)
+}
+
+fn pushed(base: &Path) -> usize {
+    git(&base.join("remote.git"), &["log", "--format=%s", "main"], Duration::from_secs(5)).map_or(0, |l| l.lines().count())
+}
+
+// NOTESREP-15: while another zendo holds the sync lock, the interval passes without a commit and
+// without an error; the next free interval syncs.
+#[test]
+fn a_busy_lock_skips_the_interval_without_an_error() {
+    let (base, _, mut w) = worker_with_a_note("busy");
+    let other = SyncLock::try_take(&base.join("notes-sync.lock"), "other").unwrap();
+    w.step();
+    assert_eq!(w.state(), State::Starting);
+    assert_eq!(pushed(&base), 0);
+    drop(other);
+    w.step();
+    assert_eq!(w.state(), State::Synced);
+    assert_eq!(pushed(&base), 1);
+    let _ = std::fs::remove_dir_all(&base);
+}
+
+// NOTESREP-16, NOTESREP-17: an index.lock of another git shows only after three failures in a row,
+// and the problem goes from the status with the next commit that works.
+#[test]
+fn index_lock_shows_after_three_failures_and_then_clears() {
+    let (base, a, mut w) = worker_with_a_note("index");
+    w.step();
+    assert_eq!(w.state(), State::Synced);
+    std::fs::write(a.join("a/~/two.md"), "# two\n").unwrap();
+    std::fs::write(a.join(".git/index.lock"), "").unwrap();
+    w.step();
+    w.step();
+    assert_eq!(w.state(), State::Synced, "two failures stay quiet");
+    w.step();
+    assert!(matches!(w.state(), State::Failed(ref e) if e.contains("index.lock")), "{:?}", w.state());
+    std::fs::remove_file(a.join(".git/index.lock")).unwrap();
+    w.step();
+    assert_eq!(w.state(), State::Synced);
+    assert_eq!(pushed(&base), 2);
+    let _ = std::fs::remove_dir_all(&base);
+}
+
+// NOTESREP-17: a failure goes from the status at the next commit that works, also when there is
+// nothing new to commit.
+#[test]
+fn a_failure_clears_without_a_new_note() {
+    let (base, _, mut w) = worker_with_a_note("clear");
+    w.step();
+    w.set(State::Failed("fatal: Unable to create '.git/index.lock': File exists.".into()));
+    w.step();
+    assert_eq!(w.state(), State::Synced);
+    let _ = std::fs::remove_dir_all(&base);
+}
+
+// NOTESREP-8, NOTESREP-15: at exit, a lock that stays busy gives a clear message and no git error.
+#[test]
+fn exit_with_a_busy_lock_says_who_syncs() {
+    let (base, _, w) = worker_with_a_note("exitbusy");
+    let _other = SyncLock::try_take(&base.join("notes-sync.lock"), "/h/src/other").unwrap();
+    let s = w.last(Duration::from_millis(200));
+    assert!(matches!(&s, State::Busy(h) if h.contains("/h/src/other")), "{s:?}");
+    assert!(s.label().is_some_and(|l| l.contains("/h/src/other")));
     let _ = std::fs::remove_dir_all(&base);
 }
 

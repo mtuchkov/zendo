@@ -39,6 +39,14 @@ impl Editor {
 
     pub fn end(&mut self) { self.col = self.len(self.row); self.want_x = None }
 
+    /// The cursor is on the first visual row (`delta` < 0) or on the last one: there `up` or
+    /// `down` cannot move (HISTORY-5).
+    pub fn on_edge(&self, delta: isize, width: usize) -> bool {
+        let segs = self.segments(width);
+        let (row, _) = self.cursor_visual(&segs, width);
+        if delta < 0 { row == 0 } else { row + 1 >= segs.len() }
+    }
+
     /// Move by visual rows, keeping the column.
     pub fn vertical(&mut self, delta: isize, width: usize) {
         let segs = self.segments(width);

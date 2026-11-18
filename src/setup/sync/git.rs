@@ -79,6 +79,8 @@ pub enum State {
     Conflict(String),
     /// Another git problem.
     Failed(String),
+    /// At exit, another zendo held the sync lock: this folder syncs at the next start.
+    Busy(String),
 }
 
 impl State {
@@ -89,6 +91,7 @@ impl State {
             State::Local => Some("notes: no remote, local only".into()),
             State::Conflict(_) => Some("notes: sync stopped (conflict), see zendo doctor".into()),
             State::Failed(e) => Some(format!("notes: {e}")),
+            State::Busy(who) => Some(format!("notes: another zendo ({who}) syncs now; this folder syncs at the next start")),
         }
     }
 }

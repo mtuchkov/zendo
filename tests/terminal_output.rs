@@ -79,12 +79,30 @@ async fn alt_o_puts_the_result_into_the_input_and_does_not_send_it() {
 #[tokio::test(flavor = "multi_thread")]
 async fn a_shell_without_marks_gives_the_output_and_no_exit_code() {
     let (root, mut a) = app_with("out-sh", "/bin/sh", "");
+    // A shell that zendo does not know gets no marks: `/bin/sh` under another name.
+    let plain = root.join("plainsh");
+    std::os::unix::fs::symlink("/bin/sh", &plain).unwrap();
+    a.cli.shell = Some(plain.display().to_string());
     key(&mut a, KeyCode::F(5));
     run(&mut a, 0, "echo plain-out");
     to_input(&mut a);
     alt(&mut a, 'o');
     let text = input(&a);
     assert!(text.contains("plain-out") && text.contains("exit code unknown"), "{text}");
+    done(&root, &mut a);
+}
+
+// TERM-26, TERM-34, TERM-35: `/bin/sh` gets the marks: the exit code, and a loop of the shell
+// that prints nothing for a long time ends only at its end. No marks show on the screen.
+#[tokio::test(flavor = "multi_thread")]
+async fn sh_marks_give_the_exit_code_and_wait_for_a_quiet_command() {
+    let (root, mut a) = app_with("out-sh-marks", "/bin/sh", "");
+    key(&mut a, KeyCode::F(5));
+    run(&mut a, 0, "i=0; while [ $i -lt 600000 ]; do i=$((i+1)); done; echo first; false");
+    let o = a.cli.result(shell(0)).unwrap();
+    assert_eq!((o.text.as_str(), o.exit), ("first", Some(1)));
+    let screen = a.cli.text(shell(0));
+    assert!(!screen.contains("133") && !screen.contains('\u{7}'), "no marks on the screen:\n{screen}");
     done(&root, &mut a);
 }
 
