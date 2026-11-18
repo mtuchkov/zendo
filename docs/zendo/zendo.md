@@ -28,6 +28,7 @@ children:
   - "cli-activity.md"
   - "back-to-the-agent.md"
   - "zendo-session.md"
+  - "board.md"
   - "chat.md"
   - "chat-chips.md"
   - "chat-messages.md"
@@ -88,6 +89,7 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Activity of a Claude Code session](cli-activity.md) | The status line, steps, checklist and questions of a Claude Code session in its chat, from its hooks |
 | [Back to the agent](back-to-the-agent.md) | A quiet Claude Code session that the user left goes back to the chat agent through ACP |
 | [zendo session](zendo-session.md)            | What a zendo session is, its id, and what zendo tells its agent |
+| [Message board](board.md)                    | Hand-offs and messages between zendo sessions through the MCP server `zendo` |
 | [Chat](chat.md)                              | The chat input: chips, attachments, `@` file suggestions        |
 | [Chips and the open document](chat-chips.md) | The chip window, images, the choice of the open document      |
 | [Chips in a question](chat-messages.md)      | How chips go to the agent and to Claude Code, and show in the transcript |

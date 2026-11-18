@@ -4,7 +4,7 @@ revision: "4"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "back-to-the-agent.md"
-next: "chat.md"
+next: "board.md"
 level: "what a zendo session is, its id, and what zendo tells the agent of a session"
 note: "Agent draft, split from sessions.md on 2026-11-14 to keep it within two pages. The definition of the zendo session is new text. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Revision 2: zendo session 1 works in the main checkout and has no worktree (SESSIONS-23), on the request of the user on 2026-11-18. Revision 3: the ids count from 0; zendo session 0 works in the main checkout, and zendo session N in `.worktrees/N` (the user, 2026-11-18). Revision 4: the tools `command_result` and `end_watch` (terminal-watch.md, ADR 0018)."
 ---
@@ -27,7 +27,8 @@ in XML tags, so the agent has them at the start without a tool call. The tool `s
 same id. The tool `command_result` gives the output of the commands that the user watches for the
 session, and the tool `end_watch` ends a watch ([Watched commands](terminal/terminal-watch.md),
 TERM-59, TERM-71). The text of the instructions is part of the zendo program. Only sessions that zendo runs
-get it.
+get it. The tools of the [message board](board.md) let the sessions send work and messages to each
+other.
 
 **The instructions of the user.** [`zendo setup`](cli/setup.md) and
 [`zendo doctor --fix`](cli/doctor.md) write a short zendo section into the instructions of the user
