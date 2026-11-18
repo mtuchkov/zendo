@@ -160,11 +160,10 @@ impl App {
             && let Some(p) = self.writer.path()
                 && let Ok(body) = std::fs::read_to_string(p)
                 && body.trim_end() != self.writer.editor().text().trim_end() {
-                    let (row, col) = (self.writer.editor_mut().row, self.writer.editor_mut().col);
-                    *self.writer.editor_mut() = Editor::new(body.trim_end_matches('\n'));
-                    self.writer.editor_mut().row = row.min(self.writer.editor_mut().lines.len() - 1);
-                    self.writer.editor_mut().col = col;
-                    self.writer.editor_mut().end();
+                    // The loglet moves over the change of the agent: undo keeps it (UNDO-6).
+                    let e = self.writer.editor_mut();
+                    e.rebase_to(body.trim_end_matches('\n'));
+                    e.end();
                 }
     }
 
@@ -200,7 +199,8 @@ impl App {
         }
     }
 
-    pub fn on_paste(&mut self, s: String) {
+    /// A paste, before the commit of the changes of the editors (`undo.rs`).
+    pub(super) fn paste_in(&mut self, s: String) {
         if self.hold.is_some() {
             return;
         }

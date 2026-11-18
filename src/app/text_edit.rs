@@ -1,5 +1,5 @@
 //! The edit actions that the rich editors share: the note in write mode, the float and the chat
-//! input (TEXT-4, TEXT-5, TEXT-6). Paste stays with each of them: the chat takes images and files.
+//! input (TEXT-4, TEXT-5, TEXT-6), and undo and redo (UNDO-1). Paste stays with each of them: the chat takes images and files.
 use super::Pointer;
 use crate::text::editor::Editor;
 
@@ -19,6 +19,8 @@ pub(crate) fn rich_action(e: &mut Editor, a: &str, pointer: &mut Pointer) -> Opt
         "italic" => mark(e, |e| e.wrap_marks("*", "*")),
         "underline" => mark(e, |e| e.wrap_marks("<u>", "</u>")),
         "delete_word" => mark(e, |e| e.delete_selection_or(Editor::delete_word_back)),
+        "undo" => e.undo(),
+        "redo" => e.redo(),
         _ => return e.line_move(a).then_some(false),
     };
     Some(changed)

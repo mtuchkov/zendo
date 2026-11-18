@@ -14,6 +14,7 @@ impl App {
             let body = n.body.clone();
             let path = n.path.clone();
             self.writer.start_on(body.trim_end_matches('\n'), path);
+            self.resume_log();
             self.cursor_to_editor();
             self.reader.keep_screen_row();
         } else {
@@ -26,6 +27,7 @@ impl App {
 
     /// Save the editor. A new note gets its file name from the title.
     pub fn save(&mut self) {
+        self.writer.editor_mut().commit();
         let text = self.writer.editor_mut().text();
         let body = format!("{}\n", text.trim_end());
         let empty = text.trim().is_empty() || text.trim() == "#";
@@ -41,6 +43,7 @@ impl App {
         };
         match notes::save(&path, &body) {
             Ok(()) => {
+                self.keep_log(&path);
                 self.writer.saved(path.clone());
                 self.files.saved(path);
                 self.mark_edited();

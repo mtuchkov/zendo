@@ -77,7 +77,8 @@ impl App {
         let w = self.frame.input_width().max(10);
         match a {
             "newline" => self.composer.input_mut().enter(true),
-            "clear" => self.composer.clear(),
+            // The clear can be undone; the chips stay for their labels (UNDO-1).
+            "clear" => self.composer.input_mut().clear_text(),
             "paste" => {
                 // An image on the clipboard is an attachment; text may be dropped files.
                 if let Some(p) = crate::text::select::paste_image() {

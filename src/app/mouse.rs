@@ -8,7 +8,7 @@ impl App {
 
     /// Mouse: drag selects inside one panel, release copies, the wheel scrolls the panel under it.
     /// A program in a terminal that takes the mouse gets it first (TERM-43, TERM-44).
-    pub fn on_mouse(&mut self, m: MouseEvent) {
+    pub(super) fn mouse_in(&mut self, m: MouseEvent) {
         if self.hold.is_some() {
             return;
         }

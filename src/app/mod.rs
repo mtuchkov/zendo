@@ -50,6 +50,7 @@ mod threads;
 mod transcript;
 mod transcript_keys;
 mod tree;
+mod undo;
 mod update;
 mod work;
 mod worktree;
@@ -155,6 +156,8 @@ pub struct App {
     pub reader: Reader,
     /// Write mode: the draft in the editor, the float, the mark of "say it here".
     pub writer: Writer,
+    /// The loglets of the documents, in `.zendo/db.log.json` (UNDO-4).
+    pub logs: crate::setup::logs::Logs,
 
 
     pub focus: Focus,

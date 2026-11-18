@@ -72,7 +72,8 @@ impl App {
         true
     }
 
-    pub fn on_key(&mut self, k: KeyEvent) {
+    /// A key, before the commit of the changes of the editors (`undo.rs`).
+    pub(super) fn key_in(&mut self, k: KeyEvent) {
         use crate::keys::Pane;
         if self.key_comes(&k) || self.key_to_view(k) {
             return;
