@@ -35,7 +35,8 @@ current line, or the text of a new note that is not saved yet. A click on the li
 `[ ] open document`, and the question goes without anything of the document. Another click selects
 it again. The choice stays until the text of the document changes or the user opens another
 document in the session. The line does not show for a question across all notes or a slash
-command. There is no key for the choice.
+command. There is no key for the choice. The header of the chat names only the agent, and
+`ALL NOTES` for a question across all notes.
 
 ## Architecturally significant requirements
 
@@ -56,11 +57,12 @@ goes to the agent, within CLAUDE-26 of [Claude](claude.md).
 | CLAUDE-55 | Event      | When the user clicks the line of the open document, the system shall switch between `[x]` and `[ ]`; while it shows `[ ]`, the system shall send the question without the file, its project rules, its path, the current line, and the text of a new note. | User, 2026-11-17 |
 | CLAUDE-56 | Event      | When the text of the open document changes, or the user opens another document in the session, the system shall select the open document again. | User, 2026-11-17 |
 | CLAUDE-57 | Event      | When the user sends a question with a red chip (CLAUDE-46), the system shall send the question and its label without the gone file. | User, 2026-11-17 |
+| CLAUDE-58 | Ubiquitous | The system shall name in the header of the chat the agent, and `ALL NOTES` for a question across all notes, and no open document. | User, 2026-11-17 |
 
 Tests that verify detailed requirements: `a_double_click_on_a_chip_shows_its_text_over_the_input`
 (CLAUDE-48 to CLAUDE-51), `a_file_chip_shows_the_text_of_its_file` (CLAUDE-48),
 `a_double_click_on_an_image_chip_opens_it_outside` and `a_gone_file_shows_its_error_in_the_chip_window` (CLAUDE-52, CLAUDE-53) and
-`the_open_document_can_stay_out_of_the_question` (mock agent; CLAUDE-54 to CLAUDE-56), `a_red_chip_goes_without_its_file` (mock agent; CLAUDE-57) in
+`the_open_document_can_stay_out_of_the_question` (mock agent; CLAUDE-54 to CLAUDE-56), `a_red_chip_goes_without_its_file` (mock agent; CLAUDE-57), `the_chat_header_does_not_name_the_open_document` (CLAUDE-58) in
 `tests/chip_view.rs`; `two_clicks_on_one_chip_are_a_double_click` (CLAUDE-48) in
 `src/app/chip_view_tests.rs`.
 
