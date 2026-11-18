@@ -20,18 +20,6 @@ impl App {
         }
     }
 
-    /// The selected note of the notes list, from the repository root.
-    pub(crate) fn notes_file(&self) -> Option<PathBuf> {
-        let n = self.files.notes().get(self.lists.note())?;
-        Some(n.path.strip_prefix(&self.cfg.root).unwrap_or(&n.path).to_path_buf())
-    }
-
-    /// Ask about a file: `d` delete, `r` rename, `m` move.
-    pub(crate) fn ask_file(&mut self, rel: Option<PathBuf>, what: char) {
-        let said = self.files.ask_file(rel, what);
-        self.apply(said);
-    }
-
     /// The keys while a question about a file is open.
     pub(crate) fn key_file_prompt(&mut self, k: KeyEvent) {
         // The name or the folder takes the keys of `[textbox]`; the files do the typing (TEXT-1).
@@ -54,7 +42,6 @@ impl App {
         self.state.save(&self.cfg.root);
         self.threads.remove(&key);
         self.scan_tree();
-        self.lists.keep_note_in(self.files.notes().len());
         self.flash(format!("deleted {key}"));
     }
 
@@ -76,9 +63,6 @@ impl App {
         self.files.close_filter();
         let new_rel = target.strip_prefix(&self.cfg.root).unwrap_or(target).to_path_buf();
         self.files.reveal(&new_rel);
-        if let Some(i) = self.files.notes().iter().position(|n| n.path == target) {
-            self.lists.select_note(i);
-        }
         self.flash(format!("{done} to {}", self.rel(target)));
     }
 

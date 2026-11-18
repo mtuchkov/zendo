@@ -140,3 +140,29 @@ fn an_entry_can_have_a_list_of_paths() {
     assert!(all.iter().any(|w| w.contains("does not exist")) && all.iter().any(|w| w.contains("relative")), "{all:?}");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// FIND-34, FIND-35: `tag_patterns` is a list in `[project]`; a pattern that does not compile is an
+// issue.
+#[test]
+fn a_bad_tag_pattern_falls_back() {
+    let root = std::env::temp_dir().join(format!("zendo-structure-tags-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let good = check("[project]\ntag_patterns = [\"REQ_[0-9]+\", \"ADR-[0-9]{4}\"]\n", &root);
+    assert!(good.ok(), "{:?}", good.issues);
+    assert_eq!(good.parsed.unwrap().project.tag_patterns, Some(vec!["REQ_[0-9]+".to_string(), "ADR-[0-9]{4}".to_string()]));
+    let bad = check("[project]\ntag_patterns = [\"REQ_[0-9]+\", \"REQ_[0-9\"]\n", &root);
+    let what: Vec<&str> = bad.issues.iter().filter(|i| i.at == "[project]").map(|i| i.what.as_str()).collect();
+    assert!(what.len() == 1 && what[0].contains("`REQ_[0-9` is not a valid regular expression"), "{what:?}");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FIND-48: more than five tag patterns get a warning about the speed of the search, not an issue.
+#[test]
+fn many_tag_patterns_get_a_warning() {
+    let few: Structure = toml::from_str("[project]\ntag_patterns = [\"A-[0-9]+\", \"B-[0-9]+\"]\n").unwrap();
+    assert_eq!(few.tag_patterns_warning(), None);
+    let many: Structure = toml::from_str("[project]\ntag_patterns = [\"A\", \"B\", \"C\", \"D\", \"E\", \"F\"]\n").unwrap();
+    let w = many.tag_patterns_warning().expect("a warning");
+    assert!(w.contains("6 tag patterns") && w.contains("slow"), "{w}");
+}

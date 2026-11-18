@@ -137,8 +137,7 @@ fn status_keys(app: &App, fr: &Cache, t: &Theme, claude: bool) -> (&'static str,
             v.extend(hints(Pane::Write, &[("done", "read"), ("chat", "chat"), ("add_to_chat", "to chat"), ("say", "say here"), ("bold", "bold"), ("italic", "italic"), ("underline", "underline"), ("toggle_tree", "files"), ("delta", "delta")]));
             ("WRITE", t.acc2, v)
         }
-        Mode::Notes => ("NOTES", t.acc, hints(Pane::Notes, &[("down", "move"), ("open", "open"), ("new", "new"), ("rename", "rename"), ("tags", "by tag"), ("close", "close")])),
-        m @ (Mode::Search | Mode::Find) => if m == Mode::Find { ("FIND", t.acc, list_keys(app, "open")) } else { ("SEARCH", t.acc, list_keys(app, "open at match")) },
+        Mode::Find => ("FIND", t.acc, list_keys(app, "open")),
         Mode::Theme => {
             let mut v = hints(Pane::Theme, &[("down", "preview"), ("keep", "keep")]);
             v.push(("esc".into(), "cancel".into(), Vec::new()));
@@ -205,7 +204,6 @@ fn status_right(app: &App, fr: &Cache, claude: bool) -> String {
             };
             format!("{words} words · {saved}")
         }
-        Mode::Notes | Mode::Search => format!("{} notes · {}", app.files.notes().len(), app.rel(&app.cfg.notes_dir)),
         Mode::Find => format!("{} files", app.files.find().items.len()),
         Mode::Theme => THEMES[app.theme].name.to_string(),
         _ if app.note().is_some() && fr.word_limit > 0 => format!("{} / {} words", fr.word_count, fr.word_limit),

@@ -1,9 +1,13 @@
 //! The file tree of the files: the app reads the tree, and changes it only through these methods.
 use super::Files;
 use crate::docs::structure::Structure;
-use crate::docs::tree::{Tree, View, worktree};
+use crate::docs::notes::Note;
+use crate::docs::tree::{Kind, Row, Tree, View, worktree};
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
+
+/// How long the hint of the view strip shows after `v` (FILES-74).
+const VIEW_HINT: std::time::Duration = std::time::Duration::from_millis(2500);
 
 impl Files {
     pub fn tree(&self) -> &Tree {
@@ -20,6 +24,29 @@ impl Files {
         self.tree.notes = notes;
         self.tree.worktree = worktree;
         self.tree.scan(root);
+        self.fill_notes_view();
+    }
+
+    /// The rows of the Notes view: the notes of the notes folder by age, under the heads Today,
+    /// This week and Older (FILES-69).
+    pub(super) fn fill_notes_view(&mut self) {
+        let today = chrono::Local::now().date_naive();
+        let head = |n: &Note| match (today - n.modified.date_naive()).num_days() {
+            0 => "TODAY",
+            1..=6 => "THIS WEEK",
+            _ => "OLDER",
+        };
+        let mut rows = Vec::new();
+        let mut last = "";
+        for n in self.notes.iter().filter(|n| n.path.starts_with(&self.store.dir)) {
+            if head(n) != last {
+                last = head(n);
+                rows.push(Row { rel: PathBuf::new(), name: last.to_string(), depth: 0, kind: Kind::Head, section: false });
+            }
+            let rel = n.path.strip_prefix(&self.store.root).unwrap_or(&n.path).to_path_buf();
+            rows.push(Row { rel, name: n.title.clone(), depth: 0, kind: Kind::File, section: false });
+        }
+        self.tree.notes_view = rows;
     }
 
     /// Outside a repository: fill the tree with the files under `under` only.
@@ -52,11 +79,39 @@ impl Files {
         self.tree.view = view;
     }
 
-    /// The next view of the tree, from its first row. Gives the name that the state keeps.
+    /// `v`: the next view of the tree, from its first row, and the hint of the strip for 2.5 s
+    /// (FILES-4, FILES-74). Gives the name that the state keeps.
     pub fn next_view(&mut self) -> &'static str {
         self.tree.next_view();
+        self.tree.hint_until = Some(std::time::Instant::now() + VIEW_HINT);
         (self.tree.sel, self.tree.scroll) = (0, 0);
         self.tree.view.name()
+    }
+
+    /// A click on a letter of the strip or a name of the hint (FILES-73).
+    pub fn pick_view(&mut self, view: View) -> &'static str {
+        self.tree.view = view;
+        (self.tree.sel, self.tree.scroll) = (0, 0);
+        self.first_selectable();
+        view.name()
+    }
+
+    /// The hint of the strip shows now (FILES-74).
+    pub fn view_hint(&self) -> bool {
+        self.tree.hint_until.is_some_and(|t| std::time::Instant::now() < t)
+    }
+
+    /// After a change of the view: the selection is on a row that can have it.
+    pub fn first_view_row(&mut self) {
+        self.first_selectable();
+    }
+
+    /// A head of the Notes view is no place for the selection.
+    pub(super) fn first_selectable(&mut self) {
+        let rows = self.tree.rows();
+        if rows.get(self.tree.sel).is_some_and(|r| r.kind == Kind::Head) {
+            self.tree.sel = rows.iter().position(|r| r.kind != Kind::Head).unwrap_or(0);
+        }
     }
 
     /// The files that changed since the last visit that counted: they get a mark in the tree.

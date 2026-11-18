@@ -85,6 +85,7 @@ impl App {
     }
 
     pub fn tick(&mut self) {
+        self.poll_find();
         self.music_tick();
         self.tips_tick();
         self.hints_tick();

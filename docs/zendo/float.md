@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "note-to-spec.md"
 next: "float-title.md"
 level: "the new note in a float: how it opens, what it shows, how it closes"
-note: "Agent draft of the decisions of the user on 2026-11-13, approved by the user. Revision 2: the test names and kinds as in the code. Revision 3: FLOAT-16 (the float color of the theme), asked and reviewed by the user on 2026-11-14. Revision 4: FLOAT-16 states that the float stands out of the theme and that its text and code read on it, asked by the user on 2026-11-14 and approved on 2026-11-15. Revision 5: the note starts with an empty title line and the cursor on the body (FLOAT-17, FLOAT-22), and the title is in float-title.md, asked by the user on 2026-11-17, approved by the user on 2026-11-17. Revision 6: a long path loses its first chars to fit the buttons (FLOAT-24), asked by the user on 2026-11-17; not reviewed yet."
+note: "Agent draft of the decisions of the user on 2026-11-13, approved by the user. Revision 2: the test names and kinds as in the code. Revision 3: FLOAT-16 (the float color of the theme), asked and reviewed by the user on 2026-11-14. Revision 4: FLOAT-16 states that the float stands out of the theme and that its text and code read on it, asked by the user on 2026-11-14 and approved on 2026-11-15. Revision 5: the note starts with an empty title line and the cursor on the body (FLOAT-17, FLOAT-22), and the title is in float-title.md, asked by the user on 2026-11-17, approved by the user on 2026-11-17. Revision 6: a long path loses its first chars to fit the buttons (FLOAT-24), asked by the user on 2026-11-17; not reviewed yet. 2026-11-18: the notes list is the Notes view of the tree (FILES-69); FLOAT-5 and FLOAT-15 name it."
 ---
 
 # New note in a float
@@ -17,7 +17,7 @@ There is no file tree, no chat, no delta and no key hints in it, so the user wri
 distraction. The screen behind the float stays as it was, in dim colors.
 
 `alt-n` opens the float in every pane and every mode, also over the full screen of a Claude Code
-session or a terminal. `n` in read mode and `n` in the notes list open the same float. The float is
+session or a terminal. `n` in read mode and `n` in the Notes view of the tree open the same float. The float is
 the only way to write a new note. A note that is already there opens in the note pane, as every
 other file. Notes, titles and file names are
 in [Notes list and search](notes-list.md); write mode is in [Write mode](write.md).
@@ -48,7 +48,7 @@ gets its name from the date and the title (NOTE-7). A note with no text makes no
 
 `esc` saves the note and closes the float. When the note has no `# ` title, the agent writes it
 ([Title of a new note](float-title.md)). After the float closes, the screen is as it was before: the same
-file, pane, mode, cursor and selection. The new note is in the notes list and in the recent files
+file, pane, mode, cursor and selection. The new note is in the Notes view of the tree and in the recent files
 ([Find](find.md)); zendo does not open it in the note pane.
 
 ## Architecturally significant requirements
@@ -94,7 +94,7 @@ file, pane, mode, cursor and selection. The new note is in the notes list and in
 
 | ID       | Pattern    | Requirement                                                                                                                                         | Source           |
 | -------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| FLOAT-5  | Event      | When the user presses `n` in read mode or in the notes list, the system shall open the new note in the float.                                       | User, 2026-11-13 |
+| FLOAT-5  | Event      | When the user presses `n` in read mode or in the Notes view of the tree, the system shall open the new note in the float.                                       | User, 2026-11-13 |
 | FLOAT-6  | Ubiquitous | The system shall show on the top line of the float the path of the note, the branch and `[ esc close ]`, and the notes folder and `new note` until the first save. | User, 2026-11-13 |
 | FLOAT-7  | Ubiquitous | The system shall show under the title of the note in the float the date and the time when the user opened the float.                               | User, 2026-11-13 |
 | FLOAT-8  | Ubiquitous | The system shall make the float as wide as the text column with a margin of 4 chars on each side, and as tall as the screen less one row at the top and at the bottom. | Design           |
@@ -104,7 +104,7 @@ file, pane, mode, cursor and selection. The new note is in the notes list and in
 | FLOAT-12 | Unwanted   | If the user closes the float and the note has no text, then the system shall make no file.                                                          | Design           |
 | FLOAT-13 | Event      | When the user closes the float, the system shall not open the new note in the note pane.                                                            | Design           |
 | FLOAT-14 | State      | While a Claude Code session or a terminal is on the full screen, the system shall open the float over it when the user presses `alt-n`, and not send the key to the program. | User, 2026-11-13 |
-| FLOAT-15 | Event      | When the user opens a note that is already there, from the notes list or elsewhere, the system shall show it in the note pane as every other file, not in the float. | User, 2026-11-13 |
+| FLOAT-15 | Event      | When the user opens a note that is already there, from the Notes view of the tree or elsewhere, the system shall show it in the note pane as every other file, not in the float. | User, 2026-11-13 |
 | FLOAT-17 | Event      | When the user opens the float, the system shall start the note with an empty title line, `# `, and an empty line, with the cursor on the first line of the body. | User, 2026-11-17 |
 | FLOAT-22 | State      | While the title of the note in the float is empty, the system shall show `new note` in dim colors in place of the title.                         | User, 2026-11-17 |
 | FLOAT-24 | Ubiquitous | The system shall cut the first chars of a path that does not fit on the top line of the float, put `…` in their place, and keep two spaces before the branch and after `[ esc close ]`. | User, 2026-11-17 |

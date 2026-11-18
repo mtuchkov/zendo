@@ -14,6 +14,8 @@ pub struct Frame {
     pub(super) tree_rows: Vec<(Rect, usize)>,
     /// `[+]` and `[-]` in the head of the tree: true opens every folder (FILES-57).
     pub(super) tree_fold: Vec<(Rect, bool)>,
+    /// The letters of the view strip of the tree, or the names of its hint (FILES-73).
+    pub(super) view_buttons: Vec<(Rect, crate::docs::tree::View)>,
     pub(super) session_buttons: Vec<(Rect, usize)>,
     pub(super) play_buttons: Vec<(Rect, String)>,
     /// The names and the `×` of the background line, and their process groups (BG-3, BG-8).
@@ -33,6 +35,8 @@ pub struct Frame {
     pub(super) music_button: Option<Rect>,
     pub(super) spec_button: Option<Rect>,
     pub(super) upgrade_button: Option<Rect>,
+    /// `[.*]` of the find panel or of the filter of the tree (FIND-44, FILES-67).
+    pub(super) find_regex: Option<Rect>,
     pub(super) music_answers: Option<(Rect, Rect)>,
     /// The font button of the theme picker, and the two answers of its question (FONT-14).
     pub(super) font_button: Option<Rect>,
@@ -78,6 +82,11 @@ impl Frame {
     /// `[+]` and `[-]` in the head of the tree, for mouse clicks: true opens every folder.
     pub fn tree_fold(&self) -> &[(Rect, bool)] {
         &self.tree_fold
+    }
+
+    /// The letters of the view strip or the names of its hint, for mouse clicks.
+    pub fn view_buttons(&self) -> &[(Rect, crate::docs::tree::View)] {
+        &self.view_buttons
     }
 
     /// The buttons of the agent sessions, for mouse clicks.
@@ -156,6 +165,11 @@ impl Frame {
     }
 
     /// The upgrade button, for the mouse (CMD-11).
+    /// `[.*]` on the screen, for mouse clicks.
+    pub fn find_regex(&self) -> Option<Rect> {
+        self.find_regex
+    }
+
     pub fn upgrade_button(&self) -> Option<Rect> {
         self.upgrade_button
     }
@@ -206,6 +220,7 @@ impl Frame {
         self.key_targets.clear();
         self.float_buttons.clear();
         self.tip_buttons = None;
+        self.find_regex = None;
     }
 
     /// The option and `[OK]` of the tip menu.

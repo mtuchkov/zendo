@@ -7,8 +7,6 @@ pub enum Mode {
     #[default]
     Read,
     Write,
-    Notes,
-    Search,
     Find,
     Theme,
     Help,
@@ -40,98 +38,13 @@ impl App {
         }
     }
 
+    /// `o`: the tree in the Notes view, with the focus in it (FILES-76).
     pub fn open_notes(&mut self) {
-        self.lists.select_note(self.note_index().unwrap_or(0));
-        self.mode = Mode::Notes;
-    }
-
-    pub(crate) fn key_notes(&mut self, act: Option<&str>) {
-        let n = self.files.notes().len();
-        match act {
-            Some("close") => self.mode = Mode::Read,
-            Some("down") => self.lists.note_down(n),
-            Some("up") => self.lists.note_up(),
-            Some("top") => self.lists.select_note(0),
-            Some("bottom") => self.lists.note_bottom(n),
-            Some("open") if n > 0 => {
-                self.files.show_note(self.lists.note());
-                self.reader.to_start();
-                self.threads.unpin();
-                self.mode = Mode::Read;
-            }
-            Some("new") => self.open_float(),
-            Some("search") => self.open_search(""),
-            Some("tags") => self.open_search("#"),
-            Some("rename") if n > 0 => self.rename(self.lists.note()),
-            Some("rename_file") => self.ask_file(self.notes_file(), 'r'),
-            Some("delete") => self.ask_file(self.notes_file(), 'd'),
-            _ => {}
+        if !self.state.tree {
+            self.toggle_tree();
         }
-    }
-
-    /// Rename the file to match its title, keeping the date.
-    pub(crate) fn rename(&mut self, i: usize) {
-        let note = &self.files.notes()[i];
-        let date = note.created.unwrap_or_else(|| note.modified.date_naive());
-        let target = self.files.store().dir.join(format!("{}-{}.md", date.format("%Y-%m-%d"), notes::slug(&note.title)));
-        if target == note.path {
-            self.flash("the file name already matches the title");
-            return;
-        }
-        if target.exists() {
-            self.flash("a file with that name exists");
-            return;
-        }
-        let old = note.path.clone();
-        match self.move_file(&old, &target) {
-            Ok(()) => {
-                self.lists.select_note(self.files.notes().iter().position(|n| n.path == target).unwrap_or(0));
-                self.flash(format!("renamed to {}", self.rel(&target)));
-            }
-            Err(e) => self.flash(format!("rename failed: {e}")),
-        }
-    }
-
-    pub fn open_search(&mut self, q: &str) {
-        self.lists.edit_query(|query| *query = q.to_string());
-        self.run_search();
-        self.mode = Mode::Search;
-    }
-
-    pub(crate) fn run_search(&mut self) {
-        self.lists.search(self.files.notes());
-    }
-
-    /// A key in the search box: the keys of `[list]`, then the field; `esc` is fixed (PANES-48).
-    pub(crate) fn key_search(&mut self, k: KeyEvent) {
-        match (k.code, self.keys.local(crate::keys::Pane::List, &k)) {
-            (KeyCode::Esc, _) => self.mode = Mode::Read,
-            (_, Some("down")) => self.lists.result_down(),
-            (_, Some("up")) => self.lists.result_up(),
-            (_, Some("open")) => {
-                if let Some(q) = self.lists.query().strip_prefix('?') {
-                    let q = q.trim().to_string();
-                    self.mode = Mode::Read;
-                    self.threads.pin(ALL_KEY);
-                    self.open_panel();
-                    self.ask(q, ALL_KEY.into());
-                    return;
-                }
-                if let Some((note, line)) = self.lists.picked().map(|g| (g.note, g.snippets.first().map(|s| s.line).unwrap_or(0))) {
-                    self.files.show_note(note);
-                    self.threads.unpin();
-                    self.mode = Mode::Read;
-                    let rows = crate::ui::source_rows(self, self.frame.text_width());
-                    self.reader.jump(rows.get(line).copied().unwrap_or(0));
-                    self.reader.unselect();
-                }
-            }
-            _ => {
-                if self.field_key(&k, |a| Some(a.lists.query_mut())) == Some(true) {
-                    self.run_search();
-                }
-            }
-        }
+        self.show_tree_view(crate::docs::tree::View::Notes);
+        self.focus = Focus::Tree;
     }
 
     /// A key in the theme list: the keys of `[theme]`; `esc` is fixed (PANES-48).

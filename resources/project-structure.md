@@ -12,7 +12,7 @@ the project for three readers:
 | Table | Required | Content |
 |---|---|---|
 | `[meta]` | no | Free facts about the file, for example `date` or `note`. Any keys. |
-| `[project]` | no | `name`, `about` (for people), `claude` (rules for the whole repository). |
+| `[project]` | no | `name`, `about` (for people), `claude` (rules for the whole repository), `tag_patterns` (a list of regular expressions: the forms of a requirement ID, as `["[A-Z]+-[0-9]+", "ADR-[0-9]{4}"]`; default `[A-Z][A-Z0-9]*-[0-9]+`; `#` in the find panel finds these IDs; `zendo doctor` warns about more than 5, as each one slows the search). |
 | `[[entry]]` | no, any number | One folder or file each. |
 
 No other top-level tables or keys.

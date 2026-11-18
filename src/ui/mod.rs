@@ -13,7 +13,6 @@ mod find;
 mod float;
 pub mod frame;
 mod layout;
-mod lists;
 mod overlays;
 mod paint;
 mod read;
@@ -23,6 +22,7 @@ mod status;
 mod tips;
 mod thread;
 mod tree;
+mod tree_strip;
 mod write;
 
 use chat::*;
@@ -33,7 +33,6 @@ use find::*;
 use float::*;
 use frame::Frame as Cache;
 pub use layout::*;
-use lists::*;
 use overlays::*;
 pub use paint::*;
 pub use read::*;
@@ -50,7 +49,7 @@ use crate::text::code;
 use crate::text::markdown::{self, Mark};
 use crate::docs::notes::Note;
 use crate::ui::theme::{THEMES, Theme};
-use chrono::{Datelike, Local};
+use chrono::Local;
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
@@ -110,9 +109,10 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     fr.view_height = main.height as usize;
 
     match app.mode {
-        Mode::Notes => draw_notes(f, app, &t, main),
-        Mode::Search => draw_search(f, app, &t, main),
-        Mode::Find => fr.overlay = Some(draw_find(f, app, &t, main)),
+        Mode::Find => {
+            let area = draw_find(f, app, fr, &t, main);
+            fr.overlay = Some(area);
+        }
         Mode::Theme => {
             let w = 40.min(main.width / 2);
             let [left, right] = Layout::horizontal([Constraint::Min(1), Constraint::Length(w)]).areas(main);

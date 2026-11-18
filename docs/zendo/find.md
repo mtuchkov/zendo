@@ -1,19 +1,19 @@
 ---
 status: "implemented"
 approved: "2026-11-18"
-revision: "4"
+revision: "5"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "float-title.md"
-next: "notes-repo.md"
+next: "find-modes.md"
 level: "the find panel: recent files, search by path and by text, the preview"
-note: "Revision 2 was approved by the user on 2026-11-13 and implemented. Revision 3 adds FIND-18 (the notes of the notes repo), approved by the user on 2026-11-13. Revision 4 adds FIND-19 and FIND-20 (find the selection), approved by the user on 2026-11-18 and implemented."
+note: "Revision 2 was approved by the user on 2026-11-13 and implemented. Revision 3 adds FIND-18 (the notes of the notes repo), approved by the user on 2026-11-13. Revision 4 adds FIND-19 and FIND-20 (find the selection), approved by the user on 2026-11-18 and implemented. Revision 5 (approved by the user on 2026-11-17) moves the modes, `tab` and the global `/` to find-modes.md, changes FIND-1, FIND-14 and FIND-18, and retires FIND-17."
 ---
 
 # Find: recent files and search
 
 The find panel opens a file of the repository. `alt-/` opens it in every pane and every mode, also
-in write mode, where `/` types, and over the full screen of a Claude Code session or a terminal. `/` in read mode opens the same panel. The panel stands over the
+in write mode, where `/` types, and over the full screen of a Claude Code session or a terminal. `/` opens the same panel where the focus does not take text ([Find: modes](find-modes.md)). The panel stands over the
 screen. It has the query field at the top, the list on the left, and the preview of the selected
 item on the right.
 
@@ -36,7 +36,7 @@ rename in zendo keeps the file in its place in the list.
 When the user types, the list shows first the files whose path has every typed word, recent files
 first, and then the markdown files of the repository whose text has the query, each with up to two lines of
 the text.
-A selection goes into the query: `/` in read mode and `alt-/` with selected text open the panel with
+A selection goes into the query: `/` and `alt-/` with selected text open the panel with
 that text as the query. The query field has one line, so each line break of the text shows as `⏎`.
 In read mode, a row that only wraps a long line joins the row before it with a space. The search
 reads each `⏎` as a line break again: the query finds the text whose lines follow one another as the
@@ -44,9 +44,9 @@ lines of the query. Letter case, indentation, the marks of headings, quotes and 
 between the lines do not count, and a space also matches a line break, because read mode joins the
 lines of a paragraph. A query with `⏎` is text, also when it starts with `#` or `?`.
 
-A query that starts with `#` finds a tag, and one that starts with `?` asks the agent about all
-notes, as in [Notes list and search](notes-list.md). `/` in the notes list keeps its own search: the text of
-the notes only, without the recent files and the preview.
+A query that starts with `#` finds a tag or a requirement ID in every mode of the panel ([Find: tags and requirement IDs](find-ids.md)); one that
+starts with `?` asks the agent about all notes in Notes mode ([Find: modes](find-modes.md),
+[Notes list and search](notes-list.md)).
 
 ## The preview
 
@@ -58,7 +58,7 @@ Design: where the panel is narrower than 100 chars, the preview stands under the
 
 ## Keys
 
-`up` and `down`, `ctrl-j` and `ctrl-k`, `tab` and `shift-tab` move the selection; letters type into
+`up` and `down`, `ctrl-j` and `ctrl-k` move the selection; `tab` and `shift-tab` change the mode ([Find: modes](find-modes.md)); letters type into
 the query. `enter` opens the selected file in the note pane in read mode, at the line of the match.
 `esc` closes the panel and changes nothing. These keys are fixed, as in the search box today.
 
@@ -66,7 +66,7 @@ the query. `enter` opens the selected file in the note pane in read mode, at the
 
 | ID     | Pattern    | Requirement                                                                                                                                      | Source           |
 | ------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
-| FIND-1 | Event      | When the user presses `alt-/` in any pane or mode, or `/` in read mode, the system shall open the find panel.                                    | User, 2026-11-13 |
+| FIND-1 | Event      | When the user presses `alt-/` in any pane or mode, or `/` where the focus does not take text (FIND-22), the system shall open the find panel. | User, 2026-11-13; User, 2026-11-17 |
 | FIND-2 | State      | While the query is empty, the system shall list the files that the user opened in the note pane in this repository, the most recent first, without the open file. | User, 2026-11-13 |
 | FIND-3 | Event      | When the selection moves in the list, the system shall show the selected file in the preview of the panel, as read mode shows it.                | User, 2026-11-13 |
 | FIND-4 | Ubiquitous | The system shall keep the recent files for the repository in its state, so that a restart keeps them.                                           | Design           |
@@ -110,11 +110,11 @@ the query. `enter` opens the selected file in the note pane in read mode, at the
 | FIND-11 | Event      | When the user presses `enter`, the system shall open the selected file in the note pane in read mode, at the line of the match.                       | Design           |
 | FIND-12 | Event      | When the user presses `esc`, the system shall close the panel and keep the file, the pane, the mode and the cursor as they were.                      | Design           |
 | FIND-13 | State      | While the panel is narrower than 100 chars, the system shall show the preview under the list.                                                         | Design           |
-| FIND-14 | Ubiquitous | The system shall keep NOTE-13 and NOTE-14 in the find panel: `#` finds a tag, and `?` asks the agent about all notes.                                 | NOTE-13, NOTE-14 |
+| FIND-14 | Ubiquitous | The system shall keep NOTE-13 and NOTE-14 in the find panel: `#` finds a tag or a requirement ID in every mode (FIND-32, FIND-33), and `?` asks the agent about all notes in Notes mode (FIND-30). | NOTE-13, NOTE-14 |
 | FIND-15 | State      | While a Claude Code session or a terminal is on the full screen, the system shall open the find panel over it when the user presses `alt-/`, and not send the key to the program. | User, 2026-11-13 |
-| FIND-17 | Event      | When the user presses `/` in the notes list, the system shall search the text of the notes only, as NOTE-12, and not open the find panel. | User, 2026-11-13 |
+| FIND-17 | —          | Retired in revision 5: `/` in the notes list opens the find panel (FIND-22). | User, 2026-11-17 |
 | FIND-16 | Unwanted   | If a markdown file is in a hidden folder or git ignores it, then the system shall not search its text (FILES-1).                                       | FILES-1          |
-| FIND-18 | State      | While the notes repo is on, the system shall search the notes of the repository in the notes repo by path and by text, as the markdown files of the repository (FIND-9, FILES-25). | User, 2026-11-13 |
+| FIND-18 | State      | While the notes repo is on and the panel is in Notes mode, the system shall search the notes of the repository in the notes repo by path and by text (FIND-30, FILES-25). | User, 2026-11-13 |
 | FIND-19 | Event      | When the user presses `/` in read mode or `alt-/` while text is selected, the system shall open the find panel with the selected text as the query, each line break of the text as `⏎`. | User, 2026-11-18 |
 | FIND-20 | Event      | When the query has `⏎`, the system shall list the markdown files whose text has the lines of the query one after another, with a line break for each `⏎`, without regard to letter case, indentation, the marks of headings, quotes and lists, and blank lines. | User, 2026-11-18 |
 
@@ -122,9 +122,9 @@ Tests that verify detailed requirements: `the_row_shows_title_path_and_time` (FI
 `a_tree_preview_is_not_recent` and `a_note_from_the_float_is_recent` (FIND-6), `a_deleted_file_is_not_recent` (FIND-7),
 `a_rename_keeps_the_recent_place` (FIND-8), `a_query_finds_paths_then_text` (FIND-9),
 `the_preview_shows_the_match_and_enter_opens_at_it` (FIND-10, FIND-11), `esc_changes_nothing` (FIND-12),
-`a_narrow_panel_shows_the_preview_under_the_list` (FIND-13), the tests of `src/docs/search_tests.rs` (FIND-14),
+`a_narrow_panel_shows_the_preview_under_the_list` (FIND-13), `hash_finds_a_tag_in_docs` and `notes_mode_keeps_questions` (FIND-14),
 `alt_slash_opens_find_over_a_full_screen_session` in `tests/terminal.rs` (FIND-15), `ignored_files_are_not_searched`
-(FIND-16), `slash_in_the_notes_list_searches_the_notes` (FIND-17), and
+(FIND-16), and
 `a_query_finds_the_notes_of_the_notes_repo` (FIND-18), the tests of `tests/find_selection.rs` (FIND-19,
 FIND-20), and the tests of `src/docs/search_lines_tests.rs` (FIND-20).
 

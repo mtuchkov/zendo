@@ -6,7 +6,14 @@ pub(crate) fn draw_tree(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme,
     fr.tree_rows.clear();
     fr.tree_fold.clear();
     f.render_widget(Block::new().style(Style::new().bg(t.panel)), area);
-    let inner = Rect { x: area.x + 1, y: area.y, width: area.width.saturating_sub(2), height: area.height };
+    // FILES-68: the strip of view letters on the left edge; the hint stands over the tree.
+    let inner = Rect { x: area.x + super::tree_strip::STRIP_W, y: area.y, width: area.width.saturating_sub(super::tree_strip::STRIP_W + 1), height: area.height };
+    draw_tree_body(f, app, fr, t, inner);
+    super::tree_strip::draw_strip(f, app, fr, t, area);
+}
+
+/// The head, the rows, and the bottom of the tree.
+fn draw_tree_body(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, inner: Rect) {
     let w = inner.width as usize;
     let dim = Style::new().fg(t.dim);
     let foot = if app.files.tree().view.is_worktree() { worktree_foot(app, t, w) } else { tree_foot(app, t, w) };
@@ -17,8 +24,9 @@ pub(crate) fn draw_tree(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme,
         lines.extend(foot);
         f.render_widget(Paragraph::new(lines), foot_area);
     }
-    tree_head(f, app, t, head);
-    if app.files.tree().find.is_none() {
+    tree_head(f, app, fr, t, head);
+    // FILES-77: the Notes view has no folders to open.
+    if app.files.tree().find.is_none() && app.files.tree().view != View::Notes {
         fold_buttons(f, fr, t, Rect { x: tools.right().saturating_sub(7), width: 7, ..tools });
     }
 
@@ -41,6 +49,7 @@ pub(crate) fn draw_tree(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme,
             View::WorktreeChanged if let Some(e) = app.files.tree().error() => format!("Cannot read the changes against main: {e}"),
             View::WorktreeChanged if app.files.tree().scanning() => "Reading the changes against main…".to_string(),
             View::WorktreeChanged => "No changes against main.".to_string(),
+            View::Notes => format!("No notes yet.{}", app.keys.key(crate::keys::Pane::Tree, "new_note").map(|k| format!(" Press {k}.")).unwrap_or_default()),
         };
         f.render_widget(Paragraph::new(markdown::wrap(vec![Span::styled(msg, dim)], w.saturating_sub(1), " ", " ")), body);
         return;
@@ -100,13 +109,13 @@ fn worktree_foot(app: &App, t: &Theme, w: usize) -> Vec<Line<'static>> {
 }
 
 /// The head line: the project and the view, or the file name filter while it is on.
-fn tree_head(f: &mut Frame, app: &App, t: &Theme, head: Rect) {
+fn tree_head(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, head: Rect) {
     let dim = Style::new().fg(t.dim);
     let w = head.width as usize;
     if let Some(q) = app.files.tree().find.clone() {
         let n = app.files.tree().rows().len();
         let count = if q.trim().is_empty() { "enter open · esc".to_string() } else { format!("{n} · esc") };
-        let room = (w.saturating_sub(4 + count.width())).max(1);
+        let room = (w.saturating_sub(9 + count.width())).max(1);
         // A long filter shows its end; the cursor stays in the field.
         let (text, x) = if q.width() > room {
             let tail: String = q.chars().rev().take(room).collect::<Vec<_>>().into_iter().rev().collect();
@@ -114,9 +123,13 @@ fn tree_head(f: &mut Frame, app: &App, t: &Theme, head: Rect) {
         } else {
             (super::field::spans(&q, Style::new().fg(t.fg), Style::new().fg(t.fg).bg(t.sel)), q.cursor_width())
         };
-        let line = Line::from([Span::styled("/ ", Style::new().fg(t.acc))].into_iter().chain(text).collect::<Vec<_>>());
+        let line = Line::from([Span::styled("` ", Style::new().fg(t.acc))].into_iter().chain(text).collect::<Vec<_>>());
         f.render_widget(Paragraph::new(line), Rect { x: head.x + 1, width: head.width.saturating_sub(1), ..head });
-        f.render_widget(Paragraph::new(Line::styled(count.clone(), dim)), Rect { x: head.right().saturating_sub(count.width() as u16), width: count.width() as u16, ..head });
+        let bad = app.files.tree().find_regex && regex::Regex::new(&q).is_err();
+        let button = super::find::draw_regex_button(f, app.files.tree().find_regex, bad, t, Rect { width: head.width + 2, ..head });
+        fr.find_regex = Some(button);
+        let right = button.x.saturating_sub(1);
+        f.render_widget(Paragraph::new(Line::styled(count.clone(), dim)), Rect { x: right.saturating_sub(count.width() as u16), width: count.width() as u16, ..head });
         if app.focus == Focus::Tree {
             f.set_cursor_position((head.x + 3 + x as u16, head.y));
         }
@@ -126,8 +139,11 @@ fn tree_head(f: &mut Frame, app: &App, t: &Theme, head: Rect) {
         Some(st) => format!("{} · {}", st.project.name.clone().unwrap_or_else(|| "PROJECT".into()).to_uppercase(), st.main().count()),
         None => format!("FILES · {}", app.files.tree().files.len()),
     };
-    f.render_widget(Paragraph::new(Line::styled(label, dim.add_modifier(Modifier::BOLD))), Rect { x: head.x + 1, width: head.width.saturating_sub(1), ..head });
     let filt = format!("{} · {}", app.files.tree().filter_label(), app.keys.first(crate::keys::Pane::Tree, "view"));
+    // The name of the project ends with `…` before it touches the name of the view.
+    let room = w.saturating_sub(1 + filt.width() + 1);
+    let label = if label.width() > room { label.chars().take(room.saturating_sub(1)).collect::<String>() + "…" } else { label };
+    f.render_widget(Paragraph::new(Line::styled(label, dim.add_modifier(Modifier::BOLD))), Rect { x: head.x + 1, width: head.width.saturating_sub(1), ..head });
     f.render_widget(Paragraph::new(Line::styled(filt.clone(), dim)), Rect { x: head.right().saturating_sub(filt.width() as u16), width: filt.width() as u16, ..head });
 }
 
@@ -147,15 +163,19 @@ fn tree_line(app: &App, t: &Theme, row: &Row, is_current: bool, w: usize) -> Lin
     let (icon, name_style) = match row.kind {
         // A main material of the project: first class, in the plain text color and bold.
         Kind::Dir { open } if row.section => (if open { "[-] " } else { "[+] " }, Style::new().fg(t.fg).add_modifier(Modifier::BOLD)),
-        Kind::File if row.section && !is_current => (" ◆  ", Style::new().fg(t.fg).add_modifier(Modifier::BOLD)),
+        // `§` and `•`: every font of `zendo setup fonts` has them, so they take one cell.
+        Kind::File if row.section && !is_current => (" §  ", Style::new().fg(t.fg).add_modifier(Modifier::BOLD)),
         Kind::Dir { open } => (if open { "[-] " } else { "[+] " }, Style::new().fg(t.dim)),
-        Kind::File if is_current => (" ●  ", Style::new().fg(t.fg).add_modifier(Modifier::BOLD)),
+        Kind::File if is_current => (" •  ", Style::new().fg(t.fg).add_modifier(Modifier::BOLD)),
         Kind::File => ("    ", Style::new().fg(t.fg)),
+        // FILES-69: a head of the Notes view.
+        Kind::Head => ("", Style::new().fg(t.dim).add_modifier(Modifier::BOLD)),
     };
     // Markdown is the default: its extension shows only in the text view, where files of every kind are.
     let all = app.files.tree().view == View::Text || app.files.tree().view.is_worktree();
     let name = match row.kind {
         _ if row.section => row.name.clone(),
+        Kind::Head => row.name.clone(),
         Kind::Dir { .. } => format!("{}/", row.name),
         Kind::File if all => row.name.clone(),
         Kind::File => row.name.trim_end_matches(".md").to_string(),
@@ -168,7 +188,8 @@ fn tree_line(app: &App, t: &Theme, row: &Row, is_current: bool, w: usize) -> Lin
     let name = if name.width() > room { name.chars().take(room.saturating_sub(1)).collect::<String>() + "…" } else { name };
     let pad = w.saturating_sub(1 + indent.width() + 4 + name.width() + mark.width());
     // The extension in the color of its kind of file.
-    let cut = if row.kind == Kind::File && !row.section { name.rfind('.').filter(|i| *i > 0) } else { None };
+    let notes = app.files.tree().view == View::Notes;
+    let cut = if row.kind == Kind::File && !row.section && !notes { name.rfind('.').filter(|i| *i > 0) } else { None };
     let (stem, ext) = match cut {
         Some(i) => (name[..i].to_string(), name[i..].to_string()),
         None => (name, String::new()),

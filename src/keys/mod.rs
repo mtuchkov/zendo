@@ -41,7 +41,6 @@ pub enum Pane {
     Transcript,
     Tree,
     Delta,
-    Notes,
     /// The session view: a Claude Code session on the whole screen.
     Session,
     /// The search box, the find panel and the file name filter of the tree (PANES-48).
@@ -53,7 +52,7 @@ pub enum Pane {
 }
 
 impl Pane {
-    pub const ALL: [Pane; 14] = [Pane::Global, Pane::Read, Pane::Write, Pane::Chat, Pane::Selected, Pane::Field, Pane::Transcript, Pane::Tree, Pane::Delta, Pane::Notes, Pane::Session, Pane::List, Pane::Theme, Pane::Question];
+    pub const ALL: [Pane; 13] = [Pane::Global, Pane::Read, Pane::Write, Pane::Chat, Pane::Selected, Pane::Field, Pane::Transcript, Pane::Tree, Pane::Delta, Pane::Session, Pane::List, Pane::Theme, Pane::Question];
 
     pub fn name(self) -> &'static str {
         match self {
@@ -66,7 +65,6 @@ impl Pane {
             Pane::Transcript => "transcript",
             Pane::Tree => "tree",
             Pane::Delta => "delta",
-            Pane::Notes => "notes",
             Pane::Session => "session",
             Pane::List => "list",
             Pane::Theme => "theme",
@@ -236,9 +234,14 @@ impl Keymap {
     }
 }
 
+/// Panes that zendo had: their keys in a keymap file do nothing, without a problem. `notes` went
+/// into the tree as the Notes view (FILES-69).
+const RETIRED_PANES: [&str; 1] = ["notes"];
+
 /// The panes and actions of a layer that zendo does not know.
 fn unknown(layer: &str, cfg: &KeyConfig) -> Vec<String> {
     cfg.iter()
+        .filter(|(pane, _)| !RETIRED_PANES.contains(&pane.as_str()))
         .flat_map(|(pane, actions)| match Pane::from_name(pane) {
             None => vec![format!("[{layer}.{pane}]: no such pane (panes: {})", Pane::ALL.map(Pane::name).join(", "))],
             Some(p) => actions.keys().filter(|n| !ACTIONS.iter().any(|a| a.pane == p && a.name == *n)).map(|n| format!("[{layer}.{pane}] {n}: no such action")).collect(),

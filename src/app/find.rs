@@ -1,12 +1,15 @@
-//! Find (FIND-1 to FIND-17): the recent files with an empty query; with a query the files by path,
-//! then the markdown files by text; the preview of the selected file.
+//! Find (find.md, find-modes.md, find-background.md, find-regex.md): the panel, its modes and keys;
+//! the worker searches off the UI thread (ADR 0017), and `find_list.rs` makes the lists.
 use super::*;
-use crate::setup::state::Opened;
+use crate::docs::grep::{self, Ask, Hit, Out, Worker};
+pub use find_list::FindMode;
+use std::sync::Arc;
+
+#[path = "find_list.rs"]
+mod find_list;
 
 /// The most recent files that zendo keeps for a repository.
-const RECENT: usize = 50;
-/// The most files that a query lists by their path.
-const BY_PATH: usize = 50;
+pub(crate) const RECENT: usize = 50;
 
 /// One row of the find panel.
 #[derive(Clone, Debug)]
@@ -16,7 +19,7 @@ pub struct FindItem {
     /// When the user opened it, for a recent file.
     pub at: Option<chrono::DateTime<Local>>,
     /// The lines with a match in the text: the first one is where `enter` opens the file.
-    pub snippets: Vec<search::Snippet>,
+    pub snippets: Vec<grep::Snippet>,
 }
 
 #[derive(Default)]
@@ -30,14 +33,35 @@ pub struct Find {
     pub(crate) seen: Option<PathBuf>,
     /// What the panel stands over: the mode, the focus, a session on the full screen (FIND-12).
     back: Option<(Mode, Focus, Option<usize>)>,
-    /// The files of the repository and the markdown files with their text, read at the first query.
-    files: Vec<PathBuf>,
-    docs: Vec<Note>,
+    pub mode: FindMode,
+    /// `[.*]`: the query is a regular expression (FIND-44); it stays from one open to the next.
+    pub regex: bool,
+    /// The regular expression does not compile (FIND-46).
+    pub bad_regex: bool,
+    /// The search in the text of the query runs (FIND-43).
+    pub running: bool,
+    /// The number of rows of each mode, in the order of `FindMode::ALL`.
+    pub counts: [usize; 4],
+    /// The marks of a match in a line, for the preview.
+    pub(crate) mark: Option<regex::Regex>,
+    /// The files of the repository, walked when the panel opened (FIND-39); None until they come.
+    files: Option<Vec<PathBuf>>,
+    /// The matches in the text of the query.
+    hits: Vec<Hit>,
+    /// The number of the query; the worker drops older ones (FIND-40).
+    seq: u64,
+    worker: Option<Worker>,
+    /// The worker wakes the event loop when it sends results.
+    pub wake: Arc<tokio::sync::Notify>,
+    /// The forms of a requirement ID: the tag patterns (FIND-34).
+    id_patterns: Vec<regex::Regex>,
+    /// Titles and the text test of files, read once while the panel is open.
+    meta: std::cell::RefCell<std::collections::HashMap<PathBuf, (String, bool)>>,
 }
 
 impl App {
-    /// `alt-/`, `/` in read mode: open the find panel with the recent files, or with the selected
-    /// text as the query (FIND-1, FIND-15, FIND-19).
+    /// `alt-/`, `/`: open the find panel in Docs mode, with the selected text as the query
+    /// (FIND-1, FIND-15, FIND-19, FIND-22, FIND-27).
     pub fn open_find(&mut self) {
         if self.mode == Mode::Find {
             return;
@@ -48,19 +72,39 @@ impl App {
             self.save();
         }
         self.hold = None;
-        self.files.find.back = Some((self.mode, self.focus, self.cli.view.take()));
-        self.files.find.query.set(&seed);
-        (self.files.find.files, self.files.find.docs) = (Vec::new(), Vec::new());
+        let f = &mut self.files.find;
+        f.back = Some((self.mode, self.focus, self.cli.view.take()));
+        f.query.set(&seed);
+        f.mode = FindMode::Docs;
+        (f.files, f.hits) = (None, Vec::new());
+        f.meta.borrow_mut().clear();
+        let wake = f.wake.clone();
+        let roots: Vec<PathBuf> = std::iter::once(self.cfg.root.clone()).chain(self.repo_notes_outside()).collect();
+        self.files.find.worker.get_or_insert_with(|| Worker::start(wake)).walk(roots);
+        self.files.find.id_patterns = self.id_patterns();
         self.mode = Mode::Find;
         self.run_find();
+    }
+
+    /// The forms of a requirement ID: the `tag_patterns` of `project-structure.toml` that compile,
+    /// or the default when none is left (FIND-34, FIND-35).
+    fn id_patterns(&self) -> Vec<regex::Regex> {
+        let set = crate::docs::structure::Structure::load(&self.cfg.root).and_then(Result::ok).and_then(|s| s.project.tag_patterns);
+        let ok: Vec<regex::Regex> = set.into_iter().flatten().filter_map(|p| regex::Regex::new(&p).ok()).collect();
+        if ok.is_empty() { vec![regex::Regex::new(grep::DEFAULT_ID).expect("the default compiles")] } else { ok }
     }
 
     /// `esc`: the screen as it was under the panel (FIND-12).
     pub(crate) fn close_find(&mut self) {
         let (mode, focus, view) = self.files.find.back.take().unwrap_or((Mode::Read, self.focus, None));
         (self.mode, self.focus, self.cli.view) = (mode, focus, view);
-        self.files.find.items.clear();
-        self.files.find.preview = None;
+        let f = &mut self.files.find;
+        f.seq += 1;
+        if let Some(w) = &f.worker {
+            w.stop(f.seq);
+        }
+        (f.files, f.hits, f.items, f.preview, f.running) = (None, Vec::new(), Vec::new(), None, false);
+        f.meta.borrow_mut().clear();
     }
 
     /// A key in the find panel: the keys of `[list]`, then the field; `esc` is fixed (PANES-48).
@@ -70,12 +114,28 @@ impl App {
             (_, Some("open")) => self.find_enter(),
             (_, Some("down")) => self.find_move(true),
             (_, Some("up")) => self.find_move(false),
+            (_, Some("next_mode")) => self.find_mode(false),
+            (_, Some("prev_mode")) => self.find_mode(true),
+            (_, Some("regex")) => self.toggle_find_regex(),
             _ => {
                 if self.field_key(&k, |a| Some(&mut a.files.find.query)) == Some(true) {
                     self.run_find();
                 }
             }
         }
+    }
+
+    /// `tab`, `shift-tab`: the next or the previous mode; the query stays (FIND-21, FIND-24).
+    fn find_mode(&mut self, back: bool) {
+        self.files.find.mode = self.files.find.mode.step(back);
+        self.files.find.sel = 0;
+        self.make_find_list();
+    }
+
+    /// `[.*]` or `alt-r`: the regular expression on or off (FIND-44).
+    pub fn toggle_find_regex(&mut self) {
+        self.files.find.regex = !self.files.find.regex;
+        self.run_find();
     }
 
     fn find_move(&mut self, down: bool) {
@@ -85,9 +145,12 @@ impl App {
     }
 
     /// `enter`: open the selected file in the note pane at the line of the match (FIND-11); after
-    /// `?`, ask the agent about all notes (FIND-14).
+    /// `?` in Notes mode, ask the agent about all notes (FIND-41).
     fn find_enter(&mut self) {
         if let Some(q) = self.files.find.query.strip_prefix('?').map(|q| q.trim().to_string()) {
+            if self.files.find.mode != FindMode::Notes {
+                return;
+            }
             self.close_find();
             self.mode = Mode::Read;
             self.threads.pin(ALL_KEY);
@@ -106,66 +169,80 @@ impl App {
         self.track_recent();
     }
 
-    /// The list for the query: the recent files, the notes with a tag, or the files by path and
-    /// then by text (FIND-2, FIND-9, FIND-14, FIND-20).
+    /// The query changed: the search by path now, the search in the text on the worker (FIND-37).
     pub(crate) fn run_find(&mut self) {
-        let q = self.files.find.query.trim().to_string();
-        self.files.find.items = match q.chars().next() {
-            None => self.recent_items(),
-            // A query across lines is text, also when it starts with `#` or `?` (FIND-20).
-            Some(_) if q.contains(search::NEW_LINE) => self.query_items(&q),
-            Some('?') => Vec::new(),
-            Some('#') => items_of(self.files.notes(), search::search(self.files.notes(), &q)),
-            Some(_) => self.query_items(&q),
-        };
-        self.files.find.sel = 0;
-        self.load_preview();
+        let ask = self.find_ask();
+        let f = &mut self.files.find;
+        f.bad_regex = matches!(&ask, Some(Ask::Text { query, regex: true }) if regex::Regex::new(query).is_err());
+        if f.bad_regex {
+            // FIND-46: the list keeps the results of the last valid query.
+            return;
+        }
+        f.seq += 1;
+        f.hits.clear();
+        f.mark = ask.as_ref().and_then(Ask::mark);
+        f.running = ask.is_some();
+        if let Some(w) = &f.worker {
+            match ask {
+                Some(a) => w.search(f.seq, a),
+                None => w.stop(f.seq),
+            }
+        }
+        f.sel = 0;
+        self.make_find_list();
+    }
+
+    /// What the worker looks for: nothing for an empty query and for `?` (FIND-41).
+    fn find_ask(&self) -> Option<Ask> {
+        let q = self.files.find.query.trim();
+        // A query across lines is text, also when it starts with `#` or `?` (FIND-20).
+        if q.contains(crate::docs::search::NEW_LINE) {
+            return Some(Ask::Lines(q.to_string()));
+        }
+        match q.chars().next()? {
+            '?' => None,
+            '#' => {
+                let w = q[1..].trim().to_string();
+                // The patterns that the whole word matches: the word has the form of their IDs.
+                let whole = |p: &&regex::Regex| p.find(&w).is_some_and(|m| m.start() == 0 && m.end() == w.len());
+                let patterns: Vec<regex::Regex> = self.files.find.id_patterns.iter().filter(whole).cloned().collect();
+                (!w.is_empty()).then(|| if patterns.is_empty() { Ask::Tag(w.clone()) } else { Ask::Id { word: w.clone(), patterns } })
+            }
+            _ => Some(Ask::Text { query: q.to_string(), regex: self.files.find.regex }),
+        }
+    }
+
+    /// Take what the worker sent: the list of files, the matches of the query (FIND-36).
+    pub fn poll_find(&mut self) {
+        let Some(w) = &self.files.find.worker else { return };
+        let outs = w.poll();
+        if !outs.is_empty() {
+            outs.into_iter().for_each(|o| self.take_find(o));
+            self.make_find_list();
+        }
+    }
+
+    fn take_find(&mut self, out: Out) {
+        let f = &mut self.files.find;
+        match out {
+            Out::Files(files) if self.mode == Mode::Find => f.files = Some(files),
+            Out::Hits { seq, hits } if seq == f.seq => (f.hits, f.running) = (hits, false),
+            _ => {}
+        }
+    }
+
+    /// Wait until the walk and the search of the query end: for tests and benchmarks.
+    pub fn settle_find(&mut self) {
+        let until = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        while (self.files.find.running || self.files.find.files.is_none()) && self.mode == Mode::Find && std::time::Instant::now() < until {
+            let Some(out) = self.files.find.worker.as_ref().and_then(|w| w.wait(std::time::Duration::from_millis(50))) else { continue };
+            self.take_find(out);
+            self.make_find_list();
+        }
     }
 
     fn load_preview(&mut self) {
         self.files.find.preview = self.files.find.items.get(self.files.find.sel).and_then(|i| notes::load(&i.path).ok());
-    }
-
-    /// The recent files that are on disk, without the open file (FIND-2, FIND-7).
-    fn recent_items(&self) -> Vec<FindItem> {
-        let open = self.files.current();
-        let item = |o: &Opened| {
-            let path = self.cfg.root.join(&o.path);
-            let title = notes::load(&path).ok()?.title;
-            (Some(&path) != open).then_some(FindItem { path, title, at: Some(o.at), snippets: Vec::new() })
-        };
-        self.state.recent.iter().filter_map(item).collect()
-    }
-
-    /// The text files whose path has every word, recent first; then the markdown files whose text
-    /// has the query (FIND-9, FIND-16).
-    fn query_items(&mut self, q: &str) -> Vec<FindItem> {
-        if self.files.find.files.is_empty() {
-            let root = self.cfg.root.clone();
-            self.files.find.files = crate::app::at::repo_files(&root);
-            // FIND-18: the notes of the notes repo, by their absolute path (`root.join` keeps it).
-            if let Some(dir) = self.repo_notes_outside() {
-                let md = crate::app::at::repo_files(&dir).into_iter().filter(|f| f.extension().is_some_and(|x| x == "md"));
-                self.files.find.files.extend(md.map(|f| dir.join(f)));
-            }
-            self.files.find.docs = self.files.find.files.iter().filter(|f| !code::is_code(f)).filter_map(|f| notes::load(&root.join(f)).ok()).collect();
-        }
-        let notes_dir = self.repo_notes_outside();
-        let words: Vec<String> = q.to_lowercase().split_whitespace().map(str::to_string).collect();
-        let rank = |rel: &str| self.state.recent.iter().position(|o| o.path == rel).unwrap_or(RECENT);
-        let mut by_path: Vec<&PathBuf> = self.files.find.files.iter().filter(|f| has_words(&shown_path(f, notes_dir.as_deref()), &words)).collect();
-        by_path.sort_by_key(|f| (rank(&f.display().to_string()), f.to_path_buf()));
-        let root = &self.cfg.root;
-        let mut items: Vec<FindItem> = by_path
-            .into_iter()
-            .map(|f| root.join(f))
-            .filter(|p| !code::is_code(p) || crate::docs::tree::is_text(p))
-            .take(BY_PATH)
-            .filter_map(|path| Some(FindItem { title: notes::load(&path).ok()?.title, path, at: None, snippets: Vec::new() }))
-            .collect();
-        let text = items_of(&self.files.find.docs, search::search(&self.files.find.docs, q));
-        items.extend(text.into_iter().filter(|t| !items.iter().any(|i| i.path == t.path)).collect::<Vec<_>>());
-        items
     }
 
     /// After a key or a tick: the file in the note pane is the most recent file, unless the float,
@@ -184,7 +261,7 @@ impl App {
     pub(crate) fn add_recent(&mut self, path: &Path) {
         let rel = self.rel(path);
         self.state.recent.retain(|o| o.path != rel);
-        self.state.recent.insert(0, Opened { path: rel, at: Local::now() });
+        self.state.recent.insert(0, crate::setup::state::Opened { path: rel, at: Local::now() });
         self.state.recent.truncate(RECENT);
         self.state.save(&self.cfg.root);
     }
@@ -197,24 +274,3 @@ impl App {
         self.state.save(&self.cfg.root);
     }
 }
-
-/// The path has every word, without regard to letter case.
-fn has_words(rel: &Path, words: &[String]) -> bool {
-    let p = rel.display().to_string().to_lowercase();
-    words.iter().all(|w| p.contains(w.as_str()))
-}
-
-/// The path that a query matches: a note of the notes repo as `notes/…`, not its whole path.
-fn shown_path(f: &Path, notes_dir: Option<&Path>) -> PathBuf {
-    match notes_dir.and_then(|d| f.strip_prefix(d).ok()) {
-        Some(rel) => Path::new("notes").join(rel),
-        None => f.to_path_buf(),
-    }
-}
-
-/// The rows of the matches in the text.
-fn items_of(docs: &[Note], groups: Vec<Group>) -> Vec<FindItem> {
-    groups.into_iter().map(|g| FindItem { path: docs[g.note].path.clone(), title: docs[g.note].title.clone(), at: None, snippets: g.snippets }).collect()
-}
-
-use crate::text::code;

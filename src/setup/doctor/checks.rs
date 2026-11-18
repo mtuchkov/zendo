@@ -127,6 +127,10 @@ fn check_settings(cfg: &UserConfig, o: &mut Out) {
 }
 
 fn check_structure(paths: &Paths, o: &mut Out) {
+    // FIND-48: many tag patterns are a warning, not a problem of the file.
+    if let Some(w) = crate::docs::structure::Structure::load(&paths.root).and_then(Result::ok).and_then(|s| s.tag_patterns_warning()) {
+        o.warn("tags", w);
+    }
     // The project structure file, when the repo has one.
     match structure_problem(&paths.root) {
         None => {

@@ -77,6 +77,8 @@ fn structure_view_lists_main_materials_in_file_order() {
     t.next_view();
     assert_eq!(t.view, View::Text);
     t.next_view();
+    assert_eq!(t.view, View::Notes, "FILES-4: notes after text");
+    t.next_view();
     assert_eq!(t.view, View::Structure);
     for gone in ["all", "folders"] {
         assert_eq!(View::from_name(gone), None, "the {gone} view is gone (FILES-4)");
@@ -234,12 +236,12 @@ fn the_tree_shows_the_notes_of_the_notes_repo() {
 }
 
 // FILES-4, FILES-31: the two worktree views come after text, and only while the session has a
-// worktree.
+// worktree; the notes view comes last.
 #[test]
 fn the_worktree_views_follow_text_only_with_a_worktree() {
     let mut t = Tree { view: View::Text, ..Default::default() };
     t.next_view();
-    assert_eq!(t.view, View::Docs, "no worktree: v skips both worktree views");
+    assert_eq!(t.view, View::Notes, "no worktree: v skips both worktree views");
     t.view = View::Text;
     t.worktree = Some(PathBuf::from(".worktrees/1"));
     t.next_view();
@@ -247,8 +249,10 @@ fn the_worktree_views_follow_text_only_with_a_worktree() {
     t.next_view();
     assert_eq!(t.view, View::WorktreeChanged);
     t.next_view();
+    assert_eq!(t.view, View::Notes);
+    t.next_view();
     assert_eq!(t.view, View::Docs);
-    for v in [View::Worktree, View::WorktreeChanged] {
+    for v in [View::Worktree, View::WorktreeChanged, View::Notes] {
         assert_eq!(View::from_name(v.name()), Some(v), "the view is kept by its name (FILES-10)");
     }
 }

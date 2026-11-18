@@ -12,7 +12,7 @@ async fn f1_shows_the_keys_of_the_pane_from_everywhere() {
     let root = repo("help-keys", &[("docs/notes/2026-11-12-a.md", "# A\n\ntext\n")]);
     let mut a = app(&root);
     let bar = |a: &mut zendo::app::App| status_bar(&draw(a, 160, 30));
-    for (setup, pane) in [(0, Pane::Read), (1, Pane::Write), (2, Pane::Chat), (3, Pane::Notes), (4, Pane::Global)] {
+    for (setup, pane) in [(0, Pane::Read), (1, Pane::Write), (2, Pane::Chat), (3, Pane::Tree), (4, Pane::Global)] {
         a.mode = Mode::Read;
         a.threads.hide();
         a.focus = Focus::Note;
@@ -23,7 +23,7 @@ async fn f1_shows_the_keys_of_the_pane_from_everywhere() {
                 a.focus = Focus::Claude;
             }
             3 => a.open_notes(),
-            4 => a.open_search(""),
+            4 => a.open_find(),
             _ => {}
         }
         let b = bar(&mut a);

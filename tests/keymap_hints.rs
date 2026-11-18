@@ -4,7 +4,7 @@
 mod common;
 use common::*;
 use std::time::Instant;
-use zendo::app::{App, Focus, Mode, session_key};
+use zendo::app::{App, Focus, session_key};
 use zendo::docs::tree::View;
 use zendo::keys::{KeyConfig, Keymap, Pane};
 
@@ -22,10 +22,9 @@ review = ["ctrl-y"]
 [chat]
 send = ["ctrl-s"]
 back = ["ctrl-g"]
-[notes]
-new = ["N"]
 [tree]
 view = ["V"]
+new_note = ["N"]
 "#;
 
 fn remapped(a: &mut App) {
@@ -101,9 +100,9 @@ fn the_screen_without_notes_names_its_keys() {
     assert!(s.contains("Press N to write the first one"), "{s}");
     assert!(s.contains("Press C to talk to Claude, f12 for keys."), "{s}");
     assert!(!s.contains("alt-?"), "{s}");
-    a.mode = Mode::Notes;
+    a.open_notes();
     let s = screen(&mut a);
-    assert!(s.contains("No notes yet. Press N."), "{s}");
+    assert!(s.contains("No notes yet. Press N."), "the Notes view of the tree: {s}");
     let _ = std::fs::remove_dir_all(&root);
 }
 

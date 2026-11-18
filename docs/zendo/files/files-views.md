@@ -1,12 +1,12 @@
 ---
 status: "implemented"
-approved: "2026-11-17"
-revision: "4"
+approved: "2026-11-18"
+revision: "5"
 date: "2026-11-17"
 parent: "files.md"
-next: "files-actions.md"
+next: "files-view-column.md"
 level: "the views of the file tree, folding, the marks, the bottom of the tree"
-note: "Split from files.md revision 2 (user, 2026-11-14). Revision 2 changes FILES-4: the `v` cycle has the two worktree views after folders (user, 2026-11-14); implemented in zendo 0.62.0. Revision 3, from the request of the user on 2026-11-17 and approved by the user on 2026-11-17: the all and folders views go (FILES-4, FILES-17), the folders start closed (FILES-56), `[+]` and `[-]` open and close every folder (FILES-57), and the tree follows the open document (FILES-58); implemented in zendo 0.85.0. Revision 4, from the request of the user on 2026-11-17: each start shows the structure view (FILES-66), and FILES-10 keeps only the folders between runs; approved by the user on 2026-11-17; implemented in zendo 0.89.0."
+note: "Split from files.md revision 2 (user, 2026-11-14). Revision 2 changes FILES-4: the `v` cycle has the two worktree views after folders (user, 2026-11-14); implemented in zendo 0.62.0. Revision 3, from the request of the user on 2026-11-17 and approved by the user on 2026-11-17: the all and folders views go (FILES-4, FILES-17), the folders start closed (FILES-56), `[+]` and `[-]` open and close every folder (FILES-57), and the tree follows the open document (FILES-58); implemented in zendo 0.85.0. Revision 4, from the request of the user on 2026-11-17: each start shows the structure view (FILES-66), and FILES-10 keeps only the folders between runs; approved by the user on 2026-11-17; implemented in zendo 0.89.0. Revision 5 (approved by the user on 2026-11-18): FILES-4 ends with the Notes view of files-view-column.md, and a strip of letters shows the views."
 ---
 
 # File tree: views
@@ -23,10 +23,11 @@ The file tree has three views of the repository:
   configuration, scripts, web), from the theme. How a file that is not markdown opens is in
   [Code files](files-code.md).
 
-`v` shows the next view, after text the two worktree views. `j` and `k` move; `+` and `-`, `l` and
-`h`, or a click on `[+]` and `[-]` open and close a folder. The structure view is the default: each
-start of zendo shows it, or the docs view where the repository has no main materials. The view that
-the user chooses stays until the quit.
+`v` shows the next view, after text the two worktree views, then the Notes view. A strip of
+letters on the left edge of the tree shows the views; see [The view strip](files-view-column.md).
+`j` and `k` move; `+` and `-`, `l` and `h`, or a click on `[+]` and `[-]` open and close a folder.
+The structure view is the default: each start of zendo shows it, or the docs view where the
+repository has no main materials. The view that the user chooses stays until the quit.
 
 Every folder and main material starts closed. Under the head of the tree, on the right, `[+]` opens
 every folder and `[-]` closes every folder; the keys `*` and `_` do the same.
@@ -47,7 +48,7 @@ Two more views show the worktree of the active agent session: worktree and workt
 
 | ID       | Pattern    | Requirement | Source |
 | -------- | ---------- | ----------- | ------ |
-| FILES-4 | Event | When the user presses `v` in the tree, the system shall show the next view: structure, docs, text, worktree, worktree changed. | User, 2026-11-12; User, 2026-11-14; User, 2026-11-17 |
+| FILES-4 | Event | When the user presses `v` in the tree, the system shall show the next view: structure, docs, text, worktree, worktree changed, notes. | User, 2026-11-12; User, 2026-11-14; User, 2026-11-17; User, 2026-11-18 |
 | FILES-5 | Event | When the user clicks `[+]` or `[-]`, or presses its key, the system shall open or close the folder. | User, 2026-11-11 |
 | FILES-6 | Ubiquitous | The system shall show a folder that holds only one folder as one row, for example `svc/orders/docs`. | Design |
 | FILES-7 | Ubiquitous | The system shall mark with `Δ` the files that changed since the last visit that counted. | Design |

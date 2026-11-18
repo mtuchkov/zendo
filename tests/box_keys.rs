@@ -54,18 +54,24 @@ fn the_theme_list_takes_its_keys_from_the_keymap() {
     assert_ne!(a.theme, first, "ctrl-o keeps the theme");
 }
 
-/// PANES-48: in the search box, the keys of the keymap move and open; a plain char types.
+/// PANES-48: in the find panel, the keys of the keymap move and open; a plain char types. The
+/// search of the notes is the Notes mode of the panel (FILES-69).
 #[test]
 fn the_search_box_takes_its_keys_from_the_keymap() {
     let mut a = remapped("box-search");
-    a.open_search("apple");
-    let before = format!("{:?}", a.lists.picked().map(|g| g.note));
+    a.open_find();
+    press(&mut a, KeyCode::BackTab, KeyModifiers::SHIFT);
+    for c in "apple".chars() {
+        press(&mut a, KeyCode::Char(c), KeyModifiers::NONE);
+    }
+    a.settle_find();
+    assert_eq!(a.files.find().items.len(), 2, "a plain char types");
     press(&mut a, KeyCode::Down, KeyModifiers::NONE);
-    assert_eq!(format!("{:?}", a.lists.picked().map(|g| g.note)), before, "down is not the key any more");
+    assert_eq!(a.files.find().sel, 0, "down is not the key any more");
     press(&mut a, KeyCode::Char('d'), KeyModifiers::CONTROL);
-    assert_ne!(format!("{:?}", a.lists.picked().map(|g| g.note)), before);
+    assert_eq!(a.files.find().sel, 1);
     press(&mut a, KeyCode::Enter, KeyModifiers::NONE);
-    assert_eq!(a.mode, Mode::Search, "enter is not the key any more");
+    assert_eq!(a.mode, Mode::Find, "enter is not the key any more");
     press(&mut a, KeyCode::Char('o'), KeyModifiers::CONTROL);
     assert_eq!(a.mode, Mode::Read);
 }

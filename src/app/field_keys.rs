@@ -55,20 +55,18 @@ impl App {
         match self.mode {
             _ if self.files.prompt().is_some() => {}
             Mode::Find => self.run_find(),
-            Mode::Search => self.run_search(),
             _ => self.files.filter_changed(),
         }
         true
     }
 
-    /// The field that has the keys now: a file name, the find panel, the search, the tree filter.
+    /// The field that has the keys now: a file name, the find panel, the tree filter.
     fn field_now(&mut self) -> Option<&mut Field> {
         if self.files.prompt().is_some() {
             return self.files.prompt_field();
         }
         match self.mode {
             Mode::Find => Some(&mut self.files.find.query),
-            Mode::Search => Some(self.lists.query_mut()),
             _ if self.files.filtering() && self.key_pane() == crate::keys::Pane::Tree => self.files.filter_field(),
             _ => None,
         }

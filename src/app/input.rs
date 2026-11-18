@@ -51,7 +51,7 @@ impl App {
     fn key_to_view(&mut self, k: KeyEvent) -> bool {
         // The float and find open over every pane and view, also a session on the full screen
         // (FLOAT-14, FIND-15).
-        let global = if self.mode == Mode::Help { None } else { self.keys.local(crate::keys::Pane::Global, &k) };
+        let global = if self.mode == Mode::Help { None } else { self.global_of(&k) };
         match (self.cli.view, self.pane_terminal()) {
             // The question of the first start takes every key until it has an answer (LOFI-12).
             _ if self.music.asking => self.key_music_question(k),
@@ -102,12 +102,6 @@ impl App {
                 return;
             }
             return match self.mode {
-                Mode::Notes => {
-                    let act = self.keys.local(Pane::Notes, &k);
-                    self.did_some(Pane::Notes, act);
-                    self.key_notes(act)
-                }
-                Mode::Search => self.key_search(k),
                 Mode::Find => self.key_find(k),
                 Mode::Theme => self.key_theme(k),
                 _ => {}
@@ -128,7 +122,7 @@ impl App {
         }
         let local = self.keys.local(pane, &k);
         if local.is_none()
-            && let Some(act) = self.keys.local(Pane::Global, &k)
+            && let Some(act) = self.global_of(&k)
             && self.global_key(act, pane)
         {
             return;
@@ -142,6 +136,22 @@ impl App {
             Pane::Write => self.key_write(k, local),
             _ => self.key_read(local),
         }
+    }
+
+    /// The global action of a key; not `find` for a `/` that types (FIND-22, FIND-23).
+    fn global_of(&self, k: &KeyEvent) -> Option<&'static str> {
+        self.keys.local(crate::keys::Pane::Global, k).filter(|a| *a != "find" || !self.slash_types(k))
+    }
+
+    /// A `/` without alt where the focus takes text: write mode, the chat input, a session or a
+    /// terminal, the float, a question field, the filter of the tree (FIND-23).
+    fn slash_types(&self, k: &KeyEvent) -> bool {
+        use crate::keys::Pane;
+        let slash = k.code == KeyCode::Char('/') && !k.modifiers.contains(KeyModifiers::ALT);
+        let field = self.files.prompt().is_some() || self.files.worktree.confirm.is_some() || self.writer.float().is_some() || self.hold.is_some();
+        let pane = self.key_pane();
+        let typing = matches!(pane, Pane::Write | Pane::Chat) || self.files.filtering() && pane == Pane::Tree;
+        slash && (field || typing || self.music.asking || self.cli.view.is_some() || self.pane_terminal().is_some())
     }
 
     /// A key of no pane: quit, the tree, the text width, help, the next pane, the pane edges. True
@@ -186,11 +196,10 @@ impl App {
         true
     }
 
-    /// The pane whose keys the help shows: the pane in focus, the notes list, or only the global keys.
+    /// The pane whose keys the help shows: the pane in focus, or only the global keys.
     fn help_pane_now(&self) -> crate::keys::Pane {
         match self.mode {
             Mode::Read | Mode::Write => self.key_pane(),
-            Mode::Notes => crate::keys::Pane::Notes,
             _ => crate::keys::Pane::Global,
         }
     }

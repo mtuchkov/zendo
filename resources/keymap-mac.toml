@@ -20,7 +20,7 @@
 [global]
 # navigation
 next_pane = ["tab"]  # next pane
-find = ["alt-/"]  # find a file: the recent files, by path and by text
+find = ["alt-/", "/"]  # find: notes, docs and code; `/` where no text is typed
 
 # editing
 new_note = ["alt-n"]  # a new note in a float
@@ -60,7 +60,6 @@ top = ["g", "home"]  # top
 bottom = ["G", "end"]  # bottom
 next_note = ["]"]  # next note
 prev_note = ["["]  # previous note
-search = ["/"]  # find a file: the recent files, by path and by text
 
 # text selection
 select = ["v"]  # start / stop a selection
@@ -259,13 +258,14 @@ fold = ["-"]  # fold [-]
 expand_all = ["*"]  # open every folder
 collapse_all = ["_"]  # close every folder
 close_folder = ["h", "left"]  # close the folder / go to the parent
-search = ["/"]  # filter by file name
+search = ["`"]  # filter by file name
 
 # editing
 rename = ["f2"]  # rename the file
 move = ["m"]  # move the file to a folder
 new_file = ["f3"]  # new file
 new_folder = ["f4"]  # new folder
+new_note = ["n"]  # a new note, in the notes view
 delete = ["delete"]  # delete the file
 
 # features
@@ -274,7 +274,8 @@ add_to_chat = ["a"]  # add the file to the chat
 # panes and view
 open = ["enter"]  # open in the note
 preview = ["l", "right", "space"]  # open, stay in the tree
-view = ["v"]  # structure, docs, text files, worktree, worktree Δ
+view = ["v"]  # structure, docs, text files, worktree, worktree Δ, notes
+notes = ["o"]  # the notes view
 layout = ["w"]  # standard / wide screen
 delta = ["d"]  # delta
 chat = ["c"]  # chat
@@ -299,25 +300,6 @@ layout = ["w"]  # standard / wide screen
 write = ["i"]  # write
 close = ["esc", "d", "q"]  # close the delta
 
-[notes]
-# navigation
-down = ["j", "down"]  # down
-up = ["k", "up"]  # up
-top = ["g", "home"]  # top
-bottom = ["G", "end"]  # bottom
-search = ["/"]  # search
-tags = ["#"]  # search tags
-
-# editing
-new = ["n"]  # new note
-rename = ["r"]  # rename the file to the title
-rename_file = ["f2"]  # rename the file
-delete = ["delete"]  # delete the file
-
-# panes and view
-open = ["enter", "l", "right"]  # open
-close = ["esc", "o", "q"]  # close
-
 [session]
 # A Claude Code session or a terminal on the whole screen, or a terminal in the chat pane. All other
 # keys go to the program; alt-] and alt-} go to the next and the previous session or terminal;
@@ -331,8 +313,10 @@ leave = ["alt-q"]  # back to zendo; the program runs on
 # the text. esc goes back.
 
 # navigation
-down = ["down", "tab", "ctrl-j", "ctrl-n"]  # the next item
-up = ["up", "shift-tab", "ctrl-k", "ctrl-p"]  # the item before
+down = ["down", "ctrl-j", "ctrl-n"]  # the next item
+up = ["up", "ctrl-k", "ctrl-p"]  # the item before
+next_mode = ["tab"]  # the find panel: the next mode
+prev_mode = ["shift-tab"]  # the find panel: the mode before
 
 # editing
 rename = ["f2"]  # the file name filter: rename the file
@@ -340,6 +324,7 @@ delete = ["delete"]  # the file name filter: delete the file
 
 # panes and view
 open = ["enter"]  # open the item
+regex = ["alt-r"]  # the find panel and the file name filter: a regular expression
 
 [theme]
 # The theme list; esc goes back to the theme before.

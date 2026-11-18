@@ -25,6 +25,8 @@ pub struct Project {
     pub about: Option<String>,
     /// Rules for Claude that hold in the whole repository.
     pub claude: Option<String>,
+    /// The forms of a requirement ID, regular expressions, for `#` in the find panel (FIND-34).
+    pub tag_patterns: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -117,7 +119,16 @@ impl Entry {
     }
 }
 
+/// More tag patterns than this can slow the search with `#` (FIND-48).
+pub const TAG_PATTERNS_MAX: usize = 5;
+
 impl Structure {
+    /// A warning for `zendo doctor` when there are so many tag patterns that `#` gets slow (FIND-48).
+    pub fn tag_patterns_warning(&self) -> Option<String> {
+        let n = self.project.tag_patterns.as_ref().map_or(0, Vec::len);
+        (n > TAG_PATTERNS_MAX).then(|| format!("{n} tag patterns: zendo tests each one for each `#` query; more than {TAG_PATTERNS_MAX} can slow the search"))
+    }
+
     /// `None` when the repo has no structure file; `Err` with the reason when it does not parse.
     pub fn load(root: &Path) -> Option<Result<Structure, String>> {
         let text = std::fs::read_to_string(root.join(FILE)).ok()?;

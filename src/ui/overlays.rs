@@ -9,7 +9,7 @@ pub(crate) fn draw_themes(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, a
     for (i, th) in THEMES.iter().enumerate() {
         let sel = i == app.theme;
         let mut spans = vec![
-            Span::styled(if sel { "▸ " } else { "  " }, Style::new().fg(t.acc)),
+            Span::styled(if sel { "› " } else { "  " }, Style::new().fg(t.acc)),
             Span::styled(format!("{:<9}", th.name), Style::new().fg(t.fg)),
             Span::styled(format!("{:<14}", th.blurb), dim),
         ];

@@ -104,16 +104,15 @@ pub fn checked(map: &Keymap, pane: Pane, action: &str, specs: &[&str]) -> Vec<Ke
 /// the usage counts from real use (PANES-18). Their last key does not go (REKEY-31).
 const FREQUENT: &[(Pane, &[&str])] = &[
     (Pane::Global, &["next_pane", "next_session", "help", "toggle_tree", "terminal", "terminal_run", "quit"]),
-    (Pane::Read, &["down", "up", "left", "right", "select_down", "select_up", "select_left", "select_right", "ask", "say", "add_to_chat", "chat", "write", "search", "help", "split", "copy", "back"]),
+    (Pane::Read, &["down", "up", "left", "right", "select_down", "select_up", "select_left", "select_right", "ask", "say", "add_to_chat", "chat", "write", "help", "split", "copy", "back"]),
     (Pane::Write, &["done", "chat", "add_to_chat", "say", "bold", "italic", "underline", "toggle_tree", "delta"]),
     (Pane::Chat, &["send", "newline", "new_thread", "handoff", "back"]),
     (Pane::Selected, &["copy", "cut"]),
     (Pane::Transcript, &["down", "select_down", "copy", "add_to_chat", "input"]),
-    (Pane::Tree, &["down", "open", "view", "search", "add_to_chat", "rename", "move", "delete", "close"]),
+    (Pane::Tree, &["down", "open", "view", "notes", "search", "add_to_chat", "rename", "move", "delete", "close"]),
     (Pane::Delta, &["base", "ask", "recap", "close"]),
-    (Pane::Notes, &["down", "open", "new", "rename", "tags", "close"]),
     (Pane::Session, &["leave"]),
-    (Pane::List, &["down", "up", "open"]),
+    (Pane::List, &["down", "up", "open", "next_mode", "regex"]),
     (Pane::Theme, &["down", "keep"]),
     (Pane::Question, &["ok", "yes"]),
 ];

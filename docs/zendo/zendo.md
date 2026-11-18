@@ -10,6 +10,10 @@ children:
   - "notes-list.md"
   - "float.md"
   - "find.md"
+  - "find-modes.md"
+  - "find-ids.md"
+  - "find-background.md"
+  - "find-regex.md"
   - "notes-repo.md"
   - "length.md"
   - "files/files.md"
@@ -63,6 +67,10 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [New note in a float](float.md)              | `alt-n`: a new note in a float over the open file, without distraction |
 | [Title of a new note](float-title.md)        | The name model writes the title of the note in the float      |
 | [Find](find.md)                              | `alt-/`: recent files, search by path and text, the preview   |
+| [Find: modes](find-modes.md)                 | Notes, Docs, Code and All modes; `tab`; the global `/`        |
+| [Find: tags and IDs](find-ids.md)            | `#`: tags and requirement IDs in docs and code                |
+| [Find: background](find-background.md)       | search off the UI thread with the ripgrep crates; All merge   |
+| [Find: regex](find-regex.md)                 | `[.*]` and `alt-r` in the find panel and the tree filter      |
 | [Notes repo](notes-repo.md)                  | Notes in a private git repo, in sync between machines         |
 | [Length](length.md)                          | The word limit, the red area, the split with Claude            |
 | [File tree](files/files.md)                  | The files of the repository and their views                   |

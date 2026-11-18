@@ -39,6 +39,8 @@ fn select_and_find(a: &mut App, from: usize, to: usize) {
     a.reader
         .place(to, a.frame.read_text()[to].trim_end().chars().count() - 1);
     key(a, KeyCode::Char('/'));
+    // The search in the text runs on the worker (ADR 0017).
+    a.settle_find();
 }
 
 fn cleanup(root: &Path) {
@@ -126,6 +128,7 @@ async fn a_heading_in_the_selection_is_no_tag() {
     let e = a.writer.editor_mut();
     (e.anchor, e.row, e.col) = (Some((0, 0)), 2, 10);
     a.on_key(KeyEvent::new(KeyCode::Char('/'), KeyModifiers::ALT));
+    a.settle_find();
     assert_eq!(a.files.find().query.text(), "# Alpha⏎⏎First line");
     assert_eq!(
         a.files

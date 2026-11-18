@@ -43,6 +43,15 @@ impl App {
         self.files.reveal_current();
     }
 
+    /// A click on a letter of the view strip or a name of its hint; `o` (FILES-73, FILES-76).
+    pub fn show_tree_view(&mut self, view: crate::docs::tree::View) {
+        self.state.tree_view = self.files.pick_view(view).to_string();
+        self.state.save(&self.cfg.root);
+        self.scan_tree();
+        self.files.reveal_current();
+        self.files.first_view_row();
+    }
+
     /// Enter on a tree row: open the file, or open / close the folder.
     pub fn tree_activate(&mut self, focus_note: bool) {
         match self.files.activate() {
@@ -65,12 +74,15 @@ impl App {
             "open" => self.tree_activate(true),
             "preview" => self.tree_activate(false),
             "view" => self.toggle_tree_filter(),
+            "notes" => self.open_notes(),
             "delete" => self.tree_act(file(self, 'd')),
             "rename" => self.tree_act(file(self, 'r')),
             "move" => self.tree_act(file(self, 'm')),
             "new_file" => self.tree_act(TreeAct::New { folder: false }),
             "new_folder" => self.tree_act(TreeAct::New { folder: true }),
             "add_to_chat" => self.attach_tree_file(),
+            // FILES-69: `n` writes a new note in the Notes view.
+            "new_note" if self.files.tree().view == crate::docs::tree::View::Notes => self.open_float(),
             "layout" => self.toggle_layout(),
             "delta" => self.toggle_delta(),
             "chat" => self.toggle_chat(),

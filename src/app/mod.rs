@@ -27,7 +27,6 @@ mod fonts;
 mod jobs;
 mod key_help;
 mod link;
-mod lists;
 mod hold;
 mod file_prompt;
 mod info;
@@ -73,13 +72,12 @@ pub use effect::Effect;
 pub use file_prompt::FilePrompt;
 pub use files_state::Files;
 pub use files_state::tree_keys::{FilterKey, Picked};
-pub use find::{Find, FindItem};
+pub use find::{Find, FindItem, FindMode};
 pub use float::Float;
 pub use fonts::FontTip;
 pub use jobs::*;
 pub use key_help::KeyHelp;
 pub use link::AgentLink;
-pub use lists::Lists;
 pub use update::Update;
 pub use hold::{CONTINUE, HOLD_AGAIN, Hold};
 pub use say::{SAY_HERE, Say};
@@ -100,7 +98,6 @@ pub use worktree::{RECAP_EVERY, TreeAct, WorktreeUi};
 use crate::agent::{self, Attachment, Cmd, Event};
 use crate::text::editor::Editor;
 use crate::docs::notes::{self, Note, Store};
-use crate::docs::search::{self, Group};
 use crate::setup::state::{self, State};
 use crate::ui::theme::{self, THEMES, Theme};
 use crate::agent::work::RECAP_PREFIX;
@@ -153,8 +150,6 @@ pub struct App {
     pub state: State,
 
     /// The view of the note: the read cursor, the selection, and the scroll.
-    /// The notes list and the search: the selection, the query, the matches.
-    pub lists: Lists,
     /// The check for a newer zendo, and the upgrade at the quit.
     pub update: Update,
     /// The help of the keys: its pane, the keymap file, the problems of the keymap.
