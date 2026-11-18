@@ -3,7 +3,7 @@ status: "draft"
 revision: "4"
 date: "2026-11-13"
 parent: "../zendo.md"
-prev: "../chat.md"
+prev: "../chat-chips.md"
 next: "../attention.md"
 children:
   - "shell-blocks.md"

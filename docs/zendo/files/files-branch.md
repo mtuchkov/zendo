@@ -5,7 +5,7 @@ date: "2026-11-17"
 parent: "files.md"
 prev: "files-session-doc.md"
 level: "the name of the git branch in the top line and in the float: which checkout it names in each context"
-note: "Agent draft from the request of the user on 2026-11-17: the branch name in the top line depends on the context. Approved by the user on 2026-11-17; implemented in zendo 0.87.0."
+note: "Agent draft from the request of the user on 2026-11-17: the branch name in the top line depends on the context. Approved by the user on 2026-11-17; implemented in zendo 0.89.0."
 ---
 
 # File tree: the branch of the context

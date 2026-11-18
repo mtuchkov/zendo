@@ -118,7 +118,7 @@ pub fn user_lines(s: &str, t: &Theme, w: usize) -> Vec<Line<'static>> {
     if let Some(first) = lines.first_mut().and_then(|l| l.spans.first_mut()) {
         first.style = Style::new().fg(t.acc).add_modifier(Modifier::BOLD);
     }
-    lines.into_iter().map(|l| tint(l, t.sel, w)).collect()
+    lines.into_iter().map(|l| tint_keep(l, t.sel, w)).collect()
 }
 
 /// A message of the agent: markdown on the panel. Inline code and code blocks take the color of

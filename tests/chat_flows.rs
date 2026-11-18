@@ -51,6 +51,19 @@ async fn one_thread_for_every_file_and_the_file_goes_once() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
+// CLAUDE-58: the header of the chat names the agent, and `ALL NOTES` for a question across all
+// notes; it does not name the open document.
+#[tokio::test]
+async fn the_chat_header_does_not_name_the_open_document() {
+    let root = repo("chat-header", &files());
+    let mut a = app(&root);
+    a.open_file(root.join(A));
+    a.open_panel();
+    let screen = draw(&mut a, 160, 30);
+    assert!(!screen.iter().any(|r| r.contains("THIS ")), "{screen:#?}");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
 // CLAUDE-15: the status bar names alt-enter for a new line: a terminal without the kitty keyboard protocol
 // sends shift-enter as enter. PANES-33: the badge of the chat pane is `CHAT`.
 #[tokio::test]
@@ -143,7 +156,7 @@ async fn tab_goes_to_the_transcript_to_select_copy_and_add() {
     key(&mut a, KeyCode::Char('h'));
     key(&mut a, KeyCode::Char('h'));
     key(&mut a, KeyCode::Char('a'));
-    assert!(a.composer.input().text().contains("⟦↩ what⟧"), "a chip of the chat: {}", a.composer.input().text());
+    assert!(a.composer.input().text().contains("⟦↩ what · 1 line⟧"), "a chip of the chat (CLAUDE-41): {}", a.composer.input().text());
     assert!(a.composer.chips().iter().any(|c| c.context.as_deref().is_some_and(|x| x.contains("> what"))));
     let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(160, 30)).unwrap();
     term.draw(|f| a.draw(f)).unwrap();
