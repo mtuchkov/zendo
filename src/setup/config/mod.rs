@@ -1,10 +1,12 @@
 //! User config in `~/.zendo/config.toml`, written by `zendo setup`; the user can edit it.
 
+mod keys_write;
 mod paths;
 mod profile;
 mod read;
 mod write;
 
+pub use keys_write::write_keys;
 pub use paths::*;
 pub use profile::*;
 pub use read::Problem;
@@ -99,13 +101,15 @@ const CONFIG_HEAD: &str = "# zendo config. `zendo setup` writes it, and you can 
 impl UserConfig {
     /// The keymap file of the user, when the config names one; `~/` is the home folder.
     pub fn keymap_file(&self) -> Result<Option<crate::keys::KeyConfig>, String> {
-        let Some(path) = self.keymap.as_deref() else { return Ok(None) };
-        let path = match path.strip_prefix("~/") {
-            Some(rest) => home().join(rest),
-            None => PathBuf::from(path),
-        };
+        let Some(path) = self.keymap_path() else { return Ok(None) };
         let text = std::fs::read_to_string(&path).map_err(|e| format!("keymap {}: {e}", path.display()))?;
         toml::from_str(&text).map(Some).map_err(|e| format!("keymap {}: {}", path.display(), e.to_string().lines().next().unwrap_or("")))
+    }
+
+    /// The path of the keymap file that the config names; `~/` is the home folder.
+    pub fn keymap_path(&self) -> Option<PathBuf> {
+        let path = self.keymap.as_deref()?;
+        Some(path.strip_prefix("~/").map_or_else(|| PathBuf::from(path), |rest| home().join(rest)))
     }
 
     /// The keymap of the user: the keymap file, then `[keys]`. Also what is wrong in them.
