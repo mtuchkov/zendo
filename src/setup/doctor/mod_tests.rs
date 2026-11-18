@@ -26,6 +26,18 @@ fn short_and_long_commits_match() {
 }
 
 #[test]
+fn the_update_check_asks_github_and_uses_the_cache_only_offline() {
+    let now = 100_000;
+    let cache = Some((now - 60, "a809f25".to_string()));
+    // CMD-4: each start asks GitHub; its answer wins over the cache.
+    assert_eq!(head_to_use(Some("865312a".into()), cache.clone(), now), Some("865312a".into()));
+    // No answer from GitHub: the cache, while it is fresh.
+    assert_eq!(head_to_use(None, cache, now), Some("a809f25".into()));
+    assert_eq!(head_to_use(None, Some((now - UPDATE_EVERY.as_secs(), "a809f25".into())), now), None);
+    assert_eq!(head_to_use(None, None, now), None);
+}
+
+#[test]
 fn claude_is_detected_by_package_name() {
     assert!(is_claude_agent("npx -y @agentclientprotocol/claude-agent-acp@0.106.0"));
     assert!(is_claude_agent("node /home/x/.local/share/zendo/agent/node_modules/@agentclientprotocol/claude-agent-acp/dist/index.js"));
