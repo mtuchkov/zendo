@@ -35,6 +35,8 @@ pub struct Frame {
     /// The font button of the theme picker, and the two answers of its question (FONT-14).
     pub(super) font_button: Option<Rect>,
     pub(super) font_answers: Option<(Rect, Rect)>,
+    /// The two answers of the question before the undo of an external change (UNDO-12).
+    pub(super) external_answers: Option<(Rect, Rect)>,
     /// The help or the find panel over the screen, for a click off it (PANES-47).
     pub(super) overlay: Option<Rect>,
     /// The option and `[OK]` of the tip menu (TIPS-3, TIPS-5).
@@ -154,6 +156,11 @@ impl Frame {
     /// The font button of the theme picker.
     pub fn font_button(&self) -> Option<Rect> {
         self.font_button
+    }
+
+    /// The two answers of the question before the undo of an external change: undo it, keep it.
+    pub fn external_answers(&self) -> Option<(Rect, Rect)> {
+        self.external_answers
     }
 
     /// The two answers of the font question: yes, no.

@@ -19,7 +19,9 @@ impl App {
         let api = crate::agent::api::Api::find(kind, name_model.clone(), &env, &crate::agent::api::on_path);
         let hints = crate::agent::api::Api::find(kind, user.hint_model(kind), &env, &crate::agent::api::on_path);
         crate::text::highlight::init(user.highlight.as_ref());
+        let logs = crate::setup::logs::Logs::load(&cfg.root);
         let mut app = Self {
+            logs,
             cfg,
             files,
             theme,

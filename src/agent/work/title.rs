@@ -4,7 +4,6 @@
 use super::*;
 use crate::agent::api::Question;
 use crate::docs::notes;
-use crate::text::editor::Editor;
 use chrono::DateTime;
 use std::path::{Path, PathBuf};
 
@@ -178,7 +177,8 @@ impl App {
         let shift = new.split('\n').count().saturating_sub(text.split('\n').count());
         let e = self.writer.editor_mut();
         let (row, col, anchor) = (e.row + shift, e.col, e.anchor.map(|(r, c)| (r + shift, c)));
-        *e = Editor::new(&new);
+        // The loglet stays: the title goes into the file with the next save (UNDO-16).
+        e.set_text(&new);
         e.row = row.min(e.lines.len() - 1);
         e.col = col.min(e.lines[e.row].chars().count());
         e.anchor = anchor;

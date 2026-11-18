@@ -14,6 +14,7 @@ impl App {
             let body = n.body.clone();
             let path = n.path.clone();
             self.writer.start_on(body.trim_end_matches('\n'), path);
+            self.resume_log();
             self.cursor_to_editor();
             self.reader.keep_screen_row();
         } else {
@@ -24,8 +25,17 @@ impl App {
         self.focus = Focus::Note;
     }
 
-    /// Save the editor. A new note gets its file name from the title.
+    /// Save the editor. A change of the file from outside comes first: the save does not write
+    /// over it (UNDO-6).
     pub fn save(&mut self) {
+        if let Some(body) = self.writer.path().and_then(|p| std::fs::read_to_string(p).ok()) {
+            self.writer.editor_mut().external(body.trim_end_matches('\n'));
+        }
+        self.write_note();
+    }
+
+    /// Write the text of the editor to its file. A new note gets its file name from the title.
+    pub(crate) fn write_note(&mut self) {
         let text = self.writer.editor_mut().text();
         let body = format!("{}\n", text.trim_end());
         let empty = text.trim().is_empty() || text.trim() == "#";
@@ -41,6 +51,9 @@ impl App {
         };
         match notes::save(&path, &body) {
             Ok(()) => {
+                // The loglet of the document takes what is on disk now (UNDO-16).
+                self.writer.editor_mut().flush(text.trim_end());
+                self.keep_log(&path);
                 self.writer.saved(path.clone());
                 self.files.saved(path);
                 self.mark_edited();

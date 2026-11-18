@@ -153,19 +153,17 @@ impl App {
     }
 
     /// The agent may have written a note. Pick up the change. The file of the last save is no
-    /// change: the editor keeps the empty lines at the end and the cursor (NOTE-3).
+    /// change: the editor keeps the empty lines at the end and the cursor (NOTE-3). A change in
+    /// write mode is one external operation of the loglet, merged with the text that is not saved
+    /// yet (UNDO-6, UNDO-13).
     pub fn reload_after_agent(&mut self) {
         self.reload();
-        if self.mode == Mode::Write && !self.writer.editor_mut().dirty
+        if self.mode == Mode::Write
             && let Some(p) = self.writer.path()
-                && let Ok(body) = std::fs::read_to_string(p)
-                && body.trim_end() != self.writer.editor().text().trim_end() {
-                    let (row, col) = (self.writer.editor_mut().row, self.writer.editor_mut().col);
-                    *self.writer.editor_mut() = Editor::new(body.trim_end_matches('\n'));
-                    self.writer.editor_mut().row = row.min(self.writer.editor_mut().lines.len() - 1);
-                    self.writer.editor_mut().col = col;
-                    self.writer.editor_mut().end();
-                }
+            && let Ok(body) = std::fs::read_to_string(p)
+        {
+            self.writer.editor_mut().external(body.trim_end_matches('\n'));
+        }
     }
 
     /// Put a file or an image into the chat input as a chip; it goes with the next prompt.
@@ -200,7 +198,8 @@ impl App {
         }
     }
 
-    pub fn on_paste(&mut self, s: String) {
+    /// A paste, before the commit of the changes of the editors (`undo.rs`).
+    pub(super) fn paste_in(&mut self, s: String) {
         if self.hold.is_some() {
             return;
         }

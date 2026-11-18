@@ -134,6 +134,20 @@ pub fn dir(root: &Path) -> PathBuf {
     root.join(".zendo")
 }
 
+/// The files of `.zendo` that git does not see: the state, the loglets (UNDO-4) and the log.
+const IGNORED: &str = "db.json\ndb.json.tmp\ndb.log.json\ndb.log.json.tmp\nstate.json\nagent.log\n";
+
+/// `.zendo/.gitignore` gets the files of IGNORED that it does not have; its other lines stay.
+pub(crate) fn ignore(d: &Path) {
+    let path = d.join(".gitignore");
+    let has = fs::read_to_string(&path).unwrap_or_default();
+    let missing: String = IGNORED.lines().filter(|f| !has.lines().any(|l| l == *f)).map(|f| format!("{f}\n")).collect();
+    if !missing.is_empty() {
+        let sep = if has.is_empty() || has.ends_with('\n') { "" } else { "\n" };
+        let _ = fs::write(&path, format!("{has}{sep}{missing}"));
+    }
+}
+
 impl State {
     pub fn wide(&self) -> bool {
         self.layout != "standard"
@@ -168,11 +182,7 @@ impl State {
         if fs::create_dir_all(&d).is_err() {
             return;
         }
-        let ignore = d.join(".gitignore");
-        let want = "db.json\ndb.json.tmp\nstate.json\nagent.log\n";
-        if fs::read_to_string(&ignore).map(|s| !s.contains("db.json")).unwrap_or(true) {
-            let _ = fs::write(&ignore, want);
-        }
+        ignore(&d);
         if let Ok(s) = serde_json::to_string_pretty(self) {
             let tmp = d.join("db.json.tmp");
             if fs::write(&tmp, s).is_ok() {
