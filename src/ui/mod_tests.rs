@@ -44,6 +44,21 @@ fn user_and_agent_messages_look_different() {
     assert_ne!(code.style.bg, Some(t.panel), "inline code on the panel color would not show");
 }
 
+// CLAUDE-24, CLAUDE-29: a chip in a message of the user keeps its own color on the block of the
+// message, and on the cursor line of the transcript.
+#[test]
+fn a_chip_in_a_user_message_keeps_its_color() {
+    let t = THEMES[0];
+    let user = user_lines("why ⟦IF a legal⟧ and ⟦↩ what⟧ now", &t, 40);
+    let bg_of = |lines: &[Line<'static>], word: &str| lines.iter().flat_map(|l| l.spans.iter()).find(|s| s.content.contains(word)).and_then(|s| s.style.bg);
+    assert_eq!(bg_of(&user, "legal"), Some(t.acc2), "{user:?}");
+    assert_eq!(bg_of(&user, "what"), Some(t.add), "a chip of the chat");
+    assert_eq!(bg_of(&user, "why"), Some(t.sel), "the text of the message");
+    let cursor: Vec<Line<'static>> = user.into_iter().map(|l| tint_keep(l, cursor_line(&t), 40)).collect();
+    assert_eq!(bg_of(&cursor, "legal"), Some(t.acc2), "the cursor line");
+    assert_eq!(bg_of(&cursor, "why"), Some(cursor_line(&t)));
+}
+
 // CLAUDE-30: a line that the user adds in the chat input stays a line of its own in the transcript.
 #[test]
 fn a_user_message_keeps_its_lines() {
