@@ -17,7 +17,7 @@ fn fonts(root: &Path, with: &[&str]) -> Vec<PathBuf> {
     vec![d]
 }
 
-const ALL: [&str; 7] = ["JetBrainsMono", "AtkinsonHyperlegibleMono", "IBMPlexMono", "Iosevka", "IosevkaTerm", "FiraCode", "CascadiaCode"];
+const ALL: [&str; 8] = ["JetBrainsMono", "AtkinsonHyperlegibleMono", "IBMPlexMono", "Iosevka", "IosevkaTerm", "FiraCode", "CascadiaCode", "iAWriterMonoS"];
 
 /// The app on a repository with a note, and the font folder of the test.
 fn app_with(name: &str, with: &[&str]) -> (PathBuf, App) {
@@ -41,7 +41,7 @@ fn users(a: &App) -> Vec<String> {
 // agent, and the button to change the font when all fonts are on the machine.
 #[test]
 fn the_theme_picker_shows_the_font_tip() {
-    let (root, mut a) = app_with("fonts-tip", &ALL[..6]);
+    let (root, mut a) = app_with("fonts-tip", &ALL[..7]);
     let s = picker(&mut a);
     assert!(s.contains("THEME") && s.contains("zendo setup fonts"), "{s}");
     assert!(!s.contains("ask the agent"), "no agent, no button: {s}");
@@ -80,7 +80,7 @@ async fn the_agent_gets_the_font_request_after_yes() {
     assert_eq!(a.mode, Mode::Read, "the picker closes");
     let sent = users(&a);
     assert_eq!(sent.len(), 1, "{sent:?}");
-    assert!(sent[0].contains("zendo setup fonts") && sent[0].contains("only after I agree") && sent[0].contains("Iosevka Term"), "{}", sent[0]);
+    assert!(sent[0].contains("zendo setup fonts") && sent[0].contains("only after I agree") && sent[0].contains("iA Writer Mono"), "{}", sent[0]);
     until(&mut a, |a| a.threads.get(CHAT_KEY).is_some_and(|t| t.busy.is_none())).await;
     let _ = std::fs::remove_dir_all(&root);
 }

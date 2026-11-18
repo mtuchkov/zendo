@@ -7,12 +7,12 @@ fn folder(name: &str) -> PathBuf {
     d
 }
 
-// FONT-1, FONT-7, FONT-8, FONT-11: the seven fonts, the four styles of each, Regular and Bold of
+// FONT-1, FONT-7, FONT-8, FONT-11: the eight fonts, the four styles of each, Regular and Bold of
 // Fira Code, a license for each, all pinned.
 #[test]
-fn the_catalog_has_the_seven_fonts_and_their_styles() {
+fn the_catalog_has_the_eight_fonts_and_their_styles() {
     let names: Vec<&str> = FONTS.iter().map(|f| f.name).collect();
-    assert_eq!(names, ["JetBrains Mono", "Atkinson Hyperlegible Mono", "IBM Plex Mono", "Iosevka", "Iosevka Term", "Fira Code", "Cascadia Code"]);
+    assert_eq!(names, ["JetBrains Mono", "Atkinson Hyperlegible Mono", "IBM Plex Mono", "Iosevka", "Iosevka Term", "Fira Code", "Cascadia Code", "iA Writer Mono"]);
     for f in FONTS {
         let files: Vec<&str> = f.parts.iter().map(|p| p.file).collect();
         let styles: &[&str] = if f.prefix == "FiraCode" { &["Regular", "Bold"] } else { &["Regular", "Bold", "Italic", "BoldItalic"] };
@@ -39,7 +39,7 @@ fn a_font_is_missing_without_its_regular_style() {
     std::fs::write(d.join("FiraCode-Bold.ttf"), b"x").unwrap();
     std::fs::write(d.join("cascadiacode-regular.otf"), b"x").unwrap();
     let missing: Vec<&str> = super::missing(FONTS, &[d.clone(), d.join("no such folder")]).iter().map(|f| f.name).collect();
-    assert_eq!(missing, ["Atkinson Hyperlegible Mono", "IBM Plex Mono", "Iosevka", "Iosevka Term", "Fira Code"]);
+    assert_eq!(missing, ["Atkinson Hyperlegible Mono", "IBM Plex Mono", "Iosevka", "Iosevka Term", "Fira Code", "iA Writer Mono"]);
     let _ = std::fs::remove_dir_all(&d);
 }
 

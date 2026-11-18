@@ -4,20 +4,20 @@ approved: "2026-11-18"
 date: "2026-11-18"
 sources:
   - "../../zendo/fonts.md"
-  - "The requests of the user on 2026-11-17 and 2026-11-18: ship six recommended fonts (seven with Iosevka Term); a tip in the theme picker to run `zendo setup fonts`; ask the user before the agent installs them; four styles; Iosevka and Iosevka Term; `zendo setup` names the fonts only when the list changed"
+  - "The requests of the user on 2026-11-17 and 2026-11-18: ship six recommended fonts (seven with Iosevka Term); a tip in the theme picker to run `zendo setup fonts`; ask the user before the agent installs them; four styles; Iosevka and Iosevka Term; `zendo setup` names the fonts only when the list changed; iA Writer Mono, added on 2026-11-18"
 ---
 
 # 0012 Download the recommended fonts from their releases
 
 ## Context
 
-zendo recommends seven monospace fonts (FONT-7). zendo is a terminal program, so it cannot draw a
+zendo recommends eight monospace fonts (FONT-7). zendo is a terminal program, so it cannot draw a
 font itself: the fonts must be in the font folder of the user, and the terminal must use one of
 them. The installer builds zendo from the repository with `cargo install`, so each file in the
 repository goes to each machine and stays in the history of git. zendo must start and work without
 the network (FONT-2).
 
-All seven fonts use the SIL Open Font License 1.1. A change of a file, such as a subset, needs a new
+All eight fonts use the SIL Open Font License 1.1. A change of a file, such as a subset, needs a new
 font name where the font has a reserved font name.
 
 ## Options
@@ -58,6 +58,7 @@ Notes of the first implementation (zendo 0.96.0):
   it does not download the whole archives.
 - The downloads go through `curl`: it follows the redirects of GitHub and uses the proxy and the
   certificates of the system, as the installer does.
-- Atkinson Hyperlegible Mono has no releases. Its files come from a pinned commit of its project.
+- Atkinson Hyperlegible Mono and iA Writer Mono have no releases. Their files come from a pinned
+  commit of their projects.
 - The files go flat into the font folder, with the license as `<Font>-LICENSE.*`: macOS and
   fontconfig both read such files.

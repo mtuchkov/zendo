@@ -1,5 +1,6 @@
 //! The recommended fonts at pinned versions, with the SHA-256 of each file (FONT-1, FONT-3, FONT-7,
-//! FONT-8, FONT-11). Atkinson Hyperlegible Mono has no releases: its files come from a pinned commit.
+//! FONT-8, FONT-11). Atkinson Hyperlegible Mono and iA Writer Mono have no releases: their files
+//! come from a pinned commit.
 //! A new version of a font is a new pin here, with the new checksums.
 use super::{Font, Origin, Part};
 
@@ -63,6 +64,14 @@ const CASCADIA: &[Part] = &[
     Part { origin: Origin::Raw("https://raw.githubusercontent.com/microsoft/cascadia-code/v2407.24/LICENSE"), file: "CascadiaCode-LICENSE.txt", sha256: "51882cd3cdba4e16f220f44ddb08a635c38c44ea6e0975db2574f4be6f958238" },
 ];
 
+const IA_WRITER: &[Part] = &[
+    Part { origin: Origin::Raw("https://raw.githubusercontent.com/iaolo/iA-Fonts/c6588670c71e9ac628acc27b72cde4bf12726b7f/iA%20Writer%20Mono/Static/iAWriterMonoS-Regular.ttf"), file: "iAWriterMonoS-Regular.ttf", sha256: "929605302a57250e712908cb5f6e1ce80c7d0accd5fd2555345f29a5e8d4e30b" },
+    Part { origin: Origin::Raw("https://raw.githubusercontent.com/iaolo/iA-Fonts/c6588670c71e9ac628acc27b72cde4bf12726b7f/iA%20Writer%20Mono/Static/iAWriterMonoS-Bold.ttf"), file: "iAWriterMonoS-Bold.ttf", sha256: "76aa5b5b4f9091a9c686a2a6fe5ff3495bb791994d7079857e5b24ae98063743" },
+    Part { origin: Origin::Raw("https://raw.githubusercontent.com/iaolo/iA-Fonts/c6588670c71e9ac628acc27b72cde4bf12726b7f/iA%20Writer%20Mono/Static/iAWriterMonoS-Italic.ttf"), file: "iAWriterMonoS-Italic.ttf", sha256: "c7e7e36e8167bf50f27e46c9cab447d04cc570bd388b998044e2e29f4cebc216" },
+    Part { origin: Origin::Raw("https://raw.githubusercontent.com/iaolo/iA-Fonts/c6588670c71e9ac628acc27b72cde4bf12726b7f/iA%20Writer%20Mono/Static/iAWriterMonoS-BoldItalic.ttf"), file: "iAWriterMonoS-BoldItalic.ttf", sha256: "b0cf9571234528b0896aacf97eb3ec45712da40b8410c799fa43ea123bc19e35" },
+    Part { origin: Origin::Raw("https://raw.githubusercontent.com/iaolo/iA-Fonts/c6588670c71e9ac628acc27b72cde4bf12726b7f/iA%20Writer%20Mono/LICENSE.md"), file: "iAWriterMonoS-LICENSE.md", sha256: "2eb84d6d03a9af6e99816f82f50a77c26e7ff6681293f4619cd33a392a8c13b6" },
+];
+
 /// The recommended fonts, in the order of the tip and of the request to the agent.
 pub const FONTS: &[Font] = &[
     Font { name: "JetBrains Mono", prefix: "JetBrainsMono", parts: JETBRAINS },
@@ -72,4 +81,5 @@ pub const FONTS: &[Font] = &[
     Font { name: "Iosevka Term", prefix: "IosevkaTerm", parts: IOSEVKA_TERM },
     Font { name: "Fira Code", prefix: "FiraCode", parts: FIRA },
     Font { name: "Cascadia Code", prefix: "CascadiaCode", parts: CASCADIA },
+    Font { name: "iA Writer Mono", prefix: "iAWriterMonoS", parts: IA_WRITER },
 ];
