@@ -1,12 +1,12 @@
 ---
 status: "draft"
-revision: "4"
+revision: "5"
 date: "2026-11-14"
 parent: "zendo.md"
 prev: "work.md"
 next: "threads.md"
 level: "the connection to Claude: what zendo sends, what Claude may do, the agents, failures"
-note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. Revision 4 moved the threads to threads.md."
+note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. Revision 4 moved the threads to threads.md. Revision 5: CLAUDE-26 names the choice of the open document (chat-chips.md), asked by the user on 2026-11-17; not reviewed yet."
 ---
 
 # Claude
@@ -71,7 +71,7 @@ Claude Code sessions that run in the background while the user works in zendo ar
 | --------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | CLAUDE-4  | Unwanted   | If the agent stops while zendo runs, then the system shall show the reason in the chat and start the agent with the next question. | Design      |
 | CLAUDE-9  | Event      | When the first question of a thread goes to Claude, the system shall send `.zendo/prompt.md`, if it exists. | Design |
-| CLAUDE-26 | Event      | When a question goes to Claude and the open file did not go with one of the last 20 questions, the system shall attach the file and send the project rules for it. | User, 2026-11-12 |
+| CLAUDE-26 | Event      | When a question goes to Claude and the open file did not go with one of the last 20 questions, the system shall attach the file and send the project rules for it, unless the user unselected `open document` (CLAUDE-55). | User, 2026-11-12; User, 2026-11-17 |
 | CLAUDE-13 | Ubiquitous | The system shall work with Claude and with Codex through their pinned ACP adapters, and with any ACP agent command.         | User, 2026-11-11 |
 | CLAUDE-14 | Unwanted   | If the agent cannot do a feature, then the system shall turn off only the keys and hints of that feature.                   | User, 2026-11-11 |
 | CLAUDE-11 | Event      | When the user presses `esc` during an answer, the system shall stop the answer.                                              | Design           |

@@ -81,7 +81,7 @@ fn draw_transcript(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, body
         .take(h)
         .map(|(i, l)| match tr.marked(table.as_ref(), i) {
             Some((a, b)) if on => paint(l, a, b, sel),
-            _ if on && i == row => tint(l, cursor_line(t), w),
+            _ if on && i == row => tint_keep(l, cursor_line(t), w),
             _ => l,
         })
         .collect();

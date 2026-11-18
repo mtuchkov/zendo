@@ -139,6 +139,27 @@ async fn at_adds_a_file_chip_that_moves_and_goes_as_one() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
+// CLAUDE-42, CLAUDE-41: a paste of many lines is a chip that starts with the text and says its
+// lines; it brings the text as context. A short paste is text.
+#[tokio::test]
+async fn a_pasted_text_is_a_chip_that_starts_with_its_text() {
+    let root = repo("flow-paste", &files());
+    let mut a = app(&root);
+    a.open_panel();
+    a.focus = Focus::Claude;
+    typ(&mut a, "why");
+    a.on_paste("fn main() {\n    panic!(\"no\");\n}\n".into());
+    assert_eq!(a.composer.input().text(), "why ⟦fn main() { pan… · 3 lines⟧ ");
+    let ctx = a.composer.chips()[0].context.clone().unwrap_or_default();
+    assert!(ctx.contains("⟦fn main() { pan… · 3 lines⟧") && ctx.contains("    panic!(\"no\");"), "{ctx}");
+    key(&mut a, KeyCode::Backspace);
+    key(&mut a, KeyCode::Backspace);
+    assert!(a.composer.chips().is_empty(), "backspace removes the chip as one unit");
+    a.on_paste("short".into());
+    assert_eq!(a.composer.input().text(), "why short");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
 // NOTE-25, NOTE-27: ctrl-shift-s shows the arrow and puts the chip of the place in the input; the end of the answer removes it.
 #[tokio::test]
 async fn say_marks_the_place_until_the_answer_ends() {
