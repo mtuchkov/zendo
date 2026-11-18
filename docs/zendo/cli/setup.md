@@ -22,6 +22,9 @@ writes nothing in the repository.
 **Then it checks.** After the writes, setup runs the checks of [Doctor](doctor.md). Outside a
 repository it does not report the repository checks as failures.
 
+**Then the fonts.** When the list of recommended fonts changed since the last time, setup names
+`zendo setup fonts` at its end (FONT-18, see [Font tip](../fonts-tip.md)).
+
 **Then the keys.** At its end, setup offers the [keymap wizard](keymap-wizard.md) to a person in a
 terminal. When the installer or an agent runs setup, it asks nothing and ends with an instruction
 for the agent to ask the user to run `zendo doctor --keys` (WIZARD-15, WIZARD-16).

@@ -1,5 +1,6 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-18"
 date: "2026-11-18"
 sources:
   - "../../zendo/fonts.md"
@@ -49,3 +50,14 @@ terminal with the user (FONT-5, FONT-6, FONT-15).
   needs.
 - A new release of a font changes nothing for the users until zendo updates its pin.
 - Tests use local copies of the archives, so `cargo test` runs without the network.
+
+Notes of the first implementation (zendo 0.96.0):
+
+- The release archives of Iosevka and Cascadia Code are 150 to 180 MB. The command reads the
+  central directory of each archive and then only the members that it needs, with HTTP ranges, so
+  it does not download the whole archives.
+- The downloads go through `curl`: it follows the redirects of GitHub and uses the proxy and the
+  certificates of the system, as the installer does.
+- Atkinson Hyperlegible Mono has no releases. Its files come from a pinned commit of its project.
+- The files go flat into the font folder, with the license as `<Font>-LICENSE.*`: macOS and
+  fontconfig both read such files.

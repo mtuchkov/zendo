@@ -137,8 +137,12 @@ impl App {
     }
 
     pub(crate) fn key_theme(&mut self, k: KeyEvent) {
+        if self.font_tip.asking {
+            return self.key_font_question(k);
+        }
         let n = THEMES.len();
         match k.code {
+            KeyCode::Char('a') => self.press_font_button(),
             KeyCode::Char('j') | KeyCode::Down => self.theme = (self.theme + 1) % n,
             KeyCode::Char('k') | KeyCode::Up => self.theme = (self.theme + n - 1) % n,
             KeyCode::Enter => {

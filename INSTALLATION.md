@@ -149,6 +149,24 @@ width = 90
 `alt-=` and `alt--` change the width for one repository. The font size belongs to the terminal:
 most terminals change it with `ctrl-+` and `ctrl--`.
 
+## Fonts
+
+The terminal draws the font, not zendo. zendo recommends seven monospace fonts: JetBrains Mono,
+Atkinson Hyperlegible Mono, IBM Plex Mono, Iosevka, Iosevka Term, Fira Code, and Cascadia Code. Get
+them with one command:
+
+```sh
+zendo setup fonts
+```
+
+It downloads Regular, Bold, Italic and Bold Italic of each font from the releases of its project,
+checks each file against a pinned checksum, and installs the files with their licenses in your font
+folder (`~/Library/Fonts` on macOS, `~/.local/share/fonts` on Linux). It needs no `sudo`, and a
+second run changes nothing.
+
+Then set one of the fonts in your terminal. In zendo, `t` opens the theme picker: its font button
+asks the agent to find the font setting of your terminal and to change it after you agree.
+
 ## Sound
 
 When an answer of the agent, a turn of Claude Code, or a command in a terminal ends while you are

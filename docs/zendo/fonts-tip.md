@@ -1,11 +1,12 @@
 ---
-status: "draft"
-revision: "1"
+status: "implemented"
+approved: "2026-11-18"
+revision: "2"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "fonts.md"
 level: "how the user finds the recommended fonts, and how the agent sets the font of the terminal"
-note: "Agent draft of the decisions of the user on 2026-11-18, split from fonts.md revision 2. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft of the decisions of the user on 2026-11-18, split from fonts.md revision 2. Approved by the user on 2026-11-18. Revision 2: implemented in zendo 0.96.0; the test names as in the code."
 ---
 
 # Font tip
@@ -77,8 +78,5 @@ FONT-15)
 | FONT-20 | Ubiquitous | The tip shall tell the key that opens the theme picker, from the keymap of the user, and that the font button there changes the font of the terminal with the agent. | User, 2026-11-18 |
 | FONT-21 | State    | While all recommended fonts are on the machine and an agent is connected, the theme picker shall show the button `[ change the font · a ]`. | Design |
 
-## Open points
-
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| Where zendo keeps the list that `zendo setup` named the last time. | FONT-18 | The developer, in the code |
+Tests that verify detailed requirements: `a_click_on_the_font_button_asks_first` (FONT-14, FONT-15),
+`the_tip_names_the_key_of_the_theme_picker` (FONT-20).

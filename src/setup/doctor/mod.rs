@@ -4,6 +4,7 @@
 mod agent_checks;
 mod checks;
 mod fix;
+mod fonts;
 mod notes;
 mod preflight;
 mod project;
@@ -13,6 +14,7 @@ mod upgrade;
 use agent_checks::*;
 pub use checks::*;
 pub use fix::*;
+pub use fonts::setup_fonts;
 pub use notes::*;
 pub use preflight::*;
 pub use project::*;

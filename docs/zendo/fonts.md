@@ -1,12 +1,13 @@
 ---
-status: "draft"
-revision: "2"
+status: "implemented"
+approved: "2026-11-18"
+revision: "3"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "usage.md"
 next: "fonts-tip.md"
 level: "which fonts zendo recommends, and what `zendo setup fonts` does on the machine"
-note: "Agent draft of the decisions of the user on 2026-11-17 and 2026-11-18. Revision 2: the answers of the user on 2026-11-18 (Iosevka and Iosevka Term, Fira Code without italic); the theme picker tip moved to fonts-tip.md. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft of the decisions of the user on 2026-11-17 and 2026-11-18. Revision 2: the answers of the user on 2026-11-18 (Iosevka and Iosevka Term, Fira Code without italic); the theme picker tip moved to fonts-tip.md. Approved by the user on 2026-11-18. Revision 3: implemented in zendo 0.96.0; the test names as in the code."
 ---
 
 # Fonts
@@ -82,8 +83,7 @@ FONT-9, FONT-11, FONT-20)
 | FONT-12 | Event      | When the system installs a font on Linux, the system shall refresh the font cache of the user. | Design |
 | FONT-17 | Ubiquitous | `zendo setup fonts` shall not wait for input. | Design |
 
-## Open points
-
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| The pinned versions and checksums of the releases. | FONT-1, FONT-3 | The developer, in the code |
+Tests that verify detailed requirements: `a_failed_download_names_the_failure_and_installs_the_others`
+(FONT-10), `a_font_on_the_machine_is_not_installed_again` (FONT-9),
+`the_catalog_has_the_seven_fonts_and_their_styles` (FONT-7, FONT-8, FONT-11),
+`a_zip_gives_a_stored_and_a_deflated_member` (FONT-1).
