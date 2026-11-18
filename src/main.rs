@@ -217,7 +217,7 @@ async fn open_app(cfg: Config) -> Result<App> {
     // The notes repo: this folder, its location file, and the sync in the background.
     let syncer = match &cfg.notes_repo {
         Some(n) => match n.prepare(&cfg.root) {
-            Ok(dir) => Some(zendo::setup::sync::Syncer::start(n.path.clone(), dir, &n.machine, Duration::from_secs(n.sync_seconds.max(1)))),
+            Ok(dir) => Some(zendo::setup::sync::Syncer::of_user(n.path.clone(), dir, &n.machine, Duration::from_secs(n.sync_seconds.max(1)))),
             Err(e) => {
                 eprintln!("zendo: cannot use the notes repo {}: {e}", n.path.display());
                 std::process::exit(1);
