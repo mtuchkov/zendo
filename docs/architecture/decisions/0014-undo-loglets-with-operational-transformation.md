@@ -1,5 +1,6 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-18"
 date: "2026-11-18"
 sources:
   - "The request of the user, 2026-11-18: \"support OT in every editor to support ctrl+z undo and ctrl+y redo; keep operational transformation state in loglets; keep loglets per document in zendo db.log.json; keep loglets of text editors and chat just in memory; after undo and any new action except redo trim the tail\""
@@ -82,4 +83,4 @@ Accepted: operations from a diff, kept in loglets, with operational transformati
 
 ## Decision record
 
-Proposed by the agent on 2026-11-18 from the request of the user; not reviewed by the user.
+Proposed by the agent on 2026-11-18 from the requests of the user, revised with the user in the chat (external changes as operations with a question; only saved text in the loglet of a document); approved by the user on 2026-11-18 in the chat.

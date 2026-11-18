@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-18"
 revision: "3"
 date: "2026-11-18"
 parent: "text-input.md"
 prev: "date-selector.md"
 next: "undo-documents.md"
 level: "undo and redo in every input: the keys, the loglets, where zendo keeps them"
-note: "Written by the agent from the requests of the user on 2026-11-18; revision 2 moved the changes from outside to their own document; revision 3 moved all of the documents to undo-documents.md. Not reviewed by the user."
+note: "Written by the agent from the requests of the user on 2026-11-18; revision 2 moved the changes from outside to their own document; revision 3 moved all of the documents to undo-documents.md. Approved by the user on 2026-11-18. The code implements the requirements; the acceptance tests in tests/undo.rs pass."
 ---
 
 # Undo and redo
@@ -14,7 +15,8 @@ note: "Written by the agent from the requests of the user on 2026-11-18; revisio
 Undo and redo are keys of every input of [Text input](text-input.md): the note in write mode, the
 new note in the float, the chat input, and each text field.
 
-**Keys.** `ctrl-z` undoes the last change. `ctrl-y` does the change again. The keys are `undo` and
+**Keys.** `ctrl-z` undoes the last change. `ctrl-y`, and only `ctrl-y`, does the change again
+(User, 2026-11-18). The keys are `undo` and
 `redo` in `[write]`, `[chat]` and `[textbox]` of the keymap. Undo and redo move the cursor to the
 end of the changed text and clear the selection.
 
@@ -84,5 +86,4 @@ Tests that verify detailed requirements: the tests of `src/text/ot_tests.rs`,
 
 | Open question | Affects | Answered by |
 | ------------- | ------- | ----------- |
-| Does `ctrl-shift-z` also redo? A terminal without the kitty keyboard protocol sends it as `ctrl-z`. | UNDO-1, UNDO-10 | User |
 | Does a pause in typing end a group, as in many editors? | UNDO-7 | User |
