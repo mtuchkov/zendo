@@ -5,6 +5,7 @@ revision: "1"
 date: "2026-11-18"
 parent: "text-input.md"
 prev: "text-formatting.md"
+next: "undo.md"
 level: "the date selector of the rich editors: how it starts, its keys, how it ends"
 note: "Written from the requests of the user on 2026-11-17 and 2026-11-18; approved by the user on 2026-11-18. The code implements the requirements; the acceptance tests in tests/text_input.rs pass."
 ---

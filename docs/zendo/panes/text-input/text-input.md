@@ -9,6 +9,8 @@ next: "../key-change.md"
 children:
   - "text-formatting.md"
   - "date-selector.md"
+  - "undo.md"
+  - "undo-documents.md"
 level: "the kinds of text input and the keys that every input has"
 note: "Written from the requests of the user on 2026-11-17 and 2026-11-18; approved by the user on 2026-11-18. The code implements the requirements; the acceptance tests in tests/text_input.rs pass."
 ---
@@ -28,7 +30,7 @@ its own section, `[write]` or `[chat]`.
 
 A rich editor also formats markdown as the user types: marks, lists, quotes, tasks and code blocks
 are in [Formatting](text-formatting.md); `//` and the date selector are in
-[Date selector](date-selector.md).
+[Date selector](date-selector.md). Every input has undo and redo: see [Undo and redo](undo.md).
 
 ## Architecturally significant requirements
 

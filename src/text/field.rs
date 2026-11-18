@@ -104,14 +104,18 @@ impl Field {
     /// Put the text in at the cursor, in place of the selection; a new line becomes a space (TEXT-3).
     pub fn paste(&mut self, text: &str) {
         self.e.type_str(&one_line(text));
+        self.e.commit();
     }
 
     /// A key: `act` is its action in `[textbox]` of the keymap, when it has one.
+    /// The field keeps its changes in a loglet in memory: `undo` and `redo` (UNDO-1, UNDO-5).
     pub fn key(&mut self, act: Option<&str>, k: &KeyEvent) -> Typed {
-        match act.map(|a| self.action(a)) {
+        let typed = match act.map(|a| self.action(a)) {
             Some(Typed::Not) | None => self.plain(k),
             Some(t) => t,
-        }
+        };
+        self.e.commit();
+        typed
     }
 
     fn action(&mut self, a: &str) -> Typed {
@@ -124,7 +128,9 @@ impl Field {
             }),
             "paste" => Typed::Paste,
             "delete_word" => self.changed(|e| e.delete_selection_or(Editor::delete_word_back)),
-            "clear" => self.changed(|e| *e = Editor::new("")),
+            "clear" => self.changed(Editor::clear_text),
+            "undo" => changed_if(self.e.undo()),
+            "redo" => changed_if(self.e.redo()),
             _ if self.e.line_move(a) => Typed::Moved,
             _ => Typed::Not,
         }
@@ -151,6 +157,11 @@ impl Field {
         f(&mut self.e);
         Typed::Changed
     }
+}
+
+/// `Changed` when the text changed, else `Moved`.
+fn changed_if(changed: bool) -> Typed {
+    if changed { Typed::Changed } else { Typed::Moved }
 }
 
 /// The text in one line: the new lines at the end go, the others become spaces.
