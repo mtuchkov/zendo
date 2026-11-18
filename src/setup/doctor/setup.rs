@@ -55,6 +55,8 @@ pub async fn setup(paths: &Paths, agent_flag: Option<String>, notes_repo: Option
         let n = cfg.notes.clone().expect("set above");
         moved = move_notes(paths, None, &n, &mut o).await;
     }
+    // The recommended fonts, when their list is new to this machine (FONT-18).
+    fonts::fonts_note(&o);
     println!();
     if ok {
         println!("  Ready. Run `zendo` in a repository.");
@@ -206,5 +208,14 @@ pub(super) fn notes_repo_check(n: &config::NotesRepo, o: &mut Out) {
     if n.path.join(".git/rebase-merge").exists() || n.path.join(".git/rebase-apply").exists() {
         o.fail("notes sync", "a rebase is in progress in the notes repo");
         o.hint(format!("Finish it in {}: git status, then git rebase --continue or --abort.", n.path.display()));
+    }
+    // NOTESREP-18: who syncs now, and an index.lock that a killed git left.
+    let lock = crate::setup::sync::lock_path();
+    if let Some(who) = crate::setup::sync::holder(&lock) {
+        o.ok("notes sync", format!("syncing now: {who}"));
+    }
+    if crate::setup::sync::stale_index_lock(&n.path, &lock) {
+        o.fail("notes sync", ".git/index.lock is older than a minute and no zendo syncs: every commit fails");
+        o.hint(format!("Check that no git runs in {}, then remove {}.", n.path.display(), n.path.join(".git/index.lock").display()));
     }
 }

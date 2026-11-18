@@ -18,17 +18,18 @@ pub(crate) fn kind_verb(kind: &str) -> &str {
 /// The shell blocks of a thread: their first row, the row after them, their command.
 pub(crate) type Blocks = Vec<(usize, usize, String)>;
 
-pub(crate) fn panel_lines(app: &App, t: &Theme, w: usize) -> (Vec<Line<'static>>, Blocks) {
+pub(crate) fn panel_lines(app: &App, t: &Theme, w: usize) -> (Vec<Line<'static>>, Blocks, super::steps::Steps) {
     let key = app.key();
     let dim = Style::new().fg(t.dim);
     let Some(th) = app.threads.get(&key).filter(|th| !th.items.is_empty() || th.busy.is_some()) else {
         let mut out = empty_thread(app, &app.scope(), dim, w);
         out.extend(cli_line(app, t));
-        return (out, Vec::new());
+        return (out, Vec::new(), Vec::new());
     };
     let mut out: Vec<Line<'static>> = Vec::new();
     let mut blocks = Blocks::new();
-    for it in &th.items {
+    let mut steps = super::steps::Steps::new();
+    for (i, it) in th.items.iter().enumerate() {
         match it {
             Item::User(s) => out.extend(user_lines(question_of(s), t, w)),
             Item::Agent(s) => {
@@ -37,23 +38,26 @@ pub(crate) fn panel_lines(app: &App, t: &Theme, w: usize) -> (Vec<Line<'static>>
                 blocks.extend(b.into_iter().map(|(a, z, c)| (a + base, z + base, c)));
                 out.extend(lines);
             }
-            Item::Tools { uses, started, took } => out.extend(tool_lines(app, uses, took.unwrap_or_else(|| started.elapsed()), dim, w)),
+            Item::Tools { uses, started, took } => {
+                let (lines, rows) = super::steps::tool_lines(app, uses, took.unwrap_or_else(|| started.elapsed()), dim, w);
+                steps.extend(rows.into_iter().map(|(r, u)| (r + out.len(), i, u)));
+                out.extend(lines);
+            }
             Item::Blocked(s) => out.extend(markdown::wrap(vec![Span::styled(format!("blocked a shell command: {s}"), dim)], w, "", "")),
             Item::Info(s) => out.push(Line::styled(s.clone(), dim.add_modifier(Modifier::ITALIC))),
             Item::Error(s) => out.extend(markdown::wrap(vec![Span::styled(s.clone(), Style::new().fg(t.del))], w, "", "")),
+            Item::Question(a) => out.extend(super::questions::lines(a, t, w)),
         }
         out.push(Line::raw(""));
     }
     if let Some(start) = th.busy {
-        let e = start.elapsed();
-        let word = if th.thinking { "thinking" } else { "working" };
-        out.push(Line::styled(format!("{word} {} {} s", SPIN[(e.as_millis() / 300) as usize % 4], e.as_secs()), dim));
+        out.push(Line::styled(super::steps::status_line(th, start), dim));
     }
     for q in &th.queue {
         out.extend(markdown::wrap(vec![Span::styled(format!("queued › {}", question_of(&q.question)), dim)], w, "", "         "));
     }
     out.extend(cli_line(app, t));
-    (out, blocks)
+    (out, blocks, steps)
 }
 
 /// The play button of a shell block: green, at the right end of its first row (TERM-8).
@@ -118,7 +122,7 @@ pub fn user_lines(s: &str, t: &Theme, w: usize) -> Vec<Line<'static>> {
     if let Some(first) = lines.first_mut().and_then(|l| l.spans.first_mut()) {
         first.style = Style::new().fg(t.acc).add_modifier(Modifier::BOLD);
     }
-    lines.into_iter().map(|l| tint(l, t.sel, w)).collect()
+    lines.into_iter().map(|l| tint_keep(l, t.sel, w)).collect()
 }
 
 /// A message of the agent: markdown on the panel. Inline code and code blocks take the color of
@@ -143,27 +147,6 @@ fn empty_thread(app: &App, key: &str, dim: Style, w: usize) -> Vec<Line<'static>
         "Shell commands are blocked.".to_string(),
     ] {
         out.extend(markdown::wrap(vec![Span::styled(s, dim)], w, "", ""));
-    }
-    out
-}
-
-/// One line for a run of tool uses: how many of each kind, and how long; with details, each title.
-fn tool_lines(app: &App, uses: &[crate::app::ToolUse], took: std::time::Duration, dim: Style, w: usize) -> Vec<Line<'static>> {
-    let mut counts: Vec<(String, usize)> = Vec::new();
-    for u in uses {
-        let v = kind_verb(&u.kind).to_string();
-        match counts.iter_mut().find(|(k, _)| *k == v) {
-            Some((_, n)) => *n += 1,
-            None => counts.push((v, 1)),
-        }
-    }
-    let mut s: Vec<String> = counts.iter().map(|(k, n)| if *n == 1 { k.clone() } else { format!("{k} {n}") }).collect();
-    s.push(format!("{:.0} s", took.as_secs_f32()));
-    let mut out = vec![Line::styled(s.join(" · "), dim)];
-    if app.threads.details() {
-        for u in uses {
-            out.extend(markdown::wrap(vec![Span::styled(u.title.clone(), dim)], w, "  · ", "    "));
-        }
     }
     out
 }
@@ -202,4 +185,36 @@ pub fn chip_spans_at(text: &str, offset: usize, base: Style, chip: [Style; 2], h
         out.push(Span::styled(rest, base));
     }
     out
+}
+
+/// The thread, from the bottom up. While the transcript has the keys, the view follows its cursor,
+/// and the cursor row and the selection show.
+pub(super) fn draw_transcript(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, body: Rect, lines: Vec<Line<'static>>, w: usize) {
+    let h = body.height as usize;
+    app.threads.transcript_mut().show_rows(lines.iter().map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect()).collect());
+    let on = app.threads.transcript().on() && app.focus == Focus::Claude;
+    let start = app.threads.fit(lines.len(), h, on);
+    let tr = app.threads.transcript();
+    let (row, col) = tr.cursor();
+    let sel = delta::mix(t.bg, t.acc2, 0.42);
+    let table = if on { tr.table() } else { None };
+    let view: Vec<Line> = lines
+        .into_iter()
+        .enumerate()
+        .skip(start)
+        .take(h)
+        .map(|(i, l)| match tr.marked(table.as_ref(), i) {
+            Some((a, b)) if on => paint(l, a, b, sel),
+            _ if on && i == row => tint_keep(l, cursor_line(t), w),
+            _ => l,
+        })
+        .collect();
+    f.render_widget(Paragraph::new(view), body);
+    let shown = |(a, ..): &&(usize, usize, String)| *a >= start && *a < start + h;
+    let play = app.threads.transcript().blocks().iter().filter(shown).map(|(a, _, c)| (Rect { x: body.x + (w as u16).saturating_sub(2), y: body.y + (a - start) as u16, width: 2, height: 1 }, c.clone())).collect::<Vec<_>>();
+    fr.play_buttons = play;
+    if on && row >= start && row < start + h {
+        let x: usize = tr.rows()[row].chars().take(col).map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
+        f.set_cursor_position((body.x + (x as u16).min(body.width.saturating_sub(1)), body.y + (row - start) as u16));
+    }
 }

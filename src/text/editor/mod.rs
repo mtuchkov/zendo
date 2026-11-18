@@ -1,10 +1,17 @@
 //! A plain-text editor with soft wrap, made for prose.
 
+mod date;
 mod edit;
+mod fence;
+mod history;
+mod list;
+mod marks;
 mod wrap;
 mod motion;
 mod select;
 
+pub use date::{DateFormat, DateKey, DatePick};
+pub use history::History;
 use unicode_width::UnicodeWidthChar;
 
 /// A tab shows as this many spaces.
@@ -26,6 +33,10 @@ pub struct Editor {
     pub dirty: bool,
     /// The other end of the selection: (line, char). The cursor is the first end.
     pub anchor: Option<(usize, usize)>,
+    /// The date selector, while it is on (TEXT-16).
+    pub date: Option<DatePick>,
+    /// The loglet of undo and redo (UNDO-2).
+    history: History,
 }
 
 /// One visual row: logical line index and its char range.
@@ -42,7 +53,7 @@ impl Editor {
         if lines.is_empty() {
             lines.push(String::new());
         }
-        Self { lines, ..Default::default() }
+        Self { history: History::of(text), lines, ..Default::default() }
     }
 
     pub fn text(&self) -> String {
@@ -153,3 +164,19 @@ mod tests;
 #[cfg(test)]
 #[path = "select_tests.rs"]
 mod select_tests;
+
+#[cfg(test)]
+#[path = "list_tests.rs"]
+mod list_tests;
+
+#[cfg(test)]
+#[path = "fence_tests.rs"]
+mod fence_tests;
+
+#[cfg(test)]
+#[path = "date_tests.rs"]
+mod date_tests;
+
+#[cfg(test)]
+#[path = "history_tests.rs"]
+mod history_tests;

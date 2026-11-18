@@ -12,7 +12,11 @@ impl App {
         }
         match act {
             "copy" => self.copy_transcript(),
+            "add_to_chat" if self.step_to_chat() => {}
             "add_to_chat" => self.transcript_to_chat(),
+            "open_step" => {
+                self.toggle_step();
+            }
             _ => {}
         }
     }
@@ -33,7 +37,7 @@ impl App {
         }
         let quoted: String = text.lines().map(|l| format!("> {l}\n")).collect();
         let ctx = format!("Text from this chat:\n{quoted}");
-        let label = self.composer.add_chip(format!("{CHAT_MARK} {}", chips::selection_label(&text)), Some(ctx), None, true);
+        let label = self.composer.add_chip(format!("{CHAT_MARK} {}", chips::text_label(&text)), Some(ctx), None, true);
         self.threads.transcript_mut().unselect();
         self.flash(format!("{} is in the chat", label.trim_matches([chips::OPEN, chips::CLOSE])));
     }

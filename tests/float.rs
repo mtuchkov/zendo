@@ -425,7 +425,7 @@ async fn closing_the_float_titles_or_updates_the_note() {
 /// The Anthropic API at a mock server that answers `title` to each question.
 fn title_api(title: &str) -> (common::http::MockApi, Api) {
     let server = mock_api(serde_json::json!({"content": [{"type": "text", "text": format!("TITLE: {title}")}]}));
-    let api = Api { vendor: Vendor::Anthropic, base: server.url.clone(), model: "claude-haiku-5-5".into(), cred: Credential::Key("test-key".into()) };
+    let api = Api { vendor: Vendor::Anthropic, base: server.url.clone(), model: "claude-haiku-5-5".into(), cred: Credential::Key("test-key".into()), effort: None };
     (server, api)
 }
 

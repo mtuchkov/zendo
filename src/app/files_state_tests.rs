@@ -1,9 +1,15 @@
 //! The files without an app (ADR 0008).
 use super::*;
+use crate::keys::Pane;
 use crate::docs::structure;
 use crate::docs::tree::View;
 use crate::app::{FilterKey, TreeAct};
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+/// The action of a key in `pane` of the default keymap.
+fn action_of(pane: Pane, k: KeyEvent) -> Option<&'static str> {
+    crate::keys::Keymap::defaults().local(pane, &k)
+}
 
 /// A repository with two notes in `docs/`; an earlier run of the test leaves nothing.
 fn repo(name: &str) -> (PathBuf, Files) {
@@ -23,8 +29,8 @@ fn key(code: KeyCode) -> KeyEvent {
 }
 
 fn typ(f: &mut Files, root: &Path, text: &str) -> Option<Effect> {
-    text.chars().for_each(|c| assert_eq!(f.key_prompt(key(KeyCode::Char(c)), root), None));
-    f.key_prompt(key(KeyCode::Enter), root)
+    text.chars().for_each(|c| assert_eq!(f.key_prompt(key(KeyCode::Char(c)), action_of(Pane::Question, key(KeyCode::Char(c))), root), None));
+    f.key_prompt(key(KeyCode::Enter), action_of(Pane::Question, key(KeyCode::Enter)), root)
 }
 
 fn select(f: &mut Files, root: &Path, rel: &str) {
@@ -62,15 +68,15 @@ fn a_rename_moves_the_file_and_returns_the_paths() {
     assert_eq!(f.ask_file(None, 'r'), Effect::flash("select a file first"));
     assert_eq!(f.ask_file(Some("docs/a.md".into()), 'r'), None);
     assert_eq!(f.prompt(), Some(&FilePrompt::Rename("docs/a.md".into(), "a.md".into())));
-    (0..4).for_each(|_| drop(f.key_prompt(key(KeyCode::Backspace), &root)));
+    (0..4).for_each(|_| drop(f.key_prompt(key(KeyCode::Backspace), action_of(Pane::Question, key(KeyCode::Backspace)), &root)));
     let moved = typ(&mut f, &root, "c");
     assert_eq!(moved, Some(Effect::Moved { old: root.join("docs/a.md"), target: root.join("docs/c.md"), done: "renamed" }));
     assert!(root.join("docs/c.md").exists() && !root.join("docs/a.md").exists() && f.prompt().is_none());
     assert_eq!(f.current_path(), Some(root.join("docs/c.md").as_path()));
     f.ask(FilePrompt::Rename("docs/c.md".into(), "b.md".into()));
-    assert_eq!(f.key_prompt(key(KeyCode::Enter), &root), Effect::flash("a file with that name exists"));
+    assert_eq!(f.key_prompt(key(KeyCode::Enter), action_of(Pane::Question, key(KeyCode::Enter)), &root), Effect::flash("a file with that name exists"));
     f.ask(FilePrompt::Move("docs/c.md".into(), "../out".into()));
-    assert_eq!(f.key_prompt(key(KeyCode::Enter), &root), Effect::flash("give a folder inside the repository"));
+    assert_eq!(f.key_prompt(key(KeyCode::Enter), action_of(Pane::Question, key(KeyCode::Enter)), &root), Effect::flash("give a folder inside the repository"));
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -80,10 +86,10 @@ fn a_delete_removes_the_file_and_returns_its_key() {
     let (root, mut f) = repo("delete");
     f.open(root.join("docs/a.md"));
     f.ask(FilePrompt::Delete("docs/a.md".into()));
-    assert_eq!(f.key_prompt(key(KeyCode::Char('n')), &root), None);
+    assert_eq!(f.key_prompt(key(KeyCode::Char('n')), action_of(Pane::Question, key(KeyCode::Char('n'))), &root), None);
     assert!(f.prompt().is_none() && root.join("docs/a.md").exists());
     f.ask(FilePrompt::Delete("docs/a.md".into()));
-    assert_eq!(f.key_prompt(key(KeyCode::Char('y')), &root), Some(Effect::Deleted("docs/a.md".into())));
+    assert_eq!(f.key_prompt(key(KeyCode::Char('y')), action_of(Pane::Question, key(KeyCode::Char('y'))), &root), Some(Effect::Deleted("docs/a.md".into())));
     assert!(!root.join("docs/a.md").exists());
     assert_eq!((f.notes().len(), f.current()), (1, None), "no document is open");
     let _ = std::fs::remove_dir_all(&root);
@@ -100,12 +106,12 @@ fn a_new_file_and_a_new_folder_come_back_as_effects() {
     assert_eq!(std::fs::read_to_string(root.join("docs/audit-log.md")).unwrap(), "# Audit log\n\n");
     assert_eq!(f.notes().len(), 3);
     f.ask(FilePrompt::NewFile("../x".into()));
-    assert_eq!(f.key_prompt(key(KeyCode::Enter), &root), Effect::flash("give a path inside the repository"));
+    assert_eq!(f.key_prompt(key(KeyCode::Enter), action_of(Pane::Question, key(KeyCode::Enter)), &root), Effect::flash("give a path inside the repository"));
     f.ask(FilePrompt::NewFolder("docs/de".into()));
-    assert_eq!(f.key_prompt(key(KeyCode::Enter), &root), Some(Effect::MadeFolder(root.join("docs/de"))));
+    assert_eq!(f.key_prompt(key(KeyCode::Enter), action_of(Pane::Question, key(KeyCode::Enter)), &root), Some(Effect::MadeFolder(root.join("docs/de"))));
     assert!(root.join("docs/de").is_dir() && f.tree().view == View::Text, "the text view shows a new folder (FILES-17)");
     f.ask(FilePrompt::NewFile("docs/d".into()));
-    assert_eq!(f.key_prompt(key(KeyCode::Tab), &root), None);
+    assert_eq!(f.key_prompt(key(KeyCode::Tab), action_of(Pane::Question, key(KeyCode::Tab)), &root), None);
     assert_eq!(f.prompt(), Some(&FilePrompt::NewFile("docs/de/".into())), "tab completes the folder");
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -120,9 +126,9 @@ fn the_tree_moves_and_filters_without_the_app() {
     assert!(f.key_tree("up") && f.key_tree("top") && f.tree().sel == 0);
     assert!(!f.key_tree("delete") && !f.key_tree("open"), "the app does these");
     assert!(f.key_tree("search") && f.tree().find.as_deref() == Some(""));
-    "b.md".chars().for_each(|c| assert!(matches!(f.key_filter(key(KeyCode::Char(c))), FilterKey::Done)));
+    "b.md".chars().for_each(|c| assert!(matches!(f.key_filter(key(KeyCode::Char(c)), action_of(Pane::List, key(KeyCode::Char(c)))), FilterKey::Done)));
     assert_eq!(f.tree().find.as_deref(), Some("b.md"));
-    assert!(matches!(f.key_filter(key(KeyCode::Enter)), FilterKey::Open(rel) if rel == Path::new("docs/b.md")));
+    assert!(matches!(f.key_filter(key(KeyCode::Enter), action_of(Pane::List, key(KeyCode::Enter))), FilterKey::Open(rel) if rel == Path::new("docs/b.md")));
     assert!(f.tree().find.is_none());
     select(&mut f, &root, "docs/b.md");
     assert_eq!(f.activate(), tree_keys::Picked::File("docs/b.md".into()));
@@ -136,7 +142,7 @@ fn a_file_action_waits_for_the_popup_while_the_agent_works() {
     let act = || TreeAct::File(Some("docs/a.md".into()), 'd');
     assert_eq!(f.tree_act(act(), true), None);
     assert!(f.prompt().is_some() && f.confirm_text(0).is_none(), "not a worktree view: no popup");
-    f.key_prompt(key(KeyCode::Esc), &root);
+    f.key_prompt(key(KeyCode::Esc), action_of(Pane::Question, key(KeyCode::Esc)), &root);
     f.set_view(View::Worktree);
     assert_eq!(f.tree_act(act(), true), None);
     assert!(f.prompt().is_none() && f.confirm_text(1).is_some_and(|t| t.contains("session 2") && t.contains("delete")));

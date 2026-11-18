@@ -31,6 +31,21 @@ pub fn spawn_input(tx: mpsc::UnboundedSender<Event>) {
     });
 }
 
+/// What the mouse left after the draw: text for the chat, or a copy for the clipboard. True when
+/// there was some, so that the screen draws again.
+fn take_pointer(app: &mut App) -> bool {
+    if let Some(text) = app.pointer.take_to_chat() {
+        app.mouse_to_chat(text);
+        return true;
+    }
+    let Some(text) = app.pointer.take_clip() else { return false };
+    crate::text::select::copy(&text);
+    app.pointer.copied(text.clone());
+    let n = text.chars().count();
+    app.flash(format!("copied {n} character{}", if n == 1 { "" } else { "s" }));
+    true
+}
+
 pub async fn run(
     term: &mut ratatui::DefaultTerminal,
     app: &mut App,
@@ -46,21 +61,14 @@ pub async fn run(
     let found = app.files.find().wake.clone();
     // The lofi music opens its output here, not in App::new, so tests play nothing (LOFI-11).
     app.start_music(crate::music::Output::System);
+    app.start_tips();
     loop {
         term.draw(|f| app.draw(f))?;
         cursor_shape(app);
         if std::mem::take(&mut app.attention.bells) > 0 {
             sound::ring();
         }
-        if let Some(text) = app.pointer.take_to_chat() {
-            app.mouse_to_chat(text);
-            continue;
-        }
-        if let Some(text) = app.pointer.take_clip() {
-            crate::text::select::copy(&text);
-            app.pointer.copied(text.clone());
-            let n = text.chars().count();
-            app.flash(format!("copied {n} character{}", if n == 1 { "" } else { "s" }));
+        if take_pointer(app) {
             continue;
         }
         if app.quit && app.settle_quit() {

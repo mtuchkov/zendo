@@ -115,3 +115,13 @@ fn alt_marks_the_selection_for_the_chat() {
     let s = Selection::start(Region::Note, Rect::new(0, 0, 10, 2), 1, 1).with(KeyModifiers::ALT);
     assert!(s.chat && !s.free);
 }
+
+#[test]
+fn col_at_finds_the_char_under_the_pointer() {
+    // PANES-46: the cursor goes to the char under the click, and stays in the text of the row.
+    assert_eq!(col_at("hello  ", 0), 0);
+    assert_eq!(col_at("hello  ", 2), 2);
+    assert_eq!(col_at("hello  ", 40), 4, "past the end: the last char");
+    assert_eq!(col_at("日本語", 2), 1, "a wide char takes two columns");
+    assert_eq!(col_at("", 3), 0);
+}

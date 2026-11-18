@@ -1,10 +1,14 @@
 //! Drawing. One calm column of text, a status bar, and a side panel for Claude.
 
 pub mod theme;
+mod background;
 mod chat;
+mod questions;
+mod steps;
 pub(crate) mod cli;
 mod code_pane;
 mod delta_pane;
+mod field;
 mod find;
 mod float;
 pub mod frame;
@@ -13,7 +17,9 @@ mod overlays;
 mod paint;
 mod read;
 mod review;
+mod rekey;
 mod status;
+mod tips;
 mod thread;
 mod tree;
 mod tree_strip;
@@ -71,11 +77,8 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     let t = *app.theme();
     let area = f.area();
     app.cli.resize(area.height.saturating_sub(1), area.width);
-    fr.sound_button = None;
-    fr.music_button = None;
-    fr.spec_button = None;
-    fr.upgrade_button = None;
-    fr.find_regex = None;
+    fr.clear_buttons();
+    app.rekey.follow(app.focus, app.mode);
     if app.hold.is_some() {
         fr.regions.clear();
         draw_hold(f, app, &t, area);
@@ -87,46 +90,50 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
         return draw_selection(f, app, &t);
     }
     f.render_widget(Block::new().style(Style::new().bg(t.bg).fg(t.fg)), area);
-    let ask = u16::from(app.files.prompt().is_some());
+    // The question of a file, else on a small screen the message or the tip (PANES-49).
+    let below = if app.files.prompt().is_some() { None } else { below_line(app, fr, &t, area.width) };
+    let line = u16::from(app.files.prompt().is_some() || below.is_some());
     let [top, _, main, rule, status, prompt] = Layout::vertical([
         Constraint::Length(1),
         Constraint::Length(1),
         Constraint::Min(1),
         Constraint::Length(1),
         Constraint::Length(1),
-        Constraint::Length(ask),
+        Constraint::Length(line),
     ])
     .areas(area);
 
     fr.regions.clear();
-    fr.session_buttons.clear();
-    fr.play_buttons.clear();
-    fr.tree_fold.clear();
+    fr.clear_pane_buttons();
     f.render_widget(Paragraph::new("─".repeat(rule.width as usize)).style(Style::new().fg(t.line)), rule);
     fr.view_height = main.height as usize;
 
     match app.mode {
-        Mode::Find => draw_find(f, app, fr, &t, main),
+        Mode::Find => {
+            let area = draw_find(f, app, fr, &t, main);
+            fr.overlay = Some(area);
+        }
         Mode::Theme => {
             let w = 40.min(main.width / 2);
             let [left, right] = Layout::horizontal([Constraint::Min(1), Constraint::Length(w)]).areas(main);
             draw_read(f, app, fr, &t, left);
-            draw_themes(f, app, &t, right);
+            draw_themes(f, app, fr, &t, right);
         }
         Mode::Read | Mode::Write | Mode::Help => {
             draw_panes(f, app, fr, &t, main);
             if app.mode == Mode::Help {
                 // Over the panes and the top line, not over the status bar.
-                draw_help(f, app, &t, Rect { height: rule.y - area.y, ..area });
+                fr.overlay = Some(draw_help(f, app, fr, &t, Rect { height: rule.y - area.y, ..area }));
             }
         }
     }
     // After the panes: the top line shows the blinking sessions whose buttons are not on the screen.
     draw_top(f, app, fr, &t, top);
-    draw_status(f, app, fr, &t, status);
-    draw_file_prompt(f, app, &t, prompt);
+    draw_bottom(f, app, fr, &t, [status, prompt], below);
     draw_confirm(f, app, &t, area);
-    draw_music_question(f, app, fr, &t, area);
+    draw_questions(f, app, fr, &t, area);
+    tips::draw_tips(f, app, fr, &t, area);
+    rekey::draw_key_float(f, app, fr, &t, area);
 
     draw_selection(f, app, &t);
 }

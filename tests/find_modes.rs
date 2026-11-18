@@ -48,7 +48,7 @@ async fn tab_switches_the_mode_and_keeps_the_query() {
     assert_eq!(all[3], "docs/other.md", "All: the matches by path, then by text");
     key(&mut a, KeyCode::Tab);
     assert_eq!((a.files.find().mode, listed(&a, &root)), (FindMode::Notes, vec!["docs/notes/2026-11-17-find-idea.md".to_string()]));
-    assert_eq!(a.files.find().query, "find", "the query stays");
+    assert_eq!(a.files.find().query.text(), "find", "the query stays");
     let _ = std::fs::remove_dir_all(&root);
 }
 

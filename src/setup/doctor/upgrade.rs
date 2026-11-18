@@ -113,8 +113,15 @@ pub(super) fn clone_has(src: &Path, head: &str, built: &str) -> bool {
     ok(&["cat-file", "-e", &format!("{head}^{{commit}}")]) && ok(&["merge-base", "--is-ancestor", head, built])
 }
 
-/// On start: is there a newer commit on main? Asks GitHub at most every 12 hours and
-/// never waits longer than 5 s. `None` for builds not installed from git.
+/// The head of main to compare with this build: GitHub's answer, else the cache while it is
+/// fresh (GitHub did not answer, for example offline).
+pub(super) fn head_to_use(fresh: Option<String>, cached: Option<(u64, String)>, now: u64) -> Option<String> {
+    fresh.or_else(|| cached.filter(|(at, _)| now.saturating_sub(*at) < UPDATE_EVERY.as_secs()).map(|(_, h)| h))
+}
+
+/// On start: is there a newer commit on main? Asks GitHub on each start and never waits longer
+/// than 5 s; when GitHub does not answer, uses the last answer of the last 12 hours. `None` for
+/// builds not installed from git.
 pub async fn update_available() -> Option<String> {
     if std::env::var("ZENDO_NO_UPDATE_CHECK").is_ok() {
         return None;
@@ -126,23 +133,19 @@ pub async fn update_available() -> Option<String> {
         .ok()
         .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
         .and_then(|j| Some((j["checked"].as_u64()?, j["head"].as_str()?.to_string())));
-    let head = match cached {
-        Some((at, head)) if now.saturating_sub(at) < UPDATE_EVERY.as_secs() => head,
-        _ => {
-            let env = git_env();
-            let mut found = None;
-            for r in repos() {
-                if let Some(h) = remote_head(&r, &env, 5).await {
-                    found = Some(h);
-                    break;
-                }
-            }
-            let head = found?;
-            let _ = std::fs::create_dir_all(config::data_dir());
-            let _ = std::fs::write(&cache, serde_json::json!({ "checked": now, "head": head }).to_string());
-            head
+    let env = git_env();
+    let mut fresh = None;
+    for r in repos() {
+        if let Some(h) = remote_head(&r, &env, 5).await {
+            fresh = Some(h);
+            break;
         }
-    };
+    }
+    if let Some(h) = &fresh {
+        let _ = std::fs::create_dir_all(config::data_dir());
+        let _ = std::fs::write(&cache, serde_json::json!({ "checked": now, "head": h }).to_string());
+    }
+    let head = head_to_use(fresh, cached, now)?;
     if same_commit(&mine, &head) {
         return None;
     }

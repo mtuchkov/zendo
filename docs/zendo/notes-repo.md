@@ -23,6 +23,9 @@ file in each folder records the machine, the path and the git origin of the repo
 
 zendo commits the folder of the open repository at a set interval, 15 seconds by default, and
 pushes in the background. Only one machine writes to each folder, so a conflict is rare.
+Several zendo processes of one user share one notes repo, so only one of them runs git in it at a
+time: each sync holds a lock on `~/.zendo/notes-sync.lock`, and the file names the pid and the
+folder of the holder.
 
 Two tasks need judgement, and Claude does them, with edits allowed only in the notes repo and in the
 listed notes: `zendo notes move` brings the notes of `docs/notes` into the notes repo, and
@@ -89,10 +92,19 @@ The user turns the notes repo on with `zendo setup --notes-repo <folder or git U
 | NOTESREP-12 | Unwanted   | If the repository still has notes in `docs/notes` while the notes repo is on, then the system shall tell the user about `zendo notes move`. | Design      |
 | NOTESREP-13 | Ubiquitous | `zendo doctor` shall check that the notes repo is a git repository, has a remote, and has no open rebase.                           | Design           |
 | NOTESREP-14 | Unwanted   | If zendo runs outside a repository, then the system shall show in the file tree only the notes, and shall not walk the home folder. | Design           |
+| NOTESREP-15 | State      | While another zendo process of the user syncs the notes repo, the system shall skip the sync of this interval and shall not show an error. | User, 2026-11-18 |
+| NOTESREP-16 | Unwanted   | If a commit fails because `.git/index.lock` exists, then the system shall try again at the next interval and show the problem only after three failures in a row. | User, 2026-11-18 |
+| NOTESREP-17 | Event      | When a commit of the notes works after a failure, the system shall remove the failure from the status. | User, 2026-11-18 |
+| NOTESREP-18 | Ubiquitous | `zendo doctor` shall show the pid and the folder of the zendo that syncs the notes repo now, and report a `.git/index.lock` older than one minute while no zendo syncs. | User, 2026-11-18 |
 
 Tests that verify detailed requirements: `two_machines_sync_their_own_folders` (NOTESREP-5,
 NOTESREP-9), `move_puts_the_notes_of_the_repo_into_the_folder_of_this_machine` (NOTESREP-10,
 NOTESREP-11), `without_a_notes_repo_the_commands_say_how_to_turn_it_on`,
-`a_new_empty_notes_repo_is_in_sync`.
+`a_new_empty_notes_repo_is_in_sync`, `a_busy_lock_skips_the_interval_without_an_error`,
+`a_second_taker_waits_until_the_first_lets_go`, `take_within_waits_a_bounded_time`,
+`a_lock_file_that_cannot_open_does_not_stop_the_sync`, `exit_with_a_busy_lock_says_who_syncs`
+(NOTESREP-15), `index_lock_shows_after_three_failures_and_then_clears` (NOTESREP-16, NOTESREP-17),
+`a_failure_clears_without_a_new_note` (NOTESREP-17), `an_old_index_lock_without_a_sync_is_stale`
+(NOTESREP-18).
 
 See [ADR 0004](../architecture/decisions/0004-notes-in-a-private-git-repo.md).

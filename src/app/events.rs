@@ -3,6 +3,10 @@ use super::*;
 
 impl App {
     pub fn on_agent(&mut self, e: Event) {
+        // Each event of a turn is news (ACT-2).
+        if let Some(t) = event_key(&e).and_then(|k| self.threads.get_mut(&k)).filter(|t| t.busy.is_some()) {
+            t.news = Some(Instant::now());
+        }
         // Recaps run in throwaway sessions and never reach the chat.
         if event_key(&e).as_deref().is_some_and(|k| k.starts_with(RECAP_PREFIX)) {
             return self.on_recap_event(e);
@@ -35,7 +39,12 @@ impl App {
                 }
             }
             Event::Thought { key } => self.thread(&key).thinking = true,
-            Event::Tool { key, id, title, kind, done } => self.on_tool(key, ToolUse { id, title, kind }, done),
+            Event::Question { key, request, questions } => self.on_question(key, request, questions),
+            Event::Tool { key, id, title, kind, state, mut info } => {
+                info.place = info.place.map(|p| self.in_root(&p));
+                info.error = info.error.and_then(|e| e.lines().map(str::trim).find(|l| !l.is_empty()).map(str::to_string));
+                self.on_tool(key, ToolUse { id, title, kind, state, info, ..Default::default() })
+            }
             // The agent edits without a question to the user (CLAUDE-33); the tool line shows it.
             Event::Permission { request, choices, .. } => {
                 let allow = choices.iter().find(|c| c.allow && !c.always).or_else(|| choices.iter().find(|c| c.allow));
@@ -116,7 +125,14 @@ impl App {
         }
     }
 
-    fn on_tool(&mut self, key: String, new: ToolUse, done: bool) {
+    /// A path of the agent from the root of the repository, when it is inside it.
+    fn in_root(&self, p: &str) -> String {
+        std::path::Path::new(p).strip_prefix(&self.cfg.root).map_or_else(|_| p.to_string(), |r| r.display().to_string())
+    }
+
+    fn on_tool(&mut self, key: String, mut new: ToolUse) {
+        let done = new.state == crate::agent::ToolState::Done;
+        new.started = Some(Instant::now());
         let t = self.thread(&key);
         let known = t.items.iter_mut().rev().find_map(|it| match it {
             Item::Tools { uses, .. } => uses.iter_mut().find(|u| u.id == new.id),
@@ -130,6 +146,11 @@ impl App {
                 if !new.kind.is_empty() {
                     u.kind = new.kind;
                 }
+                // A call only goes forward: an update without a status keeps the state.
+                if new.state != crate::agent::ToolState::Pending {
+                    u.state = new.state;
+                }
+                u.info.merge(new.info);
             }
             // An update for a call we never saw (e.g. the edit behind a proposal).
             None if new.title.is_empty() => {}
@@ -210,6 +231,7 @@ fn event_key(e: &Event) -> Option<String> {
         | Event::Thought { key }
         | Event::Tool { key, .. }
         | Event::Permission { key, .. }
+        | Event::Question { key, .. }
         | Event::Blocked { key, .. }
         | Event::TurnEnd { key, .. } => Some(key.clone()),
         Event::Error { key, .. } => key.clone(),

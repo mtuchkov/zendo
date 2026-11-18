@@ -6,7 +6,8 @@ use crate::app::{FindItem, FindMode};
 /// A panel narrower than this shows the preview under the list (FIND-13).
 const SIDE_BY_SIDE: u16 = 100;
 
-pub(crate) fn draw_find(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) {
+/// Returns the area of the panel.
+pub(crate) fn draw_find(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) -> Rect {
     let w = area.width.saturating_sub(4).min(160);
     let col = Rect { x: area.x + (area.width - w) / 2, y: area.y, width: w, height: area.height };
     draw_modes(f, app, t, Rect { height: 1, ..col });
@@ -19,11 +20,10 @@ pub(crate) fn draw_find(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme,
         Some('?') => "? asks Claude in Notes",
         Some(_) => "",
     };
-    let line = Line::from(vec![Span::styled("  / ", Style::new().fg(t.acc)), Span::raw(q.clone()), Span::raw(" "), Span::styled(hint, Style::new().fg(t.dim))]);
+    // The hint ends before `[.*]` at the end of the line.
+    super::field::draw_query(f, t, Rect { width: boxr.width.saturating_sub(6), ..boxr }, &q, Span::styled(hint, Style::new().fg(t.dim)));
     let row = Rect { y: boxr.y + 1, height: 1, ..boxr };
-    f.render_widget(Paragraph::new(line), row);
     fr.find_regex = Some(draw_regex_button(f, app.files.find().regex, app.files.find().bad_regex, t, row));
-    f.set_cursor_position((boxr.x + 4 + q.width() as u16, boxr.y + 1));
     let body = Rect { y: col.y + 5, height: col.height.saturating_sub(5), ..col };
     let (list, preview) = if w >= SIDE_BY_SIDE {
         let lw = (w * 9 / 20).max(40);
@@ -34,6 +34,7 @@ pub(crate) fn draw_find(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme,
     };
     draw_list(f, app, t, list);
     draw_preview(f, app, t, preview);
+    col
 }
 
 /// `[.*]` at the right end of a query line: the accent color while on, the error color for an
@@ -50,7 +51,7 @@ pub(crate) fn draw_regex_button(f: &mut Frame, on: bool, bad: bool, t: &Theme, r
 /// of each mode, or `…` while the search runs (FIND-25, FIND-26, FIND-43).
 fn draw_modes(f: &mut Frame, app: &App, t: &Theme, row: Rect) {
     let find = app.files.find();
-    let mut spans = vec![Span::styled(format!("  {}  ", app.keys.first(crate::keys::Pane::Global, "next_pane")), Style::new().fg(t.dim))];
+    let mut spans = vec![Span::styled(format!("  {}  ", app.keys.first(crate::keys::Pane::List, "next_mode")), Style::new().fg(t.dim))];
     for (i, m) in FindMode::ALL.iter().enumerate() {
         let tail = if find.query.trim().is_empty() || find.query.starts_with('?') {
             String::new()
@@ -103,7 +104,7 @@ fn item_row(app: &App, t: &Theme, item: &FindItem, sel: bool, w: usize) -> Line<
     let when = item.at.map(when_label).unwrap_or_default();
     let pad = w.saturating_sub(item.title.width() + path.width() + when.width() + 8);
     let line = Line::from(vec![
-        Span::styled(if sel { "  ▸ " } else { "    " }, Style::new().fg(t.acc)),
+        Span::styled(if sel { "  › " } else { "    " }, Style::new().fg(t.acc)),
         Span::styled(item.title.clone(), Style::new().fg(t.fg).add_modifier(Modifier::BOLD)),
         Span::styled(format!("  {path}"), Style::new().fg(t.dim)),
         Span::raw(" ".repeat(pad)),

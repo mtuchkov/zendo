@@ -6,44 +6,13 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tokio::sync::mpsc;
 
-const HELP: &str = "\
-zendo — architecture notes in your repo, with Claude beside them
-
-USAGE
-  zendo [--notes DIR] [--agent CMD | --mock | --offline]
-                                              open the notes; checks Claude first
-  zendo setup [--agent CMD] [--notes-repo DIR|URL|off]
-                                              install the Claude adapter once and check everything;
-                                              --notes-repo keeps the notes in your private notes repo
-  zendo notes move | consolidate [--agent CMD | --mock]
-                                              Claude moves docs/notes into the notes repo, or merges
-                                              the notes of this project from every machine (by origin)
-  zendo init                                   prepare this repository: project-structure.toml,
-                                              the zendo section for agents, .gitignore
-  zendo doctor [--live] [--fix [--claude]] [--agent CMD | --mock]
-                                              check each step and say what to fix; writes no file.
-                                              --fix repairs the machine and this repository;
-                                              --claude also gives project-structure.toml to Claude
-  zendo upgrade [--force]                      build the newest main, then run zendo doctor --fix
-  zendo keymap                                 print the default keys: start ~/.zendo/keymap.toml from it
-  zendo mcp --session N                        the MCP server of zendo session N (zendo starts it)
-
-OPTIONS
-  --notes DIR   notes folder, relative to the repo root (default: docs/notes, or $ZENDO_NOTES)
-  --agent CMD   ACP agent command (default: $ZENDO_AGENT, then ~/.zendo/config.toml,
-                then the adapter that `zendo setup` installed, then npx)
-  --mock        use the bundled mock agent instead of Claude
-  --offline     open the notes without Claude (no start check)
-  --live        doctor only: also send one short prompt to Claude
-  -V, --version show the version
-  -h, --help    show this help
-
-zendo uses the repo root (the nearest folder with .git) as the working folder.
-Outside a repo, zendo uses your home folder as a scratchpad.";
+const HELP: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/help.txt"));
 
 enum Run {
     Tui(Config),
     Setup(doctor::Paths, Option<String>, Option<String>),
+    /// `zendo setup fonts` (FONT-7).
+    Fonts,
     Notes(doctor::Paths, Option<String>, String),
     Init(doctor::Paths, Option<String>),
     Doctor(doctor::Paths, Option<String>, doctor::DoctorFlags),
@@ -77,6 +46,7 @@ struct Args {
     offline: bool,
     notes_repo: Option<String>,
     action: String,
+    fonts: bool,
 }
 
 fn read_args() -> Result<Args> {
@@ -116,6 +86,7 @@ fn read_args() -> Result<Args> {
                 o.notes = args.next().context("--notes needs a folder")?;
                 o.notes_set = true;
             }
+            "fonts" if sub == "setup" && !o.fonts => o.fonts = true,
             "--notes-repo" if sub == "setup" => o.notes_repo = Some(args.next().context("--notes-repo needs a folder or a git URL")?),
             "move" | "consolidate" if sub == "notes" && o.action.is_empty() => o.action = a.clone(),
             "--agent" => o.agent = Some(args.next().context("--agent needs a command")?),
@@ -153,6 +124,7 @@ fn parse() -> Result<Run> {
     };
     let paths = doctor::Paths { root: root.clone(), notes_dir: notes_dir.clone(), repo_notes };
     Ok(match a.sub {
+        "setup" if a.fonts => Run::Fonts,
         "setup" => Run::Setup(paths, a.agent, a.notes_repo),
         "notes" if a.action.is_empty() => bail!("zendo notes needs move or consolidate\n\n{HELP}"),
         "notes" => Run::Notes(paths, a.agent, a.action),
@@ -189,6 +161,7 @@ async fn main() -> Result<()> {
     let cfg = match parse()? {
         Run::Tui(cfg) => cfg,
         Run::Setup(paths, agent, notes_repo) => std::process::exit(if doctor::setup(&paths, agent, notes_repo).await { 0 } else { 1 }),
+        Run::Fonts => std::process::exit(if doctor::setup_fonts() { 0 } else { 1 }),
         Run::Notes(paths, agent, action) => std::process::exit(if doctor::notes(&paths, agent, &action).await { 0 } else { 1 }),
         Run::Init(paths, agent) => std::process::exit(if doctor::init(&paths, agent) { 0 } else { 1 }),
         Run::Doctor(paths, agent, flags) => std::process::exit(if doctor::doctor(&paths, agent, flags).await { 0 } else { 1 }),
@@ -244,7 +217,7 @@ async fn open_app(cfg: Config) -> Result<App> {
     // The notes repo: this folder, its location file, and the sync in the background.
     let syncer = match &cfg.notes_repo {
         Some(n) => match n.prepare(&cfg.root) {
-            Ok(dir) => Some(zendo::setup::sync::Syncer::start(n.path.clone(), dir, &n.machine, Duration::from_secs(n.sync_seconds.max(1)))),
+            Ok(dir) => Some(zendo::setup::sync::Syncer::of_user(n.path.clone(), dir, &n.machine, Duration::from_secs(n.sync_seconds.max(1)))),
             Err(e) => {
                 eprintln!("zendo: cannot use the notes repo {}: {e}", n.path.display());
                 std::process::exit(1);

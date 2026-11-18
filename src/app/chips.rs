@@ -1,21 +1,30 @@
-//! Chips in the chat input: `⟦label⟧` tokens for a selection or a file. The arrows and the delete
-//! keys take a chip as one unit.
+//! Chips in the chat input: `⟦label⟧` tokens for a text (a selection, a paste) or a file. The
+//! arrows and the delete keys take a chip as one unit.
 use super::Composer;
+use crate::setup::history::SavedChip;
 use super::super::*;
 
 pub const OPEN: char = '⟦';
 pub const CLOSE: char = '⟧';
 
-/// A selection chip says the first 15 chars of the text.
-pub fn selection_label(text: &str) -> String {
+/// A paste longer than this, in chars, is a chip even on one line (CLAUDE-42).
+pub const PASTE_CHIP_CHARS: usize = 200;
+
+/// A text chip says the first 15 chars of the text and, always, the number of its lines (CLAUDE-20, CLAUDE-41).
+pub fn text_label(text: &str) -> String {
     let flat = text.split_whitespace().collect::<Vec<_>>().join(" ");
     let head: String = flat.chars().take(15).collect();
     let head = if flat.chars().count() > 15 { format!("{head}…") } else { head };
-    // A selection of more lines says how many more.
-    match text.trim().lines().count() {
-        n if n > 1 => format!("{head} +{}", n - 1),
-        _ => head,
+    match text.trim().lines().count().max(1) {
+        1 => format!("{head} · 1 line"),
+        n => format!("{head} · {n} lines"),
     }
+}
+
+/// A paste of more than one line, or of a long line, goes into the chat input as a chip (CLAUDE-42).
+pub fn paste_is_chip(text: &str) -> bool {
+    let t = text.trim();
+    t.lines().count() > 1 || t.chars().count() > PASTE_CHIP_CHARS
 }
 
 /// A file chip says the last 4 chars of its folder and the first 10 chars of its name: `ates/specificat`.
@@ -40,6 +49,16 @@ pub fn chip_ranges(line: &str) -> Vec<(usize, usize)> {
         .collect()
 }
 
+/// The text without its chips.
+pub fn without_chips(q: &str) -> String {
+    cut(q, chip_ranges(q))
+}
+
+/// The text without the char ranges, in the order of `chip_ranges`.
+fn cut(q: &str, ranges: Vec<(usize, usize)>) -> String {
+    ranges.into_iter().rev().fold(q.to_string(), |t, (a, b)| t.chars().take(a).chain(t.chars().skip(b)).collect())
+}
+
 impl Composer {
     /// Put a chip into the chat input: at the cursor, or at the end. The label is unique.
     pub fn add_chip(&mut self, base: String, context: Option<String>, attach: Option<Attachment>, at_end: bool) -> String {
@@ -53,6 +72,16 @@ impl Composer {
         }
         self.input.type_str(&format!("{label} "));
         self.chips.push(Chip { label: label.clone(), context, attach });
+        label
+    }
+
+    /// A pasted text as a chip at the cursor that starts with the text; the text goes as context (CLAUDE-42).
+    pub fn paste_chip(&mut self, text: &str) -> String {
+        let label = self.add_chip(text_label(text), None, None, false);
+        let quoted: String = text.trim_matches('\n').lines().map(|l| format!("> {l}\n")).collect();
+        if let Some(c) = self.chips.last_mut() {
+            c.context = Some(format!("The user pasted this text as {label}:\n{quoted}"));
+        }
         label
     }
 
@@ -103,6 +132,17 @@ impl Composer {
             }
         }
         true
+    }
+
+    /// What the history keeps of the message in the input: the text with the labels of its text
+    /// chips, and those chips; the labels of file and image chips leave the text (HISTORY-7).
+    pub fn history_entry(&self) -> (String, Vec<SavedChip>) {
+        let text = self.input.text();
+        let is_text = |c: &Chip| c.attach.is_none() && c.context.is_some() && text.contains(c.label.as_str());
+        let kept: Vec<SavedChip> = self.chips.iter().filter(|c| is_text(c)).map(|c| SavedChip { label: c.label.clone(), text: c.context.clone().unwrap_or_default() }).collect();
+        let label = |&(a, b): &(usize, usize)| text.chars().skip(a).take(b - a).collect::<String>();
+        let drop = chip_ranges(&text).into_iter().filter(|r| !kept.iter().any(|c| c.label == label(r))).collect();
+        (cut(&text, drop), kept)
     }
 
     /// The chip at the cursor: the one the arrows stand on.

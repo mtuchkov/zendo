@@ -6,6 +6,8 @@ pub(super) struct Shared {
     /// Session id → note key.
     pub(super) keys: Mutex<HashMap<String, String>>,
     pub(super) answers: Mutex<HashMap<u64, Answer>>,
+    /// The open questions of the agent and their replies (ACT-4).
+    pub(super) replies: Mutex<HashMap<u64, super::questions::Reply>>,
     pub(super) next: AtomicU64,
     /// While a session is loading, its replayed messages carry this key.
     pub(super) loading: Mutex<Option<String>>,
@@ -48,6 +50,7 @@ pub(super) async fn run(
     }
     let on_note = shared.clone();
     let on_ask = shared.clone();
+    let on_form = shared.clone();
     Client
         .v1()
         .name("zendo")
@@ -77,6 +80,13 @@ pub(super) async fn run(
                 });
                 s.answers.lock().unwrap().insert(request, answer);
                 s.emit(Event::Permission { key, request, title, kind, diffs, choices });
+                Ok(())
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            async move |req: agent_client_protocol::v1::schema::CreateElicitationRequest, responder, _cx| {
+                super::questions::ask(&on_form, req, move |r| drop(responder.respond(r)));
                 Ok(())
             },
             agent_client_protocol::on_receive_request!(),
@@ -115,20 +125,8 @@ fn on_notification(s: &Shared, n: SessionNotification) {
             }
         }
         SessionUpdate::AgentThoughtChunk(_) => s.emit(Event::Thought { key }),
-        SessionUpdate::ToolCall(tc) => s.emit(Event::Tool {
-            key,
-            id: tc.tool_call_id.0.to_string(),
-            title: tc.title,
-            kind: kind_name(&tc.kind),
-            done: format!("{:?}", tc.status) == "Completed",
-        }),
-        SessionUpdate::ToolCallUpdate(u) => s.emit(Event::Tool {
-            key,
-            id: u.tool_call_id.0.to_string(),
-            title: u.fields.title.unwrap_or_default(),
-            kind: u.fields.kind.as_ref().map(kind_name).unwrap_or_default(),
-            done: u.fields.status.map(|st| format!("{st:?}") == "Completed").unwrap_or(false),
-        }),
+        SessionUpdate::ToolCall(tc) => s.emit(super::tool_events::call(key, tc)),
+        SessionUpdate::ToolCallUpdate(u) => s.emit(super::tool_events::update(key, u)),
         _ => {}
     }
 }
@@ -183,9 +181,33 @@ fn choices_of(req: &RequestPermissionRequest) -> Vec<Choice> {
         .collect()
 }
 
+/// What zendo tells the agent that it can show: questions with choices, and the output and the exit
+/// code of a command (ADR 0014, ACT-4, ACT-6).
+fn capabilities() -> agent_client_protocol::v1::schema::ClientCapabilities {
+    let mut meta = serde_json::Map::new();
+    meta.insert("terminal_output".into(), serde_json::Value::Bool(true));
+    let form = agent_client_protocol::v1::schema::ElicitationCapabilities::new().form(agent_client_protocol::v1::schema::ElicitationFormCapabilities::new());
+    agent_client_protocol::v1::schema::ClientCapabilities::new().elicitation(form).meta(meta)
+}
+
 /// The connection: the handshake, then the commands of zendo until it closes.
+/// A turn runs beside the commands of zendo; its end, or its error, goes to the app.
+fn start_turn(cx: &agent_client_protocol::v1::ConnectionTo<Agent>, shared: &Arc<Shared>, key: String, req: PromptRequest) -> Result<(), agent_client_protocol::Error> {
+    let (cx2, s) = (cx.clone(), shared.clone());
+    cx.spawn(async move {
+        match cx2.send_request(req).block_task().await {
+            Ok(r) => s.emit(Event::TurnEnd { key, stop: format!("{:?}", r.stop_reason).to_lowercase() }),
+            Err(e) => {
+                s.emit(Event::Error { key: Some(key.clone()), text: e.to_string() });
+                s.emit(Event::TurnEnd { key, stop: "error".into() });
+            }
+        }
+        Ok(())
+    })
+}
+
 async fn serve(cx: agent_client_protocol::v1::ConnectionTo<Agent>, shared: Arc<Shared>, mut cmds: UnboundedReceiver<Cmd>, cwd: PathBuf) -> Result<(), agent_client_protocol::Error> {
-    let init = cx.send_request(InitializeRequest::new(ProtocolVersion::V1)).block_task().await?;
+    let init = cx.send_request(InitializeRequest::new(ProtocolVersion::V1).client_capabilities(capabilities())).block_task().await?;
     let can_load = init.agent_capabilities.load_session;
     let can_image = init.agent_capabilities.prompt_capabilities.image;
     let can_close = init.agent_capabilities.session_capabilities.close.is_some();
@@ -208,18 +230,7 @@ async fn serve(cx: agent_client_protocol::v1::ConnectionTo<Agent>, shared: Arc<S
                         id
                     }
                 };
-                let req = PromptRequest::new(id, blocks(text, &attach, can_image));
-                let (cx2, s) = (cx.clone(), shared.clone());
-                cx.spawn(async move {
-                    match cx2.send_request(req).block_task().await {
-                        Ok(r) => s.emit(Event::TurnEnd { key, stop: format!("{:?}", r.stop_reason).to_lowercase() }),
-                        Err(e) => {
-                            s.emit(Event::Error { key: Some(key.clone()), text: e.to_string() });
-                            s.emit(Event::TurnEnd { key, stop: "error".into() });
-                        }
-                    }
-                    Ok(())
-                })?;
+                start_turn(&cx, &shared, key, PromptRequest::new(id, blocks(text, &attach, can_image)))?;
             }
             Cmd::Open { key, known } => {
                 if let std::collections::hash_map::Entry::Vacant(e) = sessions.entry(key) {
@@ -230,6 +241,11 @@ async fn serve(cx: agent_client_protocol::v1::ConnectionTo<Agent>, shared: Arc<S
             Cmd::Answer { request, option } => {
                 if let Some(answer) = shared.answers.lock().unwrap().remove(&request) {
                     answer(option);
+                }
+            }
+            Cmd::Reply { request, picks } => {
+                if let Some(reply) = shared.replies.lock().unwrap().remove(&request) {
+                    reply(picks);
                 }
             }
             Cmd::Cancel { key } => {

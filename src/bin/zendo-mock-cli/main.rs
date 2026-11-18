@@ -1,7 +1,8 @@
 //! A mock of the `claude` command line for the tests of the sessions (docs/zendo/sessions.md).
 //!
 //! It prints its arguments, then `tick N` each 100 ms. In raw mode it reads keys: `r` reports the
-//! state "works", `w` reports "waits", `i` reports "idle", `q` exits, and `enter` prints `got: <the line>`. A state goes to the file in `$ZENDO_STATE`, as the
+//! state "works", `w` reports "waits", `i` reports "idle", `q` exits, and `enter` prints `got: <the line>`;
+//! the line `background <seconds>` also starts `sleep <seconds>` in a process group of its own. A state goes to the file in `$ZENDO_STATE`, as the
 //! hooks of Claude Code do. On `enter`, the inputs of the "prompt sent" and "stop" hooks go to the
 //! file in `$ZENDO_MESSAGES`: the line, and `answer: <the line>`. At the start the input of the
 //! "session start" hook of a resume goes there with the session ID after `--resume`, and on
@@ -59,6 +60,15 @@ fn hooks(prompt: &str) {
     append(&path, &[serde_json::json!({ "hook_event_name": "Stop", "last_assistant_message": format!("answer: {prompt}"), "transcript_path": t })]);
 }
 
+/// `background 6201`: start `sleep 6201` in a process group of its own, as Claude Code does with a
+/// command in the background (BG-1).
+fn background(line: &str) {
+    use std::os::unix::process::CommandExt;
+    if let Some(s) = line.strip_prefix("background ").filter(|s| s.trim().parse::<u32>().is_ok()) {
+        let _ = std::process::Command::new("sleep").arg(s.trim()).process_group(0).stdout(std::process::Stdio::null()).spawn();
+    }
+}
+
 fn main() {
     let _ = terminal::enable_raw_mode();
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -91,6 +101,7 @@ fn main() {
             }
             b'\r' | b'\n' => {
                 print!("got: {}\r\n", String::from_utf8_lossy(&line));
+                background(&String::from_utf8_lossy(&line));
                 let _ = std::io::stdout().flush();
                 hooks(&String::from_utf8_lossy(&line));
                 line.clear();

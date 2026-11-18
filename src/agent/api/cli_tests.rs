@@ -23,7 +23,7 @@ fn mock_claude(name: &str, status: &str, answer: &str) -> PathBuf {
 }
 
 fn api(path: &std::path::Path) -> Api {
-    Api { vendor: Vendor::Anthropic, base: "https://api.anthropic.com".into(), model: "claude-haiku-5-5".into(), cred: Credential::Claude(path.into()) }
+    Api { vendor: Vendor::Anthropic, base: "https://api.anthropic.com".into(), model: "claude-haiku-5-5".into(), cred: Credential::Claude(path.into()), effort: None }
 }
 
 // NAMES-21: `claude -p` gets one user message with the prompt and the image, and no tools, no

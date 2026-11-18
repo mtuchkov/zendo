@@ -79,6 +79,11 @@ impl Files {
         self.prompt.as_ref()
     }
 
+    /// The text field of the open question, for the keys of the field.
+    pub(crate) fn prompt_field(&mut self) -> Option<&mut crate::text::field::Field> {
+        self.prompt.as_mut()?.field_mut()
+    }
+
     /// Open a question about a file.
     pub fn ask(&mut self, prompt: FilePrompt) {
         self.prompt = Some(prompt);

@@ -28,10 +28,12 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
     let in_h = in_rows.min((inner.height as usize / 4).max(1)) as u16;
     let slash_h = if app.composer.slash().open { app.composer.slash().hits.len().clamp(1, crate::app::AT_ROWS) } else { 0 };
     let at_h = app.composer.at().map_or(slash_h, |p| p.hits.len().clamp(1, crate::app::AT_ROWS)) as u16;
-    let [head, _, body, _, input, picks] = Layout::vertical([
+    let bg_h = u16::from(app.bg.of(&app.key()).next().is_some());
+    let [head, _, body, bg, _, input, picks] = Layout::vertical([
         Constraint::Length(1),
         Constraint::Length(1),
         Constraint::Min(1),
+        Constraint::Length(bg_h),
         Constraint::Length(1),
         Constraint::Length(in_h + 2),
         Constraint::Length(at_h),
@@ -44,54 +46,25 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
     }
 
     let dim = Style::new().fg(t.dim);
-    let scope = if app.scope() == ALL_KEY { "ALL NOTES".to_string() } else { format!("THIS {}", app.file_word().to_uppercase()) };
+    // The line of the open document says what the question is about; only all notes show here (CLAUDE-58).
+    let scope = if app.scope() == ALL_KEY { "ALL NOTES" } else { "" };
     let agent = app.profile().map_or("AGENT".to_string(), |p| p.name.to_uppercase());
     let left = agent.as_str();
     let pad = w.saturating_sub(left.len() + scope.len());
     f.render_widget(Paragraph::new(Line::from(vec![Span::styled(left, dim.add_modifier(Modifier::BOLD)), Span::raw(" ".repeat(pad)), Span::styled(scope, dim)])), head);
 
-    let (mut lines, blocks) = panel_lines(app, t, w);
+    let (mut lines, blocks, steps) = panel_lines(app, t, w);
     app.threads.transcript_mut().show_blocks(blocks);
+    app.threads.transcript_mut().show_steps(steps);
     if let Some(down) = app.link.down() {
         lines.extend(markdown::wrap(vec![Span::styled(format!("{down}. Run `zendo doctor` in a terminal to see why, then ask again. Log: .zendo/agent.log"), Style::new().fg(t.del))], w, "", ""));
     } else if !app.link.ready() && app.link.running() {
         lines.push(Line::styled(format!("starting {} {}", short_agent(&app.cfg.agent), SPIN[(app.writer.idle().as_millis() / 300) as usize % 4]), dim));
     }
     fr.regions.push((crate::text::select::Region::Panel, body));
-    draw_transcript(f, app, fr, t, body, lines, w);
+    super::thread::draw_transcript(f, app, fr, t, body, lines, w);
+    super::background::draw(f, app, fr, t, bg);
     draw_input(f, app, t, input, in_h, in_w);
-}
-
-/// The thread, from the bottom up. While the transcript has the keys, the view follows its cursor,
-/// and the cursor row and the selection show.
-fn draw_transcript(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, body: Rect, lines: Vec<Line<'static>>, w: usize) {
-    let h = body.height as usize;
-    app.threads.transcript_mut().show_rows(lines.iter().map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect()).collect());
-    let on = app.threads.transcript().on() && app.focus == Focus::Claude;
-    let start = app.threads.fit(lines.len(), h, on);
-    let tr = app.threads.transcript();
-    let (row, col) = tr.cursor();
-    let sel = delta::mix(t.bg, t.acc2, 0.42);
-    let table = if on { tr.table() } else { None };
-    let view: Vec<Line> = lines
-        .into_iter()
-        .enumerate()
-        .skip(start)
-        .take(h)
-        .map(|(i, l)| match tr.marked(table.as_ref(), i) {
-            Some((a, b)) if on => paint(l, a, b, sel),
-            _ if on && i == row => tint(l, cursor_line(t), w),
-            _ => l,
-        })
-        .collect();
-    f.render_widget(Paragraph::new(view), body);
-    let shown = |(a, ..): &&(usize, usize, String)| *a >= start && *a < start + h;
-    let play = app.threads.transcript().blocks().iter().filter(shown).map(|(a, _, c)| (Rect { x: body.x + (w as u16).saturating_sub(2), y: body.y + (a - start) as u16, width: 2, height: 1 }, c.clone())).collect::<Vec<_>>();
-    fr.play_buttons = play;
-    if on && row >= start && row < start + h {
-        let x: usize = tr.rows()[row].chars().take(col).map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
-        f.set_cursor_position((body.x + (x as u16).min(body.width.saturating_sub(1)), body.y + (row - start) as u16));
-    }
 }
 
 /// The input box: the text with its chips, or a hint while it is empty.
@@ -270,7 +243,7 @@ fn draw_agent_column(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, ar
 }
 
 /// The buttons of the terminals on the right edge, in the color of the text, and the one in the chat
-/// pane in the accent color: `F5`, then each `[>]`. Under the agent buttons when they are on the right edge, after a line; else from the top of the
+/// pane in the accent color: `F5`, then each `[>]`, then `[+]` while a `[>]` is free (TERM-53). Under the agent buttons when they are on the right edge, after a line; else from the top of the
 /// edge (TERM-14, TERM-15).
 fn draw_terminals(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect, under_agents: bool) {
     let w = area.width as usize;
@@ -279,8 +252,14 @@ fn draw_terminals(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area:
         f.render_widget(Paragraph::new("─".repeat(w)).style(Style::new().fg(t.dim)), Rect { y: rule, height: 1, ..area });
     }
     let top = if under_agents { rule + 2 } else { area.y + 2 };
-    let terms = (0..crate::session::TERMINALS).filter(|i| *i == 0 || app.cli.running(crate::session::shell(*i)));
-    for (y, n) in terms.enumerate().map(|(k, i)| (top + 2 * k as u16, crate::session::shell(i))).filter(|(y, _)| *y < area.bottom()) {
+    let terms: Vec<usize> = (0..crate::session::TERMINALS).filter(|i| *i == 0 || app.cli.running(crate::session::shell(*i))).collect();
+    let plus = top + 2 * terms.len() as u16;
+    if terms.len() < crate::session::TERMINALS && plus < area.bottom() {
+        let r = Rect { y: plus, height: 1, ..area };
+        f.render_widget(Paragraph::new(Line::styled(format!("{:^w$}", "[+]"), Style::new().fg(t.fg).add_modifier(Modifier::BOLD))), r);
+        fr.new_terminal_button = Some(r);
+    }
+    for (y, n) in terms.into_iter().enumerate().map(|(k, i)| (top + 2 * k as u16, crate::session::shell(i))).filter(|(y, _)| *y < area.bottom()) {
         let r = Rect { y, height: 1, ..area };
         let bg = pulse_bg(app, t, n, if n == shown_session(app) { t.acc } else { t.fg });
         let label = button_label(app, n);

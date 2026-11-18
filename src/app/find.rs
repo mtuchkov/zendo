@@ -24,7 +24,7 @@ pub struct FindItem {
 
 #[derive(Default)]
 pub struct Find {
-    pub query: String,
+    pub query: crate::text::field::Field,
     pub items: Vec<FindItem>,
     pub sel: usize,
     /// The selected file, read for the preview.
@@ -60,19 +60,21 @@ pub struct Find {
 }
 
 impl App {
-    /// `alt-/`, `/`: open the find panel in Docs mode (FIND-1, FIND-15, FIND-22, FIND-27).
+    /// `alt-/`, `/`: open the find panel in Docs mode, with the selected text as the query
+    /// (FIND-1, FIND-15, FIND-19, FIND-22, FIND-27).
     pub fn open_find(&mut self) {
         if self.mode == Mode::Find {
             return;
         }
         self.track_recent();
+        let seed = self.find_seed();
         if self.mode == Mode::Write {
             self.save();
         }
         self.hold = None;
         let f = &mut self.files.find;
         f.back = Some((self.mode, self.focus, self.cli.view.take()));
-        f.query.clear();
+        f.query.set(&seed);
         f.mode = FindMode::Docs;
         (f.files, f.hits) = (None, Vec::new());
         f.meta.borrow_mut().clear();
@@ -93,7 +95,7 @@ impl App {
     }
 
     /// `esc`: the screen as it was under the panel (FIND-12).
-    fn close_find(&mut self) {
+    pub(crate) fn close_find(&mut self) {
         let (mode, focus, view) = self.files.find.back.take().unwrap_or((Mode::Read, self.focus, None));
         (self.mode, self.focus, self.cli.view) = (mode, focus, view);
         let f = &mut self.files.find;
@@ -105,33 +107,22 @@ impl App {
         f.meta.borrow_mut().clear();
     }
 
-    /// A key in the find panel: these keys are fixed, not in the keymap.
+    /// A key in the find panel: the keys of `[list]`, then the field; `esc` is fixed (PANES-48).
     pub(crate) fn key_find(&mut self, k: KeyEvent) {
-        let plain = !k.modifiers.intersects(KeyModifiers::CONTROL | KeyModifiers::ALT);
-        let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
-        let alt = k.modifiers.contains(KeyModifiers::ALT);
-        match k.code {
-            KeyCode::Esc => self.close_find(),
-            KeyCode::Enter => self.find_enter(),
-            KeyCode::Tab => self.find_mode(false),
-            KeyCode::BackTab => self.find_mode(true),
-            KeyCode::Char('r') if alt => self.toggle_find_regex(),
-            KeyCode::Down => self.find_move(true),
-            KeyCode::Char('j') if ctrl => self.find_move(true),
-            KeyCode::Up => self.find_move(false),
-            KeyCode::Char('k') if ctrl => self.find_move(false),
-            KeyCode::Backspace => self.edit_find(|q| {
-                q.pop();
-            }),
-            KeyCode::Char('u') if ctrl => self.edit_find(String::clear),
-            KeyCode::Char(c) if plain => self.edit_find(|q| q.push(c)),
-            _ => {}
+        match (k.code, self.keys.local(crate::keys::Pane::List, &k)) {
+            (KeyCode::Esc, _) => self.close_find(),
+            (_, Some("open")) => self.find_enter(),
+            (_, Some("down")) => self.find_move(true),
+            (_, Some("up")) => self.find_move(false),
+            (_, Some("next_mode")) => self.find_mode(false),
+            (_, Some("prev_mode")) => self.find_mode(true),
+            (_, Some("regex")) => self.toggle_find_regex(),
+            _ => {
+                if self.field_key(&k, |a| Some(&mut a.files.find.query)) == Some(true) {
+                    self.run_find();
+                }
+            }
         }
-    }
-
-    fn edit_find(&mut self, edit: impl FnOnce(&mut String)) {
-        edit(&mut self.files.find.query);
-        self.run_find();
     }
 
     /// `tab`, `shift-tab`: the next or the previous mode; the query stays (FIND-21, FIND-24).
@@ -204,6 +195,10 @@ impl App {
     /// What the worker looks for: nothing for an empty query and for `?` (FIND-41).
     fn find_ask(&self) -> Option<Ask> {
         let q = self.files.find.query.trim();
+        // A query across lines is text, also when it starts with `#` or `?` (FIND-20).
+        if q.contains(crate::docs::search::NEW_LINE) {
+            return Some(Ask::Lines(q.to_string()));
+        }
         match q.chars().next()? {
             '?' => None,
             '#' => {

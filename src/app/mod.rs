@@ -2,6 +2,10 @@
 
 mod at_keys;
 mod attention;
+mod background;
+mod questions;
+mod steps;
+mod branch;
 mod chat;
 mod chat_keys;
 mod count;
@@ -10,13 +14,16 @@ mod terminal;
 mod terminal_mouse;
 pub mod cursor_map;
 mod composer;
+mod date_keys;
 mod events;
 mod effect;
 mod files;
 mod files_apply;
 mod files_state;
+mod field_keys;
 mod find;
 mod float;
+mod fonts;
 mod jobs;
 mod key_help;
 mod link;
@@ -31,15 +38,21 @@ mod new;
 mod pointer;
 mod read;
 mod reader;
+mod key_hints;
+pub mod rekey;
+pub mod tips;
 mod say;
 mod spec;
 mod selection;
 mod tab;
+mod tasks;
+mod text_edit;
 mod thread;
 mod threads;
 mod transcript;
 mod transcript_keys;
 mod tree;
+mod undo;
 mod update;
 mod work;
 mod worktree;
@@ -53,18 +66,22 @@ pub use composer::Composer;
 pub use composer::chips;
 pub(crate) use composer::{at, slash};
 pub use attention::Attention;
+pub use background::{Background, Bg, ran};
+pub use questions::Ask;
 pub use effect::Effect;
 pub use file_prompt::FilePrompt;
 pub use files_state::Files;
 pub use files_state::tree_keys::{FilterKey, Picked};
 pub use find::{Find, FindItem, FindMode};
 pub use float::Float;
+pub use fonts::FontTip;
 pub use jobs::*;
 pub use key_help::KeyHelp;
 pub use link::AgentLink;
 pub use update::Update;
 pub use hold::{CONTINUE, HOLD_AGAIN, Hold};
 pub use say::{SAY_HERE, Say};
+pub use undo::EXTERNAL_QUESTION;
 pub use spec::{SPEC_BUTTON, spec_question, spec_task};
 pub use slash::Slash;
 pub use tab::{TAB_PAUSE, TabRun};
@@ -140,6 +157,8 @@ pub struct App {
     pub reader: Reader,
     /// Write mode: the draft in the editor, the float, the mark of "say it here".
     pub writer: Writer,
+    /// The loglets of the documents, in `.zendo/db.log.json` (UNDO-4).
+    pub logs: crate::setup::logs::Logs,
 
 
     pub focus: Focus,
@@ -169,9 +188,17 @@ pub struct App {
     pub hold: Option<Hold>,
     /// The bell and the blinking buttons when a turn ends, and the sound button (ATTN-1 to ATTN-11).
     pub attention: Attention,
+    /// The background processes of the agent and of the Claude Code sessions (BG-1 to BG-10).
+    pub bg: Background,
     /// The lofi music, its button, and the question at the first start (LOFI-8 to LOFI-15).
     pub music: crate::music::Music,
+    /// The font tip of the theme picker and its question (FONT-13 to FONT-16, FONT-21).
+    pub font_tip: FontTip,
 
+    /// The key button and the key float: the change of a key in place (REKEY-1).
+    pub rekey: rekey::Rekey,
+    /// The tip menu at start and the tip of the status bar (TIPS-1, TIPS-6).
+    pub tips: tips::Tips,
     /// The mouse: its selection, the pane edge in a drag, and the text that it copies.
     pub pointer: Pointer,
     /// What the last draw left for the mouse and the keys; `ui` builds it, the app only reads it.

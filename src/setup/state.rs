@@ -1,6 +1,7 @@
 //! Local state in `.zendo/db.json`: theme, Claude thread ids, and per-file work:
 //! engaged visits, the text you last worked on (the base for delta), and recaps.
 
+use super::history::History;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -54,6 +55,9 @@ pub struct State {
     /// The name of each Claude session that has one, keyed by its session ID (NAMES-3).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub names: BTreeMap<String, String>,
+    /// The messages of the user: of each zendo session, and the common history (HISTORY-3).
+    #[serde(default, skip_serializing_if = "History::is_empty")]
+    pub history: History,
 }
 
 /// A file that the user opened in the note pane, and when.
@@ -130,6 +134,20 @@ pub fn dir(root: &Path) -> PathBuf {
     root.join(".zendo")
 }
 
+/// The files of `.zendo` that git does not see: the state, the loglets (UNDO-4) and the log.
+const IGNORED: &str = "db.json\ndb.json.tmp\ndb.log.json\ndb.log.json.tmp\nstate.json\nagent.log\n";
+
+/// `.zendo/.gitignore` gets the files of IGNORED that it does not have; its other lines stay.
+pub(crate) fn ignore(d: &Path) {
+    let path = d.join(".gitignore");
+    let has = fs::read_to_string(&path).unwrap_or_default();
+    let missing: String = IGNORED.lines().filter(|f| !has.lines().any(|l| l == *f)).map(|f| format!("{f}\n")).collect();
+    if !missing.is_empty() {
+        let sep = if has.is_empty() || has.ends_with('\n') { "" } else { "\n" };
+        let _ = fs::write(&path, format!("{has}{sep}{missing}"));
+    }
+}
+
 impl State {
     pub fn wide(&self) -> bool {
         self.layout != "standard"
@@ -164,11 +182,7 @@ impl State {
         if fs::create_dir_all(&d).is_err() {
             return;
         }
-        let ignore = d.join(".gitignore");
-        let want = "db.json\ndb.json.tmp\nstate.json\nagent.log\n";
-        if fs::read_to_string(&ignore).map(|s| !s.contains("db.json")).unwrap_or(true) {
-            let _ = fs::write(&ignore, want);
-        }
+        ignore(&d);
         if let Ok(s) = serde_json::to_string_pretty(self) {
             let tmp = d.join("db.json.tmp");
             if fs::write(&tmp, s).is_ok() {

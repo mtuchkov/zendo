@@ -9,26 +9,31 @@ pub(crate) const STRIP_W: u16 = 2;
 /// The name of a view in the hint.
 fn hint_name(v: View) -> &'static str {
     match v {
-        View::WorktreeChanged => "worktree Δ",
+        View::WorktreeChanged => "worktree ∆",
         v => v.name(),
     }
 }
 
 /// The rows of the letters: the views of the files one under the other with an empty row between
-/// them, a line, then `N`.
+/// them, a line, then `N`; without the empty rows where the pane is too low for them.
 fn places(views: &[View], area: Rect) -> (Vec<(View, u16)>, Option<u16>) {
+    let rows = views.len() as u16 + u16::from(views.contains(&View::Notes));
+    let step = if rows * 2 - 1 <= area.height { 2 } else { 1 };
     let mut out = Vec::new();
     let mut y = area.y;
     let mut rule = None;
     for v in views {
         if *v == View::Notes {
             rule = Some(y);
-            y += 2;
+            y += step;
         }
         out.push((*v, y));
-        y += 2;
+        y += step;
     }
-    (out.into_iter().filter(|(_, y)| *y < area.bottom()).collect(), rule.filter(|y| *y < area.bottom()))
+    let shown: Vec<(View, u16)> = out.into_iter().filter(|(_, y)| *y < area.bottom()).collect();
+    // The line stands only over a letter that shows.
+    let rule = rule.filter(|_| shown.iter().any(|(v, _)| *v == View::Notes));
+    (shown, rule)
 }
 
 /// The strip, or the hint over the tree while it shows; both take clicks (FILES-73).

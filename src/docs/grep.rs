@@ -45,6 +45,9 @@ pub enum Ask {
     Text { query: String, regex: bool },
     /// A tag that starts with the word, in markdown files (FIND-33).
     Tag(String),
+    /// Lines that follow one another, a `⏎` between two lines of the query, in markdown files
+    /// (FIND-20).
+    Lines(String),
     /// A requirement ID of one of the patterns that starts with the word, in every text file
     /// (FIND-32, FIND-34).
     Id { word: String, patterns: Vec<regex::Regex> },
@@ -59,6 +62,8 @@ impl Ask {
             Ask::Text { query, .. } => regex::escape(query),
             Ask::Tag(w) => format!("#{}", regex::escape(w)),
             Ask::Id { word, .. } => regex::escape(word),
+            // The first line of the query marks the match.
+            Ask::Lines(q) => regex::escape(q.split(crate::docs::search::NEW_LINE).next().unwrap_or("").trim()),
         }
     }
 
@@ -117,7 +122,18 @@ fn prefilter(ask: &Ask) -> Option<RegexMatcher> {
     RegexMatcherBuilder::new().case_insensitive(true).build(&ask.source()).ok()
 }
 
+/// A query across lines, with the search of lines of `docs::search` on the text from the disk.
+fn search_lines(q: &str, p: &Path, mark: Option<&regex::Regex>) -> Option<Hit> {
+    let note = crate::docs::notes::load(p).ok()?;
+    let group = super::search_lines::search(std::slice::from_ref(&note), q).into_iter().next()?;
+    let snippets = group.snippets.into_iter().map(|s| snippet(s.line, &s.text, mark)).collect();
+    Some(Hit { path: p.to_path_buf(), count: group.count, exact: false, snippets })
+}
+
 fn search_file(searcher: &mut grep_searcher::Searcher, matcher: &RegexMatcher, ask: &Ask, mark: Option<&regex::Regex>, p: &Path) -> Option<Hit> {
+    if let Ask::Lines(q) = ask {
+        return search_lines(q, p, mark);
+    }
     let mut hit = Hit { path: p.to_path_buf(), count: 0, exact: false, snippets: Vec::new() };
     let sink = UTF8(|n, line| {
         let line = line.trim_end_matches(['\n', '\r']);
@@ -140,7 +156,7 @@ fn search_file(searcher: &mut grep_searcher::Searcher, matcher: &RegexMatcher, a
 /// The line has a match for the ask; and for an ID, the whole ID.
 fn line_matches(ask: &Ask, line: &str) -> (bool, bool) {
     match ask {
-        Ask::Text { .. } => (true, false),
+        Ask::Text { .. } | Ask::Lines(_) => (true, false),
         Ask::Tag(w) => {
             let w = w.to_lowercase();
             (crate::docs::notes::tags_in(line).iter().any(|t| t.to_lowercase().starts_with(&w)), false)

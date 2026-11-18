@@ -1,7 +1,7 @@
 //! The theme picker and the keys help.
 use super::*;
 
-pub(crate) fn draw_themes(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
+pub(crate) fn draw_themes(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
     f.render_widget(Block::new().style(Style::new().bg(t.panel)), area);
     let inner = Rect { x: area.x + 2, y: area.y + 1, width: area.width.saturating_sub(4), height: area.height.saturating_sub(1) };
     let dim = Style::new().fg(t.dim);
@@ -9,7 +9,7 @@ pub(crate) fn draw_themes(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     for (i, th) in THEMES.iter().enumerate() {
         let sel = i == app.theme;
         let mut spans = vec![
-            Span::styled(if sel { "▸ " } else { "  " }, Style::new().fg(t.acc)),
+            Span::styled(if sel { "› " } else { "  " }, Style::new().fg(t.acc)),
             Span::styled(format!("{:<9}", th.name), Style::new().fg(t.fg)),
             Span::styled(format!("{:<14}", th.blurb), dim),
         ];
@@ -28,23 +28,48 @@ pub(crate) fn draw_themes(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     for s in ["The note changes as you move.", "Your choice is saved in .zendo/."] {
         lines.push(Line::styled(s, dim));
     }
+    fr.font_button = font_tip(app, t, inner, &mut lines);
     f.render_widget(Paragraph::new(lines), inner);
 }
 
+/// Under the themes: the tip while a recommended font is missing, and the font button with an
+/// agent (FONT-13, FONT-16, FONT-21). The rect of the button, when it is on the screen.
+fn font_tip(app: &App, t: &Theme, inner: Rect, lines: &mut Vec<Line<'static>>) -> Option<Rect> {
+    let button = app.font_button();
+    if !app.font_tip.missing && button.is_none() {
+        return None;
+    }
+    lines.push(Line::raw(""));
+    if app.font_tip.missing {
+        let tip = "Recommended fonts for the terminal: run `zendo setup fonts`.";
+        lines.extend(markdown::wrap(vec![Span::styled(tip, Style::new().fg(t.dim))], inner.width as usize, "", ""));
+    }
+    let b = button?;
+    let y = inner.y + lines.len() as u16;
+    lines.push(Line::styled(b, Style::new().fg(t.acc)));
+    (y < inner.bottom() && b.width() as u16 <= inner.width).then_some(Rect { x: inner.x, y, width: b.width() as u16, height: 1 })
+}
+
 /// All keys of the pane where the help key was pressed, and the global keys, from the keymap, in
-/// groups (PANES-30); under them the keymap file and the version (PANES-31).
-pub(crate) fn draw_help(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
+/// groups (PANES-30); under them the keymap file and the version (PANES-31). Returns its area.
+pub(crate) fn draw_help(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) -> Rect {
     use crate::keys::Pane;
-    let mut groups = help_section(app, t, app.key_help.pane());
+    let mut groups = help_section(t, app.key_help.pane());
     // Where the user writes, the keys while text is selected (PANES-39).
     if matches!(app.key_help.pane(), Pane::Write | Pane::Chat) {
-        let mut sel = help_section(app, t, Pane::Selected);
-        sel[0].insert(0, Line::raw(""));
+        let mut sel = help_section(t, Pane::Selected);
+        sel[0].insert(0, Row::Text(Line::raw("")));
         groups.append(&mut sel);
     }
+    // Where a one-line field takes keys: find and search (the global help), the tree filter (TEXT-11).
+    if matches!(app.key_help.pane(), Pane::Global | Pane::Tree) {
+        let mut field = help_section(t, Pane::Field);
+        field[0].insert(0, Row::Text(Line::raw("")));
+        groups.append(&mut field);
+    }
     if app.key_help.pane() != Pane::Global {
-        let mut global = help_section(app, t, Pane::Global);
-        global[0].insert(0, Line::raw(""));
+        let mut global = help_section(t, Pane::Global);
+        global[0].insert(0, Row::Text(Line::raw("")));
         groups.append(&mut global);
     }
     let dim = Style::new().fg(t.dim);
@@ -65,15 +90,41 @@ pub(crate) fn draw_help(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     let n = cols.len() as u32;
     let areas = Layout::horizontal((0..n).map(|_| Constraint::Ratio(1, n))).split(keys);
     for (col, a) in cols.into_iter().zip(areas.iter()) {
-        f.render_widget(Paragraph::new(col), *a);
+        let lines: Vec<Line> = col.into_iter().enumerate().map(|(i, row)| row.line(app, t, a.x, a.y + i as u16, &mut fr.key_targets)).collect();
+        f.render_widget(Paragraph::new(lines), *a);
     }
     f.render_widget(Paragraph::new(footer), bottom);
+    r
 }
 
-/// The keys of one pane, a list of lines for each group: the name of the pane, then each group
+/// A row of the help: a heading, or the keys and the help of an action.
+enum Row {
+    Text(Line<'static>),
+    Action(crate::keys::Pane, &'static str),
+}
+
+impl Row {
+    /// The line at column `x`, row `y`; each key of an action is a target of a click (REKEY-1).
+    fn line(self, app: &App, t: &Theme, x: u16, y: u16, targets: &mut Vec<(Rect, crate::app::rekey::KeyTarget)>) -> Line<'static> {
+        let (pane, name) = match self {
+            Row::Text(l) => return l,
+            Row::Action(p, n) => (p, n),
+        };
+        let help = crate::keys::ACTIONS.iter().find(|a| a.pane == pane && a.name == name).map_or("", |a| a.help);
+        let help = if app.agent_can(name) { help.to_string() } else { format!("{help} (not with {})", app.agent_label()) };
+        let mut spans = vec![Span::raw("  ")];
+        spans.extend(super::rekey::help_keys(app, t, pane, name, x + 2, y, targets));
+        let width: usize = spans.iter().map(|s| s.content.width()).sum();
+        spans.push(Span::raw(" ".repeat(18usize.saturating_sub(width))));
+        spans.push(Span::styled(help, Style::new().fg(t.dim)));
+        Line::from(spans)
+    }
+}
+
+/// The keys of one pane, a list of rows for each group: the name of the pane, then each group
 /// with its heading and its actions.
-fn help_section(app: &App, t: &Theme, pane: crate::keys::Pane) -> Vec<Vec<Line<'static>>> {
-    let mut groups = vec![vec![Line::styled(format!("  {}", pane.name().to_uppercase()), Style::new().fg(t.acc).add_modifier(Modifier::BOLD))]];
+fn help_section(t: &Theme, pane: crate::keys::Pane) -> Vec<Vec<Row>> {
+    let mut groups = vec![vec![Row::Text(Line::styled(format!("  {}", pane.name().to_uppercase()), Style::new().fg(t.acc).add_modifier(Modifier::BOLD)))]];
     let mut seen = std::collections::BTreeSet::new();
     let mut group = None;
     // Two actions with one help (the edges): one row.
@@ -82,19 +133,17 @@ fn help_section(app: &App, t: &Theme, pane: crate::keys::Pane) -> Vec<Vec<Line<'
             if group.is_some() {
                 groups.push(Vec::new());
             }
-            groups.last_mut().expect("a group").push(Line::styled(format!("  {}", a.group.name()), Style::new().fg(t.acc2)));
+            groups.last_mut().expect("a group").push(Row::Text(Line::styled(format!("  {}", a.group.name()), Style::new().fg(t.acc2))));
             group = Some(a.group);
         }
-        let help = if app.agent_can(a.name) { a.help.to_string() } else { format!("{} (not with {})", a.help, app.agent_label()) };
-        let row = Line::from(vec![Span::styled(format!("  {:<16}", app.keys.label(pane, a.name)), Style::new().fg(t.fg)), Span::styled(help, Style::new().fg(t.dim))]);
-        groups.last_mut().expect("a group").push(row);
+        groups.last_mut().expect("a group").push(Row::Action(pane, a.name));
     }
     groups
 }
 
 /// The groups in columns of at most `height` lines; a group stays whole in one column.
-fn columns(groups: Vec<Vec<Line<'static>>>, height: usize) -> Vec<Vec<Line<'static>>> {
-    let mut cols: Vec<Vec<Line<'static>>> = vec![Vec::new()];
+fn columns<T>(groups: Vec<Vec<T>>, height: usize) -> Vec<Vec<T>> {
+    let mut cols: Vec<Vec<T>> = vec![Vec::new()];
     for g in groups {
         if cols.last().is_some_and(|c| !c.is_empty() && c.len() + g.len() > height) {
             cols.push(g);
@@ -117,29 +166,53 @@ pub(crate) fn draw_confirm(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     f.render_widget(Paragraph::new(lines).block(block), r);
 }
 
+/// The questions over the screen: of the music at the first start, and of the font button.
+pub(crate) fn draw_questions(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
+    draw_music_question(f, app, fr, t, area);
+    draw_font_question(f, app, fr, t, area);
+    draw_external_question(f, app, fr, t, area);
+}
+
+/// The question before the undo of a change of another writer (UNDO-12). Its answers take a click.
+pub(crate) fn draw_external_question(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
+    let text = crate::app::EXTERNAL_QUESTION;
+    let ask = app.writer.asks_external();
+    fr.external_answers = ask.then(|| question(f, t, area, " external change ", text, ("[ undo it · y ]", "[ keep it · n ]"))).flatten();
+}
+
 /// The question of the first start, over the screen while the music plays: keep the lofi music on
 /// at each start, or turn it off (LOFI-12). Its two answers take a click.
-pub(crate) fn draw_music_question(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
-    fr.music_answers = None;
-    if !app.music.asking {
-        return;
-    }
-    let w = 58.min(area.width);
+fn draw_music_question(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
     let text = "zendo plays calm lofi music that it makes itself. Keep it on at each start? The [music] button and alt-m stop and start it any time.";
-    let mut lines = markdown::wrap(vec![Span::styled(text, Style::new().fg(t.fg))], w.saturating_sub(4) as usize, "  ", "  ");
-    let (keep, off) = ("[ keep on · y ]", "[ turn off · n ]");
+    fr.music_answers = app.music.asking.then(|| question(f, t, area, " lofi music ", text, ("[ keep on · y ]", "[ turn off · n ]"))).flatten();
+}
+
+/// The question of the font button: may zendo ask the agent (FONT-14). Its answers take a click.
+fn draw_font_question(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
+    let text = match app.font_tip.missing {
+        true => "May zendo ask the agent to install the recommended fonts? The agent runs `zendo setup fonts`, then asks you which font to set in your terminal.",
+        false => "May zendo ask the agent to change the font of your terminal? The agent asks you which font to use before it changes anything.",
+    };
+    fr.font_answers = app.font_tip.asking.then(|| question(f, t, area, " fonts ", text, ("[ yes · y ]", "[ no · n ]"))).flatten();
+}
+
+/// A float in the middle of the screen with a question and two answers; the rects of the answers,
+/// when the whole float fits.
+fn question(f: &mut Frame, t: &Theme, area: Rect, title: &str, text: &str, (yes, no): (&str, &str)) -> Option<(Rect, Rect)> {
+    let w = 58.min(area.width);
+    let mut lines = markdown::wrap(vec![Span::styled(text.to_string(), Style::new().fg(t.fg))], w.saturating_sub(4) as usize, "  ", "  ");
     lines.push(Line::raw(""));
-    lines.push(Line::from(vec![Span::raw("  "), Span::styled(keep, Style::new().fg(t.ext.doc)), Span::raw("   "), Span::styled(off, Style::new().fg(t.dim))]));
+    lines.push(Line::from(vec![Span::raw("  "), Span::styled(yes.to_string(), Style::new().fg(t.ext.doc)), Span::raw("   "), Span::styled(no.to_string(), Style::new().fg(t.dim))]));
     let rows = lines.len() as u16;
     let h = (rows + 2).min(area.height);
     let r = Rect { x: area.x + (area.width - w) / 2, y: area.y + (area.height - h) / 2, width: w, height: h };
     f.render_widget(Clear, r);
-    let block = Block::bordered().title(" lofi music ").border_style(Style::new().fg(t.ext.doc)).style(Style::new().bg(t.panel));
+    let block = Block::bordered().title(title.to_string()).border_style(Style::new().fg(t.ext.doc)).style(Style::new().bg(t.panel));
     f.render_widget(Paragraph::new(lines).block(block), r);
     // On a screen too small for the whole float, the answers take keys only: no rect points at a
     // line that is not drawn.
-    let fits = h == rows + 2 && w as usize >= keep.width() + off.width() + 7;
+    let fits = h == rows + 2 && w as usize >= yes.width() + no.width() + 7;
     let (y, x) = (r.bottom().saturating_sub(2), r.x + 3);
     let button = |x: u16, s: &str| Rect { x, y, width: s.width() as u16, height: 1 };
-    fr.music_answers = fits.then(|| (button(x, keep), button(x + keep.width() as u16 + 3, off)));
+    fits.then(|| (button(x, yes), button(x + yes.width() as u16 + 3, no)))
 }

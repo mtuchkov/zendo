@@ -15,11 +15,20 @@ pub const NEW_KEY: &str = "(new note)";
 /// A file goes with a question when it did not go with one of the last this many questions.
 pub const ATTACH_EVERY: usize = 20;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ToolUse {
     pub id: String,
     pub title: String,
     pub kind: String,
+    /// Where the call is in its life (ACT-1, ACT-8).
+    pub state: crate::agent::ToolState,
+    /// Its file, error, input, output and exit code; the file from the root of the repository
+    /// when it is inside it (ACT-6, ACT-8, INTER-2).
+    pub info: crate::agent::ToolInfo,
+    /// The user opened the step: its input and output show under its line (INTER-2).
+    pub open: bool,
+    /// When zendo got the call: a command that starts after it belongs to it (BG-1).
+    pub started: Option<Instant>,
 }
 
 #[derive(Clone, Debug)]
@@ -30,12 +39,16 @@ pub enum Item {
     Blocked(String),
     Info(String),
     Error(String),
+    /// A question of the agent with choices (ACT-4).
+    Question(Box<crate::app::Ask>),
 }
 
 #[derive(Default)]
 pub struct Thread {
     pub items: Vec<Item>,
     pub busy: Option<Instant>,
+    /// The time of the last event of the agent in this turn (ACT-2).
+    pub news: Option<Instant>,
     pub session: Option<String>,
     pub thinking: bool,
     /// Context was sent once in this run.

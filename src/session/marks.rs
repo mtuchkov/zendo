@@ -1,5 +1,5 @@
 //! The OSC 133 marks of the shells of the terminals (TERM-34): zendo loads a short script into bash,
-//! zsh and fish when it starts them, and does not change the files of the user.
+//! zsh, fish and the POSIX shells when it starts them, and does not change the files of the user.
 use portable_pty::CommandBuilder;
 use std::path::Path;
 
@@ -64,8 +64,28 @@ if not set -q __zendo_marks
 end
 "#;
 
+/// The POSIX shells (sh, dash, ash, ksh, mksh): `ENV` points here; the file reads the `ENV` file
+/// of the user, then puts the marks into `PS1`. These shells have no hook before a command, so they
+/// send no C mark: the prompt sends D with the exit code (`$?` in `PS1`), then A and B.
+const SH: &str = r#"# zendo: the OSC 133 marks of the terminals of zendo (docs/zendo/terminal/terminal-output.md).
+if [ -n "$ZENDO_ENV" ]; then ENV=$ZENDO_ENV; else unset ENV; fi
+unset ZENDO_ENV
+[ -n "$ENV" ] && [ -f "$ENV" ] && . "$ENV"
+if [ -z "$__zendo_marks" ]; then
+  __zendo_marks=1
+  __zendo_d=$(printf '\033]133;D;')
+  __zendo_a=$(printf '\007\033]133;A\007')
+  __zendo_b=$(printf '\033]133;B\007')
+  if [ -n "$BASH_VERSION" ]; then
+    PS1="\[$__zendo_d\$?$__zendo_a\]${PS1:-\$ }\[$__zendo_b\]"
+  else
+    PS1="$__zendo_d\$?$__zendo_a${PS1:-\$ }$__zendo_b"
+  fi
+fi
+"#;
+
 /// Add the script of the marks to the start of `program`, with the files in `dir`. A shell that is
-/// not bash, zsh or fish starts as it is.
+/// not bash, zsh, fish or a POSIX shell starts as it is.
 pub fn prepare(b: &mut CommandBuilder, program: &str, dir: &Path) -> std::io::Result<()> {
     let name = Path::new(program).file_name().and_then(|n| n.to_str()).unwrap_or("").trim_start_matches('-');
     match name {
@@ -90,6 +110,14 @@ pub fn prepare(b: &mut CommandBuilder, program: &str, dir: &Path) -> std::io::Re
             std::fs::write(dir.join("marks.fish"), FISH)?;
             b.arg("-C");
             b.arg(format!("source '{}'", dir.join("marks.fish").display()));
+        }
+        "sh" | "dash" | "ash" | "ksh" | "mksh" => {
+            std::fs::create_dir_all(dir)?;
+            std::fs::write(dir.join("marks.sh"), SH)?;
+            if let Ok(user) = std::env::var("ENV") {
+                b.env("ZENDO_ENV", user);
+            }
+            b.env("ENV", dir.join("marks.sh"));
         }
         _ => {}
     }

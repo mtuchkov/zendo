@@ -1,12 +1,12 @@
 ---
 status: "draft"
-revision: "11"
+revision: "12"
 date: "2026-11-14"
 parent: "zendo.md"
 prev: "threads.md"
 next: "session-names/session-names.md"
 level: "Claude Code sessions that zendo runs: open, leave, states, up to five at a time"
-note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Revision 12: SESSIONS-1 lets zendo take a quiet session back to the agent (back-to-the-agent.md, User, 2026-11-18)."
 ---
 
 # Sessions
@@ -34,6 +34,9 @@ Code, not through ACP; Claude Code queues it while it works. The chat shows its 
 ([Claude Code messages in the chat](cli-messages.md)). When the session ends, zendo opens the agent
 session again.
 
+A quiet session that the user left goes back to the agent of the chat by itself
+([Back to the agent](back-to-the-agent.md)).
+
 **Quit.** A Claude Code session lives while zendo runs; the conversation stays. If sessions run,
 the first quit asks. With Codex these keys are off (CLAUDE-14).
 
@@ -41,7 +44,7 @@ the first quit asks. With Codex these keys are off (CLAUDE-14).
 
 | ID         | Pattern    | Requirement                                                                                                                    | Source           |
 | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
-| SESSIONS-1 | Event      | When the user leaves a Claude Code session, the system shall keep it running until it ends or zendo quits.                    | User, 2026-11-12 |
+| SESSIONS-1 | Event      | When the user leaves a Claude Code session, the system shall keep it running until it ends, zendo quits, or zendo takes the thread back to the agent (RETURN-1). | User, 2026-11-12; User, 2026-11-18 |
 | SESSIONS-2 | Ubiquitous | The system shall run up to five Claude Code sessions at a time, one for each agent session.                                  | User, 2026-11-12 |
 | SESSIONS-3 | Ubiquitous | The system shall run each Claude Code session in a terminal that zendo owns, without tmux, a multiplexer, or a server process. | User, 2026-11-12 |
 | SESSIONS-4 | State      | While a Claude Code session runs, the system shall send the questions of the chat of its agent session to that Claude Code session, not to the agent. | User, 2026-11-12 |

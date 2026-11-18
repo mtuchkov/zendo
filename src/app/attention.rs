@@ -119,9 +119,14 @@ impl App {
     }
 
     /// The terminal got or lost the focus (ATTN-11); the music pauses without it (LOFI-15).
+    /// The terminal gets or loses the focus. Back in write mode, zendo looks at the file at once:
+    /// a change outside zendo goes into the loglet (UNDO-15).
     pub fn on_focus(&mut self, focused: bool) {
         self.attention.focused = focused;
         self.music.focus(focused);
+        if focused && self.mode == Mode::Write {
+            self.reload_after_agent();
+        }
     }
 
     /// The sound button: turn the bell off or on, and save it in the config (ATTN-8).

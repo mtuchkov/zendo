@@ -1,12 +1,12 @@
 ---
 status: "draft"
-revision: "2"
+revision: "3"
 date: "2026-11-14"
 parent: "zendo.md"
 prev: "handoff.md"
-next: "zendo-session.md"
+next: "cli-activity.md"
 level: "the messages of a running Claude Code session in the chat of its agent session: where they come from, what shows, when they go"
-note: "Agent draft from the decision of the user on 2026-11-13 in chat. Not reviewed by the user as a document. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft from the decision of the user on 2026-11-13 in chat. Revision 3: CLIMSG-8 keeps the thoughts, the tool results and the work of a subagent out of the transcript only; cli-activity.md shows them (User, 2026-11-18). Not reviewed by the user as a document. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Claude Code messages in the chat
@@ -73,7 +73,7 @@ The tests are in `tests/cli_messages.rs`, with the mock command line of [Session
 | CLIMSG-5 | Ubiquitous | The hooks that report messages shall print nothing.                                                                                      | Design           |
 | CLIMSG-6 | Unwanted | If the input of a hook has no text of the answer, then the system shall show no answer for that turn.                                       | Design           |
 | CLIMSG-7 | Event    | When a Claude Code session ends, the system shall replace its messages in the chat with the history that the agent loads.                    | Design; SESSIONS-13 |
-| CLIMSG-8 | State    | While a turn of Claude Code runs, the system shall show each text that Claude writes between the tool calls, in its order, and shall not show the thoughts, the tool results and the work of a subagent. | User, 2026-11-14 |
+| CLIMSG-8 | State    | While a turn of Claude Code runs, the system shall show each text that Claude writes between the tool calls, in its order, and shall not put the thoughts, the tool results and the work of a subagent into the transcript; the status line and the open steps show them ([Activity of a Claude Code session](cli-activity.md)). | User, 2026-11-14; User, 2026-11-18 |
 | CLIMSG-9 | State    | While a turn of Claude Code runs, the system shall show each tool call as the chat shows a tool of the agent: one line with the tool and what it is about. | User, 2026-11-14 |
 | CLIMSG-10 | Event   | When the hooks name another transcript file, as after `/clear`, the system shall read the steps from that file: from its start for a new conversation, and from its end for a resumed one. | User, 2026-11-14 |
 | CLIMSG-11 | Unwanted | If a line of the transcript file is not in the format that zendo knows, then the system shall show nothing for that line and shall still show the prompts and the final answers. | Design |

@@ -1,5 +1,6 @@
 //! The selection in read mode, and what it gives the chat.
 use super::*;
+use crate::docs::search::NEW_LINE;
 
 impl App {
     /// The selection in read mode, start before end, both ends in it: ((row, col), (row, col)).
@@ -14,6 +15,26 @@ impl App {
 
     pub(crate) fn selection_text(&self) -> String {
         self.reader.selection_text(self.frame.read_text())
+    }
+
+    /// The selection as a query of the find panel: each new line of the source as `⏎`; in read
+    /// mode, a row that wraps the line before joins with a space (FIND-19).
+    pub(crate) fn find_seed(&self) -> String {
+        let text = match self.mode {
+            Mode::Write => self.writer.editor().selected_text().unwrap_or_default(),
+            Mode::Read if self.reader.table(self.frame.read_text()).is_some() => self.selection_text(),
+            Mode::Read => self.read_seed(),
+            _ => String::new(),
+        };
+        text.trim().replace('\n', &NEW_LINE.to_string())
+    }
+
+    /// The selected rows of read mode: a new line before a row that starts a source line.
+    fn read_seed(&self) -> String {
+        let Some((r1, parts)) = self.reader.selected_rows(self.frame.read_text()) else { return String::new() };
+        let starts: std::collections::HashSet<usize> = self.frame.read_rows().iter().copied().collect();
+        let sep = |r: usize| if starts.contains(&r) { "\n" } else { " " };
+        parts.iter().enumerate().fold(String::new(), |s, (i, p)| if i == 0 { p.clone() } else { s + sep(r1 + i) + p })
     }
 
     /// The selection, or the paragraph under the cursor, quoted with its file and source lines.
@@ -61,7 +82,7 @@ impl App {
             Region::Panel if self.cli.pane.is_some() => format!("Text from the terminal:\n{quoted}"),
             Region::Panel => format!("Text from this chat:\n{quoted}"),
         };
-        let label = self.composer.add_chip(chips::selection_label(&text), Some(ctx), None, true);
+        let label = self.composer.add_chip(chips::text_label(&text), Some(ctx), None, true);
         self.open_panel();
         if self.threads.shown() {
             self.focus = Focus::Claude;
@@ -88,7 +109,7 @@ impl App {
             self.flash("nothing to add here");
             return;
         };
-        let label = self.composer.add_chip(chips::selection_label(&self.selection_text()), Some(ctx), None, true);
+        let label = self.composer.add_chip(chips::text_label(&self.selection_text()), Some(ctx), None, true);
         self.reader.unselect();
         let back = self.focus;
         self.open_panel();
@@ -117,7 +138,7 @@ impl App {
         let rel = self.writer.path().map(|p| self.rel(p)).unwrap_or_default();
         let quoted: String = text.lines().map(|l| format!("> {l}\n")).collect();
         let ctx = format!("Selected text from {rel} (about lines {}–{}):\n{quoted}", lo + 1, hi + 1);
-        let label = self.composer.add_chip(chips::selection_label(&text), Some(ctx), None, true);
+        let label = self.composer.add_chip(chips::text_label(&text), Some(ctx), None, true);
         let back = self.focus;
         self.open_panel();
         if self.threads.shown() {

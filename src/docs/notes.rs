@@ -178,13 +178,22 @@ pub fn tags_in(body: &str) -> Vec<String> {
     tags
 }
 
-pub fn git_branch(root: &Path) -> Option<String> {
-    let head = fs::read_to_string(root.join(".git/HEAD")).ok()?;
+/// The git branch of the checkout that holds `path`: the nearest folder with `.git`, a folder, or the
+/// file of a worktree that names its git folder. A detached head gives its first 7 chars. Reads the
+/// files of git and starts no git (FILES-65).
+pub fn git_branch(path: &Path) -> Option<String> {
+    let dot = path.ancestors().map(|d| d.join(".git")).find(|g| g.exists())?;
+    let dir = match fs::read_to_string(&dot) {
+        Ok(text) => dot.parent()?.join(text.trim().strip_prefix("gitdir:")?.trim()),
+        Err(_) => dot,
+    };
+    let head = fs::read_to_string(dir.join("HEAD")).ok()?;
     let head = head.trim();
-    Some(match head.strip_prefix("ref: refs/heads/") {
+    let name = match head.strip_prefix("ref: refs/heads/") {
         Some(b) => b.to_string(),
         None => head.chars().take(7).collect(),
-    })
+    };
+    (!name.is_empty()).then_some(name)
 }
 
 #[cfg(test)]

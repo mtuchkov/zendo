@@ -8,13 +8,24 @@ impl App {
 
     /// Mouse: drag selects inside one panel, release copies, the wheel scrolls the panel under it.
     /// A program in a terminal that takes the mouse gets it first (TERM-43, TERM-44).
-    pub fn on_mouse(&mut self, m: MouseEvent) {
+    pub(super) fn mouse_in(&mut self, m: MouseEvent) {
         if self.hold.is_some() {
             return;
         }
         if !matches!(m.kind, MouseEventKind::Moved) {
             self.work.input_now();
             self.tab_run.end();
+        }
+        // The tip menu and the key float take the mouse: only their buttons count (TIPS-3,
+        // REKEY-12, REKEY-25, REKEY-29).
+        if self.tips.open || self.rekey.float().is_some() {
+            if m.kind == MouseEventKind::Down(MouseButton::Left) {
+                if self.tips.open { self.click_tips(m.column, m.row) } else { self.click_key_float(m.column, m.row) }
+            }
+            return;
+        }
+        if m.kind == MouseEventKind::Down(MouseButton::Left) && self.click_off_panel(m.column, m.row) {
+            return;
         }
         // The float takes the mouse: only what happens over it counts.
         if let Some(fl) = self.writer.float() {
@@ -54,7 +65,6 @@ impl App {
         } else if let Some(open) = self.frame.tree_fold().iter().find(|(r, _)| hit(r)).map(|(_, o)| *o) {
             self.fold_all(open);
         } else if let Some(i) = self.frame.tree_rows().iter().find(|(r, _)| hit(r)).map(|(_, i)| *i) {
-            self.focus = Focus::Tree;
             self.files.select_row(i);
             self.did_by_mouse(crate::keys::Pane::Tree, "preview");
             self.tree_activate(false);
@@ -86,6 +96,19 @@ impl App {
         if self.music.asking {
             return self.click_music_question(x, y);
         }
+        if self.font_tip.asking {
+            return self.click_font_question(x, y);
+        }
+        if self.writer.asks_external() {
+            return self.click_external_question(x, y);
+        }
+        if self.mode == Mode::Theme && self.frame.font_button().is_some_and(|r| hit(&r)) {
+            return self.press_font_button();
+        }
+        if self.click_key(x, y) {
+            return;
+        }
+        self.focus_pane_at(x, y);
         if self.frame.music_button().is_some_and(|r| hit(&r)) {
             return self.toggle_music();
         }
@@ -103,41 +126,83 @@ impl App {
             self.did_by_mouse(crate::keys::Pane::Read, "upgrade");
             return self.upgrade();
         }
-        if let Some(n) = self.frame.session_buttons().iter().find(|(r, _)| hit(r)).map(|(_, n)| *n) {
-            self.count_session_button(n);
-            return if n < SESSIONS { self.switch_session(n) } else { self.open_terminal(n - SESSIONS) };
-        }
-        if let Some(cmd) = self.frame.play_buttons().iter().find(|(r, _)| hit(r)).map(|(_, c)| c.to_string()) {
-            self.did_by_mouse(crate::keys::Pane::Global, "terminal");
-            return self.put_into_terminal(&cmd, false);
+        if self.click_panel_button(&hit) {
+            return;
         }
         if self.click_tree(&hit) {
             return;
         }
         let Some((region, rect)) = self.region_at(x, y) else { return };
         self.pointer.press(Some(Selection::start(region, rect, x, y)));
-        if matches!(self.mode, Mode::Read | Mode::Write) {
-            self.focus = match region {
-                Region::Panel => Focus::Claude,
-                Region::Delta => Focus::Delta,
-                Region::Note => Focus::Note,
-            };
+        let (dx, dy) = ((x - rect.x) as usize, (y - rect.y) as usize);
+        if region == Region::Note && self.click_task(dy, dx) {
+            self.pointer.clear();
+            return self.interact(1);
         }
-        if region != Region::Panel {
-            self.interact(1);
+        match region {
+            Region::Panel if self.focus == Focus::Claude && self.cli.pane.is_none() => {
+                self.threads.click(dy, rect.height as usize, dx);
+                self.click_step();
+            }
+            Region::Panel => {}
+            Region::Note if self.mode == Mode::Read => self.place_reader(dy, dx),
+            _ => self.interact(1),
         }
-        if region == Region::Note && self.mode == Mode::Read {
-            let at = self.reader.scroll() + (y - rect.y) as usize;
-            let row = self.frame.read_text().get(at).cloned().unwrap_or_default();
-            let mut w = 0;
-            let want = (x - rect.x) as usize;
-            let col = row.trim_end().chars().take_while(|c| {
-                w += unicode_width::UnicodeWidthChar::width(*c).unwrap_or(0);
-                w <= want
-            }).count().min(row.trim_end().chars().count().saturating_sub(1));
-            self.reader.place(at, col);
-            self.reader.unselect();
+    }
+
+    /// A click off a panel that stands over the screen closes it, as `esc` does: the help, the
+    /// find panel, or the float under them (PANES-47). True when the click closed a panel.
+    /// A button of the chat panel: a session, a new terminal, the background line (BG-3, BG-8), or
+    /// the play button of a shell block. True when the click hit one.
+    fn click_panel_button(&mut self, hit: &impl Fn(&Rect) -> bool) -> bool {
+        if let Some(n) = self.frame.session_buttons().iter().find(|(r, _)| hit(r)).map(|(_, n)| *n) {
+            self.count_session_button(n);
+            if n < SESSIONS { self.switch_session(n) } else { self.open_terminal(n - SESSIONS) }
+        } else if self.frame.new_terminal_button().is_some_and(|r| hit(&r)) {
+            self.new_terminal();
+        } else if let Some((_, pgid, stop)) = self.frame.bg_buttons().iter().find(|(r, ..)| hit(r)).copied() {
+            if stop { self.stop_background(pgid) } else { self.show_background(pgid) }
+        } else if let Some(cmd) = self.frame.play_buttons().iter().find(|(r, _)| hit(r)).map(|(_, c)| c.to_string()) {
+            self.did_by_mouse(crate::keys::Pane::Global, "terminal");
+            self.put_into_terminal(&cmd, false);
+        } else {
+            return false;
         }
+        true
+    }
+
+    fn click_off_panel(&mut self, x: u16, y: u16) -> bool {
+        let off = |r: Option<Rect>| r.is_some_and(|r| !r.contains(ratatui::layout::Position::new(x, y)));
+        match self.mode {
+            Mode::Help if off(self.frame.overlay()) => self.mode = self.back,
+            Mode::Find if off(self.frame.overlay()) => self.close_find(),
+            Mode::Help | Mode::Find => return false,
+            _ if off(self.writer.float().map(|fl| fl.rect)) => self.close_float(),
+            _ => return false,
+        }
+        true
+    }
+
+    /// A click in a pane moves the focus there, as `tab` does; in the chat pane the keys go to the
+    /// input, and to the transcript only for a click in it (PANES-46).
+    fn focus_pane_at(&mut self, x: u16, y: u16) {
+        if !matches!(self.mode, Mode::Read | Mode::Write) {
+            return;
+        }
+        let under = self.frame.pane_rects().iter().find(|(_, r)| r.contains(ratatui::layout::Position::new(x, y)));
+        if let Some(&(pane, _)) = under {
+            self.focus = pane;
+            self.threads.transcript_mut().focus(false);
+        }
+    }
+
+    /// A click in the note in read mode: the cursor goes to the char under the pointer.
+    fn place_reader(&mut self, dy: usize, dx: usize) {
+        self.interact(1);
+        let at = self.reader.scroll() + dy;
+        let row = self.frame.read_text().get(at).cloned().unwrap_or_default();
+        self.reader.place(at, crate::text::select::col_at(&row, dx));
+        self.reader.unselect();
     }
 
     /// The wheel scrolls the pane under the pointer.

@@ -18,6 +18,10 @@ pub struct Frame {
     pub(super) view_buttons: Vec<(Rect, crate::docs::tree::View)>,
     pub(super) session_buttons: Vec<(Rect, usize)>,
     pub(super) play_buttons: Vec<(Rect, String)>,
+    /// The names and the `×` of the background line, and their process groups (BG-3, BG-8).
+    pub(super) bg_buttons: Vec<(Rect, u32, bool)>,
+    /// `[+]` under the terminal buttons: a new `[>]` terminal (TERM-53).
+    pub(super) new_terminal_button: Option<Rect>,
     pub(super) read_text: Vec<String>,
     pub(super) read_rows: Vec<usize>,
     pub(super) write_rows: Vec<RowSpan>,
@@ -34,6 +38,19 @@ pub struct Frame {
     /// `[.*]` of the find panel or of the filter of the tree (FIND-44, FILES-67).
     pub(super) find_regex: Option<Rect>,
     pub(super) music_answers: Option<(Rect, Rect)>,
+    /// The font button of the theme picker, and the two answers of its question (FONT-14).
+    pub(super) font_button: Option<Rect>,
+    pub(super) font_answers: Option<(Rect, Rect)>,
+    /// The two answers of the question before the undo of an external change (UNDO-12).
+    pub(super) external_answers: Option<(Rect, Rect)>,
+    /// The help or the find panel over the screen, for a click off it (PANES-47).
+    pub(super) overlay: Option<Rect>,
+    /// The option and `[OK]` of the tip menu (TIPS-3, TIPS-5).
+    pub(super) tip_buttons: Option<(Rect, Rect)>,
+    /// The keys of the status bar and of the help, for a click that changes one (REKEY-1).
+    pub(super) key_targets: Vec<(Rect, crate::app::rekey::KeyTarget)>,
+    /// The choices, `[remove]` and the suggested keys of the key float (REKEY-12, REKEY-25).
+    pub(super) float_buttons: Vec<(Rect, crate::app::rekey::FloatButton)>,
 }
 
 impl Frame {
@@ -77,9 +94,29 @@ impl Frame {
         &self.session_buttons
     }
 
+    /// `[+]` under the terminal buttons, for mouse clicks (TERM-54).
+    pub fn new_terminal_button(&self) -> Option<Rect> {
+        self.new_terminal_button
+    }
+
     /// The play buttons of the shell blocks, and their commands (TERM-10).
     pub fn play_buttons(&self) -> &[(Rect, String)] {
         &self.play_buttons
+    }
+
+    /// Forget the buttons of the panes of the last draw: the sessions, the new terminal, the play
+    /// buttons, the background line, and the fold of the tree.
+    pub(super) fn clear_pane_buttons(&mut self) {
+        self.session_buttons.clear();
+        self.play_buttons.clear();
+        self.bg_buttons.clear();
+        self.new_terminal_button = None;
+        self.tree_fold.clear();
+    }
+
+    /// The names and the `×` of the background line: the place, the process group, and true for `×`.
+    pub fn bg_buttons(&self) -> &[(Rect, u32, bool)] {
+        &self.bg_buttons
     }
 
     /// The rendered rows of the read view, as plain text.
@@ -137,9 +174,29 @@ impl Frame {
         self.upgrade_button
     }
 
+    /// The help or the find panel that stands over the screen, for a click off it (PANES-47).
+    pub fn overlay(&self) -> Option<Rect> {
+        self.overlay
+    }
+
     /// The two answers of the music question: keep on, turn off.
     pub fn music_answers(&self) -> Option<(Rect, Rect)> {
         self.music_answers
+    }
+
+    /// The font button of the theme picker.
+    pub fn font_button(&self) -> Option<Rect> {
+        self.font_button
+    }
+
+    /// The two answers of the question before the undo of an external change: undo it, keep it.
+    pub fn external_answers(&self) -> Option<(Rect, Rect)> {
+        self.external_answers
+    }
+
+    /// The two answers of the font question: yes, no.
+    pub fn font_answers(&self) -> Option<(Rect, Rect)> {
+        self.font_answers
     }
 
     /// The word limit of the document on the screen.
@@ -155,6 +212,30 @@ impl Frame {
     /// The row of the word after the limit.
     pub fn over_limit(&self) -> Option<usize> {
         self.over_limit
+    }
+
+    /// Before a draw: no button is on the screen yet.
+    pub(super) fn clear_buttons(&mut self) {
+        (self.sound_button, self.music_button, self.overlay, self.spec_button, self.upgrade_button) = (None, None, None, None, None);
+        self.key_targets.clear();
+        self.float_buttons.clear();
+        self.tip_buttons = None;
+        self.find_regex = None;
+    }
+
+    /// The option and `[OK]` of the tip menu.
+    pub fn tip_buttons(&self) -> Option<(Rect, Rect)> {
+        self.tip_buttons
+    }
+
+    /// The keys on the screen that a click can change (REKEY-1).
+    pub fn key_targets(&self) -> &[(Rect, crate::app::rekey::KeyTarget)] {
+        &self.key_targets
+    }
+
+    /// The buttons of the key float.
+    pub fn float_buttons(&self) -> &[(Rect, crate::app::rekey::FloatButton)] {
+        &self.float_buttons
     }
 
     /// The float and the screen behind it each keep their own rows of write mode.

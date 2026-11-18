@@ -105,7 +105,7 @@ quit = ["q"]  # quit
 # navigation
 word_left = ["ctrl-left", "alt-left"]  # word left
 word_right = ["ctrl-right", "alt-right"]  # word right
-home = ["home", "ctrl-a"]  # line start
+home = ["home"]  # line start
 end = ["end"]  # line end
 
 # text selection
@@ -123,6 +123,8 @@ copy = ["ctrl-c"]  # copy
 done = ["esc"]  # save and read; write mode saves by itself after a pause
 cut = ["ctrl-x"]  # cut
 paste = ["ctrl-v"]  # paste
+undo = ["ctrl-z"]  # undo the last change
+redo = ["ctrl-y"]  # do the undone change again
 bold = ["ctrl-b"]  # **bold** the selection or the word
 italic = ["ctrl-i", "alt-i"]  # *italic* the selection or the word
 underline = ["ctrl-u"]  # <u>underline</u> the selection or the word
@@ -145,21 +147,32 @@ scroll_up = ["pageup"]  # scroll up
 scroll_down = ["pagedown"]  # scroll down
 word_left = ["ctrl-left", "alt-left"]  # word left
 word_right = ["ctrl-right", "alt-right"]  # word right
-home = ["home", "ctrl-a"]  # line start
-end = ["end", "ctrl-e"]  # line end
+home = ["home"]  # line start
+end = ["end"]  # line end
 
 # text selection
 select_left = ["ctrl-shift-h", "ctrl-shift-left", "shift-left"]  # select left
 select_right = ["ctrl-shift-l", "ctrl-shift-right", "shift-right"]  # select right
 select_word_left = ["alt-shift-h", "alt-shift-left"]  # select a word left
 select_word_right = ["alt-shift-l", "alt-shift-right"]  # select a word right
+select_up = ["ctrl-shift-k", "ctrl-shift-up", "alt-shift-k", "shift-up"]  # select up
+select_down = ["ctrl-shift-j", "ctrl-shift-down", "alt-shift-j", "shift-down"]  # select down
+select_home = ["shift-home"]  # select to the line start
+select_end = ["shift-end"]  # select to the line end
+copy = ["ctrl-c"]  # copy
 
 # editing
-send = ["enter"]  # send
-newline = ["alt-enter", "shift-enter", "ctrl-j"]  # new line
+send = ["enter"]  # send; in a code block a new line
+send_now = ["alt-enter", "ctrl-enter"]  # send, also from a code block
+newline = ["ctrl-j", "shift-enter"]  # new line
 delete_word = ["ctrl-w", "alt-backspace", "ctrl-backspace"]  # delete the word before
 clear = ["ctrl-u"]  # clear the input
 paste = ["ctrl-v"]  # paste
+cut = ["ctrl-x"]  # cut
+undo = ["ctrl-z"]  # undo the last change
+redo = ["ctrl-y"]  # do the undone change again
+bold = ["ctrl-b"]  # **bold** the selection or the word
+italic = ["ctrl-i", "alt-i"]  # *italic* the selection or the word
 
 # features
 new_thread = ["ctrl-n"]  # new thread
@@ -177,6 +190,33 @@ back = ["esc"]  # stop the answer / back to the note
 # text selection
 copy = ["c"]  # copy the selection
 cut = ["x"]  # cut the selection
+
+[textbox]
+# Every one-line text field: find, search, the tree filter, a file name. The arrows, backspace and
+# delete work as in every field.
+
+# navigation
+word_left = ["ctrl-left", "alt-left"]  # word left
+word_right = ["ctrl-right", "alt-right"]  # word right
+home = ["home"]  # line start
+end = ["end"]  # line end
+
+# text selection
+select_left = ["shift-left"]  # select left
+select_right = ["shift-right"]  # select right
+select_word_left = ["alt-shift-left", "ctrl-shift-left", "alt-shift-h"]  # select a word left
+select_word_right = ["alt-shift-right", "ctrl-shift-right", "alt-shift-l"]  # select a word right
+select_home = ["shift-home"]  # select to the line start
+select_end = ["shift-end"]  # select to the line end
+copy = ["ctrl-c"]  # copy
+
+# editing
+cut = ["ctrl-x"]  # cut
+paste = ["ctrl-v"]  # paste
+undo = ["ctrl-z"]  # undo the last change
+redo = ["ctrl-y"]  # do the undone change again
+delete_word = ["ctrl-w", "alt-backspace", "ctrl-backspace"]  # delete the word before
+clear = ["ctrl-u"]  # clear the field
 
 [transcript]
 # navigation
@@ -201,6 +241,7 @@ copy = ["y", "ctrl-c"]  # copy the selection, or the message
 
 # features
 add_to_chat = ["a", "alt-a", "ctrl-shift-a", "+"]  # add the selection, or the message, to the chat
+open_step = ["o"]  # open or close a step
 
 # panes and view
 input = ["i", "enter"]  # back to the input
@@ -266,3 +307,44 @@ close = ["esc", "d", "q"]  # close the delta
 
 # panes and view
 leave = ["alt-q"]  # back to zendo; the program runs on
+
+[list]
+# The search box, the find panel and the file name filter of the tree; [textbox] has the keys of
+# the text. esc goes back.
+
+# navigation
+down = ["down", "ctrl-j", "ctrl-n"]  # the next item
+up = ["up", "ctrl-k", "ctrl-p"]  # the item before
+next_mode = ["tab"]  # the find panel: the next mode
+prev_mode = ["shift-tab"]  # the find panel: the mode before
+
+# editing
+rename = ["f2"]  # the file name filter: rename the file
+delete = ["delete"]  # the file name filter: delete the file
+
+# panes and view
+open = ["enter"]  # open the item
+regex = ["alt-r"]  # the find panel and the file name filter: a regular expression
+
+[theme]
+# The theme list; esc goes back to the theme before.
+
+# navigation
+down = ["j", "down"]  # the next theme
+up = ["k", "up"]  # the theme before
+
+# panes and view
+keep = ["enter"]  # keep the theme
+font = ["a"]  # install the fonts of the theme
+cancel = ["q"]  # back to the theme before; esc does it too
+
+[question]
+# The question of a file: a name or a folder, or yes for a delete; [textbox] has the keys of the
+# text. esc cancels.
+
+# editing
+complete = ["tab"]  # complete the folder
+
+# zendo
+ok = ["enter"]  # do it
+yes = ["y", "Y"]  # yes: delete the file

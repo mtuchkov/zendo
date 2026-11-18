@@ -3,6 +3,7 @@ pub mod app;
 pub mod docs;
 pub mod keys;
 pub mod mcp;
+pub mod procs;
 pub mod music;
 pub mod session;
 pub mod setup;

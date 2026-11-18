@@ -51,19 +51,33 @@ async fn one_thread_for_every_file_and_the_file_goes_once() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// CLAUDE-15: the status bar names alt-enter for a new line: a terminal without the kitty keyboard protocol
-// sends shift-enter as enter. PANES-33: the badge of the chat pane is `CHAT`.
+// CLAUDE-58: the header of the chat names the agent, and `ALL NOTES` for a question across all
+// notes; it does not name the open document.
 #[tokio::test]
-async fn alt_enter_is_a_new_line_and_the_status_bar_says_so() {
+async fn the_chat_header_does_not_name_the_open_document() {
+    let root = repo("chat-header", &files());
+    let mut a = app(&root);
+    a.open_file(root.join(A));
+    a.open_panel();
+    let screen = draw(&mut a, 160, 30);
+    assert!(!screen.iter().any(|r| r.contains("THIS ")), "{screen:#?}");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// CLAUDE-15, CLAUDE-30: the status bar names ctrl-j for a new line: a terminal without the kitty
+// keyboard protocol sends shift-enter as enter. alt-enter sends (TEXT-10). PANES-33: the badge of the
+// chat pane is `CHAT`.
+#[tokio::test]
+async fn ctrl_j_is_a_new_line_and_the_status_bar_says_so() {
     let root = repo("chat-alt-enter", &files());
     let mut a = app(&root);
     a.open_panel();
     a.focus = Focus::Claude;
     let screen = draw(&mut a, 160, 30);
     let bar = screen.iter().rev().find(|r| r.contains(" CHAT ")).unwrap();
-    assert!(bar.contains("alt-enter new line"), "{bar}");
+    assert!(bar.contains("^j new line"), "{bar}");
     typ(&mut a, "one");
-    a.on_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::ALT));
+    a.on_key(KeyEvent::new(KeyCode::Char('j'), KeyModifiers::CONTROL));
     typ(&mut a, "two");
     assert_eq!(a.composer.input().text(), "one\ntwo");
     key(&mut a, KeyCode::Left);
@@ -143,7 +157,7 @@ async fn tab_goes_to_the_transcript_to_select_copy_and_add() {
     key(&mut a, KeyCode::Char('h'));
     key(&mut a, KeyCode::Char('h'));
     key(&mut a, KeyCode::Char('a'));
-    assert!(a.composer.input().text().contains("⟦↩ what⟧"), "a chip of the chat: {}", a.composer.input().text());
+    assert!(a.composer.input().text().contains("⟦↩ what · 1 line⟧"), "a chip of the chat (CLAUDE-41): {}", a.composer.input().text());
     assert!(a.composer.chips().iter().any(|c| c.context.as_deref().is_some_and(|x| x.contains("> what"))));
     let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(160, 30)).unwrap();
     term.draw(|f| a.draw(f)).unwrap();

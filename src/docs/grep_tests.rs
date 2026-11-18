@@ -49,14 +49,14 @@ fn a_regex_finds_text() {
 // marks the file as exact.
 #[test]
 fn an_id_is_found_by_its_start_in_docs_and_code() {
-    let root = dir("id", &[("src/find.rs", "// (FIND-9, FIND-21)\n"), ("src/other.rs", "// FIND-21\n"), ("src/x.rs", "// XFIND-9 aFIND-9\n"), ("docs/find.md", "| FIND-9 | a row |\n")]);
+    let root = dir("id", &[("src/find.rs", "// (FIND-9, FIND-19)\n"), ("src/other.rs", "// FIND-19\n"), ("src/x.rs", "// XFIND-9 aFIND-9\n"), ("docs/find.md", "| FIND-9 | a row |\n")]);
     let id = |w: &str| Ask::Id { word: w.into(), patterns: vec![regex::Regex::new(DEFAULT_ID).unwrap()] };
     let hits = run(&root, &id("FIND-9"));
-    assert_eq!(paths(&hits, &root), vec!["docs/find.md", "src/find.rs"], "not FIND-21 alone, not XFIND-9");
+    assert_eq!(paths(&hits, &root), vec!["docs/find.md", "src/find.rs"], "not FIND-19 alone, not XFIND-9");
     assert!(hits.iter().all(|h| h.exact));
     let hits = run(&root, &id("find-1"));
     assert_eq!(paths(&hits, &root), vec!["src/find.rs", "src/other.rs"]);
-    assert!(hits.iter().all(|h| !h.exact), "FIND-21 is not FIND-1");
+    assert!(hits.iter().all(|h| !h.exact), "FIND-19 is not FIND-1");
     let _ = std::fs::remove_dir_all(&root);
 }
 

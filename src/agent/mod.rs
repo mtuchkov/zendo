@@ -7,6 +7,9 @@ mod acp;
 pub mod api;
 mod model;
 mod sessions;
+mod questions;
+mod tool_events;
+pub use questions::{Pick, Question};
 pub mod work;
 
 use acp::*;
@@ -90,6 +93,8 @@ pub enum Cmd {
     Open { key: String, known: Option<String> },
     /// Answer a permission request. `None` cancels it.
     Answer { request: u64, option: Option<String> },
+    /// Answer a question of the agent with the picks of the user. `None` cancels it (ACT-4).
+    Reply { request: u64, picks: Option<Vec<Pick>> },
     Cancel { key: String },
     /// Forget the thread of `key`; the next prompt starts a new session.
     Forget { key: String },
@@ -113,6 +118,50 @@ pub struct Choice {
     pub always: bool,
 }
 
+/// The state of a tool call (ACT-1, ACT-8).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ToolState {
+    #[default]
+    Pending,
+    Running,
+    Done,
+    Failed,
+}
+
+impl ToolState {
+    /// The call ended, well or not.
+    pub fn ended(self) -> bool {
+        matches!(self, ToolState::Done | ToolState::Failed)
+    }
+}
+
+/// What a tool call tells besides its state: its first file and line, the first line of its
+/// error, its input, its output, and the exit code of a command (ACT-6, ACT-8, INTER-2).
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ToolInfo {
+    pub place: Option<String>,
+    pub line: Option<u32>,
+    pub error: Option<String>,
+    pub input: Option<String>,
+    /// The lines of the output or of the diff; an update without output leaves it empty.
+    pub output: Vec<String>,
+    pub exit: Option<i32>,
+}
+
+impl ToolInfo {
+    /// Take what an update tells; what it leaves out stays.
+    pub fn merge(&mut self, new: ToolInfo) {
+        self.place = new.place.or(self.place.take());
+        self.line = new.line.or(self.line);
+        self.error = new.error.or(self.error.take());
+        self.input = new.input.or(self.input.take());
+        self.exit = new.exit.or(self.exit);
+        if !new.output.is_empty() {
+            self.output = new.output;
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum Event {
     Ready { agent: String, can_load: bool, can_image: bool },
@@ -122,8 +171,11 @@ pub enum Event {
     Replay { key: String, user: bool, text: String },
     Text { key: String, text: String },
     Thought { key: String },
-    Tool { key: String, id: String, title: String, kind: String, done: bool },
+    /// A tool call or its update. An update leaves out what did not change.
+    Tool { key: String, id: String, title: String, kind: String, state: ToolState, info: ToolInfo },
     Permission { key: String, request: u64, title: String, kind: String, diffs: Vec<DiffView>, choices: Vec<Choice> },
+    /// The agent asks the user questions with choices; `Cmd::Reply` answers them (ACT-4).
+    Question { key: String, request: u64, questions: Vec<Question> },
     /// A shell command was blocked by policy.
     Blocked { key: String, title: String },
     TurnEnd { key: String, stop: String },
@@ -161,6 +213,7 @@ pub fn spawn(command: String, env: BTreeMap<String, String>, cwd: PathBuf, log: 
         events: etx,
         keys: Mutex::new(HashMap::new()),
         answers: Mutex::new(HashMap::new()),
+        replies: Mutex::new(HashMap::new()),
         next: AtomicU64::new(1),
         loading: Mutex::new(None),
     });

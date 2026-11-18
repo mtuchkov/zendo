@@ -92,15 +92,20 @@ async fn the_worktree_letters_need_a_worktree() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FILES-73: a click on a letter keeps the view for the repository.
+// FILES-73, FILES-66: a click on a letter keeps the view until the quit, as `v` does; a new start
+// shows the structure view.
 #[tokio::test]
 async fn a_click_on_a_letter_keeps_the_view() {
     let (root, mut a) = tree_app("tree-strip-keep");
     let (_, x, y) = strip(&mut a)[1];
     click(&mut a, x, y);
     assert_eq!(a.files.tree().view, View::Docs);
-    let b = app(&root);
-    assert_eq!(b.state.tree_view, "docs", "the state keeps the view");
+    a.scan_tree();
+    a.apply_tree_view();
+    assert_eq!(a.files.tree().view, View::Docs, "the view stays while zendo runs");
+    let mut b = app(&root);
+    b.toggle_tree();
+    assert_eq!(b.files.tree().view, View::Structure, "a new start");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -172,5 +177,56 @@ async fn the_notes_view_has_no_fold_buttons() {
     key(&mut a, KeyCode::Char('*'));
     key(&mut a, KeyCode::Char('n'));
     assert!(a.writer.float().is_some(), "n writes a new note");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// The chars on the screen inside a pane, row by row.
+fn pane_text(a: &mut App, pane: Focus) -> Vec<String> {
+    let b = screen(a);
+    let r = a.frame.pane_rects().iter().find(|(f, _)| *f == pane).map(|(_, r)| *r).expect("the pane");
+    (r.y..r.bottom()).map(|y| (r.x..r.right()).map(|x| b[(x, y)].symbol().to_string()).collect()).collect()
+}
+
+// FILES-78: the tree draws only chars that every font of `zendo setup fonts` has, so that
+// no row is wider than its cells: no geometric shapes, no Greek Δ.
+#[tokio::test]
+async fn the_tree_draws_only_chars_of_every_font() {
+    let (root, mut a) = tree_app("tree-glyphs");
+    a.open_file(root.join("docs/design/a.md"));
+    a.files.reveal_current();
+    for keys in ["", "v"] {
+        for c in keys.chars() {
+            key(&mut a, KeyCode::Char(c));
+        }
+        let text = pane_text(&mut a, Focus::Tree).join("\n");
+        let odd: Vec<char> = text.chars().filter(|c| ('\u{25A0}'..='\u{25FF}').contains(c) || *c == 'Δ').collect();
+        assert!(odd.is_empty(), "{odd:?} in\n{text}");
+        assert!(text.contains('•'), "the open file: {text}");
+    }
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// A long name of the project ends with `…` and keeps a space before the name of the view.
+#[tokio::test]
+async fn a_long_project_name_does_not_touch_the_view_name() {
+    let structure = "[project]\nname = \"digital-operator-platform-shell\"\n[[entry]]\npath = \"docs/design\"\nmain = true\n";
+    let root = repo("tree-long-name", &[("project-structure.toml", structure), ("docs/design/a.md", "# A\n")]);
+    let mut a = app(&root);
+    a.on_key(KeyEvent::new(KeyCode::Char('b'), KeyModifiers::ALT));
+    let head = pane_text(&mut a, Focus::Tree)[0].clone();
+    assert!(head.contains("… structure · v") || head.contains("…  structure · v"), "{head}");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FILES-68: in a low pane the letters stand without the empty rows, so that `N` still shows.
+#[tokio::test]
+async fn a_low_tree_keeps_every_letter() {
+    let (root, mut a) = tree_app("tree-low");
+    let mut term = Terminal::new(TestBackend::new(100, 12)).unwrap();
+    term.draw(|f| a.draw(f)).unwrap();
+    let b = term.backend().buffer().clone();
+    let tree = a.frame.pane_rects().iter().find(|(f, _)| *f == Focus::Tree).map(|(_, r)| *r).unwrap();
+    let letters: String = (tree.y..tree.bottom()).filter_map(|y| b[(tree.x, y)].symbol().chars().next().filter(|c| "SDTWN".contains(*c))).collect();
+    assert_eq!(letters, "SDTN");
     let _ = std::fs::remove_dir_all(&root);
 }

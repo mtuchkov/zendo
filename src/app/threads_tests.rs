@@ -45,6 +45,24 @@ fn the_view_follows_the_cursor_of_the_transcript() {
     assert_eq!(t.fit(100, 20, false), 76, "the view stays when the input takes the keys");
 }
 
+// PANES-46: a click in the transcript puts its cursor under the pointer, and the view stays.
+#[test]
+fn a_click_puts_the_cursor_of_the_transcript_under_the_pointer() {
+    let mut t = Threads::default();
+    t.transcript_mut().show_rows((0..100).map(|i| format!("row {i}")).collect());
+    t.scroll_by(true, 30);
+    assert_eq!(t.fit(100, 20, false), 50);
+    t.click(3, 20, 2);
+    assert!(t.transcript().on(), "the transcript has the keys");
+    assert_eq!(t.transcript().cursor(), (53, 2));
+    assert_eq!(t.fit(100, 20, true), 50, "the view stays");
+    t.click(19, 20, 50);
+    assert_eq!(t.transcript().cursor(), (69, 5), "the cursor stays in the row");
+    t.transcript_mut().show_rows(vec!["one".into(), "two".into()]);
+    t.click(10, 20, 0);
+    assert_eq!(t.transcript().cursor(), (1, 0), "a click below a short thread goes to its last row");
+}
+
 // ADR 0008, FLOAT-1: a thread stays pinned until the unpin; the float swaps it with its own.
 #[test]
 fn the_pinned_thread_swaps_with_the_one_of_the_float() {

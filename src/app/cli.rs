@@ -61,7 +61,7 @@ impl App {
             return self.step_full_screen(a == "next_session");
         }
         if global == Some("terminal") {
-            return self.open_terminal(0);
+            return self.next_terminal();
         }
         let session = global.and_then(|a| a.strip_prefix("session_")).and_then(|s| s.parse::<usize>().ok());
         if let Some(m) = session.and_then(|m| m.checked_sub(1)) {
@@ -111,8 +111,8 @@ impl App {
                 Message::Answer(a) | Message::Text(a) => t.push(Item::Agent(a)),
                 // The tool calls between two texts are one item, as the tools of the agent (CLIMSG-9).
                 Message::Tool { id, title, kind } => match t.items.last_mut() {
-                    Some(Item::Tools { uses, .. }) => uses.push(ToolUse { id, title, kind }),
-                    _ => t.push(Item::Tools { uses: vec![ToolUse { id, title, kind }], started: Instant::now(), took: None }),
+                    Some(Item::Tools { uses, .. }) => uses.push(cli_tool(id, title, kind)),
+                    _ => t.push(Item::Tools { uses: vec![cli_tool(id, title, kind)], started: Instant::now(), took: None }),
                 },
                 Message::Session { .. } => {}
             }
@@ -178,7 +178,7 @@ impl App {
     /// True when zendo can quit now. While Claude Code sessions run, the first quit asks, and a
     /// second one within 5 s stops them (SESSIONS-6, SESSIONS-19).
     pub fn settle_quit(&mut self) -> bool {
-        if !self.quit {
+        if !self.quit || !self.settle_background_quit() {
             return false;
         }
         if !self.cli.any_running() {
@@ -195,4 +195,9 @@ impl App {
         self.flash(format!("{n} Claude Code session{s} or terminal command{s} {run}: quit again to stop {them}"));
         false
     }
+}
+
+/// A tool call of a Claude Code session: its transcript tells no state, so it counts as done.
+fn cli_tool(id: String, title: String, kind: String) -> ToolUse {
+    ToolUse { id, title, kind, state: crate::agent::ToolState::Done, ..Default::default() }
 }

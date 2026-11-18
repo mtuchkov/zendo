@@ -92,7 +92,15 @@ impl App {
 
     /// Typing in the file name filter of the tree.
     pub(crate) fn key_tree_find(&mut self, k: KeyEvent) {
-        match self.files.key_filter(k) {
+        // The filter takes the keys of `[textbox]`; the files do the typing (TEXT-1).
+        if let Some(changed) = self.field_action(&k, |a| a.files.filter_field()) {
+            if changed {
+                self.files.filter_changed();
+            }
+            return;
+        }
+        let act = self.keys.local(crate::keys::Pane::List, &k);
+        match self.files.key_filter(k, act) {
             FilterKey::Done => {}
             FilterKey::Act(act) => self.tree_act(act),
             FilterKey::Open(rel) => {

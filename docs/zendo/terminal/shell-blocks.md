@@ -1,11 +1,12 @@
 ---
-status: "draft"
-revision: "1"
-date: "2026-11-12"
+status: "implemented"
+approved: "2026-11-18"
+revision: "2"
+date: "2026-11-18"
 parent: "terminal.md"
 next: "terminal-view.md"
 level: "shell blocks in the transcript: what a shell block is, the play button, F5 and alt-F5, which terminal takes a block"
-note: "Agent draft from the requests of the user on 2026-11-12, split from terminal.md. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "From the requests of the user on 2026-11-12, split from terminal.md. Revision 2 (the user, 2026-11-17): TERM-11 refers to TERM-52 for `F5` in a terminal. The user approved the document and marked it implemented on 2026-11-18."
 ---
 
 # Shell blocks
@@ -63,7 +64,7 @@ The tests are in `tests/terminal.rs`. They put answers with ` ```sh ` blocks int
 | TERM-8  | Ubiquitous | The system shall show a green play button `▶` on the first line of each shell block in the transcript. | User, 2026-11-12 |
 | TERM-9  | Event      | When the user takes a block with `$ ` prompts, the system shall put into the shell only the text after each prompt, one command on each line. | Design |
 | TERM-10 | Event      | When the user clicks the play button of a shell block, the system shall do what `F5` does. | Design |
-| TERM-11 | Event      | When the user presses `F5` outside a shell block, or in another pane, the system shall show the `F5` terminal. | User, 2026-11-12 |
+| TERM-11 | Event      | When the user presses `F5` outside a shell block, or in another pane, while no terminal is on the screen, the system shall show the `F5` terminal; in a terminal, `F5` goes to the next terminal (TERM-52). | User, 2026-11-12; User, 2026-11-17 |
 
 Tests that verify detailed requirements: `play_button_and_terminal_buttons` in `tests/terminal.rs`
 (TERM-8, TERM-11, TERM-14), `shell_blocks_are_shell_fences_and_prompt_blocks` and

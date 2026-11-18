@@ -24,8 +24,19 @@ children:
   - "session-names/session-names.md"
   - "handoff.md"
   - "cli-messages.md"
+  - "cli-activity.md"
+  - "back-to-the-agent.md"
   - "zendo-session.md"
   - "chat.md"
+  - "chat-chips.md"
+  - "chat-messages.md"
+  - "chat-history.md"
+  - "activity.md"
+  - "checklist.md"
+  - "transcript.md"
+  - "live-status.md"
+  - "interactivity.md"
+  - "background.md"
   - "terminal/terminal.md"
   - "attention.md"
   - "project-structure.md"
@@ -33,6 +44,9 @@ children:
   - "site.md"
   - "lofi.md"
   - "usage.md"
+  - "tips.md"
+  - "fonts.md"
+  - "fonts-tip.md"
 level: "what zendo is, its parts, and the qualities that hold for all parts"
 note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
@@ -66,8 +80,19 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Sessions](sessions.md)                      | Claude Code sessions in the background, more than one at a time |
 | [Hand-off during a turn](handoff.md)         | `ctrl-o` while the chat answers: wait, or stop and continue    |
 | [Claude Code messages in the chat](cli-messages.md) | The prompts and answers of a running Claude Code session in its chat |
+| [Activity of a Claude Code session](cli-activity.md) | The status line, steps, checklist and questions of a Claude Code session in its chat, from its hooks |
+| [Back to the agent](back-to-the-agent.md) | A quiet Claude Code session that the user left goes back to the chat agent through ACP |
 | [zendo session](zendo-session.md)            | What a zendo session is, its id, and what zendo tells its agent |
 | [Chat](chat.md)                              | The chat input: chips, attachments, `@` file suggestions        |
+| [Chips and the open document](chat-chips.md) | The chip window, images, the choice of the open document      |
+| [Chips in a question](chat-messages.md)      | How chips go to the agent and to Claude Code, and show in the transcript |
+| [Chat history](chat-history.md)              | The messages of the user per zendo session, the common history, `up` and `down` |
+| [Activity of the agent](activity.md)         | The status line, steps, questions and commands of a turn in the chat |
+| [Checklist](checklist.md)                    | The plan of the agent at the top of the transcript, closed and open |
+| [Transcript](transcript.md)                  | The time of each message; the question of the turn at the top of the transcript |
+| [A status line that is alive](live-status.md) | The thought, the waits of the agent, and the pulse in the status line |
+| [Interactivity of the chat](interactivity.md) | Steer a turn, open a step, the next question, the mode |
+| [Background processes](background.md)        | That background processes of the agent still run, which ones, their end, their stop |
 | [Terminal](terminal/terminal.md)             | Shell blocks in the chat, the `F5` and `[>]` terminals in the chat pane, their output for the agent |
 | [Attention](attention.md)                    | The bell and the blinking button when a turn ends; `[sound]`   |
 | [Project structure](project-structure.md)    | `project-structure.toml`: use and repair                      |
@@ -75,6 +100,7 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Landing page](site.md)                      | The page in `site/`: the pixel garden, the demo, the lofi music  |
 | [Lofi music](lofi.md)                        | Calm music that zendo makes itself: `[music]` and `alt-m`        |
 | [Usage counts](usage.md)                     | Local counts of the actions of the user, by pane, for the choice of key hints |
+| [Tips](tips.md)                              | The tip menu at start and the tip in the status bar              |
 
 ## Scope
 

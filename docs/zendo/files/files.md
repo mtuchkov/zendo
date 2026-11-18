@@ -15,6 +15,7 @@ children:
   - "files-worktree-recap.md"
   - "files-worktree-note.md"
   - "files-session-doc.md"
+  - "files-branch.md"
 level: "the file tree pane as a whole: which files it lists, that it has views, what opening a file does"
 note: "Agent rewrite of the reference of zendo 0.9.1. Revision 2 adds FILES-25 (the notes of the notes repo), approved by the user. Revision 3: split into children by topic (user, 2026-11-14); no requirement changed. The children files-worktree.md and files-worktree-recap.md were approved on 2026-11-14."
 ---
@@ -42,6 +43,7 @@ The children of this document hold the details:
 | [Worktree recap](files-worktree-recap.md) | The recap of the changes of the worktree, and when it refreshes |
 | [Document of the session](files-worktree-note.md) | The version of the open document that the note pane shows and the agent gets |
 | [Last document of a session](files-session-doc.md) | The document that a session opens again when the user goes back to it |
+| [Branch of the context](files-branch.md) | The git branch that the top line and the float name in each context |
 
 ## Architecturally significant requirements
 

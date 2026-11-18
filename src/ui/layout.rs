@@ -145,15 +145,15 @@ fn switch(t: &Theme, on: bool) -> Style {
 }
 
 /// The right of the top line: the sessions that blink while their buttons are not on the screen
-/// (ATTN-10), the music button (LOFI-10), the sound button (ATTN-7), and the branch. Returns its
-/// width.
+/// (ATTN-10), the music button (LOFI-10), the sound button (ATTN-7), and the branch of the context
+/// (FILES-59 to FILES-61). Returns its width.
 fn draw_top_right(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, area: Rect) -> u16 {
     let chips: Vec<usize> = if fr.session_buttons.is_empty() { app.attention.blinks().collect() } else { Vec::new() };
     let chip = |n: usize| Style::new().fg(t.bg).bg(pulse_bg(app, t, n, if n >= crate::app::SESSIONS { t.fg } else { t.acc2 }));
     let mut pieces: Vec<(String, Style)> = chips.iter().map(|n| (format!(" {} ", titled(app, *n)), chip(*n))).collect();
     pieces.push((MUSIC.into(), switch(t, app.music.state() == crate::music::State::Plays)));
     pieces.push((SOUND.into(), switch(t, app.attention.sound)));
-    pieces.extend(app.files.branch().filter(|b| !b.is_empty()).map(str::to_string).map(|b| (b, Style::new().fg(t.dim))));
+    pieces.extend(app.top_branch().map(|b| (b, Style::new().fg(t.dim))));
     let width = (pieces.iter().map(|(s, _)| s.width() + 2).sum::<usize>() - 2) as u16;
     let mut x = area.right().saturating_sub(width + 2);
     for (i, (text, style)) in pieces.into_iter().enumerate() {

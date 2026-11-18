@@ -7,7 +7,7 @@ parent: "files.md"
 prev: "files-views.md"
 next: "files-actions.md"
 level: "the strip of view letters on the left edge of the tree, its hint, and the Notes view"
-note: "Design that the user decided and approved on 2026-11-18. It moves the notes list of notes-list.md into the tree."
+note: "Design that the user decided and approved on 2026-11-18. FILES-78 and `∆` for `Δ`: the fonts iA Writer Mono and IBM Plex Mono have no `●`, `◆` and `Δ`, so the terminal drew them two cells wide (the user, 2026-11-18). It moves the notes list of notes-list.md into the tree."
 ---
 
 # File tree: the view strip and the Notes view
@@ -25,13 +25,14 @@ other with an empty row between them, and one empty column after the letters.
 | `D`    | docs |
 | `T`    | text |
 | `W`    | worktree |
-| `Δ`    | worktree changed |
+| `∆`    | worktree changed |
 | `N`    | notes |
 
 The letter of the active view stands on the accent color; the other letters have the second accent
-color. `W` and `Δ` show only while the active agent session has a worktree, and `S` only while
+color. `W` and `∆` show only while the active agent session has a worktree, and `S` only while
 `project-structure.toml` has main materials, as in the `v` cycle (FILES-4). A line separates `N`
-from the views of the files. A click on a letter shows its view. The head of the tree names the view
+from the views of the files. Where the pane is too low for the empty rows, the letters stand
+without them. A click on a letter shows its view. The head of the tree names the view
 and its key, as before: `structure · v`.
 
 ```
@@ -39,7 +40,7 @@ and its key, as before: `structure · v`.
  D  docs/zendo
  T    find.md
  W  src
- Δ
+ ∆
  ─
  N
 ```
@@ -56,7 +57,7 @@ starts the 2.5 seconds again. A click on a name shows its view.
  D docs
 ▐T text▌
  W worktree
- Δ worktree Δ
+ ∆ worktree ∆
  ─
  N notes
 ```
@@ -97,17 +98,18 @@ in a [float](../float.md), `f2` renames the file to a typed name, and `delete` d
 
 | ID       | Pattern    | Requirement | Source |
 | -------- | ---------- | ----------- | ------ |
-| FILES-70 | Ubiquitous | The system shall label the views `S`, `D`, `T`, `W`, `Δ` and `N`. | User, 2026-11-18 |
+| FILES-70 | Ubiquitous | The system shall label the views `S`, `D`, `T`, `W`, `∆` and `N`. | User, 2026-11-18 |
 | FILES-71 | Ubiquitous | The system shall show the letter of the active view on the accent color and the other letters in the second accent color. | User, 2026-11-18 |
-| FILES-72 | State      | While the active agent session has no worktree, the system shall not show `W` and `Δ`; while `project-structure.toml` has no main materials, `S`. | Design |
-| FILES-73 | Event      | When the user clicks a letter of the strip or a name of the hint, the system shall show that view and keep it for the repository (FILES-10). | User, 2026-11-18 |
+| FILES-72 | State      | While the active agent session has no worktree, the system shall not show `W` and `∆`; while `project-structure.toml` has no main materials, `S`. | Design |
+| FILES-73 | Event      | When the user clicks a letter of the strip or a name of the hint, the system shall show that view until the user chooses another or quits (FILES-66). | User, 2026-11-18 |
 | FILES-74 | Event      | When the user presses `v` in the tree, the system shall show over the tree, for 2.5 seconds after the last `v`, the hint with the letter and the name of each view, without a change of the width of the tree. | User, 2026-11-18 |
 | FILES-75 | Ubiquitous | The system shall name the active view and its key in the head of the tree. | User, 2026-11-18 |
 | FILES-76 | Event      | When the user presses `o`, the system shall open the tree in the Notes view, with the focus in the tree. | User, 2026-11-18 |
+| FILES-78 | Ubiquitous | The system shall draw in the tree only chars that every font of `zendo setup fonts` has, so that each char takes one cell: `•` for the open file, `§` for a section, `∆` for the worktree changed view. | User, 2026-11-18 |
 | FILES-77 | State      | While the tree shows the Notes view, the system shall not show `[+]` and `[-]`, and `+`, `-`, `*` and `_` shall do nothing. | User, 2026-11-18 |
 
 Tests that verify detailed requirements: `the_view_letters` (FILES-70),
 `the_active_letter_has_the_accent_color` (FILES-71), `the_worktree_letters_need_a_worktree`
 (FILES-72), `a_click_on_a_letter_keeps_the_view` (FILES-73), `v_shows_the_hint_for_2_5_seconds`
 (FILES-74), `the_head_names_the_view` (FILES-75), `o_opens_the_notes_view` (FILES-76),
-`the_notes_view_has_no_fold_buttons` (FILES-77).
+`the_notes_view_has_no_fold_buttons` (FILES-77), `the_tree_draws_only_chars_of_every_font` (FILES-78).

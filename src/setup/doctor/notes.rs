@@ -33,8 +33,23 @@ pub(super) fn inside(p: &Path, dir: &Path) -> bool {
     }
 }
 
+/// The sync lock, after a wait for the background sync of other zendo processes (NOTESREP-15).
+fn sync_lock(action: &str, o: &mut Out) -> Option<crate::setup::sync::SyncLock> {
+    let path = crate::setup::sync::lock_path();
+    let lock = crate::setup::sync::SyncLock::take_within(&path, &format!("zendo notes {action}"), Duration::from_secs(30));
+    if lock.is_none() {
+        let who = crate::setup::sync::holder(&path).unwrap_or_else(|| "pid unknown".into());
+        o.fail("sync", format!("another zendo ({who}) syncs the notes repo for more than 30 s"));
+        o.hint("Run the command again later. `zendo doctor` shows who syncs.");
+    }
+    lock
+}
+
 /// Commit the notes repo, then pull and push, and say how it went.
 pub(super) fn sync_now(n: &config::NotesRepo, message: &str, o: &mut Out) {
+    let Some(_lock) = sync_lock("sync", o) else {
+        return;
+    };
     match crate::setup::sync::commit(&n.path, &n.path, message) {
         Err(e) => o.fail("commit", e),
         Ok(_) => match crate::setup::sync::pull_push(&n.path) {
@@ -87,7 +102,12 @@ pub(super) async fn consolidate(paths: &Paths, agent_flag: Option<String>, n: &c
         }
     };
     // Get the folders of the other machines first.
-    if let crate::setup::sync::State::Conflict(e) = crate::setup::sync::pull_push(&n.path) {
+    let Some(lock) = sync_lock("consolidate", o) else {
+        return false;
+    };
+    let pulled = crate::setup::sync::pull_push(&n.path);
+    drop(lock);
+    if let crate::setup::sync::State::Conflict(e) = pulled {
         o.fail("sync", format!("conflict in the notes repo: {e}"));
         return false;
     }

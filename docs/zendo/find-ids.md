@@ -41,8 +41,8 @@ when there are more than five.
 
 **`hash_finds_a_requirement_id_in_code_and_docs`** (unit test; verifies FIND-32)
 
-- Given `src/find.rs` with the comment `(FIND-9, FIND-21)`, `docs/find.md` with the row `FIND-9`,
-  and `src/other.rs` with `FIND-21` only.
+- Given `src/find.rs` with the comment `(FIND-9, FIND-19)`, `docs/find.md` with the row `FIND-9`,
+  and `src/other.rs` with `FIND-19` only.
 - When the user types `#FIND-9` in Code mode, then `#FIND-1` in Code mode, then `#FIND-9` in Docs
   mode.
 - Then `#FIND-9` in Code mode lists `src/find.rs` with the line of the comment, and not

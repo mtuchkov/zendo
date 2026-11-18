@@ -39,6 +39,7 @@ impl App {
             "theme" => {
                 self.theme_before = self.theme;
                 self.mode = Mode::Theme;
+                self.look_at_fonts();
             }
             "help" => self.open_help(crate::keys::Pane::Read),
             "delta" => self.toggle_delta(),

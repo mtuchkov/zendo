@@ -34,6 +34,13 @@ pub(super) async fn turn(cx: Cx, p: PromptRequest) -> Result<StopReason> {
     if question.to_lowercase().contains("shell") {
         return ask_shell(&cx, &sid, n).await;
     }
+    if question == "ask me" {
+        return ask_user(&cx, &sid).await;
+    }
+    if let Some(secs) = question.strip_prefix("background ") {
+        background(&cx, &sid, n, secs).await?;
+        return if question.contains("slow") { slow(&cx, &sid, n).await } else { Ok(StopReason::EndTurn) };
+    }
     if question.contains("slow") {
         return slow(&cx, &sid, n).await;
     }
@@ -104,6 +111,40 @@ async fn slow(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, n: u6
     ))?;
     tokio::time::sleep(Duration::from_secs(8)).await;
     stream(cx, sid, "Done.").await?;
+    Ok(StopReason::EndTurn)
+}
+
+/// `background 6101 6102`: a step for each number starts `sleep <number>` in a process group of
+/// its own and leaves it running, as Claude Code does with a command in the background (BG-1).
+async fn background(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId, n: u64, secs: &str) -> Result<()> {
+    use std::os::unix::process::CommandExt;
+    for (i, s) in secs.split_whitespace().filter(|s| s.parse::<u32>().is_ok()).enumerate() {
+        let _ = std::process::Command::new("sleep").arg(s).process_group(0).stdout(std::process::Stdio::null()).spawn();
+        let call = ToolCall::new(format!("bg-{n}-{i}"), format!("sleep {s}")).kind(ToolKind::Execute).status(ToolCallStatus::Completed);
+        cx.send_notification(SessionNotification::new(sid.clone(), SessionUpdate::ToolCall(call)))?;
+    }
+    stream(cx, sid, "It runs in the background. ").await
+}
+
+/// `ask me`: the mock asks the user to choose `yes` or `no`, as the Claude adapter asks a question
+/// of Claude (ACT-4), and says what came back.
+async fn ask_user(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId) -> Result<StopReason> {
+    use agent_client_protocol::v1::schema::{CreateElicitationRequest, ElicitationAction, ElicitationFormMode, ElicitationSessionScope};
+    let schema = serde_json::from_value(serde_json::json!({
+        "type": "object",
+        "properties": {
+            "question_0": {"type": "string", "oneOf": [{"const": "yes", "title": "Yes"}, {"const": "no", "title": "No"}]},
+            "question_0_custom": {"type": "string", "title": "Other"}
+        }
+    }))
+    .expect("a valid form");
+    let form = ElicitationFormMode::new(ElicitationSessionScope::new(sid.clone()), schema);
+    let r = cx.send_request(CreateElicitationRequest::new(form, "Shall I go on?")).block_task().await?;
+    let said = match r.action {
+        ElicitationAction::Accept(a) => serde_json::to_string(&a.content).unwrap_or_default(),
+        other => format!("{other:?}"),
+    };
+    stream(cx, sid, &format!("You answered: {said}")).await?;
     Ok(StopReason::EndTurn)
 }
 

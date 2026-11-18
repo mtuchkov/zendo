@@ -35,7 +35,7 @@ fn clear(a: &mut App) {
 // first; in Code mode the text of code is searched for it.
 #[tokio::test]
 async fn hash_finds_a_requirement_id_in_code_and_docs() {
-    let root = repo("find-ids", &[("src/find.rs", "// (FIND-9, FIND-21)\n"), ("src/other.rs", "// FIND-21 only\n"), ("docs/find.md", "| FIND-9 | a row |\n")]);
+    let root = repo("find-ids", &[("src/find.rs", "// (FIND-9, FIND-19)\n"), ("src/other.rs", "// FIND-19 only\n"), ("docs/find.md", "| FIND-9 | a row |\n")]);
     let mut a = app(&root);
     alt(&mut a, '/');
     to_mode(&mut a, FindMode::Code);
@@ -104,7 +104,7 @@ async fn typing_does_not_wait_for_the_search() {
         key(&mut a, KeyCode::Char(c));
         assert!(t.elapsed().as_millis() < 50, "the key {c} took {:?}", t.elapsed());
     }
-    assert_eq!(a.files.find().query, "needle");
+    assert_eq!(a.files.find().query.text(), "needle");
     assert!(a.files.find().running && a.files.find().items.is_empty(), "the text results are not there yet");
     a.settle_find();
     assert_eq!(a.files.find().counts[1], 200, "the results came; Docs lists up to 200 by text");

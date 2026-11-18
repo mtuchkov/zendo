@@ -5,6 +5,7 @@ use super::{AtPick, Chip, Slash};
 #[cfg(test)]
 use super::AtKey;
 use crate::agent::Attachment;
+use crate::setup::history::Sent;
 use crate::text::editor::Editor;
 use std::path::PathBuf;
 
@@ -29,6 +30,9 @@ pub struct Composer {
     about: &'static str,
     /// The last `alt-o`: the index of its terminal, and the input before it (TERM-28).
     pick: Option<(usize, Vec<String>, usize, usize)>,
+    /// `up` in the history: the index of the message on show, and the input before the first `up`
+    /// (HISTORY-5, HISTORY-6).
+    recall: Option<(usize, Editor, Vec<Chip>)>,
 }
 
 impl Default for Composer {
@@ -45,6 +49,7 @@ impl Default for Composer {
             default: None,
             about: "",
             pick: None,
+            recall: None,
         }
     }
 }
@@ -65,6 +70,12 @@ impl Composer {
         e.col > 0 && e.lines[e.row].chars().nth(e.col - 1) == Some('\\')
     }
 
+    /// The cursor is in a code block of the input, or at the end of the fence that opens one:
+    /// `enter` there is a new line (TEXT-10).
+    pub fn in_code(&self) -> bool {
+        self.input.in_fence() || self.input.opens_fence()
+    }
+
     pub fn chips(&self) -> &[Chip] {
         &self.chips
     }
@@ -77,6 +88,39 @@ impl Composer {
     pub fn clear(&mut self) {
         self.input.take();
         self.chips.clear();
+        self.recall = None;
+    }
+
+    /// `up` on the first row: the message before in `history`, the oldest first, with its text
+    /// chips and the cursor on the first row. False when there is none (HISTORY-5, HISTORY-7).
+    pub fn recall_back(&mut self, history: &[Sent]) -> bool {
+        let at = self.recall.as_ref().map_or(history.len(), |(i, ..)| *i);
+        let Some(i) = at.checked_sub(1).filter(|i| *i < history.len()) else { return false };
+        let (_, input, chips) = self.recall.take().unwrap_or_else(|| (0, self.input.clone(), self.chips.clone()));
+        self.recall = Some((i, input, chips));
+        self.show_sent(&history[i]);
+        true
+    }
+
+    /// `down` on the last row: the next message, with the cursor at its end; after the newest, the
+    /// input and the chips from before the first `up` (HISTORY-6). False when no recall is on.
+    pub fn recall_forward(&mut self, history: &[Sent]) -> bool {
+        let Some((i, input, chips)) = self.recall.take() else { return false };
+        let Some(next) = history.get(i + 1) else {
+            (self.input, self.chips) = (input, chips);
+            return true;
+        };
+        self.show_sent(next);
+        let row = self.input.lines.len() - 1;
+        (self.input.row, self.input.col) = (row, self.input.lines[row].chars().count());
+        self.recall = Some((i + 1, input, chips));
+        true
+    }
+
+    /// A message of the history in the input: its text, and its text chips as chips again.
+    fn show_sent(&mut self, m: &Sent) {
+        self.input = Editor::new(&m.text);
+        self.chips = m.chips.iter().map(|c| Chip { label: c.label.clone(), context: Some(c.text.clone()), attach: None }).collect();
     }
 
     pub fn slash(&self) -> &Slash {
@@ -152,6 +196,7 @@ impl Composer {
 
     /// The text of the input and the chips that are still in it; the input is empty after it.
     pub fn take_message(&mut self) -> (String, Vec<Chip>) {
+        self.recall = None;
         let q = self.input.take();
         let chips = std::mem::take(&mut self.chips).into_iter().filter(|c| q.contains(c.label.as_str())).collect();
         (q, chips)
@@ -168,7 +213,7 @@ impl Composer {
             let all: Vec<String> = self.context.take().into_iter().chain(ctx).collect();
             self.context = Some(all.join("\n"));
         }
-        let bare = chips::chip_ranges(&q).into_iter().rev().fold(q.clone(), |t, (a, b)| t.chars().take(a).chain(t.chars().skip(b)).collect());
+        let bare = chips::without_chips(&q);
         if bare.trim().is_empty() && self.context.is_some() {
             let default = self.default.take().unwrap_or_else(|| super::DELTA_QUESTION.into());
             q = format!("{} {default}", q.trim()).trim().to_string();

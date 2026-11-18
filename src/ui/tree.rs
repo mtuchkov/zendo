@@ -116,8 +116,14 @@ fn tree_head(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, head: Rect) {
         let n = app.files.tree().rows().len();
         let count = if q.trim().is_empty() { "enter open · esc".to_string() } else { format!("{n} · esc") };
         let room = (w.saturating_sub(9 + count.width())).max(1);
-        let shown: String = if q.width() > room { q.chars().rev().take(room).collect::<Vec<_>>().into_iter().rev().collect() } else { q.clone() };
-        let line = Line::from(vec![Span::styled("` ", Style::new().fg(t.acc)), Span::styled(shown.clone(), Style::new().fg(t.fg))]);
+        // A long filter shows its end; the cursor stays in the field.
+        let (text, x) = if q.width() > room {
+            let tail: String = q.chars().rev().take(room).collect::<Vec<_>>().into_iter().rev().collect();
+            (vec![Span::styled(tail, Style::new().fg(t.fg))], q.cursor_width().saturating_sub(q.width() - room))
+        } else {
+            (super::field::spans(&q, Style::new().fg(t.fg), Style::new().fg(t.fg).bg(t.sel)), q.cursor_width())
+        };
+        let line = Line::from([Span::styled("` ", Style::new().fg(t.acc))].into_iter().chain(text).collect::<Vec<_>>());
         f.render_widget(Paragraph::new(line), Rect { x: head.x + 1, width: head.width.saturating_sub(1), ..head });
         let bad = app.files.tree().find_regex && regex::Regex::new(&q).is_err();
         let button = super::find::draw_regex_button(f, app.files.tree().find_regex, bad, t, Rect { width: head.width + 2, ..head });
@@ -125,7 +131,7 @@ fn tree_head(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, head: Rect) {
         let right = button.x.saturating_sub(1);
         f.render_widget(Paragraph::new(Line::styled(count.clone(), dim)), Rect { x: right.saturating_sub(count.width() as u16), width: count.width() as u16, ..head });
         if app.focus == Focus::Tree {
-            f.set_cursor_position((head.x + 3 + shown.width() as u16, head.y));
+            f.set_cursor_position((head.x + 3 + x as u16, head.y));
         }
         return;
     }
@@ -133,8 +139,11 @@ fn tree_head(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, head: Rect) {
         Some(st) => format!("{} · {}", st.project.name.clone().unwrap_or_else(|| "PROJECT".into()).to_uppercase(), st.main().count()),
         None => format!("FILES · {}", app.files.tree().files.len()),
     };
-    f.render_widget(Paragraph::new(Line::styled(label, dim.add_modifier(Modifier::BOLD))), Rect { x: head.x + 1, width: head.width.saturating_sub(1), ..head });
     let filt = format!("{} · {}", app.files.tree().filter_label(), app.keys.first(crate::keys::Pane::Tree, "view"));
+    // The name of the project ends with `…` before it touches the name of the view.
+    let room = w.saturating_sub(1 + filt.width() + 1);
+    let label = if label.width() > room { label.chars().take(room.saturating_sub(1)).collect::<String>() + "…" } else { label };
+    f.render_widget(Paragraph::new(Line::styled(label, dim.add_modifier(Modifier::BOLD))), Rect { x: head.x + 1, width: head.width.saturating_sub(1), ..head });
     f.render_widget(Paragraph::new(Line::styled(filt.clone(), dim)), Rect { x: head.right().saturating_sub(filt.width() as u16), width: filt.width() as u16, ..head });
 }
 
@@ -154,9 +163,10 @@ fn tree_line(app: &App, t: &Theme, row: &Row, is_current: bool, w: usize) -> Lin
     let (icon, name_style) = match row.kind {
         // A main material of the project: first class, in the plain text color and bold.
         Kind::Dir { open } if row.section => (if open { "[-] " } else { "[+] " }, Style::new().fg(t.fg).add_modifier(Modifier::BOLD)),
-        Kind::File if row.section && !is_current => (" ◆  ", Style::new().fg(t.fg).add_modifier(Modifier::BOLD)),
+        // `§` and `•`: every font of `zendo setup fonts` has them, so they take one cell.
+        Kind::File if row.section && !is_current => (" §  ", Style::new().fg(t.fg).add_modifier(Modifier::BOLD)),
         Kind::Dir { open } => (if open { "[-] " } else { "[+] " }, Style::new().fg(t.dim)),
-        Kind::File if is_current => (" ●  ", Style::new().fg(t.fg).add_modifier(Modifier::BOLD)),
+        Kind::File if is_current => (" •  ", Style::new().fg(t.fg).add_modifier(Modifier::BOLD)),
         Kind::File => ("    ", Style::new().fg(t.fg)),
         // FILES-69: a head of the Notes view.
         Kind::Head => ("", Style::new().fg(t.dim).add_modifier(Modifier::BOLD)),
