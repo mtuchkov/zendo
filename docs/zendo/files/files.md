@@ -8,6 +8,7 @@ prev: "../length.md"
 next: "../work.md"
 children:
   - "files-views.md"
+  - "files-view-column.md"
   - "files-actions.md"
   - "files-code.md"
   - "files-worktree.md"
