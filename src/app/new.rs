@@ -6,7 +6,10 @@ impl App {
         let store = Store::new(cfg.root.clone(), cfg.notes_dir.clone());
         let mut files = Files::start(store)?;
         files.set_branch(notes::git_branch(&cfg.root));
-        let state = State::load(&cfg.root);
+        let mut state = State::load(&cfg.root);
+        // Each start shows the structure view, else docs; the view of the last run goes (FILES-66).
+        state.tree_view.clear();
+        state.tree_all = false;
         let theme = theme::index_of(&state.theme);
         let user = crate::setup::config::UserConfig::load();
         let (keys, key_problems) = user.keymap();
