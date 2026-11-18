@@ -59,8 +59,8 @@ The second option is chosen.
   with their labels, contexts and files, the context, and the default question. zendo shall write
   it at the quit, at a switch of the session, at a send, and 2 s after the last change of the
   input, so that a crash loses at most 2 s of typing.
-- At the start, zendo shall remove a chip whose file is gone, with its label in the text
-  (CLAUDE-46). zendo shall not keep the chip window, the suggestions, the `alt-o` pick, or the
+- A chip whose file is gone shall stay in the draft; the chat input shows it in red (CLAUDE-46).
+  zendo shall not keep the chip window, the suggestions, the `alt-o` pick, or the
   choice of the open document: after a restart, each session starts with `[x] open document`.
 
 ## Consequences
@@ -81,7 +81,7 @@ The second option is chosen.
 - `tests/chat_flows.rs`: a text and a chip typed in session 1 stay there when the user goes to
   session 2 and back; session 2 starts empty (CLAUDE-43, CLAUDE-44).
 - `tests/chat_flows.rs`: a draft comes back after a new `App` on the same repository; a chip of a
-  gone file goes (CLAUDE-45, CLAUDE-46).
+  gone file shows in red (CLAUDE-45, CLAUDE-46).
 - `tests/chat_flows.rs`: the name of an image pasted in session 1 labels its chip while session 2
   is active (CLAUDE-47); `esc` puts the queue of session 1 into the input of session 1.
 - `src/app/chat_pane_tests.rs`: the save and the load of the drafts.
@@ -89,4 +89,4 @@ The second option is chosen.
 ## Decision record
 
 Proposed by the agent on 2026-11-17 from the requests of the user in the chat. The user chose to
-keep the drafts across a restart. Not reviewed yet.
+keep the drafts across a restart, and a red chip for a gone file. Not reviewed yet.

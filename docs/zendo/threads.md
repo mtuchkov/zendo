@@ -47,7 +47,7 @@ shows the messages of the last session, and the agent sends its slash commands.
 | CLAUDE-43 | Ubiquitous | The system shall keep a chat input of its own for each agent session: its text, its chips, its files and images, and its context. | User, 2026-11-17 |
 | CLAUDE-44 | Event      | When the user chooses another agent session, the system shall show the chat input of that session as the user left it, and keep the input of the session before unchanged. | User, 2026-11-17 |
 | CLAUDE-45 | Ubiquitous | The system shall keep the chat input of each agent session in the repository, and show it again in its session after a restart of zendo. | User, 2026-11-17 |
-| CLAUDE-46 | Unwanted   | If the file or the image of a chip is gone when zendo starts, then the system shall remove the chip and its label from the chat input. | Design           |
+| CLAUDE-46 | Unwanted   | If the file or the image of a chip is gone, then the system shall show the chip in red, also after a restart. | User, 2026-11-17 |
 | CLAUDE-47 | Event      | When the name of a pasted image comes (CLAUDE-38), or the queued questions of a thread go back into the input (CLAUDE-34), the system shall change the chat input of the session of that chip or thread, also while another session is active. | Design           |
 | CLAUDE-10 | Optional   | Where the agent has a command line with a resume, the system shall continue the thread there when the user presses `ctrl-o`. | Design           |
 
