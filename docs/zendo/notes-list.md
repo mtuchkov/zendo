@@ -17,7 +17,7 @@ from the date and a short form of the title. The note pane is in [Notes](notes.m
 
 The notes list (`o`) shows the notes by age: today, this week, older. `enter` opens a note, `n`
 writes a new one in a [float](float.md), `r` renames the file to match the title, `f2` renames it to a typed name, and
-`delete` deletes it after a `y`. `/` searches the text of all notes; a search that starts with `#`
+`delete` deletes it after a `y`. `/` opens the find panel ([Find: modes](find-modes.md)); its Notes mode searches all notes; a search that starts with `#`
 finds a tag, and one that starts with `?` asks the agent about all notes.
 
 ## Detailed requirements
