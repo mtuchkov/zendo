@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-17"
 revision: "2"
 date: "2026-11-17"
 parent: "zendo.md"
 prev: "claude.md"
 next: "sessions.md"
 level: "the threads of the chat: the five agent sessions, how the user chooses one, and how zendo keeps and resumes them"
-note: "Split from claude.md, revision 4, by topic. Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. Revision 2: the chat input of each agent session (CLAUDE-43 to CLAUDE-47, ADR 0011), asked by the user on 2026-11-17; not reviewed yet."
+note: "Split from claude.md, revision 4, by topic. Agent rewrite of the reference of zendo 0.9.1. Revision 2: the chat input of each agent session (CLAUDE-43 to CLAUDE-47, ADR 0011), asked by the user on 2026-11-17. The user approved the document on 2026-11-17."
 ---
 
 # Threads

@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "zendo-session.md"
 next: "chat-chips.md"
 level: "the chat input: lines, chips, attachments and @ file suggestions"
-note: "Split from claude.md; the user approved the requirements in the chat on 2026-11-14, with CLAUDE-17 for `Image #n` chips and CLAUDE-37 to CLAUDE-39 for image names. Revision 3: CLAUDE-41 and CLAUDE-42 (text chips, approved by the user on 2026-11-13 as CLAUDE-35 and CLAUDE-36 in feat/paste-chips) got new numbers, because main gave those numbers to other requirements. Revision 4: a link to the chip window and the open document in chat-chips.md, asked by the user on 2026-11-17; not reviewed yet."
+note: "Split from claude.md; the user approved the requirements in the chat on 2026-11-14, with CLAUDE-17 for `Image #n` chips and CLAUDE-37 to CLAUDE-39 for image names. Revision 3: CLAUDE-41 and CLAUDE-42 (text chips, approved by the user on 2026-11-13 as CLAUDE-35 and CLAUDE-36 in feat/paste-chips) got new numbers, because main gave those numbers to other requirements. Revision 4: a link to the chip window and the open document in chat-chips.md, asked and approved by the user on 2026-11-17."
 ---
 
 # Chat
