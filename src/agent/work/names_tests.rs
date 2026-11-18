@@ -17,7 +17,7 @@ fn pick_takes_the_first_free_word() {
 }
 
 fn tools(titles: &[&str]) -> Item {
-    let uses = titles.iter().map(|t| crate::app::ToolUse { id: t.to_string(), title: t.to_string(), kind: "read".into() }).collect();
+    let uses = titles.iter().map(|t| crate::app::ToolUse { id: t.to_string(), title: t.to_string(), kind: "read".into(), ..Default::default() }).collect();
     Item::Tools { uses, started: Instant::now(), took: None }
 }
 

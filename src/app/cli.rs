@@ -111,8 +111,8 @@ impl App {
                 Message::Answer(a) | Message::Text(a) => t.push(Item::Agent(a)),
                 // The tool calls between two texts are one item, as the tools of the agent (CLIMSG-9).
                 Message::Tool { id, title, kind } => match t.items.last_mut() {
-                    Some(Item::Tools { uses, .. }) => uses.push(ToolUse { id, title, kind }),
-                    _ => t.push(Item::Tools { uses: vec![ToolUse { id, title, kind }], started: Instant::now(), took: None }),
+                    Some(Item::Tools { uses, .. }) => uses.push(cli_tool(id, title, kind)),
+                    _ => t.push(Item::Tools { uses: vec![cli_tool(id, title, kind)], started: Instant::now(), took: None }),
                 },
                 Message::Session { .. } => {}
             }
@@ -195,4 +195,9 @@ impl App {
         self.flash(format!("{n} Claude Code session{s} or terminal command{s} {run}: quit again to stop {them}"));
         false
     }
+}
+
+/// A tool call of a Claude Code session: its transcript tells no state, so it counts as done.
+fn cli_tool(id: String, title: String, kind: String) -> ToolUse {
+    ToolUse { id, title, kind, state: crate::agent::ToolState::Done, ..Default::default() }
 }

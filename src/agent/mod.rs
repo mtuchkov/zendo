@@ -7,6 +7,7 @@ mod acp;
 pub mod api;
 mod model;
 mod sessions;
+mod tool_events;
 pub mod work;
 
 use acp::*;
@@ -113,6 +114,23 @@ pub struct Choice {
     pub always: bool,
 }
 
+/// The state of a tool call (ACT-1, ACT-8).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ToolState {
+    #[default]
+    Pending,
+    Running,
+    Done,
+    Failed,
+}
+
+impl ToolState {
+    /// The call ended, well or not.
+    pub fn ended(self) -> bool {
+        matches!(self, ToolState::Done | ToolState::Failed)
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum Event {
     Ready { agent: String, can_load: bool, can_image: bool },
@@ -122,7 +140,9 @@ pub enum Event {
     Replay { key: String, user: bool, text: String },
     Text { key: String, text: String },
     Thought { key: String },
-    Tool { key: String, id: String, title: String, kind: String, done: bool },
+    /// A tool call or its update: `place` is its first file, `error` the first line of the error
+    /// of a failed call. An update leaves out what did not change.
+    Tool { key: String, id: String, title: String, kind: String, state: ToolState, place: Option<String>, error: Option<String> },
     Permission { key: String, request: u64, title: String, kind: String, diffs: Vec<DiffView>, choices: Vec<Choice> },
     /// A shell command was blocked by policy.
     Blocked { key: String, title: String },

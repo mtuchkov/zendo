@@ -115,20 +115,8 @@ fn on_notification(s: &Shared, n: SessionNotification) {
             }
         }
         SessionUpdate::AgentThoughtChunk(_) => s.emit(Event::Thought { key }),
-        SessionUpdate::ToolCall(tc) => s.emit(Event::Tool {
-            key,
-            id: tc.tool_call_id.0.to_string(),
-            title: tc.title,
-            kind: kind_name(&tc.kind),
-            done: format!("{:?}", tc.status) == "Completed",
-        }),
-        SessionUpdate::ToolCallUpdate(u) => s.emit(Event::Tool {
-            key,
-            id: u.tool_call_id.0.to_string(),
-            title: u.fields.title.unwrap_or_default(),
-            kind: u.fields.kind.as_ref().map(kind_name).unwrap_or_default(),
-            done: u.fields.status.map(|st| format!("{st:?}") == "Completed").unwrap_or(false),
-        }),
+        SessionUpdate::ToolCall(tc) => s.emit(super::tool_events::call(key, tc)),
+        SessionUpdate::ToolCallUpdate(u) => s.emit(super::tool_events::update(key, u)),
         _ => {}
     }
 }
