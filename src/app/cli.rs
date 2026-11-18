@@ -178,7 +178,7 @@ impl App {
     /// True when zendo can quit now. While Claude Code sessions run, the first quit asks, and a
     /// second one within 5 s stops them (SESSIONS-6, SESSIONS-19).
     pub fn settle_quit(&mut self) -> bool {
-        if !self.quit {
+        if !self.quit || !self.settle_background_quit() {
             return false;
         }
         if !self.cli.any_running() {

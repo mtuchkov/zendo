@@ -16,6 +16,8 @@ pub struct Frame {
     pub(super) tree_fold: Vec<(Rect, bool)>,
     pub(super) session_buttons: Vec<(Rect, usize)>,
     pub(super) play_buttons: Vec<(Rect, String)>,
+    /// The names and the `×` of the background line, and their process groups (BG-3, BG-8).
+    pub(super) bg_buttons: Vec<(Rect, u32, bool)>,
     /// `[+]` under the terminal buttons: a new `[>]` terminal (TERM-53).
     pub(super) new_terminal_button: Option<Rect>,
     pub(super) read_text: Vec<String>,
@@ -91,6 +93,21 @@ impl Frame {
     /// The play buttons of the shell blocks, and their commands (TERM-10).
     pub fn play_buttons(&self) -> &[(Rect, String)] {
         &self.play_buttons
+    }
+
+    /// Forget the buttons of the panes of the last draw: the sessions, the new terminal, the play
+    /// buttons, the background line, and the fold of the tree.
+    pub(super) fn clear_pane_buttons(&mut self) {
+        self.session_buttons.clear();
+        self.play_buttons.clear();
+        self.bg_buttons.clear();
+        self.new_terminal_button = None;
+        self.tree_fold.clear();
+    }
+
+    /// The names and the `×` of the background line: the place, the process group, and true for `×`.
+    pub fn bg_buttons(&self) -> &[(Rect, u32, bool)] {
+        &self.bg_buttons
     }
 
     /// The rendered rows of the read view, as plain text.

@@ -253,3 +253,35 @@ pub fn chip_spans_at(text: &str, offset: usize, base: Style, chip: [Style; 2], h
     }
     out
 }
+
+/// The thread, from the bottom up. While the transcript has the keys, the view follows its cursor,
+/// and the cursor row and the selection show.
+pub(super) fn draw_transcript(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, body: Rect, lines: Vec<Line<'static>>, w: usize) {
+    let h = body.height as usize;
+    app.threads.transcript_mut().show_rows(lines.iter().map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect()).collect());
+    let on = app.threads.transcript().on() && app.focus == Focus::Claude;
+    let start = app.threads.fit(lines.len(), h, on);
+    let tr = app.threads.transcript();
+    let (row, col) = tr.cursor();
+    let sel = delta::mix(t.bg, t.acc2, 0.42);
+    let table = if on { tr.table() } else { None };
+    let view: Vec<Line> = lines
+        .into_iter()
+        .enumerate()
+        .skip(start)
+        .take(h)
+        .map(|(i, l)| match tr.marked(table.as_ref(), i) {
+            Some((a, b)) if on => paint(l, a, b, sel),
+            _ if on && i == row => tint_keep(l, cursor_line(t), w),
+            _ => l,
+        })
+        .collect();
+    f.render_widget(Paragraph::new(view), body);
+    let shown = |(a, ..): &&(usize, usize, String)| *a >= start && *a < start + h;
+    let play = app.threads.transcript().blocks().iter().filter(shown).map(|(a, _, c)| (Rect { x: body.x + (w as u16).saturating_sub(2), y: body.y + (a - start) as u16, width: 2, height: 1 }, c.clone())).collect::<Vec<_>>();
+    fr.play_buttons = play;
+    if on && row >= start && row < start + h {
+        let x: usize = tr.rows()[row].chars().take(col).map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
+        f.set_cursor_position((body.x + (x as u16).min(body.width.saturating_sub(1)), body.y + (row - start) as u16));
+    }
+}

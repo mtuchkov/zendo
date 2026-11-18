@@ -42,7 +42,7 @@ impl App {
             Event::Tool { key, id, title, kind, state, place, error } => {
                 let place = place.map(|p| self.in_root(&p));
                 let error = error.and_then(|e| e.lines().map(str::trim).find(|l| !l.is_empty()).map(str::to_string));
-                self.on_tool(key, ToolUse { id, title, kind, state, place, error })
+                self.on_tool(key, ToolUse { id, title, kind, state, place, error, started: None })
             }
             // The agent edits without a question to the user (CLAUDE-33); the tool line shows it.
             Event::Permission { request, choices, .. } => {
@@ -129,8 +129,9 @@ impl App {
         std::path::Path::new(p).strip_prefix(&self.cfg.root).map_or_else(|_| p.to_string(), |r| r.display().to_string())
     }
 
-    fn on_tool(&mut self, key: String, new: ToolUse) {
+    fn on_tool(&mut self, key: String, mut new: ToolUse) {
         let done = new.state == crate::agent::ToolState::Done;
+        new.started = Some(Instant::now());
         let t = self.thread(&key);
         let known = t.items.iter_mut().rev().find_map(|it| match it {
             Item::Tools { uses, .. } => uses.iter_mut().find(|u| u.id == new.id),

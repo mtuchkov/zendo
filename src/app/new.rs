@@ -32,6 +32,7 @@ impl App {
             frame: crate::ui::frame::Frame::sized(20, 70, DEFAULT_WORDS),
             width_default: user.width.unwrap_or(crate::ui::COLUMN).clamp(30, 300),
             attention: Attention::from_config(&user),
+            bg: Background::default(),
             music: crate::music::Music::from_config(&user),
             link: AgentLink::with_name_model(name_model),
             ..Default::default()

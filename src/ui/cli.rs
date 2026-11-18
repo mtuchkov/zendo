@@ -103,11 +103,17 @@ pub(crate) fn titled(app: &App, n: usize) -> String {
     }
 }
 
-/// The text of the button of agent session `n`: its key, `name` if not empty, and `!` while its
-/// Claude Code session waits for the user (CLAUDE-32, NAMES-6, SESSIONS-14).
+/// The text of the button of agent session `n`: its key, `name` if not empty, `!` while its
+/// Claude Code session waits for the user, and the count of its background processes while the
+/// user does not see it (CLAUDE-32, NAMES-6, SESSIONS-14, BG-6).
 pub(crate) fn agent_label(app: &App, n: usize, name_part: &str) -> String {
     let key = name(app, n);
-    let mark = if app.cli.state(n) == Some(crate::session::State::Waits) { "!" } else { "" };
+    let mut mark = if app.cli.state(n) == Some(crate::session::State::Waits) { "!" } else { "" }.to_string();
+    let key_n = crate::app::session_key(n);
+    let bg = app.bg.of(&key_n).count();
+    if bg > 0 && key_n != app.key() {
+        mark.push_str(&format!(" ⏵{bg}"));
+    }
     if name_part.is_empty() { format!("{key}{mark}") } else { format!("{key} {name_part}{mark}") }
 }
 
