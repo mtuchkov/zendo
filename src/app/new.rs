@@ -17,6 +17,7 @@ impl App {
         let name_model = user.name_model(kind);
         let env = |k: &str| cfg.agent_env.get(k).cloned().or_else(|| std::env::var(k).ok());
         let api = crate::agent::api::Api::find(kind, name_model.clone(), &env, &crate::agent::api::on_path);
+        let hints = crate::agent::api::Api::find(kind, user.hint_model(kind), &env, &crate::agent::api::on_path);
         crate::text::highlight::init(user.highlight.as_ref());
         let mut app = Self {
             cfg,
@@ -34,6 +35,7 @@ impl App {
             ..Default::default()
         };
         app.link.start_api(api);
+        app.rekey.api = hints.map(|a| crate::agent::api::Api { effort: Some("low".into()), ..a });
         // The last document of the active session, where the user left it (FILES-55).
         app.open_session_doc();
         app.files.find.seen = app.files.current().cloned();

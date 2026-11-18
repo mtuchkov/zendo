@@ -86,7 +86,7 @@ fn mock_ant(name: &str, out: &str, code: i32) -> PathBuf {
 #[test]
 fn the_ant_sign_in_is_the_claude_credential() {
     let ok = mock_ant("ok", "sk-ant-oat01-test", 0);
-    let api = Api { vendor: Vendor::Anthropic, base: "http://x".into(), model: "m".into(), cred: Credential::Ant(ok.clone()) };
+    let api = Api { vendor: Vendor::Anthropic, base: "http://x".into(), model: "m".into(), cred: Credential::Ant(ok.clone()), effort: None };
     assert_eq!(api.token().as_deref(), Ok("sk-ant-oat01-test"));
     assert!(api.usable());
     let h = api.headers("sk-ant-oat01-test");
@@ -123,7 +123,7 @@ fn short_model_names_map_to_api_identifiers() {
 #[test]
 fn the_bodies_have_the_prompt_and_the_image() {
     let img = Some(Image { media: "image/png", data: "AAA=".into() });
-    let a = Api { vendor: Vendor::Anthropic, base: "b".into(), model: "claude-haiku-5-5".into(), cred: Credential::Key("k".into()) };
+    let a = Api { vendor: Vendor::Anthropic, base: "b".into(), model: "claude-haiku-5-5".into(), cred: Credential::Key("k".into()), effort: None };
     let b = a.body("name it", img.as_ref());
     assert_eq!(b["model"], "claude-haiku-5-5");
     assert!(b["max_tokens"].as_u64().is_some());
@@ -167,7 +167,7 @@ fn the_answers_of_both_apis_give_their_text() {
 #[test]
 fn the_asker_keeps_the_open_questions_until_their_answers() {
     let mut asker = Asker::default();
-    let api = Api { vendor: Vendor::Anthropic, base: "http://x".into(), model: "m".into(), cred: Credential::Claude("/no/such/claude".into()) };
+    let api = Api { vendor: Vendor::Anthropic, base: "http://x".into(), model: "m".into(), cred: Credential::Claude("/no/such/claude".into()), effort: None };
     let q = Question::Image("/tmp/a.png".into());
     asker.ask(&api, q.clone(), "name it".into(), None);
     assert_eq!(asker.open(), std::slice::from_ref(&q));
@@ -179,4 +179,16 @@ fn the_asker_keeps_the_open_questions_until_their_answers() {
     }
     assert!(matches!(&got[..], [(a, Err(_))] if *a == q), "{got:?}");
     assert!(asker.open().is_empty());
+}
+
+// REKEY-6: a question with an effort asks for it: `output_config` for Anthropic, `reasoning` for
+// OpenAI; without one, neither.
+#[test]
+fn an_effort_goes_into_the_body() {
+    let a = Api { vendor: Vendor::Anthropic, base: "b".into(), model: "claude-haiku-5-5".into(), cred: Credential::Key("k".into()), effort: Some("low".into()) };
+    assert_eq!(a.body("keys", None)["output_config"]["effort"], "low");
+    let o = Api { vendor: Vendor::OpenAi, ..a.clone() };
+    assert_eq!(o.body("keys", None)["reasoning"]["effort"], "low");
+    let none = Api { effort: None, ..a };
+    assert!(none.body("keys", None).get("output_config").is_none());
 }

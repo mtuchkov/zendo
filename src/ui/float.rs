@@ -38,7 +38,7 @@ pub(crate) fn draw_float(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     f.render_widget(Paragraph::new("─".repeat(inner.width as usize)).style(Style::new().fg(t.line)), Rect { y: inner.y + 1, height: 1, ..inner });
     draw_write(f, app, fr, &t, Rect { y: inner.y + 2, height: inner.height - 2, ..inner });
     if app.mode == Mode::Help {
-        fr.overlay = Some(draw_help(f, app, &t, area));
+        fr.overlay = Some(draw_help(f, app, fr, &t, area));
     }
     draw_selection(f, app, &t);
 }

@@ -115,6 +115,7 @@ impl App {
                 Question::Name { n, id } => self.named(n, id, &text),
                 Question::Image(path) => self.label_image(&path, &text),
                 Question::Title { opened, old } => self.titled(TitleJob { opened, old }, &text, None),
+                Question::Keys(_) => {}
             }
         }
         if self.link.api().is_some() && !self.title_tick() {

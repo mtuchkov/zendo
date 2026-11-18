@@ -302,7 +302,7 @@ fn api_at(vendor: Vendor, url: &str, short: &str) -> Api {
         Vendor::Anthropic => url.to_string(),
         Vendor::OpenAi => format!("{url}/v1"),
     };
-    Api { vendor, base, model: api_model(vendor, short), cred: Credential::Key("test-key".into()) }
+    Api { vendor, base, model: api_model(vendor, short), cred: Credential::Key("test-key".into()), effort: None }
 }
 
 // NAMES-15, NAMES-18: a Claude agent with a key names its sessions through the Anthropic Messages

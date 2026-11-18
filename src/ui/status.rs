@@ -1,26 +1,35 @@
 //! The status bar.
 use super::*;
 
-pub(crate) fn draw_status(f: &mut Frame, app: &App, fr: &Cache, t: &Theme, area: Rect) {
+pub(crate) fn draw_status(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
     let claude = app.threads.shown() && app.focus == Focus::Claude && matches!(app.mode, Mode::Read | Mode::Write);
     let (badge, color, mut keys) = status_keys(app, fr, t, claude);
     // The key of the help, in every pane and mode, first: it is always on the screen.
     // An action without a key has no hint (PANES-29).
-    keys.retain(|(k, v)| v != "keys" && !k.is_empty());
+    keys.retain(|(k, v, _)| v != "keys" && !k.is_empty());
     if let Some(help) = app.keys.key(crate::keys::Pane::Global, "help") {
-        keys.insert(0, (help, "keys".into()));
+        keys.insert(0, (help, "keys".into(), vec![(crate::keys::Pane::Global, "help")]));
     }
     let mut spans = vec![Span::raw("  "), Span::styled(format!(" {badge} "), Style::new().bg(color).fg(t.bg).add_modifier(Modifier::BOLD)), Span::raw("  ")];
     let right = status_right(app, fr, claude);
     // The right side shows whole: the hints at the end give way, the help key stays.
     let room = (area.width as usize).saturating_sub(right.width() + 2 + spans.iter().map(|s| s.content.width()).sum::<usize>());
-    let fit = keys.iter().scan(0, |w, (k, v)| {
+    let fit = keys.iter().scan(0, |w, (k, v, _)| {
         *w += k.width() + v.width() + 4;
         Some(*w)
     });
     let n = fit.take_while(|w| *w <= room).count().max(1);
-    for (k, v) in keys.into_iter().take(n) {
-        spans.push(Span::styled(k, Style::new().fg(t.fg)));
+    let mut x = area.x + spans.iter().map(|s| s.content.width()).sum::<usize>() as u16;
+    for (k, v, acts) in keys.into_iter().take(n) {
+        // Each key of the hint is a target of a click; the key that a click made a button shows
+        // as one (REKEY-1).
+        for (rect, target) in super::rekey::hint_targets(app, &k, &acts, x, area.y) {
+            fr.key_targets.push((rect, target));
+        }
+        let button = app.rekey.button().is_some_and(|b| fr.key_targets.iter().any(|(r, t)| *t == b && r.x >= x && r.x < x + k.width() as u16));
+        let style = if button { Style::new().fg(t.bg).bg(t.acc2) } else { Style::new().fg(t.fg) };
+        x += (k.width() + v.width() + 4) as u16;
+        spans.push(Span::styled(k, style));
         spans.push(Span::styled(format!(" {v}   "), Style::new().fg(t.dim)));
     }
     let used: usize = spans.iter().map(|s| s.content.width()).sum();
@@ -30,17 +39,17 @@ pub(crate) fn draw_status(f: &mut Frame, app: &App, fr: &Cache, t: &Theme, area:
     f.render_widget(Paragraph::new(Line::from(spans)), area);
 }
 
-type Hints = Vec<(String, String)>;
+/// The hints: the key, the text, and the actions of the key, one for each key of a group.
+type Hints = Vec<(String, String, Vec<(crate::keys::Pane, &'static str)>)>;
 
 /// The badge of the pane in focus and its key hints, from the keymap: the first key of each action.
 fn status_keys(app: &App, fr: &Cache, t: &Theme, claude: bool) -> (&'static str, Color, Hints) {
     use crate::keys::Pane;
     let delta = app.work.delta_open() && app.focus == Focus::Delta && matches!(app.mode, Mode::Read | Mode::Write);
     let tree = app.state.tree && app.focus == Focus::Tree && matches!(app.mode, Mode::Read | Mode::Write);
-    let hints = |p: Pane, list: &[(&str, &str)]| -> Hints {
-        list.iter().filter(|(a, _)| app.agent_can(a)).map(|(a, text)| (app.keys.first(p, a), text.to_string())).collect()
-    };
-    let next = (app.keys.first(Pane::Global, "next_pane"), "next pane".to_string());
+    let hints = |p: Pane, list: &[(&'static str, &str)]| hints(app, p, list);
+    let one = |p: Pane, a: &'static str, text: &str| one(app, p, a, text);
+    let next = one(Pane::Global, "next_pane", "next pane");
     let with_next = |mut v: Hints| {
         v.push(next.clone());
         v
@@ -57,14 +66,14 @@ fn status_keys(app: &App, fr: &Cache, t: &Theme, claude: bool) -> (&'static str,
     if claude && app.pane_terminal().is_some_and(|n| n >= crate::app::SESSIONS) {
         // A shell in the chat pane gets every other key (PANES-33, TERM-38).
         let v = [(Pane::Chat, "handoff", "full screen"), (Pane::Session, "leave", "back"), (Pane::Global, "next_session", "next session")];
-        return ("SHELL", t.acc, v.iter().map(|(p, a, text)| (app.keys.first(*p, a), text.to_string())).collect());
+        return ("SHELL", t.acc, v.iter().map(|(p, a, text)| one(*p, a, text)).collect());
     }
     if claude && app.threads.transcript().on() {
         let mut v = hints(Pane::Transcript, &[("down", "move"), ("select_down", "select"), ("copy", "copy"), ("add_to_chat", "to chat"), ("input", "input")]);
         if app.threads.transcript().block().is_some() {
             // The cursor is in a shell block: F5 puts it into a terminal, alt-F5 runs it (TERM-1, TERM-21).
-            v.insert(0, (app.keys.first(Pane::Global, "terminal_run"), "run".into()));
-            v.insert(0, (app.keys.first(Pane::Global, "terminal"), "to shell".into()));
+            v.insert(0, one(Pane::Global, "terminal_run", "run"));
+            v.insert(0, one(Pane::Global, "terminal", "to shell"));
         }
         return ("TRANSCRIPT", t.acc2, with_next(v));
     }
@@ -73,26 +82,12 @@ fn status_keys(app: &App, fr: &Cache, t: &Theme, claude: bool) -> (&'static str,
     if claude {
         let mut v = selected(app.composer.input());
         v.extend(hints(Pane::Chat, &[("send", "send"), ("newline", "new line"), ("new_thread", "new thread"), ("handoff", "Claude Code"), ("back", "back")]));
-        v.push((app.keys.first(Pane::Global, "next_session"), "next session".into()));
+        v.push(one(Pane::Global, "next_session", "next session"));
         return ("CHAT", t.acc, with_next(v));
     }
     match app.mode {
         Mode::Read if app.reader.anchor().is_some() => ("SELECT", t.acc2, hints(Pane::Read, &[("select_down", "extend"), ("ask", "ask claude"), ("add_to_chat", "add to chat"), ("copy", "copy"), ("back", "cancel")])),
-        Mode::Read | Mode::Help => {
-            let mut v = hints(Pane::Read, &[("down", "cursor"), ("select_down", "select"), ("ask", "ask"), ("say", "say here"), ("add_to_chat", "to chat"), ("chat", "chat"), ("write", "write"), ("search", "search"), ("help", "keys")]);
-            // The four cursor keys and the four select keys, each with one label.
-            let four = |names: [&str; 4]| {
-                let keys = names.map(|n| app.keys.first(Pane::Read, n));
-                if keys.iter().any(String::is_empty) { String::new() } else { group_label(&keys.iter().map(String::as_str).collect::<Vec<_>>()) }
-            };
-            v[0].0 = four(["left", "down", "up", "right"]);
-            v[1].0 = four(["select_left", "select_down", "select_up", "select_right"]);
-            v.insert(5, (app.keys.first(Pane::Global, "toggle_tree"), "files".into()));
-            if fr.over_limit.is_some() {
-                v.insert(0, (app.keys.first(Pane::Read, "split"), format!("split: {} words", fr.word_count)));
-            }
-            ("READ", t.acc, v)
-        }
+        Mode::Read | Mode::Help => ("READ", t.acc, read_hints(app, fr)),
         Mode::Write => {
             let mut v = selected(app.writer.editor());
             v.extend(hints(Pane::Write, &[("done", "read"), ("chat", "chat"), ("add_to_chat", "to chat"), ("say", "say here"), ("bold", "bold"), ("italic", "italic"), ("underline", "underline"), ("toggle_tree", "files"), ("delta", "delta")]));
@@ -100,14 +95,42 @@ fn status_keys(app: &App, fr: &Cache, t: &Theme, claude: bool) -> (&'static str,
         }
         Mode::Notes => ("NOTES", t.acc, hints(Pane::Notes, &[("down", "move"), ("open", "open"), ("new", "new"), ("rename", "rename"), ("tags", "by tag"), ("close", "close")])),
         m @ (Mode::Search | Mode::Find) => if m == Mode::Find { ("FIND", t.acc, list_keys("open")) } else { ("SEARCH", t.acc, list_keys("open at match")) },
-        Mode::Theme => ("THEME", t.acc, vec![("j k".into(), "preview".into()), ("enter".into(), "keep".into()), ("esc".into(), "cancel".into())]),
+        Mode::Theme => ("THEME", t.acc, vec![("j k".into(), "preview".into(), Vec::new()), ("enter".into(), "keep".into(), Vec::new()), ("esc".into(), "cancel".into(), Vec::new())]),
     }
+}
+
+/// The hints of the actions of `list` of pane `p` that the agent can do.
+fn hints(app: &App, p: crate::keys::Pane, list: &[(&'static str, &str)]) -> Hints {
+    list.iter().filter(|(a, _)| app.agent_can(a)).map(|(a, text)| one(app, p, a, text)).collect()
+}
+
+/// The hint of one action: its first key and `text`.
+fn one(app: &App, p: crate::keys::Pane, a: &'static str, text: &str) -> (String, String, Vec<(crate::keys::Pane, &'static str)>) {
+    (app.keys.first(p, a), text.to_string(), vec![(p, a)])
+}
+
+/// The hints of read mode: the four cursor keys and the four select keys each with one label.
+fn read_hints(app: &App, fr: &Cache) -> Hints {
+    use crate::keys::Pane;
+    let mut v = hints(app, Pane::Read, &[("down", "cursor"), ("select_down", "select"), ("ask", "ask"), ("say", "say here"), ("add_to_chat", "to chat"), ("chat", "chat"), ("write", "write"), ("search", "search"), ("help", "keys")]);
+    let four = |names: [&'static str; 4]| {
+        let keys = names.map(|n| app.keys.first(Pane::Read, n));
+        let label = if keys.iter().any(String::is_empty) { String::new() } else { group_label(&keys.iter().map(String::as_str).collect::<Vec<_>>()) };
+        (label, names.map(|n| (Pane::Read, n)).to_vec())
+    };
+    (v[0].0, v[0].2) = four(["left", "down", "up", "right"]);
+    (v[1].0, v[1].2) = four(["select_left", "select_down", "select_up", "select_right"]);
+    v.insert(5, one(app, Pane::Global, "toggle_tree", "files"));
+    if fr.over_limit.is_some() {
+        v.insert(0, one(app, Pane::Read, "split", &format!("split: {} words", fr.word_count)));
+    }
+    v
 }
 
 /// A drag of the mouse: what the release does, and the keys that change it (PANES-45).
 fn mouse_selection(t: &Theme) -> (&'static str, Color, Hints) {
     let v = [("release", "copy"), ("alt-release", "to chat"), ("ctrl", "whole lines"), ("any key", "cancel")];
-    ("MOUSE SELECTION", t.acc2, v.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect())
+    ("MOUSE SELECTION", t.acc2, v.iter().map(|(k, v)| (k.to_string(), v.to_string(), Vec::new())).collect())
 }
 
 /// The right side: a flash, the sync, the agent, or the words of the note.
@@ -185,6 +208,6 @@ pub fn group_label(labels: &[&str]) -> String {
 }
 
 /// The fixed keys of the search box and of the find panel.
-fn list_keys(open: &str) -> Vec<(String, String)> {
-    vec![("↑ ↓".into(), "move".into()), ("enter".into(), open.into()), ("esc".into(), "back".into())]
+fn list_keys(open: &str) -> Hints {
+    vec![("↑ ↓".into(), "move".into(), Vec::new()), ("enter".into(), open.into(), Vec::new()), ("esc".into(), "back".into(), Vec::new())]
 }

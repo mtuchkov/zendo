@@ -14,6 +14,7 @@ mod overlays;
 mod paint;
 mod read;
 mod review;
+mod rekey;
 mod status;
 mod thread;
 mod tree;
@@ -72,11 +73,8 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     let t = *app.theme();
     let area = f.area();
     app.cli.resize(area.height.saturating_sub(1), area.width);
-    fr.sound_button = None;
-    fr.music_button = None;
-    fr.overlay = None;
-    fr.spec_button = None;
-    fr.upgrade_button = None;
+    fr.clear_buttons();
+    app.rekey.follow(app.focus, app.mode);
     if app.hold.is_some() {
         fr.regions.clear();
         draw_hold(f, app, &t, area);
@@ -121,7 +119,7 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
             draw_panes(f, app, fr, &t, main);
             if app.mode == Mode::Help {
                 // Over the panes and the top line, not over the status bar.
-                fr.overlay = Some(draw_help(f, app, &t, Rect { height: rule.y - area.y, ..area }));
+                fr.overlay = Some(draw_help(f, app, fr, &t, Rect { height: rule.y - area.y, ..area }));
             }
         }
     }
@@ -131,6 +129,7 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
     draw_file_prompt(f, app, &t, prompt);
     draw_confirm(f, app, &t, area);
     draw_music_question(f, app, fr, &t, area);
+    rekey::draw_key_float(f, app, fr, &t, area);
 
     draw_selection(f, app, &t);
 }

@@ -16,6 +16,13 @@ impl App {
             self.work.input_now();
             self.tab_run.end();
         }
+        // The key float takes the mouse: only its buttons count (REKEY-12, REKEY-25, REKEY-29).
+        if self.rekey.float().is_some() {
+            if m.kind == MouseEventKind::Down(MouseButton::Left) {
+                self.click_key_float(m.column, m.row);
+            }
+            return;
+        }
         if m.kind == MouseEventKind::Down(MouseButton::Left) && self.click_off_panel(m.column, m.row) {
             return;
         }
@@ -69,6 +76,9 @@ impl App {
         let hit = |r: &Rect| r.contains(ratatui::layout::Position::new(x, y));
         if self.music.asking {
             return self.click_music_question(x, y);
+        }
+        if self.click_key(x, y) {
+            return;
         }
         self.focus_pane_at(x, y);
         if self.frame.music_button().is_some_and(|r| hit(&r)) {

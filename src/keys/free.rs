@@ -57,18 +57,20 @@ fn new_and_free(map: &Keymap, pane: Pane, action: &str, key: Key) -> bool {
     !map.keys_of(pane, action).contains(&key) && clash(map, pane, action, key).is_none()
 }
 
-/// The same key with other modifiers: alt, ctrl, ctrl-shift, alt-shift.
-fn variants(k: Key) -> impl Iterator<Item = Key> {
-    let code = match k.code {
-        KeyCode::Char(c) => KeyCode::Char(c.to_ascii_lowercase()),
-        c => c,
+/// The same letter or function key with other modifiers: alt, ctrl, ctrl-shift, alt-shift. Other
+/// keys, as `tab`, give none: the OS often takes them with a modifier.
+fn variants(k: Key) -> Vec<Key> {
+    let name = match k.code {
+        KeyCode::Char(c) if c.is_ascii_alphanumeric() => c.to_ascii_lowercase().to_string(),
+        KeyCode::F(n) => format!("f{n}"),
+        _ => return Vec::new(),
     };
-    let mods = [(false, true, false), (true, false, false), (true, false, true), (false, true, true)];
-    mods.into_iter().map(move |(ctrl, alt, shift)| Key { code, ctrl, alt, shift })
+    // Through the text of the keymap file: each key comes as a key event gives it (`alt-B`).
+    ["alt-", "ctrl-", "ctrl-shift-", "alt-shift-"].iter().filter_map(|m| Key::parse(&format!("{m}{name}")).ok()).collect()
 }
 
-/// Up to `n` free keys for an action, by the rules: the pressed and the old keys with other
-/// modifiers first, then `alt` and the letters of the action name, then any `alt` letter, then the
+/// Up to `n` free keys for an action, by the rules: the keys of `near` (the old key, then the
+/// pressed key) with other modifiers first, then `alt` and the letters of the action name, then any `alt` letter, then the
 /// function keys (REKEY-11).
 pub fn suggest(map: &Keymap, pane: Pane, action: &str, near: &[Key], n: usize) -> Vec<Key> {
     let alt = |c: char| Key { code: KeyCode::Char(c), ctrl: false, alt: true, shift: false };

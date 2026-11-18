@@ -56,6 +56,14 @@ pub struct UserConfig {
     /// empty name: the default model of the agent (docs/zendo/session-names/session-names.md, NAMES-12).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub name_models: BTreeMap<String, String>,
+    /// The model of the key hints, for each agent: `claude`, `codex` or `other`; by default `haiku`
+    /// and `luna` (docs/zendo/panes/key-hints.md, REKEY-6).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub hint_models: BTreeMap<String, String>,
+    /// The tip menu at the start; default on. `Do not show tips at start` turns it off (TIPS-4,
+    /// TIPS-7).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tips: Option<bool>,
     /// The private notes repo, when the user turned it on.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notes: Option<NotesRepo>,
@@ -125,13 +133,13 @@ impl UserConfig {
     /// The model that names the agent sessions of an agent of `kind`: the one of `[name_models]`,
     /// else `haiku` for Claude and `luna` for Codex (NAMES-12, NAMES-13).
     pub fn name_model(&self, kind: Kind) -> Option<String> {
-        let (id, default) = match kind {
-            Kind::Claude => ("claude", Some("haiku")),
-            Kind::Codex => ("codex", Some("luna")),
-            Kind::Other => ("other", None),
-        };
-        let name = self.name_models.get(id).map(String::as_str).or(default)?;
-        (!name.trim().is_empty()).then(|| name.trim().to_string())
+        model_of(&self.name_models, kind)
+    }
+
+    /// The model of the key hints of an agent of `kind`: the one of `[hint_models]`, else `haiku`
+    /// for Claude and `luna` for Codex (REKEY-6).
+    pub fn hint_model(&self, kind: Kind) -> Option<String> {
+        model_of(&self.hint_models, kind)
     }
 
     pub fn load() -> Self {
@@ -193,6 +201,17 @@ impl UserConfig {
         let text = toml::to_string_pretty(self).map_err(std::io::Error::other)?;
         std::fs::write(path, format!("{CONFIG_HEAD}{text}"))
     }
+}
+
+/// The model of `models` for an agent of `kind`, else `haiku` for Claude and `luna` for Codex.
+fn model_of(models: &BTreeMap<String, String>, kind: Kind) -> Option<String> {
+    let (id, default) = match kind {
+        Kind::Claude => ("claude", Some("haiku")),
+        Kind::Codex => ("codex", Some("luna")),
+        Kind::Other => ("other", None),
+    };
+    let name = models.get(id).map(String::as_str).or(default)?;
+    (!name.trim().is_empty()).then(|| name.trim().to_string())
 }
 
 /// Where the agent command came from, for `zendo doctor`.

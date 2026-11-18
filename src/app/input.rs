@@ -55,6 +55,8 @@ impl App {
         match (self.cli.view, self.pane_terminal()) {
             // The question of the first start takes every key until it has an answer (LOFI-12).
             _ if self.music.asking => self.key_music_question(k),
+            // The key float takes every key: the next key is the new key (REKEY-2, REKEY-14).
+            _ if self.rekey.float().is_some() => self.key_key_float(k),
             _ if self.writer.float().is_some() => self.key_float(k),
             _ if global == Some("new_note") => drop(self.global_key("new_note", crate::keys::Pane::Global)),
             _ if global == Some("music") => drop(self.global_key("music", crate::keys::Pane::Global)),

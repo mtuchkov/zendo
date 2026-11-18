@@ -52,11 +52,12 @@ fn a_free_key_and_the_own_key_do_not_clash() {
 #[test]
 fn the_rules_suggest_free_keys_near_the_pressed_key() {
     let map = Keymap::defaults();
-    let near = [key("tab"), key("alt-b")];
+    let near = [key("alt-b"), key("tab")];
     let got = suggest(&map, Pane::Global, "toggle_tree", &near, 3);
     assert_eq!(got.len(), 3);
     assert!(got.iter().all(|k| clash(&map, Pane::Global, "toggle_tree", *k).is_none()), "{got:?}");
-    assert!(got[0].code == KeyCode::Char('b') || got[0].code == KeyCode::Tab, "{:?}", got[0]);
+    assert_eq!(got[0], key("alt-B"), "the letter of the old key first: {got:?}");
+    assert!(got.iter().all(|k| k.code != KeyCode::Tab), "no tab with a modifier: {got:?}");
 }
 
 /// REKEY-7: a suggested key goes through the same rules.

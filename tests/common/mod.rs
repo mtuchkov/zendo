@@ -2,6 +2,7 @@
 #![allow(dead_code)]
 
 pub mod http;
+pub mod rekey;
 
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;

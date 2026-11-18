@@ -34,6 +34,10 @@ pub struct Frame {
     pub(super) music_answers: Option<(Rect, Rect)>,
     /// The help or the find panel over the screen, for a click off it (PANES-47).
     pub(super) overlay: Option<Rect>,
+    /// The keys of the status bar and of the help, for a click that changes one (REKEY-1).
+    pub(super) key_targets: Vec<(Rect, crate::app::rekey::KeyTarget)>,
+    /// The choices, `[remove]` and the suggested keys of the key float (REKEY-12, REKEY-25).
+    pub(super) float_buttons: Vec<(Rect, crate::app::rekey::FloatButton)>,
 }
 
 impl Frame {
@@ -155,6 +159,23 @@ impl Frame {
     /// The row of the word after the limit.
     pub fn over_limit(&self) -> Option<usize> {
         self.over_limit
+    }
+
+    /// Before a draw: no button is on the screen yet.
+    pub(super) fn clear_buttons(&mut self) {
+        (self.sound_button, self.music_button, self.overlay, self.spec_button, self.upgrade_button) = (None, None, None, None, None);
+        self.key_targets.clear();
+        self.float_buttons.clear();
+    }
+
+    /// The keys on the screen that a click can change (REKEY-1).
+    pub fn key_targets(&self) -> &[(Rect, crate::app::rekey::KeyTarget)] {
+        &self.key_targets
+    }
+
+    /// The buttons of the key float.
+    pub fn float_buttons(&self) -> &[(Rect, crate::app::rekey::FloatButton)] {
+        &self.float_buttons
     }
 
     /// The float and the screen behind it each keep their own rows of write mode.

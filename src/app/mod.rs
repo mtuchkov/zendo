@@ -33,6 +33,8 @@ mod new;
 mod pointer;
 mod read;
 mod reader;
+mod key_hints;
+pub mod rekey;
 mod say;
 mod spec;
 mod selection;
@@ -178,6 +180,8 @@ pub struct App {
     /// The lofi music, its button, and the question at the first start (LOFI-8 to LOFI-15).
     pub music: crate::music::Music,
 
+    /// The key button and the key float: the change of a key in place (REKEY-1).
+    pub rekey: rekey::Rekey,
     /// The mouse: its selection, the pane edge in a drag, and the text that it copies.
     pub pointer: Pointer,
     /// What the last draw left for the mouse and the keys; `ui` builds it, the app only reads it.
