@@ -31,6 +31,8 @@ children:
   - "site.md"
   - "lofi.md"
   - "usage.md"
+  - "fonts.md"
+  - "fonts-tip.md"
 level: "what zendo is, its parts, and the qualities that hold for all parts"
 note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
