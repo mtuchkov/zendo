@@ -23,6 +23,10 @@ pub struct Background {
     scans: Option<Receiver<Vec<Proc>>>,
     /// The quit asked about the background processes at this time (BG-4).
     pub quit_asked: Option<Instant>,
+    /// The next key answers the question of the quit: `enter` or `esc` (BG-4).
+    quit_open: bool,
+    /// The list of the background processes is open under `⏷` (BG-11).
+    pub open: bool,
 }
 
 impl Background {
@@ -46,6 +50,15 @@ fn scanner() -> Receiver<Vec<Proc>> {
         }
     });
     rx
+}
+
+/// Add `line` to `.zendo/agent.log` of `root`.
+fn log_line(root: &std::path::Path, line: &str) {
+    use std::io::Write;
+    let path = state::dir(root).join("agent.log");
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
+        let _ = writeln!(f, "{line}");
+    }
 }
 
 /// How long a process ran, as a line says it: `40 s`, `14 min`.
@@ -99,8 +112,20 @@ impl App {
         for b in ended {
             self.thread(&b.key).push(Item::Info(format!("{} ended · {}", b.label, ran(b.started.elapsed()))));
         }
-        for b in self.bg.list.iter().filter(|b| b.stopping.is_some_and(|t| t.elapsed() >= FORCE_AFTER)) {
-            procs::stop(b.pgid, true);
+        let late: Vec<u32> = self.bg.list.iter().filter(|b| b.stopping.is_some_and(|t| t.elapsed() >= FORCE_AFTER)).map(|b| b.pgid).collect();
+        late.into_iter().for_each(|pgid| self.signal(pgid, true));
+    }
+
+    /// Send the signal to the group `pgid` and write it into `.zendo/agent.log`. A group that
+    /// `procs::may_stop` refuses gets no signal and leaves the list (BG-3, BG-9).
+    fn signal(&mut self, pgid: u32, force: bool) {
+        let label = self.bg.list.iter().find(|b| b.pgid == pgid).map(|b| b.label.clone()).unwrap_or_default();
+        let sent = procs::stop(pgid, force);
+        let (sig, what) = (if force { "KILL" } else { "TERM" }, if sent { "sent" } else { "refused" });
+        log_line(&self.cfg.root, &format!("zendo: {what} SIG{sig} to the group {pgid} ({label}), zendo {}", std::process::id()));
+        if !sent {
+            self.bg.list.retain(|b| b.pgid != pgid);
+            self.flash(format!("zendo did not stop {label}: its group {pgid} is not a background process"));
         }
     }
 
@@ -120,8 +145,8 @@ impl App {
     /// Stop one background process and the processes that it started (BG-3).
     pub fn stop_background(&mut self, pgid: u32) {
         if let Some(b) = self.bg.list.iter_mut().find(|b| b.pgid == pgid && b.stopping.is_none()) {
-            procs::stop(pgid, false);
             b.stopping = Some(Instant::now());
+            self.signal(pgid, false);
         }
     }
 
@@ -136,11 +161,13 @@ impl App {
     /// quit or `enter` stops them, `esc` leaves them running (BG-4).
     pub(crate) fn settle_background_quit(&mut self) -> bool {
         if self.bg.list.is_empty() || self.bg.quit_asked.is_some_and(|t| t.elapsed() < crate::session::QUIT_AGAIN) {
-            self.bg.list.iter().for_each(|b| procs::stop(b.pgid, false));
+            let all: Vec<u32> = self.bg.list.iter().map(|b| b.pgid).collect();
+            all.into_iter().for_each(|pgid| self.signal(pgid, false));
             return true;
         }
         self.quit = false;
         self.bg.quit_asked = Some(Instant::now());
+        self.bg.quit_open = true;
         let n = self.bg.list.len();
         let (s, run, them) = if n == 1 { ("", "runs", "it") } else { ("es", "run", "them") };
         self.flash(format!("{n} background process{s} {run}: quit again or enter stops {them}, esc leaves {them} running"));
@@ -148,8 +175,9 @@ impl App {
     }
 
     /// `enter` or `esc` right after the question of BG-4. True when the key went to the question.
+    /// Another key, such as the quit key again, goes on as usual, and a second quit stops them.
     pub(crate) fn background_quit_key(&mut self, k: &KeyEvent) -> bool {
-        if !self.bg.quit_asked.is_some_and(|t| t.elapsed() < crate::session::QUIT_AGAIN) {
+        if !std::mem::take(&mut self.bg.quit_open) || !self.bg.quit_asked.is_some_and(|t| t.elapsed() < crate::session::QUIT_AGAIN) {
             return false;
         }
         match k.code {
@@ -158,12 +186,14 @@ impl App {
                 self.bg.list.clear();
                 self.quit = true;
             }
-            _ => {
-                self.bg.quit_asked = None;
-                return false;
-            }
+            _ => return false,
         }
         true
+    }
+
+    /// `⏵` of the background line opens the list of the processes, `⏷` closes it (BG-11).
+    pub fn toggle_background_list(&mut self) {
+        self.bg.open = !self.bg.open;
     }
 }
 

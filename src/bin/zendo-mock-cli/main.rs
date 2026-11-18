@@ -60,12 +60,12 @@ fn hooks(prompt: &str) {
     append(&path, &[serde_json::json!({ "hook_event_name": "Stop", "last_assistant_message": format!("answer: {prompt}"), "transcript_path": t })]);
 }
 
-/// `background 6201`: start `sleep 6201` in a process group of its own, as Claude Code does with a
+/// `background 6201`: start `sleep 6201` in a shell, in a process group of its own, as Claude Code does with a
 /// command in the background (BG-1).
 fn background(line: &str) {
     use std::os::unix::process::CommandExt;
     if let Some(s) = line.strip_prefix("background ").filter(|s| s.trim().parse::<u32>().is_ok()) {
-        let _ = std::process::Command::new("sleep").arg(s.trim()).process_group(0).stdout(std::process::Stdio::null()).spawn();
+        let _ = std::process::Command::new("sh").args(["-c", &format!("sleep {}; :", s.trim())]).process_group(0).stdout(std::process::Stdio::null()).spawn();
     }
 }
 

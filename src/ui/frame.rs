@@ -20,6 +20,8 @@ pub struct Frame {
     pub(super) play_buttons: Vec<(Rect, String)>,
     /// The names and the `×` of the background line, and their process groups (BG-3, BG-8).
     pub(super) bg_buttons: Vec<(Rect, u32, bool)>,
+    /// `⏵ 2 running` of the background line: it opens and closes the list (BG-11).
+    pub(super) bg_toggle: Option<Rect>,
     /// `[+]` under the terminal buttons: a new `[>]` terminal (TERM-53).
     pub(super) new_terminal_button: Option<Rect>,
     pub(super) read_text: Vec<String>,
@@ -110,6 +112,7 @@ impl Frame {
         self.session_buttons.clear();
         self.play_buttons.clear();
         self.bg_buttons.clear();
+        self.bg_toggle = None;
         self.new_terminal_button = None;
         self.tree_fold.clear();
     }
@@ -117,6 +120,11 @@ impl Frame {
     /// The names and the `×` of the background line: the place, the process group, and true for `×`.
     pub fn bg_buttons(&self) -> &[(Rect, u32, bool)] {
         &self.bg_buttons
+    }
+
+    /// `⏵ 2 running` of the background line, which opens and closes the list (BG-11).
+    pub fn bg_toggle(&self) -> Option<Rect> {
+        self.bg_toggle
     }
 
     /// The rendered rows of the read view, as plain text.
