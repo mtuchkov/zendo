@@ -27,6 +27,10 @@ The project structure is the set of top-level folders, the folders of `docs/`, a
   also names the acceptance tests that the milestone must pass.
 - The agent shall record architecture decisions as
   decision records in `docs/architecture/decisions/`, not in specifications.
+- A blueprint in `docs/blueprints/` is an initial design of zendo or of one of its parts. A
+  blueprint is not a source of truth: the specifications are. A blueprint may state architecturally
+  significant requirements as candidates without identifiers, and shall hold no detailed
+  requirements.
 - Each new independently testable requirement shall receive a unique, stable, subject-specific
   identifier in its authoritative specification. Plans, code, tests, and translations shall reuse
   that identifier rather than define a competing requirement.
@@ -50,6 +54,8 @@ The project structure is the set of top-level folders, the folders of `docs/`, a
   shall be the file `<name>/<name>.md`, in a directory of the same name that holds its children. A
   document without children shall be a file in the directory of its parent and shall get no
   directory of its own. The agent shall not use `README.md` files as tree nodes.
+- The two-page limit, the Keep the Altitude rule and the rules of the document tree shall apply to
+  blueprints too.
 
 ## Failure requirements
 

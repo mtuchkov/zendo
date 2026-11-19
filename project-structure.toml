@@ -75,7 +75,7 @@ claude = "Keep the page one file with no build step. A file lofi.mp3 beside it r
 
 [[entry]]
 path = "docs"
-about = "The documentation of zendo: specification, decisions, milestones, guides."
+about = "The documentation of zendo: specification, blueprints, decisions, milestones, guides."
 
 [[entry]]
 path = "docs/zendo"
@@ -108,6 +108,17 @@ about = "The names of the agent sessions: session-names.md is the parent; its ch
 [[entry]]
 path = "docs/zendo/files"
 about = "The file tree of zendo: files.md is the parent; its children are the views, the actions on a file, the code files, the views of the worktree of an agent session, and its recap."
+
+[[entry]]
+path = "docs/blueprints"
+label = "Blueprints"
+about = "Initial design blueprints: the design of zendo and of its parts before their specifications exist; blueprints.md is the root. Not a source of truth: the specifications in docs/zendo are."
+claude = """
+- A blueprint is a starting design, not the truth: where a blueprint and a specification differ, the specification is right.
+- A blueprint may state architecturally significant requirements as candidates, without IDs; a specification gives each its ID. Put no detailed requirements here.
+- Keep each blueprint to two pages, about 1,000 words, at one level of detail (AGENTS.md).
+- Record a decision in docs/architecture/decisions, not here."""
+main = true
 
 [[entry]]
 path = "docs/architecture/decisions"
