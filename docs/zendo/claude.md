@@ -6,7 +6,7 @@ parent: "zendo.md"
 prev: "work.md"
 next: "threads.md"
 level: "the connection to Claude: what zendo sends, what Claude may do, the agents, failures"
-note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. Revision 4 moved the threads to threads.md. Revision 5: CLAUDE-26 names the choice of the open document (chat-chips.md), asked by the user on 2026-11-17; not reviewed yet."
+note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. Revision 4 moved the threads to threads.md. Revision 5: CLAUDE-26 names the choice of the open document (chat-chips.md), asked by the user on 2026-11-17; not reviewed yet. The flags: `--claude` of doctor is `--agent`, and `--agent CMD` is `--agent-cmd CMD`, on the request of the user on 2026-11-18 (draft)."
 ---
 
 # Claude
@@ -30,7 +30,7 @@ zendo rejects each shell command.
 **When Claude is not available.** At the start, zendo does not open (ZENDO-2). While zendo runs, the
 chat shows why the agent stopped, and zendo starts it again with the next question.
 
-**Agents.** zendo works with Claude (the default) and with Codex (`zendo setup --agent codex`), each
+**Agents.** zendo works with Claude (the default) and with Codex (`zendo setup --agent-cmd codex`), each
 through its pinned ACP adapter, and with any other ACP agent command. What an agent cannot do turns off
 only its keys: with Codex there is no hand-off to the command line (`ctrl-o`); the rest works the same.
 

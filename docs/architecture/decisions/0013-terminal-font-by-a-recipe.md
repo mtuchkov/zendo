@@ -32,13 +32,13 @@ How Claude takes part:
 
 | Option | Benefit | Cost or constraint |
 | ------ | ------- | ------------------ |
-| A task through ACP, as `zendo doctor --fix --claude` | zendo controls each edit. | zendo must ask the user about each change of the terminal config itself. |
+| A task through ACP, as `zendo doctor --fix --agent` | zendo controls each edit. | zendo must ask the user about each change of the terminal config itself. |
 | An interactive `claude` session in the same terminal | The user sees what Claude does and agrees to each change in Claude itself. | zendo knows the result only from the recipe file, when the session ends. |
 
 ## Decision
 
 Claude writes the recipe in an interactive `claude` session that `zendo setup fonts` and
-`zendo doctor --fix --claude` start (FONT-22, FONT-25). zendo sets fonts only by the recipe, runs
+`zendo doctor --fix --agent` start (FONT-22, FONT-25). zendo sets fonts only by the recipe, runs
 its commands without a shell, and checks it in `zendo doctor` (FONT-23, FONT-24, FONT-30). This
 decision replaces the change of the terminal by the agent of the chat in ADR 0012.
 
@@ -46,5 +46,5 @@ decision replaces the change of the terminal by the agent of the chat in ADR 001
 
 - The font list of the theme picker works without an agent and offline.
 - A recipe can stop to work after an update of the terminal; `zendo doctor` finds it, and
-  `zendo doctor --fix --claude` repairs it.
+  `zendo doctor --fix --agent` repairs it.
 - Tests use a mock `claude` and a recipe in a test home; no test starts the real Claude.
