@@ -199,19 +199,23 @@ impl App {
     /// Write the keys, apply the keymap at once and say what changed; a failed write keeps the
     /// float open with the error (REKEY-2, REKEY-16, REKEY-27).
     fn save_keys(&mut self, t: KeyTarget, keys: &[Key], word: &str) {
-        match crate::setup::config::write_keys(&self.rekey.config, t.pane, t.action, keys) {
-            Ok(path) => {
-                self.reload_keys();
-                self.rekey.close();
-                self.flash(format!("{word}, saved in {}", path.display()));
-            }
-            Err(e) => self.rekey.float.iter_mut().for_each(|f| f.message = Some(e.clone())),
-        }
+        let (config, keys, word) = (self.rekey.config.clone(), keys.to_vec(), word.to_string());
+        // A worker writes the keys and reads the config again (IO-1); the float waits for it.
+        self.in_background_with(
+            move || crate::setup::config::write_keys(&config, t.pane, t.action, &keys).map(|path| (path, crate::setup::config::UserConfig::load_from(&config))),
+            move |a, done| match done {
+                Ok((path, user)) => {
+                    a.reload_keys(&user);
+                    a.rekey.close();
+                    a.flash(format!("{word}, saved in {}", path.display()));
+                }
+                Err(e) => a.rekey.float.iter_mut().for_each(|f| f.message = Some(e.clone())),
+            },
+        );
     }
 
     /// The keymap again from the config: the hints, the help and the keys show the change.
-    fn reload_keys(&mut self) {
-        let user = crate::setup::config::UserConfig::load_from(&self.rekey.config);
+    fn reload_keys(&mut self, user: &crate::setup::config::UserConfig) {
         let (mut keys, problems) = user.keymap();
         keys.legacy = self.keys.legacy;
         self.keys = keys;

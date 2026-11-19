@@ -75,6 +75,8 @@ fn a_suggested_key_is_taken() {
     press(&mut a, KeyCode::Tab, KeyModifiers::NONE);
     let k = a.rekey.float().unwrap().suggestions()[0];
     a.on_key(KeyEvent::new(k.code, mods(k)));
+    // A worker writes the key; the float closes with its answer (IO-1).
+    a.settle_saves();
     assert!(a.rekey.float().is_none());
     assert_eq!(a.keys.keys_of(Pane::Global, "toggle_tree")[0], k);
 }

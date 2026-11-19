@@ -55,6 +55,7 @@ fn at(a: &mut App, text: &str) -> (u16, u16) {
 fn click(a: &mut App, (column, row): (u16, u16)) {
     a.on_mouse(MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column, row, modifiers: KeyModifiers::NONE });
     a.on_mouse(MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column, row, modifiers: KeyModifiers::NONE });
+    a.settle_saves();
 }
 
 // FONT-34, FONT-35, FONT-36: the font list with the fonts on the machine; `f`, `j` and enter set

@@ -39,16 +39,26 @@ impl FontTip {
 
 impl App {
     /// The picker opens: the fonts on the machine and the recipe of the terminal.
+    /// A worker walks the font folders and reads the recipe; the picker shows them when it
+    /// answered (IO-1, IO-6).
     pub(crate) fn look_at_fonts(&mut self) {
-        let tip = &mut self.font_tip;
-        let missing = fonts::missing(fonts::FONTS, &tip.dirs);
-        tip.missing = !missing.is_empty();
-        tip.installed = fonts::FONTS.iter().filter(|f| !missing.iter().any(|m| m.name == f.name)).collect();
-        let recipes = recipe::Recipes::load(&tip.recipes).unwrap_or_default();
-        let own = recipes.get(&tip.terminal);
-        tip.works = own.is_some_and(|r| r.check(&recipe::on_path).is_ok());
-        tip.current = own.and_then(|r| r.font.clone());
-        tip.list = None;
+        self.font_tip.list = None;
+        let (dirs, recipes, terminal) = (self.font_tip.dirs.clone(), self.font_tip.recipes.clone(), self.font_tip.terminal.clone());
+        self.in_background_with(
+            move || {
+                let missing: Vec<&'static str> = fonts::missing(fonts::FONTS, &dirs).iter().map(|m| m.name).collect();
+                let recipes = recipe::Recipes::load(&recipes).unwrap_or_default();
+                let own = recipes.get(&terminal);
+                (missing, own.is_some_and(|r| r.check(&recipe::on_path).is_ok()), own.and_then(|r| r.font.clone()))
+            },
+            |a, (missing, works, current)| {
+                let tip = &mut a.font_tip;
+                tip.missing = !missing.is_empty();
+                tip.installed = fonts::FONTS.iter().filter(|f| !missing.contains(&f.name)).collect();
+                tip.works = works;
+                tip.current = current;
+            },
+        );
     }
 
     /// `f` or a click on the font list: the list opens at the current font (FONT-36).
@@ -80,25 +90,29 @@ impl App {
 
     /// Set the font in the terminal by the recipe, without the agent (FONT-35); a failure goes to
     /// the flash line with the repair (FONT-38).
+    /// The recipe runs on a worker; its escape sequence goes to the terminal from the UI thread
+    /// (IO-1).
     pub fn set_font(&mut self, i: usize) {
         self.font_tip.list = None;
         let Some(font) = self.font_tip.installed.get(i).copied() else { return };
-        let tip = &self.font_tip;
-        let done = recipe::Recipes::load(&tip.recipes)
-            .and_then(|r| r.get(&tip.terminal).ok_or_else(|| format!("no font recipe for {}", tip.terminal)).and_then(|r| r.set(font.family, &recipe::System)))
-            .and_then(|escape| {
-                if let Some(e) = escape {
-                    write_escape(&e);
+        let (recipes, terminal) = (self.font_tip.recipes.clone(), self.font_tip.terminal.clone());
+        self.in_background_with(
+            move || -> Result<Option<String>, String> {
+                let escape = recipe::Recipes::load(&recipes).and_then(|r| r.get(&terminal).ok_or_else(|| format!("no font recipe for {terminal}")).and_then(|r| r.set(font.family, &recipe::System)))?;
+                recipe::remember(&recipes, &terminal, font.family)?;
+                Ok(escape)
+            },
+            move |a, done| match done {
+                Ok(escape) => {
+                    if let Some(e) = escape {
+                        write_escape(&e);
+                    }
+                    a.font_tip.current = Some(font.family.to_string());
+                    a.flash(format!("Font: {}", font.name));
                 }
-                recipe::remember(&tip.recipes, &tip.terminal, font.family)
-            });
-        match done {
-            Ok(()) => {
-                self.font_tip.current = Some(font.family.to_string());
-                self.flash(format!("Font: {}", font.name));
-            }
-            Err(e) => self.flash(format!("The font recipe failed: {e}. Run `zendo doctor --fix --agent`.")),
-        }
+                Err(e) => a.flash(format!("The font recipe failed: {e}. Run `zendo doctor --fix --agent`.")),
+            },
+        );
     }
 }
 
