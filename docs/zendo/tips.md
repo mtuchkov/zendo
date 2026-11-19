@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "usage.md"
 next: "fonts.md"
 level: "the tip menu at start and the tip in the status bar"
-note: "Agent draft from the requests of the user on 2026-11-17, moved out of panes/key-change.md (REKEY-19 to REKEY-24). Revision 2: the option stops only the tip menu, the setting is in the config, the status bar shows a tip at random. Revision 3: every message comes before the tip. Approved by the user on 2026-11-18. Implemented in zendo 0.94.0. TIPS-9 from the request of the user on 2026-11-18, not reviewed."
+note: "Agent draft from the requests of the user on 2026-11-17, moved out of panes/key-change.md (REKEY-19 to REKEY-24). Revision 2: the option stops only the tip menu, the setting is in the config, the status bar shows a tip at random. Revision 3: every message comes before the tip. Approved by the user on 2026-11-18. Implemented in zendo 0.94.0. TIPS-9 from the request of the user on 2026-11-18, changed by the user on the same day: the status bar is one line (PANES-49), not reviewed."
 ---
 
 # Tips
@@ -23,7 +23,7 @@ not the tip in the status bar. zendo keeps it in `~/.zendo/config.toml`, not in 
 
 **The tip in the status bar.** The status bar shows a tip to the right of the key hints while there
 is no message and the width permits: a tip at random, chosen at each start. On a small screen, the
-tip goes to a line below the status bar, where a message takes its place.
+tip does not show: the status bar stays one line.
 
 ## Architecturally significant requirements
 
@@ -31,7 +31,7 @@ tip goes to a line below the status bar, where a message takes its place.
 | ------ | ------- | ----------- | ------ |
 | TIPS-1 | Event   | When zendo starts and the config does not have `tips = false`, the system shall show the tip menu; at the first start, after the user answers the music question. | User, 2026-11-17 |
 | TIPS-6 | State   | While the status bar shows no message and has room after the key hints and its right side, the system shall show a tip of the tip menu to the right of the key hints; every message comes before the tip, and the tip gives way first. | User, 2026-11-17 |
-| TIPS-9 | Unwanted | If the tip does not fit in the status bar after the key hints, then the system shall show the tip in the line below the status bar, unless a message shows there (PANES-49). | User, 2026-11-18 |
+| TIPS-9 | Unwanted | If the tip does not fit in the status bar after the key hints and the right side, then the system shall not show the tip, and shall not add a line for it (PANES-49). | User, 2026-11-18 |
 | TIPS-7 | Ubiquitous | The system shall keep the setting `tips` in `~/.zendo/config.toml`, not in `.zendo/db.json`, and the setting shall stop only the tip menu at start, not the tip in the status bar. | User, 2026-11-17 |
 
 ### Acceptance tests
@@ -45,13 +45,13 @@ tip goes to a line below the status bar, where a message takes its place.
   config gets `tips = false`, `.zendo/db.json` does not change, and the next start shows no float
   but the status bar still shows the tip.
 
-**`on_a_small_screen_the_tip_and_the_message_go_below_the_hints`** (unit test; verifies TIPS-9,
-PANES-49)
+**`the_status_bar_shows_a_tip_only_with_room_and_no_message`** (unit test; verifies TIPS-6,
+TIPS-9)
 
-- Given a screen of 100 columns.
+- Given a screen of 260 columns, then of 80 columns.
 - When there is no message, then a message.
-- Then the line below the status bar shows the tip, then the message; the status bar keeps the key
-  hints.
+- Then the wide status bar shows the tip, the narrow screen shows no tip and no line for it, and a
+  message hides the tip.
 
 **`the_status_bar_shows_a_tip_only_with_room_and_no_message`** (unit test; verifies TIPS-6)
 
