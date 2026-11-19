@@ -69,7 +69,7 @@ pub struct Rekey {
     float: Option<KeyFloat>,
     /// The number of the open question to the model; an answer of an older one goes (REKEY-5).
     pub generation: u64,
-    #[default(crate::setup::config::config_path())]
+    /// The config file; `App::new` names it (`Config::user_config`).
     pub config: PathBuf,
     /// The API of the light model of the hints, with low effort (REKEY-6, ADR 0013).
     pub api: Option<crate::agent::api::Api>,

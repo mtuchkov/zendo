@@ -11,7 +11,7 @@ impl App {
         state.tree_view.clear();
         state.tree_all = false;
         let theme = theme::index_of(&state.theme);
-        let user = crate::setup::config::UserConfig::load();
+        let user = crate::setup::config::UserConfig::load_from(&cfg.user_config);
         let (keys, key_problems) = user.keymap();
         let kind = crate::setup::config::kind_of(&cfg.agent);
         let name_model = user.name_model(kind);
@@ -37,6 +37,10 @@ impl App {
             link: AgentLink::with_name_model(name_model),
             ..Default::default()
         };
+        // The buttons and floats save their settings in this file (LOFI-8, ATTN-8, TIPS-7).
+        for config in [&mut app.attention.config, &mut app.music.config, &mut app.tips.config, &mut app.rekey.config] {
+            config.clone_from(&app.cfg.user_config);
+        }
         app.link.start_api(api);
         app.rekey.api = hints.map(|a| crate::agent::api::Api { effort: Some("low".into()), ..a });
         // The chat input of each session, as the user left it (CLAUDE-45).

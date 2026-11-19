@@ -139,7 +139,7 @@ fn parse() -> Result<Run> {
         }
         _ => {
             let (agent, _) = config::resolve_agent(a.agent, &user);
-            Run::Tui(Config { root, notes_dir, agent, agent_env: config::agent_env(&user), offline: a.offline, notes_repo: notes_cfg })
+            Run::Tui(Config { root, notes_dir, agent, agent_env: config::agent_env(&user), offline: a.offline, notes_repo: notes_cfg, user_config: config::config_path() })
         }
     })
 }

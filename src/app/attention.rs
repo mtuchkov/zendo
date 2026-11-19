@@ -24,7 +24,8 @@ pub struct Attention {
 
 impl Default for Attention {
     fn default() -> Self {
-        let config = crate::setup::config::config_path();
+        // No config file: `App::new` names it (`Config::user_config`).
+        let config = PathBuf::new();
         Attention { sound: true, config, focused: true, bells: 0, blink: vec![None; SESSIONS + TERMINALS], clock: None }
     }
 }
