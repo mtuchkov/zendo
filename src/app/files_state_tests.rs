@@ -169,6 +169,7 @@ fn a_change_on_disk_shows_after_the_first_look() {
 }
 
 // ADR 0008: a structure file that does not parse leaves its reason, and a message for the user.
+// FAIL-1, FAIL-6: a structure that does not parse leaves zendo working and names the fix.
 #[test]
 fn a_structure_that_does_not_parse_leaves_its_reason() {
     let (root, mut f) = repo("structure");
@@ -181,6 +182,23 @@ fn a_structure_that_does_not_parse_leaves_its_reason() {
     assert!(matches!(f.load_structure(&root, "", false), Some(Effect::Flash(t)) if t.contains("does not parse")));
     assert!(f.structure_error().is_some());
     assert_eq!(f.disk_due(&root), None);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// FILES-2: the tree shows the structure view first when the repository has main materials, and
+// the docs view first when it does not; a saved structure view without main materials gives docs.
+#[test]
+fn the_first_view_is_the_structure_when_there_are_main_materials() {
+    let (root, mut f) = repo("first-view");
+    std::fs::write(root.join(structure::FILE), "[[entry]]\npath = \"docs\"\nlabel = \"Docs\"\n").unwrap();
+    f.load_structure(&root, "", false);
+    assert!(f.tree().view == View::Docs, "no main materials: docs first");
+    std::fs::write(root.join(structure::FILE), "[[entry]]\npath = \"docs\"\nlabel = \"Docs\"\nmain = true\n").unwrap();
+    f.load_structure(&root, "", false);
+    assert!(f.tree().view == View::Structure, "main materials: the structure first");
+    std::fs::remove_file(root.join(structure::FILE)).unwrap();
+    f.load_structure(&root, "structure", false);
+    assert!(f.tree().view == View::Docs, "a saved structure view without main materials gives docs");
     let _ = std::fs::remove_dir_all(&root);
 }
 

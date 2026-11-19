@@ -51,6 +51,27 @@ The project structure is the set of top-level folders, the folders of `docs/`, a
   document without children shall be a file in the directory of its parent and shall get no
   directory of its own. The agent shall not use `README.md` files as tree nodes.
 
+## Failure requirements
+
+Terms:
+
+- A dependency is a file, a program or a service that the system reads or calls.
+- A dependency fails when it is missing, is not valid, changes during use, or gives no answer.
+- User data is a file that the user can edit: a note, the config, a file of the repository.
+
+Rules:
+
+- The [failure default](docs/zendo/failures.md), a child of the root specification, shall define
+  what the system does when a dependency fails.
+- A specification shall contain a failure requirement only for behavior that is different from the
+  failure default.
+- WHEN a feature writes or deletes user data, the specification shall state:
+  - the content that the feature does not change;
+  - the behavior of the system when the write is not completed.
+- IF a fix corrects behavior that no requirement covers, THEN the agent shall add a requirement:
+  - to the failure default, when the behavior applies to all features;
+  - to the specification of the feature, in all other cases.
+
 ## Code
 
 - A source file shall have at most 300 lines, and a function at most 70 lines.
@@ -62,6 +83,9 @@ The project structure is the set of top-level folders, the folders of `docs/`, a
 - WHEN the agent refactors code to fit the limits, the agent shall reduce the cyclomatic complexity:
   fewer branches and less nesting in each function, not only shorter functions.
 - The agent shall prefer iterators, from the standard library or its own, to nested loops.
+- The agent shall write user data only with `zendo::atomic` (FAIL-2). `tests/user_data_writes.rs`
+  checks it in `cargo test`; a file of `src` that writes a file of zendo itself is in its list
+  `OWN`, with the reason.
 - CI checks the GitHub workflows with `actionlint`. The agent shall run `actionlint` before it
   commits a change of `.github/workflows/`.
 
@@ -80,6 +104,20 @@ The project structure is the set of top-level folders, the folders of `docs/`, a
   `serial_test`, so that it runs sequentially, and shall state the reason in a comment at the test.
 - Each test that writes files or changes shared state, parallel or sequential, shall start with a
   setup step that removes what an interrupted earlier run of the test left behind.
+- `tests/traceability.rs` checks the links between the specifications in `docs/zendo` and the tests,
+  in `cargo test`:
+  - Each architecturally significant requirement of a specification with the status `implemented`
+    or `completed` shall be named in at least one test.
+  - Each requirement ID in a test or in the code shall be in a requirement table, or in a `Retired`
+    or `Not used` line.
+  - Each acceptance test that such a specification names shall be a test function. A terminal
+    check, a browser check and a test with real Claude are not checked.
+  - WHEN a test names a requirement of a specification with the status `draft`, the check shall
+    list the specification as "waits for the review of the user".
+    `cargo test --test traceability -- --nocapture` shows the list.
+  - The number of gaps of each kind shall be equal to its number in
+    `tests/traceability-baseline.toml`. WHEN the agent closes a gap, the agent shall lower the
+    number in the same commit.
 
 ## Code review
 

@@ -52,3 +52,23 @@ fn the_name_model_comes_from_the_config_with_defaults() {
     assert_eq!(set.name_model(Kind::Codex), None);
     assert_eq!(set.name_model(Kind::Other).as_deref(), Some("small"));
 }
+
+// FAIL-2, CMD-19: a config that is a link into a dotfiles repository stays a link when zendo saves a
+// setting; the file that the link names gets only the changed line.
+#[cfg(unix)]
+#[test]
+fn a_saved_setting_keeps_a_linked_config_a_link() {
+    let base = std::env::temp_dir().join(format!("zendo-config-link-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(base.join("dotfiles")).unwrap();
+    std::fs::write(base.join("dotfiles/config.toml"), "# my settings\nsound = true\n").unwrap();
+    std::os::unix::fs::symlink(base.join("dotfiles/config.toml"), base.join("config.toml")).unwrap();
+    let path = base.join("config.toml");
+    let before = UserConfig::load_from(&path);
+    let mut after = UserConfig::load_from(&path);
+    after.sound = Some(false);
+    after.save_changes(&path, &before).unwrap();
+    assert!(std::fs::symlink_metadata(&path).unwrap().file_type().is_symlink(), "the link stays");
+    assert_eq!(std::fs::read_to_string(base.join("dotfiles/config.toml")).unwrap(), "# my settings\nsound = false\n");
+    let _ = std::fs::remove_dir_all(&base);
+}

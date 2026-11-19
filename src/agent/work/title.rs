@@ -197,7 +197,8 @@ impl App {
         let Some(path) = self.writer.closed_note(tj.opened).cloned() else { return };
         let Ok(now) = std::fs::read_to_string(&path) else { return };
         let Some(new) = with_title(&now, title, tj.old.as_deref()) else { return };
-        if std::fs::write(&path, new).is_err() {
+        if let Err(e) = crate::atomic::write(&path, new) {
+            self.flash(format!("cannot write the title into {}: {e}", path.display()));
             return;
         }
         let target = self.name_by_title(&path, title);

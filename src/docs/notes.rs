@@ -115,9 +115,7 @@ pub fn save(path: &Path, body: &str) -> Result<()> {
     if let Some(dir) = path.parent() {
         fs::create_dir_all(dir)?;
     }
-    let tmp = path.with_extension("md.tmp");
-    fs::write(&tmp, body)?;
-    fs::rename(&tmp, path)?;
+    crate::atomic::write(path, body)?;
     Ok(())
 }
 
