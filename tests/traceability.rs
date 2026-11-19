@@ -153,6 +153,27 @@ Retired in revision 2: TERM-5 (a busy mark), because the user removed it.
 Not used: TERM-6 (a proposal).
 "#;
 
+/// The ratchet of the baseline: the gaps of one kind are exactly `allowed`. More gaps fail with the
+/// list; fewer gaps fail with the number to write in `tests/traceability-baseline.toml`.
+fn ratchet(what: &str, gaps: &[String], allowed: usize) -> Result<(), String> {
+    let head = format!("{what}: {} gaps, {allowed} allowed", gaps.len());
+    match gaps.len().cmp(&allowed) {
+        std::cmp::Ordering::Equal => Ok(()),
+        std::cmp::Ordering::Greater => Err(format!("{head}. Close the new gaps:\n{}", gaps.join("\n"))),
+        std::cmp::Ordering::Less => Err(format!("{head}. Lower the baseline in tests/traceability-baseline.toml: {what} = {}", gaps.len())),
+    }
+}
+
+#[test]
+fn the_baseline_holds_the_number_of_gaps_exactly() {
+    let gaps = ["a.md: TERM-2".to_string(), "b.md: FILES-3".to_string()];
+    assert_eq!(ratchet("gaps", &gaps, 2), Ok(()));
+    let more = ratchet("gaps", &gaps, 1).unwrap_err();
+    assert!(more.contains("2 gaps, 1 allowed") && more.contains("b.md: FILES-3"), "{more}");
+    let fewer = ratchet("gaps", &gaps[..1], 2).unwrap_err();
+    assert!(fewer.contains("1 gaps, 2 allowed") && fewer.contains("= 1"), "{fewer}");
+}
+
 #[test]
 fn an_id_is_read_alone_and_from_a_range() {
     assert_eq!(ids("`TERM-1`, (TERM-14) and FILES-26 to FILES-28."), set(&["TERM-1", "TERM-14", "FILES-26", "FILES-27", "FILES-28"]));
@@ -214,16 +235,10 @@ fn the_specifications_and_the_tests_agree() {
     println!("Specifications that wait for the review of the user:\n{}", r.waits_for_review.join("\n"));
     let base: Baseline = toml::from_str(&std::fs::read_to_string(root.join("tests/traceability-baseline.toml")).unwrap()).unwrap();
     assert!(r.unknown_ids.is_empty(), "IDs in the tests or the code that no specification has:\n{}", r.unknown_ids.join("\n"));
-    assert!(
-        r.asr_without_test.len() <= base.asr_without_test,
-        "architecturally significant requirements of implemented specifications without a test ({} allowed):\n{}",
-        base.asr_without_test,
-        r.asr_without_test.join("\n")
-    );
-    assert!(
-        r.acceptance_tests_missing.len() <= base.acceptance_tests_missing,
-        "acceptance tests of implemented specifications that are not test functions ({} allowed):\n{}",
-        base.acceptance_tests_missing,
-        r.acceptance_tests_missing.join("\n")
-    );
+    let checks = [
+        ratchet("asr_without_test", &r.asr_without_test, base.asr_without_test),
+        ratchet("acceptance_tests_missing", &r.acceptance_tests_missing, base.acceptance_tests_missing),
+    ];
+    let errors: Vec<String> = checks.into_iter().filter_map(Result::err).collect();
+    assert!(errors.is_empty(), "{}", errors.join("\n\n"));
 }
