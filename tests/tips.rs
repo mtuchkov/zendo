@@ -6,7 +6,7 @@ use common::rekey::{find, frame, screen};
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use std::path::{Path, PathBuf};
-use zendo::app::App;
+use zendo::app::{App, Focus};
 use zendo::music::{Music, Output};
 use zendo::setup::config::UserConfig;
 
@@ -79,7 +79,8 @@ fn the_tip_menu_comes_at_each_start() {
     assert_eq!(UserConfig::load_from(&cfg).tips, None);
 }
 
-/// TIPS-6: the tip shows in the status bar only with room and without a message.
+/// TIPS-6, TIPS-9: the tip shows in the status bar only with room and without a message; without
+/// room it does not show.
 #[test]
 fn the_status_bar_shows_a_tip_only_with_room_and_no_message() {
     let (root, cfg) = repo_with("tips-bar", "music = false\ntips = false\n");
@@ -88,29 +89,39 @@ fn the_status_bar_shows_a_tip_only_with_room_and_no_message() {
     let row = last(&mut a, 260);
     assert!(row.contains(TIP), "{row}");
     let small = draw(&mut a, 80, 30);
-    assert!(!small[28].contains(TIP) && small[29].contains(TIP), "no room: the tip goes below (TIPS-9)");
+    assert!(!small.iter().any(|r| r.contains(TIP)), "no room: the tip gives way (TIPS-9)");
     a.flash("saved");
     assert!(!last(&mut a, 260).contains(TIP), "a message comes first");
 }
 
-/// TIPS-9, PANES-49: on a small screen, the tip, then a message, take a line below the status bar;
-/// the status bar keeps the key hints.
+/// PANES-49: the status bar is one line, the last row of the screen, in every pane and mode, with a
+/// message, the tip or a question of a file; the panes above it keep their height.
 #[test]
-fn on_a_small_screen_the_tip_and_the_message_go_below_the_hints() {
-    let (root, cfg) = repo_with("tips-small", "music = false\ntips = false\n");
+fn the_status_bar_is_one_line_in_every_pane() {
+    let (root, cfg) = repo_with("tips-one-line", "music = false\ntips = false\n");
     let mut a = start(&root, &cfg);
-    let rows = draw(&mut a, 100, 30);
-    let (status, below) = (&rows[28], &rows[29]);
-    assert!(status.contains("READ") && status.contains("keys"), "{status}");
-    assert!(!status.contains(TIP));
-    assert!(below.contains(TIP), "{below}");
-    let hints = status.matches("   ").count();
+    a.toggle_tree();
+    let rule = |rows: &[String]| rows.iter().rposition(|r| r.starts_with("────")).expect("the rule");
     let msg = "toggle_tree: alt-b → alt-t, saved in /home/user/.zendo/keymap.toml";
-    a.flash(msg);
+    for focus in [Focus::Note, Focus::Tree, Focus::Claude] {
+        for flash in [false, true] {
+            a.focus = focus;
+            a.flash = None;
+            if flash {
+                a.flash(msg);
+            }
+            let rows = draw(&mut a, 100, 30);
+            assert_eq!(rule(&rows), 28, "{focus:?}, message {flash}: the rule over a one-line bar");
+            let bar = &rows[29];
+            assert!(bar.contains("keys"), "{focus:?}: the key of the help stays: {bar}");
+            assert!(!flash || bar.contains(msg), "{focus:?}: the message shows whole: {bar}");
+        }
+    }
+    a.focus = Focus::Tree;
+    a.files.expand_all();
+    a.files.select_row(a.files.tree().rows().iter().position(|r| r.rel.ends_with("2026-11-18-a.md")).expect("the note in the tree"));
+    key(&mut a, KeyCode::Char('m'));
     let rows = draw(&mut a, 100, 30);
-    assert!(rows[29].contains(msg) && !rows[29].contains(TIP), "{}", rows[29]);
-    assert!(rows[28].contains("READ") && !rows[28].contains("saved in"), "{}", rows[28]);
-    assert!(rows[28].matches("   ").count() >= hints, "the message takes no hint away: {}", rows[28]);
-    let wide = draw(&mut a, 260, 30);
-    assert!(wide[29].contains(msg) && wide[29].contains("READ"), "a wide screen keeps one line: {}", wide[29]);
+    assert_eq!(rule(&rows), 28, "a question of a file takes the line of the status bar");
+    assert!(rows[29].contains("MOVE"), "{}", rows[29]);
 }
