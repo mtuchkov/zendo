@@ -1,7 +1,7 @@
 ---
 status: "draft"
-revision: "4"
-date: "2026-11-13"
+revision: "5"
+date: "2026-11-17"
 parent: "../zendo.md"
 prev: "../background.md"
 next: "../attention.md"
@@ -9,18 +9,21 @@ children:
   - "shell-blocks.md"
   - "terminal-view.md"
   - "terminal-output.md"
+  - "terminal-watch.md"
   - "terminal-mouse.md"
 level: "the terminals of zendo as a whole: what a terminal is, how many, who runs a command"
-note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Revision 3: split into children by topic (user, 2026-11-12). Depends on Sessions (sessions.md, draft) and ADR 0005."
+note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Revision 3: split into children by topic (user, 2026-11-12). Depends on Sessions (sessions.md, draft) and ADR 0005. Revision 5: the child terminal-watch.md, ADR 0018; TERM-2 takes `Run in terminal` of ADR 0019 (user, 2026-11-17)."
 ---
 
 # Terminal
 
 An answer of the agent often holds a shell command. zendo shows a green play button `▶` on it. The
 user presses `F5` on the command: zendo puts it into the shell of a terminal and does not run it.
-The user reads the command, changes it if necessary, and presses `enter`. The agent never runs a
-command that asks for permission (CLAUDE-3 stays); it runs only the commands that the settings
-of the user allow ([Activity of the agent](../activity.md)).
+The user reads the command, changes it if necessary, and presses `enter`. `▶▶` (`alt-F5`) runs the
+command at once and gives its output to the agent ([Watched commands](terminal-watch.md)). The
+agent runs itself only the commands that the settings of the user allow
+([Activity of the agent](../activity.md)). Each other command waits for the user, who can run it in
+a terminal of zendo ([Questions of the agent](../questions.md)).
 
 **Terminals.** A terminal is a shell that zendo runs in the root of the repository, in a terminal
 that zendo owns, as a Claude Code session does (see [Sessions](../sessions.md) and
@@ -40,15 +43,16 @@ zendo asks first. With `--offline` and with each agent, the `F5` terminal is ava
 | [Shell blocks](shell-blocks.md)          | Shell blocks in the transcript, `▶`, `F5` and `alt-F5`, which terminal takes a block |
 | [Terminal view](terminal-view.md)        | The terminal in the chat pane, `ctrl-o` for the full screen, `alt-q`, `alt-]` and `alt-[` (`alt-}` on macOS), the keys, the buttons |
 | [Terminal output](terminal-output.md)    | `alt-o` puts the result of the last command into the input of a chat |
+| [Watched commands](terminal-watch.md)    | `▶▶` runs a block and gives its output to the agent: push, `command_result`, the limits |
 | [Terminal mouse](terminal-mouse.md)      | The wheel, the click and the drag over a terminal: for the program or for zendo |
 
 ## Architecturally significant requirements
 
 | ID     | Pattern    | Requirement | Source |
 | ------ | ---------- | ----------- | ------ |
-| TERM-2 | Ubiquitous | The system shall run the text of an agent message only when the user presses `alt-F5` on it, or `enter` in the terminal. | User, 2026-11-12; CLAUDE-3 |
+| TERM-2 | Ubiquitous | The system shall run the text of an agent message only when the user presses `alt-F5` on it, `enter` in the terminal, or answers `Run in terminal` to a question of the agent (ASK-4). | User, 2026-11-12; User, 2026-11-17 |
 | TERM-3 | Ubiquitous | The system shall have at most five terminals: one `F5` terminal and at most four `[>]` terminals. | User, 2026-11-12 |
-| TERM-4 | Unwanted   | If five terminals are open and each one runs a command, then the system shall not put the block into a terminal, and shall tell the user. | User, 2026-11-12 |
+| TERM-4 | Unwanted   | If five terminals are open and each one runs a command or belongs to another session (TERM-72), then the system shall not put the block into a terminal, and shall tell the user. | User, 2026-11-12; User, 2026-11-17 |
 | TERM-5 | Ubiquitous | The system shall run each terminal in a terminal that zendo owns, without tmux, a multiplexer, or a server process. | SESSIONS-3 |
 | TERM-6 | Event      | When the user leaves a terminal, the system shall keep its command running until it ends or zendo quits. | SESSIONS-1 |
 

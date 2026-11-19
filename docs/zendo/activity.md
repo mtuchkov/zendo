@@ -1,13 +1,13 @@
 ---
-status: "approved"
+status: "draft"
 approved: "2026-11-18"
-revision: "4"
+revision: "5"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "chat-history.md"
 next: "checklist.md"
 level: "what the chat shows about the work of the agent during a turn: the status line, the steps, the questions, the commands, the signs of life"
-note: "Agent draft from the request of the user on 2026-11-18 in chat: the chat shall show the current state of the agent, so that the user is calm and does not switch to Claude Code to see it. Revision 2: the answers of the user on 2026-11-18 (questions on, allowed commands run and show). Revision 3: `no news` after 1 min, the output of a command only in an open step, the same detail for a Claude Code session (User, 2026-11-18). Revision 4: the checklist moved to checklist.md, to keep the document within two pages (User, 2026-11-18). Background processes are in background.md (User, 2026-11-18). Approved by the user on 2026-11-18."
+note: "Agent draft from the request of the user on 2026-11-18 in chat: the chat shall show the current state of the agent, so that the user is calm and does not switch to Claude Code to see it. Revision 2: the answers of the user on 2026-11-18 (questions on, allowed commands run and show). Revision 3: `no news` after 1 min, the output of a command only in an open step, the same detail for a Claude Code session (User, 2026-11-18). Revision 4: the checklist moved to checklist.md, to keep the document within two pages (User, 2026-11-18). Background processes are in background.md (User, 2026-11-18). Approved by the user on 2026-11-18. Revision 5 (agent draft, not reviewed): CLAUDE-3 and CLAUDE-33 are retired; a permission request goes to the user as a question (questions.md, ASK-2), and a shell command can run in a terminal of zendo (ASK-4)."
 ---
 
 # Activity of the agent
@@ -31,11 +31,11 @@ top of the transcript ([Checklist](checklist.md)).
 
 **Questions.** A question of the agent with choices shows in the transcript, and the turn waits.
 The user selects a choice with the arrow keys and `enter`, or types an own answer; `esc` stops the
-turn (CLAUDE-11). zendo still allows each permission request at once (CLAUDE-33): only questions
-wait for the user.
+turn (CLAUDE-11). A permission request that zendo does not allow itself is a question too, with
+the choices of [Questions of the agent](questions.md) (ASK-1, ASK-2).
 
-**Commands and monitors.** zendo rejects each shell command that asks for permission (CLAUDE-3).
-A command that the settings of the user allow runs without a question, and so does a monitor: the
+**Commands and monitors.** A shell command that asks for permission waits for the user, who can
+run it in a terminal of zendo (ASK-4). A command that the settings of the user allow runs without a question, and so does a monitor: the
 user allowed it, so zendo does not block it (User, 2026-11-18).
 Its step shows the command and its exit code. The last three lines of its output show only when the
 user opens the step ([Interactivity of the chat](interactivity.md)), and change while it runs.

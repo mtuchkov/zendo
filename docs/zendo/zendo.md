@@ -19,6 +19,7 @@ children:
   - "files/files.md"
   - "work.md"
   - "claude.md"
+  - "questions.md"
   - "threads.md"
   - "sessions.md"
   - "session-names/session-names.md"
@@ -78,6 +79,7 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [File tree](files/files.md)                  | The files of the repository and their views                   |
 | [Work, delta and recaps](work.md)            | Visits that count, the delta pane, recaps                     |
 | [Claude](claude.md)                          | The connection to Claude, edits                               |
+| [Questions of the agent](questions.md)       | Which tool calls zendo allows, the quick action in the chat, a command in a terminal |
 | [Threads](threads.md)                        | The five agent sessions, their keys and buttons, session IDs and resume |
 | [Sessions](sessions.md)                      | Claude Code sessions in the background, more than one at a time |
 | [Hand-off during a turn](handoff.md)         | `ctrl-o` while the chat answers: wait, or stop and continue    |

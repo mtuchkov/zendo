@@ -1,13 +1,13 @@
 ---
 status: "approved"
 approved: "2026-11-14"
-revision: "4"
+revision: "5"
 date: "2026-11-17"
 parent: "zendo.md"
 prev: "zendo-session.md"
 next: "chat-chips.md"
 level: "the chat input: lines, chips, attachments and @ file suggestions"
-note: "Split from claude.md; the user approved the requirements in the chat on 2026-11-14, with CLAUDE-17 for `Image #n` chips and CLAUDE-37 to CLAUDE-39 for image names. Revision 3: CLAUDE-41 and CLAUDE-42 (text chips, approved by the user on 2026-11-13 as CLAUDE-35 and CLAUDE-36 in feat/paste-chips) got new numbers, because main gave those numbers to other requirements. Revision 4: a link to the chip window and the open document in chat-chips.md, asked and approved by the user on 2026-11-17."
+note: "Split from claude.md; the user approved the requirements in the chat on 2026-11-14, with CLAUDE-17 for `Image #n` chips and CLAUDE-37 to CLAUDE-39 for image names. Revision 3: CLAUDE-41 and CLAUDE-42 (text chips, approved by the user on 2026-11-13 as CLAUDE-35 and CLAUDE-36 in feat/paste-chips) got new numbers, because main gave those numbers to other requirements. Revision 4: a link to the chip window and the open document in chat-chips.md, asked and approved by the user on 2026-11-17. Revision 5: the queue was CLAUDE-33, the same ID as a requirement of claude.md; it is now CLAUDE-66 (the user, 2026-11-17)."
 ---
 
 # Chat
@@ -68,7 +68,7 @@ data when the agent takes images, and every other file as a link to it.
 | CLAUDE-39 | Unwanted   | If the agent takes no images or gives no name, then the system shall keep the label `Image #n`. | User, 2026-11-14 |
 | CLAUDE-29 | Event      | When the user presses `tab` in the chat input, the system shall move the keys to the transcript, where the cursor and the selection keys of read mode work, `y` copies, and `a` adds the text to the input as a chip of its own color. | User, 2026-11-12 |
 | CLAUDE-36 | Event      | When the user presses `tab` in the chat input or the transcript after another key, a click, a paste, or a pause of 2 seconds, the system shall move the keys to the other pane of the two; when the user presses more `tab`s, the system shall move the focus around the panes and back into the chat at the pane where the `tab`s started. | User, 2026-11-13 |
-| CLAUDE-33 | Event      | When the user sends a question while the agent answers, the system shall show it in a queue under the answer, and send it when the turn ends. | User, 2026-11-12 |
+| CLAUDE-66 | Event      | When the user sends a question while the agent answers, the system shall show it in a queue under the answer, and send it when the turn ends. | User, 2026-11-12 |
 | CLAUDE-34 | Event      | When the user presses `esc` while the agent answers, the system shall stop the answer and put the queued questions back into the chat input. | User, 2026-11-12 |
 | CLAUDE-28 | Event      | When the user types `/` at the start of the chat input, the system shall show the slash commands of the agent that match, and send a command to the agent as the user typed it. | User, 2026-11-12 |
 | CLAUDE-18 | Optional   | Where the agent takes images, the system shall send an attached image as image data; otherwise as a link to the file.         | User, 2026-11-12 |
@@ -94,5 +94,5 @@ Tests that verify detailed requirements: `dropped_files_are_paths_and_nothing_el
 `ctrl_j_is_a_new_line_and_the_status_bar_says_so` (CLAUDE-15, CLAUDE-30),
 `the_cursor_moves_and_selects_in_the_transcript` and `tab_goes_to_the_transcript_to_select_copy_and_add` (CLAUDE-29),
 `the_first_tab_goes_to_the_sister_pane_of_the_chat` (CLAUDE-36), `at_adds_a_file_chip_that_moves_and_goes_as_one`
-(CLAUDE-22, CLAUDE-23), `a_question_while_the_agent_answers_waits_in_the_queue` (CLAUDE-33) and
+(CLAUDE-22, CLAUDE-23), `a_question_while_the_agent_answers_waits_in_the_queue` (CLAUDE-66) and
 `esc_stops_and_puts_the_queue_back_in_the_input` (CLAUDE-34) in `tests/chat_queue.rs`.
