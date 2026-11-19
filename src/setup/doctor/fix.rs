@@ -61,7 +61,7 @@ pub(super) async fn fix_structure(paths: &Paths, agent_flag: Option<String>, pro
         let _ = std::fs::create_dir_all(&dir);
         let name = paths.root.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| "repo".into());
         let copy = dir.join(format!("{name}-{}-{}", chrono::Local::now().format("%Y%m%d-%H%M%S"), crate::docs::structure::FILE));
-        if std::fs::write(&copy, text).is_ok() {
+        if crate::atomic::write(&copy, text).is_ok() {
             o.ok("copy", copy.display().to_string());
         }
     }
@@ -69,9 +69,12 @@ pub(super) async fn fix_structure(paths: &Paths, agent_flag: Option<String>, pro
     // 1. What needs no judgement.
     let mut problem = problem;
     if let Some((fixed, changed)) = quick {
-        if std::fs::write(&target, &fixed).is_ok() {
-            o.ok("zendo fixed", format!("{} thing{}", changed.len(), if changed.len() == 1 { "" } else { "s" }));
-            o.more(changed.join("\n"));
+        match crate::atomic::write(&target, &fixed) {
+            Ok(()) => {
+                o.ok("zendo fixed", format!("{} thing{}", changed.len(), if changed.len() == 1 { "" } else { "s" }));
+                o.more(changed.join("\n"));
+            }
+            Err(e) => o.fail("zendo fixed", format!("cannot write {}: {e}", target.display())),
         }
         match structure_problem(&paths.root) {
             None => return report_fix(paths, before.as_deref(), None, o),

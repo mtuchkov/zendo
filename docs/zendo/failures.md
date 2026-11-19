@@ -4,7 +4,7 @@ revision: "1"
 date: "2026-11-18"
 parent: "zendo.md"
 level: "what zendo does when a dependency fails, for every feature"
-note: "Agent draft of the failure default that AGENTS.md asks for, from the defects that reached main from 2026-11-12 to 2026-11-17 and the behavior of zendo 0.113. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft of the failure default that AGENTS.md asks for, from the defects that reached main from 2026-11-12 to 2026-11-17 and the behavior of zendo 0.113. Updated with the atomic write of zendo 0.113.6. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Failure default
@@ -52,12 +52,19 @@ does not open the screen (ZENDO-2); a line of the config with an error costs onl
 - Then zendo keeps working, the flash line says that the file does not parse and names
   `zendo doctor --fix`, and the file is not changed.
 
-**`a_failed_write_keeps_the_file`** (unit test, not written yet; verifies FAIL-2)
+**`a_failed_write_keeps_the_file`** (unit test; verifies FAIL-2)
 
-- Given a config, a keymap and a document with front matter, and a write that stops after half of
-  the new content.
-- When zendo saves a setting, a key, and the front matter.
-- Then each file has the content that it had before the save, and the flash line names the file.
+- Given a config file, and a write that stops after half of the new content with an error.
+- When zendo writes the file.
+- Then the error comes back, the file has the content that it had before, and no temporary file
+  stays in the folder.
+
+**`user_data_goes_through_the_atomic_write`** (unit test; verifies FAIL-2)
+
+- Given the source code of zendo.
+- When the test looks for the calls that write a file.
+- Then each such call is in the atomic write, or in a file that writes a file of zendo itself
+  (logs, caches, the state in `.zendo`), with the reason.
 
 **`a_saved_setting_changes_one_line`** (unit test; verifies FAIL-3)
 
@@ -74,16 +81,13 @@ does not open the screen (ZENDO-2); a line of the config with an error costs onl
 | FAIL-6 | Ubiquitous | The message of a failure shall name the dependency and, where one exists, the command or the key that fixes it. | Design |
 
 Tests that verify detailed requirements: `offline_clears_when_the_network_comes_back` (FAIL-4),
-`a_saved_setting_changes_one_line` (FAIL-5).
+`a_saved_setting_changes_one_line` (FAIL-5); `a_link_stays_a_link`,
+`the_file_keeps_its_permissions` and `a_saved_setting_keeps_a_linked_config_a_link` (FAIL-2,
+FAIL-3).
 
-## Where zendo does not meet the default yet
+## Design
 
-FAIL-2: these writes of user data replace the file in place, so a write that stops can leave the
-file half written. The note save (`docs/notes.rs`) and the font install already write a temporary
-file and rename it.
-
-- the config: `setup/config/mod.rs`;
-- the keymap: `setup/config/keys_write.rs`;
-- the title and the front matter that the agent puts into a document: `agent/work/title.rs`,
-  `agent/work/meta.rs`;
-- the fixes of `zendo doctor --fix`: `setup/doctor/fix.rs`.
+Every write of user data goes through one function, `zendo::atomic` (Design). It writes the new
+content to a hidden temporary file in the folder of the file, and a rename puts it in place. A file
+that is a link stays a link, and the file that the link names gets the content. The file keeps its
+permissions.

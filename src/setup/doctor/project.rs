@@ -123,7 +123,7 @@ pub fn user_changes(files: &[PathBuf]) -> Vec<Change> {
 /// Write each change and report it (CMD-15, CMD-16).
 pub(super) fn apply(changes: Vec<Change>, o: &mut Out) {
     for c in changes {
-        match std::fs::write(&c.path, &c.text) {
+        match crate::atomic::write(&c.path, &c.text) {
             Ok(()) => o.ok(c.label, format!("wrote {}", c.what)),
             Err(e) => o.fail(c.label, format!("cannot write {}: {e}", c.path.display())),
         }

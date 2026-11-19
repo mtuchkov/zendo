@@ -187,7 +187,7 @@ impl UserConfig {
             if let Some(dir) = path.parent() {
                 std::fs::create_dir_all(dir)?;
             }
-            std::fs::write(path, write::edit_bytes(&bytes, before, self))
+            crate::atomic::write(path, write::edit_bytes(&bytes, before, self))
         };
         write().map_err(|e| format!("cannot write {}: {e}", path.display()))
     }
@@ -199,7 +199,7 @@ impl UserConfig {
             std::fs::create_dir_all(dir)?;
         }
         let text = toml::to_string_pretty(self).map_err(std::io::Error::other)?;
-        std::fs::write(path, format!("{CONFIG_HEAD}{text}"))
+        crate::atomic::write(path, format!("{CONFIG_HEAD}{text}"))
     }
 }
 

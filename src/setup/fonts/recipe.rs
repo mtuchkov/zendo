@@ -113,7 +113,7 @@ fn expand(path: &str) -> PathBuf {
 fn write_line(path: &Path, prefix: Option<&str>, whole: bool, line: &str) -> Result<(), String> {
     let fail = |e: std::io::Error| format!("{}: {e}", path.display());
     if whole {
-        return std::fs::write(path, line).map_err(fail);
+        return crate::atomic::write(path, line).map_err(fail);
     }
     let prefix = prefix.ok_or("the recipe has a file without a `prefix`")?;
     let text = std::fs::read_to_string(path).map_err(fail)?;
@@ -135,7 +135,7 @@ fn write_line(path: &Path, prefix: Option<&str>, whole: bool, line: &str) -> Res
         out.push_str(line);
         out.push('\n');
     }
-    std::fs::write(path, out).map_err(fail)
+    crate::atomic::write(path, out).map_err(fail)
 }
 
 /// Keep the font that zendo set in the recipe of the terminal; the rest of the file stays.
@@ -144,7 +144,7 @@ pub fn remember(path: &Path, terminal: &str, family: &str) -> Result<(), String>
     let mut doc: toml_edit::DocumentMut = text.parse().map_err(|e: toml_edit::TomlError| e.to_string())?;
     let table = doc.get_mut(terminal).and_then(|t| t.as_table_mut()).ok_or_else(|| format!("no recipe for {terminal}"))?;
     table["font"] = toml_edit::value(family);
-    std::fs::write(path, doc.to_string()).map_err(|e| format!("{}: {e}", path.display()))
+    crate::atomic::write(path, doc.to_string()).map_err(|e| format!("{}: {e}", path.display()))
 }
 
 /// The variables that terminals set, where `TERM_PROGRAM` is not set (FONT-42).

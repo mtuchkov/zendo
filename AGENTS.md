@@ -83,6 +83,9 @@ Rules:
 - WHEN the agent refactors code to fit the limits, the agent shall reduce the cyclomatic complexity:
   fewer branches and less nesting in each function, not only shorter functions.
 - The agent shall prefer iterators, from the standard library or its own, to nested loops.
+- The agent shall write user data only with `zendo::atomic` (FAIL-2). `tests/user_data_writes.rs`
+  checks it in `cargo test`; a file of `src` that writes a file of zendo itself is in its list
+  `OWN`, with the reason.
 - CI checks the GitHub workflows with `actionlint`. The agent shall run `actionlint` before it
   commits a change of `.github/workflows/`.
 

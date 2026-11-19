@@ -62,7 +62,7 @@ pub(super) fn move_old_folders_in(repo: &Path, dirs: &Dirs) -> Vec<(PathBuf, Pat
     for file in [&json, &dirs.config] {
         let text = std::fs::read_to_string(file).unwrap_or_default();
         if text.contains(&old) {
-            let _ = std::fs::write(file, text.replace(&old, &new));
+            let _ = crate::atomic::write(file, text.replace(&old, &new));
         }
     }
     moved.extend(json_config_to_toml(&json, dirs));
