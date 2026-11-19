@@ -1,4 +1,5 @@
-# The gaps that tests/traceability.rs allows (AGENTS.md, Tests). A number goes down, never up.
+# The gaps that tests/traceability.rs finds (AGENTS.md, Tests). Each number is the exact count:
+# a new gap fails the check, and a closed gap fails it until its number here goes down.
 
 # Architecturally significant requirements of implemented specifications without a test.
 asr_without_test = 3

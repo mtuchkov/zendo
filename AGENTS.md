@@ -112,7 +112,9 @@ Rules:
   - WHEN a test names a requirement of a specification with the status `draft`, the check shall
     list the specification as "waits for the review of the user".
     `cargo test --test traceability -- --nocapture` shows the list.
-  - The number of gaps shall not go above the number in `tests/traceability-baseline.toml`.
+  - The number of gaps of each kind shall be equal to its number in
+    `tests/traceability-baseline.toml`. WHEN the agent closes a gap, the agent shall lower the
+    number in the same commit.
 
 ## Code review
 
