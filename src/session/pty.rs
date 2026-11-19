@@ -105,11 +105,7 @@ impl Cli {
     /// its startup files (TERM-55).
     pub fn spawn_shell(program: &str, cwd: &Path, home: Option<&Path>, size: (u16, u16), notify: Arc<tokio::sync::Notify>) -> std::io::Result<Cli> {
         let mut b = CommandBuilder::new(program);
-        if let Some(home) = home {
-            b.env("HOME", home);
-        }
-        b.cwd(cwd);
-        b.env("TERM", "xterm-256color");
+        for_terminal(&mut b, cwd, home);
         Cli::start(b, size, notify, PathBuf::new(), true)
     }
 
@@ -255,3 +251,19 @@ fn read_loop(mut reader: Box<dyn Read + Send>, screen: Screen, writer: Writer, l
         notify.notify_one();
     });
 }
+
+/// The shell of a terminal in `cwd`, with `home` if it is given. The terminal of zendo is an xterm,
+/// not a VTE terminal: without `VTE_VERSION`, `/etc/profile.d/vte.sh` adds no marks that a prompt of
+/// the user can break (TERM-76).
+fn for_terminal(b: &mut CommandBuilder, cwd: &Path, home: Option<&Path>) {
+    if let Some(home) = home {
+        b.env("HOME", home);
+    }
+    b.cwd(cwd);
+    b.env("TERM", "xterm-256color");
+    b.env_remove("VTE_VERSION");
+}
+
+#[cfg(test)]
+#[path = "pty_tests.rs"]
+mod tests;

@@ -1,5 +1,6 @@
 //! The result of the last command of a terminal (docs/zendo/terminal/terminal-output.md): the OSC 133 marks
-//! of the shell, or the time from `enter` to a free terminal when the shell sends no marks.
+//! of the shell, and the time from `enter` to a free quiet terminal, which ends a command also when
+//! the marks of the shell are not complete.
 use std::time::{Duration, Instant};
 
 /// The lines of the output that a result keeps, from the end (TERM-32).
@@ -34,9 +35,11 @@ enum Phase {
 pub struct Recorder {
     /// The shell sent an OSC 133 mark (TERM-26).
     marks: bool,
-    /// The shell sent a C mark: the output starts there. `sh` sends no C mark, so its output
-    /// starts at `enter` (TERM-34).
-    c_mark: bool,
+    /// The command got a C mark: its output starts there, not at `enter` with the echo.
+    c_now: bool,
+    /// The free quiet terminal ended the last command: a D mark that comes before the next command
+    /// gives its exit code (TERM-75).
+    late_exit: bool,
     phase: Phase,
     command: Vec<u8>,
     out: Vec<u8>,
@@ -44,13 +47,13 @@ pub struct Recorder {
     carry: Vec<u8>,
     /// The command line at the last `enter`, and its time.
     entered: Option<(String, std::time::Instant)>,
-    /// Without marks: the moment that the terminal became free while a command waits (TERM-27).
+    /// The moment that the terminal became free while a command waits (TERM-27).
     free_since: Option<Instant>,
     last: Option<Output>,
 }
 
 const MARK: &[u8] = b"\x1b]133;";
-/// Without marks, the time that a free terminal is quiet before its command counts as ended.
+/// The time that a free terminal is quiet before its command counts as ended (TERM-27).
 const FREE_QUIET: Duration = Duration::from_millis(300);
 
 impl Recorder {
@@ -87,18 +90,19 @@ impl Recorder {
         self.start(command, command.trim().to_string());
     }
 
-    /// The output of `command` starts here, unless a C mark starts it. With marks, an empty command
+    /// The output of `command` starts here; a C mark starts it again. With marks, an empty command
     /// line keeps the last result.
     fn start(&mut self, line: &str, command: String) {
         self.entered = Some((line.trim().to_string(), Instant::now()));
-        if self.c_mark || (self.marks && command.is_empty()) {
+        if self.marks && command.is_empty() {
             return;
         }
         (self.phase, self.command, self.out) = (Phase::Output, command.into_bytes(), Vec::new());
+        (self.c_now, self.late_exit) = (false, false);
     }
 
-    /// The terminal is free again: without marks, the command ended (TERM-27). An empty command
-    /// line keeps the last result.
+    /// The terminal is free and quiet again: the command ended (TERM-27). An empty command line
+    /// keeps the last result.
     pub fn free(&mut self) {
         if !self.waits() {
             return;
@@ -108,12 +112,13 @@ impl Recorder {
             (self.phase, self.out) = (Phase::Idle, Vec::new());
             return;
         }
-        self.finish(None);
+        self.finish(None, true);
+        self.late_exit = true;
     }
 
-    /// Without marks: the command ended when it printed after `enter`, and the terminal is free and
-    /// quiet for `FREE_QUIET`, from its last output or from the moment it became free, whichever
-    /// is later. So the output that the shell prints just after a quiet command counts (TERM-27).
+    /// The command ended when it printed after `enter`, and the terminal is free and quiet for
+    /// `FREE_QUIET`, from its last output or from the moment it became free, whichever is later. So
+    /// the output that the shell prints just after a quiet command counts (TERM-27).
     pub fn poll_free(&mut self, busy: bool, last_output: Instant, now: Instant) {
         let Some(entered) = self.waits_since().filter(|_| !busy) else {
             self.free_since = None;
@@ -126,12 +131,12 @@ impl Recorder {
         }
     }
 
-    /// A command started without marks and did not end yet.
+    /// A command started and did not end yet: the free quiet terminal can end it (TERM-27).
     pub fn waits(&self) -> bool {
-        !self.marks && self.phase == Phase::Output
+        self.phase == Phase::Output
     }
 
-    /// The time of the `enter` of a command without marks that did not end yet.
+    /// The time of the `enter` of a command that did not end yet.
     pub fn waits_since(&self) -> Option<std::time::Instant> {
         self.entered.as_ref().map(|(_, t)| *t).filter(|_| self.waits())
     }
@@ -139,7 +144,7 @@ impl Recorder {
     /// The result: the command that runs, or else the last one that ended (TERM-23, TERM-30).
     pub fn result(&self) -> Option<Output> {
         if self.phase == Phase::Output {
-            return Some(self.output(None, false));
+            return Some(self.output(None, None));
         }
         self.last.clone()
     }
@@ -152,52 +157,69 @@ impl Recorder {
         }
     }
 
-    /// `A` the prompt, `B` the command, `C` the output, `D;code` the end (TERM-26).
+    /// `A` the prompt, `B` the command, `C` the output, `D;code` the end (TERM-26). A or B while
+    /// the command runs: the D mark got lost, and a new prompt ends the command (TERM-74).
     fn mark(&mut self, body: &[u8]) {
         self.marks = true;
         let mut parts = body.split(|b| *b == b';');
-        match (parts.next().unwrap_or_default(), self.phase) {
-            (b"B", _) => (self.phase, self.command) = (Phase::Command, Vec::new()),
-            (b"C", Phase::Output) if self.c_mark => {}
-            (b"C", _) => (self.c_mark, self.phase, self.out) = (true, Phase::Output, Vec::new()),
-            (b"D", Phase::Output) => {
-                let code = parts.next().and_then(|c| std::str::from_utf8(c).ok()).and_then(|c| c.trim().parse().ok());
-                self.finish(Some(code.unwrap_or(0)));
-            }
-            (b"A" | b"D", _) => self.phase = Phase::Idle,
+        let (kind, running) = (parts.next().unwrap_or_default(), self.phase == Phase::Output);
+        let mut code = || parts.next().and_then(|c| std::str::from_utf8(c).ok()).and_then(|c| c.trim().parse().ok());
+        match kind {
+            b"A" | b"B" if running => self.finish(None, kind == b"B"),
+            b"C" if running && self.c_now => {}
+            b"C" if running => (self.c_now, self.out) = (true, Vec::new()),
+            b"C" => (self.c_now, self.phase, self.out) = (true, Phase::Output, Vec::new()),
+            b"D" if running => self.finish(Some(code().unwrap_or(0)), false),
+            b"D" => self.late_code(code()),
+            _ => {}
+        }
+        match kind {
+            b"B" => (self.phase, self.command) = (Phase::Command, Vec::new()),
+            b"A" | b"D" => self.phase = Phase::Idle,
             _ => {}
         }
     }
 
-    fn finish(&mut self, exit: Option<i32>) {
-        self.last = Some(self.output(exit, true));
+    /// A D mark after the free quiet terminal ended the command gives it the exit code (TERM-75).
+    fn late_code(&mut self, code: Option<i32>) {
+        if let Some(last) = self.last.as_mut().filter(|_| std::mem::take(&mut self.late_exit)) {
+            last.exit = Some(code.unwrap_or(0));
+        }
+    }
+
+    /// The end of the command. `prompt`: the output ends with the prompt of the shell, which goes.
+    fn finish(&mut self, exit: Option<i32>, prompt: bool) {
+        self.last = Some(self.output(exit, Some(prompt)));
+        self.late_exit = false;
         // fish sends no B mark: the next command must not take this one.
         (self.phase, self.command, self.out) = (Phase::Idle, Vec::new(), Vec::new());
     }
 
-    fn output(&self, exit: Option<i32>, done: bool) -> Output {
+    /// The result. `end`: `None` while the command runs; `Some(prompt)` when it ended, with
+    /// `prompt` as in `finish`.
+    fn output(&self, exit: Option<i32>, end: Option<bool>) -> Output {
         let typed = plain(&self.command).trim().to_string();
         // Without the B mark, the command line at `enter`.
         let command = if typed.is_empty() { self.entered.as_ref().map(|(l, _)| l.clone()).unwrap_or_default() } else { typed };
         let text = plain(&self.out);
         let mut lines: Vec<String> = text.lines().map(str::to_string).collect();
         // Without a C mark the output starts at enter, with the echo of the command.
-        if !self.c_mark {
+        if !self.c_now {
             let short = command.rsplit("$ ").next().unwrap_or(&command).trim().to_string();
             if lines.first().is_some_and(|l| l.trim().is_empty() || (!short.is_empty() && l.trim_end().ends_with(&short))) {
                 lines.remove(0);
             }
         }
-        // Without marks it ends with the prompt; with marks, D comes before the prompt. A prompt that
-        // ends with a carriage return (fish) leaves an empty last line: then no line is the prompt.
-        if done && !self.marks && !text.ends_with('\n') {
+        // The free quiet terminal and a B mark end after the prompt; A and D come before it. A prompt
+        // that ends with a carriage return (fish) leaves an empty last line: then no line is the prompt.
+        if end == Some(true) && !text.ends_with('\n') {
             lines.pop();
         }
         while lines.last().is_some_and(|l| l.trim().is_empty()) {
             lines.pop();
         }
         let dropped = lines.len().saturating_sub(KEEP);
-        Output { command, exit, text: lines[dropped..].join("\n"), dropped, done }
+        Output { command, exit, text: lines[dropped..].join("\n"), dropped, done: end.is_some() }
     }
 }
 
