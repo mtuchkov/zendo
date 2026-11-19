@@ -103,9 +103,9 @@ async fn undo_in_the_chat_input_and_a_field() {
     a.focus = Focus::Claude;
     typ(&mut a, "hello world");
     ctrl(&mut a, 'z');
-    assert_eq!(a.composer.input().text(), "hello ");
+    assert_eq!(a.composer().input().text(), "hello ");
     ctrl(&mut a, 'y');
-    assert_eq!(a.composer.input().text(), "hello world");
+    assert_eq!(a.composer().input().text(), "hello world");
     a.focus = Focus::Note;
     a.on_key(KeyEvent::new(KeyCode::Char('/'), KeyModifiers::ALT));
     assert_eq!(a.mode, Mode::Find);

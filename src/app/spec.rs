@@ -35,7 +35,7 @@ impl App {
         if !self.threads.shown() {
             return;
         }
-        self.composer.set_context(spec_task(&rel));
+        self.composer_mut().set_context(spec_task(&rel));
         let scope = self.scope();
         self.ask(spec_question(&rel), scope);
     }

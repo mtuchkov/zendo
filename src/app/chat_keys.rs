@@ -12,15 +12,15 @@ impl App {
             Some("back") if busy => self.stop_answer(key),
             Some("back") if self.writer.say().is_some() => {
                 self.writer.end_say();
-                self.composer.input_mut().take();
-                self.composer.drop_context();
+                self.composer_mut().input_mut().take();
+                self.composer_mut().drop_context();
                 self.focus = Focus::Note;
             }
             Some("back") => {
-                if self.composer.input_mut().is_empty() {
+                if self.composer_mut().input_mut().is_empty() {
                     self.threads.hide();
                     self.threads.unpin();
-                    self.composer.clear_chips();
+                    self.composer_mut().clear_chips();
                 }
                 self.focus = Focus::Note;
             }
@@ -31,12 +31,12 @@ impl App {
             Some("scroll_down") => self.threads.scroll_by(false, self.frame.view_height() / 2),
             // `\` and Enter is a new line in every terminal, as in Claude Code: a terminal without the
             // kitty keyboard protocol sends Shift-Enter as a plain Enter.
-            Some("send") if self.composer.ends_with_backslash() => {
-                self.composer.input_mut().backspace();
-                self.composer.input_mut().enter(true);
+            Some("send") if self.composer().ends_with_backslash() => {
+                self.composer_mut().input_mut().backspace();
+                self.composer_mut().input_mut().enter(true);
             }
             // In a code block, and after the fence that opens it, Enter is a new line (TEXT-10).
-            Some("send") if self.composer.in_code() => self.composer.input_mut().enter(true),
+            Some("send") if self.composer().in_code() => self.composer_mut().input_mut().enter(true),
             Some("send" | "send_now") if self.cli.running(self.state.session.min(SESSIONS - 1)) => {
                 self.remember_input();
                 self.send_to_cli();
@@ -49,7 +49,7 @@ impl App {
             Some(a) => self.input_action(a),
         }
         self.update_at();
-        self.composer.update_slash();
+        self.composer_mut().update_slash();
     }
 
     /// `esc` while the agent answers: stop it, and put the queued questions back into the input
@@ -64,11 +64,14 @@ impl App {
     pub(crate) fn queue_to_input(&mut self, key: &str) {
         let Some(t) = self.threads.get_mut(key).filter(|t| !t.queue.is_empty()) else { return };
         let mut parts: Vec<String> = t.queue.drain(..).map(|o| o.question).collect();
-        let now = self.composer.input_mut().take();
+        // The input of the session of the thread, also while another one is active (CLAUDE-47).
+        let n = (0..SESSIONS).find(|n| session_key(*n) == key).unwrap_or(self.state.session);
+        let input = self.chat.composer_mut(n).input_mut();
+        let now = input.take();
         if !now.is_empty() {
             parts.push(now);
         }
-        self.composer.input_mut().type_str(&parts.join("\n"));
+        input.type_str(&parts.join("\n"));
     }
 
     fn new_thread(&mut self, key: String) {
@@ -88,9 +91,9 @@ impl App {
     fn input_action(&mut self, a: &str) {
         let w = self.frame.input_width().max(10);
         match a {
-            "newline" => self.composer.input_mut().enter(true),
+            "newline" => self.composer_mut().input_mut().enter(true),
             // The clear can be undone; the chips stay for their labels (UNDO-1).
-            "clear" => self.composer.input_mut().clear_text(),
+            "clear" => self.composer_mut().input_mut().clear_text(),
             "paste" => {
                 // An image on the clipboard is an attachment; text may be dropped files.
                 if let Some(p) = crate::text::select::paste_image() {
@@ -100,15 +103,15 @@ impl App {
                 }
             }
             "templates" => self.pick_template(),
-            "select_up" => self.composer.input_mut().select_with(|e| e.vertical(-1, w)),
-            "select_down" => self.composer.input_mut().select_with(|e| e.vertical(1, w)),
-            _ => drop(text_edit::rich_action(self.composer.input_mut(), a, &mut self.pointer)),
+            "select_up" => self.composer_mut().input_mut().select_with(|e| e.vertical(-1, w)),
+            "select_down" => self.composer_mut().input_mut().select_with(|e| e.vertical(1, w)),
+            _ => drop(text_edit::rich_action(self.chat.composer_mut(self.state.session).input_mut(), a, &mut self.pointer)),
         }
     }
 
     /// A key with no action: typing and the arrows in the chat input.
     fn input_key(&mut self, k: KeyEvent) {
-        if self.composer.input_mut().selection().is_none() && self.composer.chip_key(k.code) {
+        if self.composer_mut().input_mut().selection().is_none() && self.composer_mut().chip_key(k.code) {
             return;
         }
         let w = self.frame.input_width().max(10);
@@ -116,7 +119,7 @@ impl App {
             return;
         }
         let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
-        let e = self.composer.input_mut();
+        let e = self.composer_mut().input_mut();
         match k.code {
             KeyCode::Char(c) if !ctrl => {
                 e.type_over(c);
@@ -138,7 +141,7 @@ impl App {
     /// chips (HISTORY-1, HISTORY-7). `/clear` starts a new conversation, as `ctrl-n` does: the
     /// history of the session goes into the common history (HISTORY-2).
     fn remember_input(&mut self) {
-        let (text, chips) = self.composer.history_entry();
+        let (text, chips) = self.composer_mut().history_entry();
         let session = self.state.session.min(SESSIONS - 1);
         self.state.history.push(session, &text, chips, chrono::Local::now());
         if text.split_whitespace().next() == Some("/clear") {
@@ -150,10 +153,10 @@ impl App {
     /// `up` on the first row or `down` on the last row: the history of the session (HISTORY-5).
     /// False when the cursor can move, or the history has nothing there.
     fn recall(&mut self, back: bool, w: usize) -> bool {
-        if !self.composer.input().on_edge(if back { -1 } else { 1 }, w) {
+        if !self.composer().input().on_edge(if back { -1 } else { 1 }, w) {
             return false;
         }
         let list = self.state.history.list(self.state.session.min(SESSIONS - 1));
-        if back { self.composer.recall_back(&list) } else { self.composer.recall_forward(&list) }
+        if back { self.composer_mut().recall_back(&list) } else { self.composer_mut().recall_forward(&list) }
     }
 }

@@ -58,11 +58,11 @@ This document has no architecturally significant requirement of its own: CLAUDE-
 Tests: `one_thread_for_every_file_and_the_file_goes_once` (CLAUDE-5),
 `the_chat_shows_the_last_session_when_it_opens` (CLAUDE-27, CLAUDE-6, CLAUDE-40),
 `a_session_id_is_kept_only_after_the_first_question` (CLAUDE-40),
-`each_session_keeps_its_own_chat_input` (CLAUDE-43, CLAUDE-44),
-`the_input_of_a_session_comes_back_after_a_restart` (CLAUDE-45, CLAUDE-46),
-`background_changes_go_to_the_input_of_their_session` (CLAUDE-47),
 `five_agent_sessions_with_f6_to_f10_and_alt_n` (CLAUDE-5, CLAUDE-31, CLAUDE-32) and
 `alt_and_an_f_key_choose_a_session_too` (CLAUDE-31) in `tests/chat_flows.rs`;
 `shell_is_blocked_and_resume_replays` (CLAUDE-6) in `tests/acp_mock.rs`;
 `other_session_keys_name_the_buttons_0_to_4_and_the_terminal_by_its_mark` (CLAUDE-35, TERM-48) in
-`tests/keymap_hints.rs`.
+`tests/keymap_hints.rs`; `each_session_keeps_its_own_chat_input` (CLAUDE-43, CLAUDE-44) and
+`the_input_of_a_session_comes_back_after_a_restart` (CLAUDE-45, CLAUDE-46) in
+`tests/session_input.rs`; `drafts_go_to_the_state_and_come_back` (CLAUDE-45) and
+`background_changes_go_to_the_input_of_their_session` (CLAUDE-47) in `src/app/chat_pane_tests.rs`.

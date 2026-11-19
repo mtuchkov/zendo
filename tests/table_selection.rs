@@ -118,7 +118,7 @@ async fn alt_and_a_drag_put_the_selection_into_the_chat() {
     let text = a.pointer.take_to_chat().expect("the text for the chat");
     a.mouse_to_chat(text);
     assert_eq!(a.pointer.clip(), None, "not on the clipboard");
-    let chip = a.composer.chips().last().expect("a chip");
+    let chip = a.composer().chips().last().expect("a chip");
     assert!(chip.label.contains("Before the"), "{}", chip.label);
     let ctx = chip.context.clone().unwrap_or_default();
     assert!(ctx.contains(NOTE) && ctx.contains("> Before the"), "{ctx}");

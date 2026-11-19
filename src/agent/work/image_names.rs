@@ -51,10 +51,13 @@ impl App {
 
     /// The answer for the image at `path`: the name labels its chip, while it is in the input
     /// (CLAUDE-38).
-    pub(super) fn label_image(&mut self, path: &Path, answer: &str) {
+    pub(crate) fn label_image(&mut self, path: &Path, answer: &str) {
         let has = |c: &crate::app::Chip| matches!(&c.attach, Some(Attachment::Image(p)) if p == path);
-        if let (Some(name), Some(old)) = (image_name(answer), self.composer.chips().iter().find(|c| has(c)).map(|c| c.label.clone())) {
-            self.composer.rename_chip(&old, &format!("Image: {name}"));
+        // The input of the session where the user pasted the image (CLAUDE-47).
+        let Some(n) = self.chat.session_with(has) else { return };
+        let c = self.chat.composer_mut(n);
+        if let (Some(name), Some(old)) = (image_name(answer), c.chips().iter().find(|c| has(c)).map(|c| c.label.clone())) {
+            c.rename_chip(&old, &format!("Image: {name}"));
         }
     }
 }

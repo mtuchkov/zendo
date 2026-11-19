@@ -72,7 +72,7 @@ async fn x_cuts_the_selection_in_the_chat_input() {
         a.on_key(KeyEvent::new(KeyCode::Left, KeyModifiers::SHIFT));
     }
     key(&mut a, KeyCode::Char('x'));
-    assert_eq!((a.composer.input().text().as_str(), a.pointer.clip()), ("hello ", Some("world")));
+    assert_eq!((a.composer().input().text().as_str(), a.pointer.clip()), ("hello ", Some("world")));
     let _ = std::fs::remove_dir_all(&root);
 }
 

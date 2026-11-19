@@ -8,6 +8,7 @@ mod steps;
 mod branch;
 mod chat;
 mod chat_keys;
+mod chat_pane;
 mod count;
 mod cli;
 mod terminal;
@@ -75,6 +76,7 @@ pub use files_state::tree_keys::{FilterKey, Picked};
 pub use find::{Find, FindItem, FindMode};
 pub use float::Float;
 pub use fonts::FontTip;
+pub use chat_pane::ChatPane;
 pub use jobs::*;
 pub use key_help::KeyHelp;
 pub use link::AgentLink;
@@ -162,8 +164,8 @@ pub struct App {
 
 
     pub focus: Focus,
-    /// What goes into the next question: the chat input, its chips, the suggestions, the context.
-    pub composer: Composer,
+    /// The chat input of each agent session: what goes into its next question (ADR 0011).
+    pub chat: ChatPane,
     /// The chat threads, the transcript cursor, the pinned thread, and the scroll of the chat pane.
     pub threads: Threads,
     /// The keymap of every pane, and what is wrong in `[keys]` of the config.

@@ -17,7 +17,7 @@ async fn send(a: &mut App, q: &str) {
 }
 
 fn input(a: &App) -> String {
-    a.composer.input().text()
+    a.composer().input().text()
 }
 
 // HISTORY-1, HISTORY-5, HISTORY-6: `up` brings back the messages of the session, newest first;
@@ -99,12 +99,12 @@ async fn up_brings_a_text_chip_back_as_a_chip() {
     a.focus = Focus::Claude;
     typ(&mut a, "why ");
     a.on_paste("fn main() {\n    panic!(\"no\");\n}\n".into());
-    let label = a.composer.chips()[0].label.clone();
+    let label = a.composer().chips()[0].label.clone();
     send(&mut a, "now").await;
-    assert!(a.composer.chips().is_empty());
+    assert!(a.composer().chips().is_empty());
     key(&mut a, KeyCode::Up);
     assert_eq!(input(&a), format!("why {label} now"));
-    let chips = a.composer.chips();
+    let chips = a.composer().chips();
     assert_eq!(chips.len(), 1, "the chip is a chip again");
     assert!(chips[0].context.as_deref().is_some_and(|c| c.contains("    panic!(\"no\");")), "{chips:?}");
     let _ = std::fs::remove_dir_all(&root);

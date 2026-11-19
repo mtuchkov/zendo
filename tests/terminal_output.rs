@@ -50,7 +50,7 @@ fn to_input(a: &mut App) {
 }
 
 fn input(a: &App) -> String {
-    a.composer.input().lines.join("\n")
+    a.composer().input().lines.join("\n")
 }
 
 fn done(root: &Path, a: &mut App) {

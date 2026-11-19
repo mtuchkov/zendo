@@ -69,13 +69,13 @@ impl App {
     pub(crate) fn insert_output(&mut self) {
         let order = self.cli.results();
         if order.is_empty() {
-            self.composer.drop_pick();
+            self.composer_mut().drop_pick();
             return self.flash("no terminal has the result of a command yet");
         }
-        let next = self.composer.next_pick(order.len());
+        let next = self.composer_mut().next_pick(order.len());
         let Some(o) = self.cli.result(order[next]) else { return };
         let name = crate::ui::cli::name(self, order[next]);
-        self.composer.input_mut().type_str(&output_text(&name, &o));
+        self.composer_mut().input_mut().type_str(&output_text(&name, &o));
     }
 
     /// The terminal in the chat pane has the keys: the chat pane is on the screen and has the focus.

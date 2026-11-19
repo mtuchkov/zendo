@@ -9,7 +9,7 @@ impl App {
         use crate::keys::Pane;
         let e = match pane {
             Pane::Write => self.writer.editor_mut(),
-            Pane::Chat => self.composer.input_mut(),
+            Pane::Chat => self.composer_mut().input_mut(),
             _ => return false,
         };
         if e.date.is_none() {

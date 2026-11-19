@@ -5,13 +5,13 @@ impl App {
     /// After a key in the chat input: open, update or close the file suggestions.
     pub(crate) fn update_at(&mut self) {
         let named: Vec<PathBuf> = self.files.structure().map(|st| st.templates().map(|(t, _)| PathBuf::from(t)).collect()).unwrap_or_default();
-        self.composer.update_at(&self.cfg.root, &named);
+        self.chat.composer_mut(self.state.session).update_at(&self.cfg.root, &named);
     }
 
     /// A key of the open file suggestions. A file that the user takes goes into the chat as an
     /// attachment; a template brings how to use it. True when the key was used.
     pub(crate) fn key_at(&mut self, k: KeyEvent) -> bool {
-        let (rel, templates) = match self.composer.key_at(k) {
+        let (rel, templates) = match self.composer_mut().key_at(k) {
             AtKey::Unused => return false,
             AtKey::Used => return true,
             AtKey::Taken(rel, templates) => (rel, templates),
@@ -21,14 +21,15 @@ impl App {
             return true;
         }
         let ctx = self.template_context(&rel);
-        let label = self.composer.add_chip(chips::file_label(&rel), Some(ctx), Some(Attachment::of(self.cfg.root.join(&rel))), false);
+        let file = Attachment::of(self.cfg.root.join(&rel));
+        let label = self.composer_mut().add_chip(chips::file_label(&rel), Some(ctx), Some(file), false);
         self.flash(format!("template {}", label.trim_matches([chips::OPEN, chips::CLOSE])));
         true
     }
 
     /// `ctrl-t` in the chat: the suggestions show only templates.
     pub(crate) fn pick_template(&mut self) {
-        self.composer.pick_template();
+        self.composer_mut().pick_template();
         self.update_at();
     }
 

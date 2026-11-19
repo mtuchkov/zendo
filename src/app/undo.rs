@@ -30,7 +30,7 @@ impl App {
     /// The chat input records what changed (UNDO-2). The text fields record their changes by
     /// themselves; a document records at each save (UNDO-16).
     pub(crate) fn commit_edits(&mut self) {
-        self.composer.input_mut().commit();
+        self.composer_mut().input_mut().commit();
     }
 
     /// `undo` in write mode: the save comes first, so the loglet has the text of the user, and

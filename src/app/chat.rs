@@ -35,14 +35,14 @@ impl App {
         self.track_recent();
         self.cli.pane = None;
         self.state.session = n % SESSIONS;
-        self.state.save(&self.cfg.root);
+        self.save_drafts();
         self.follow_session();
         if self.state.tree {
             self.scan_tree();
         }
         // FILES-58: the tree shows the open document of the session.
         self.follow_open_file();
-        self.composer.close_picks();
+        self.composer_mut().close_picks();
         self.open_panel();
         let f = self.keys.hint(crate::keys::Pane::Global, &format!("session_{}", self.state.session), "");
         self.flash(format!("agent session {}{}", self.state.session + 1, if f.is_empty() { f } else { format!(" · {f}") }));
@@ -84,7 +84,7 @@ impl App {
         // A slash command goes to the agent as the user typed it.
         let command = question.starts_with('/');
         let (text, file) = if command { (question.clone(), None) } else { self.prompt_text(&question, &scope, &key) };
-        let mut attach = self.composer.take_attach();
+        let mut attach = self.composer_mut().take_attach();
         if let Some(p) = &file {
             attach.push(Attachment::File(p.clone()));
         }
@@ -138,7 +138,7 @@ impl App {
         } else {
             text.push_str(&format!("The note is not saved yet. Its text:\n{}\n", self.writer.editor_mut().text()));
         }
-        if let Some(c) = self.composer.take_context() {
+        if let Some(c) = self.composer_mut().take_context() {
             text.push_str(&c);
             text.push('\n');
         }
@@ -176,14 +176,14 @@ impl App {
     /// Put an image from the clipboard into the chat input as the chip `Image #n`, with the lowest
     /// number that no chip in the input has (CLAUDE-17).
     pub fn attach_pasted_image(&mut self, path: PathBuf) {
-        let free = |n: &usize| !self.composer.chips().iter().any(|c| c.label == format!("{}Image #{n}{}", chips::OPEN, chips::CLOSE));
+        let free = |n: &usize| !self.composer().chips().iter().any(|c| c.label == format!("{}Image #{n}{}", chips::OPEN, chips::CLOSE));
         let n = (1..).find(free).expect("a free number");
         self.attach_as(format!("Image #{n}"), Attachment::Image(path.clone()));
         self.name_image(path);
     }
 
     fn attach_as(&mut self, label: String, a: Attachment) {
-        let label = self.composer.add_chip(label, None, Some(a), false);
+        let label = self.composer_mut().add_chip(label, None, Some(a), false);
         self.flash(format!("attached {}", label.trim_matches([chips::OPEN, chips::CLOSE])));
     }
 
@@ -193,9 +193,9 @@ impl App {
         match crate::text::select::dropped_files(s) {
             Some(paths) => paths.into_iter().for_each(|p| self.attach(Attachment::of(p))),
             None if chips::paste_is_chip(s) => {
-                self.composer.paste_chip(s);
+                self.composer_mut().paste_chip(s);
             }
-            None => self.composer.input_mut().type_str(s),
+            None => self.composer_mut().input_mut().type_str(s),
         }
     }
 
@@ -233,11 +233,19 @@ impl App {
 
     /// Send the chat input: the chips in it bring their text as context.
     pub(crate) fn send_input(&mut self) {
-        let q = self.composer.take_question();
-        if !self.link.images() && self.composer.sends_image() {
+        let q = self.composer_mut().take_question();
+        if !self.link.images() && self.composer().sends_image() {
             self.flash(format!("{} takes no images here: they go as file links", self.agent_label()));
         }
         let scope = self.scope();
         self.ask(q, scope);
+        self.save_drafts();
+    }
+
+    /// The chat inputs of the sessions go to the state with the rest of it (CLAUDE-45).
+    pub(crate) fn save_drafts(&mut self) {
+        self.state.drafts = self.chat.drafts();
+        self.state.save(&self.cfg.root);
+        self.chat.mark_saved();
     }
 }

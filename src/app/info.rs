@@ -81,7 +81,7 @@ impl App {
         if !self.threads.shown() {
             return;
         }
-        self.composer.set_context(ctx);
+        self.composer_mut().set_context(ctx);
         let scope = self.scope();
         self.ask(format!("Split {rel}: {} words, the limit is {}. Keep the altitude.", self.frame.word_count(), self.frame.word_limit()), scope);
     }
@@ -108,6 +108,15 @@ impl App {
     }
 
     /// The key of the chat thread: the thread of the active agent session, for every file.
+    /// The chat input of the active agent session (ADR 0011).
+    pub fn composer(&self) -> &Composer {
+        self.chat.composer(self.state.session)
+    }
+
+    pub fn composer_mut(&mut self) -> &mut Composer {
+        self.chat.composer_mut(self.state.session)
+    }
+
     pub fn key(&self) -> String {
         session_key(self.state.session.min(SESSIONS - 1))
     }

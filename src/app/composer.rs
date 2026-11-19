@@ -7,6 +7,7 @@ use super::AtKey;
 use crate::agent::Attachment;
 use crate::setup::history::Sent;
 use crate::text::editor::Editor;
+use crate::setup::state::{DraftChip, InputDraft};
 use std::path::PathBuf;
 
 pub struct Composer {
@@ -208,7 +209,8 @@ impl Composer {
     pub fn take_question(&mut self) -> String {
         let (mut q, chips) = self.take_message();
         let ctx: Vec<String> = chips.iter().filter_map(|c| c.context.clone()).collect();
-        self.attach = chips.into_iter().filter_map(|c| c.attach).collect();
+        // The file of a red chip is gone: the label goes without it (CLAUDE-57).
+        self.attach = chips.into_iter().filter_map(|c| c.attach).filter(|a| a.path().exists()).collect();
         if !ctx.is_empty() {
             let all: Vec<String> = self.context.take().into_iter().chain(ctx).collect();
             self.context = Some(all.join("\n"));
@@ -221,6 +223,42 @@ impl Composer {
         q
     }
 }
+
+impl Composer {
+    /// The input as a draft for the state (CLAUDE-45).
+    pub fn draft(&self) -> InputDraft {
+        let chips = self.chips.iter().map(|c| DraftChip {
+            label: c.label.clone(),
+            context: c.context.clone(),
+            file: c.attach.as_ref().map(|a| a.path().to_path_buf()),
+            image: matches!(c.attach, Some(Attachment::Image(_))),
+        });
+        InputDraft { text: self.input.text(), chips: chips.collect(), context: self.context.clone(), default: self.default.clone(), about: self.about.to_string() }
+    }
+
+    /// The input of a draft, with the cursor at its end.
+    pub fn from_draft(d: &InputDraft) -> Self {
+        let attach = |c: &DraftChip| c.file.clone().map(|f| if c.image { Attachment::Image(f) } else { Attachment::File(f) });
+        let chips = d.chips.iter().map(|c| Chip { label: c.label.clone(), context: c.context.clone(), attach: attach(c) }).collect();
+        let mut input = Editor::new(&d.text);
+        input.move_to_end();
+        let about = ABOUTS.iter().find(|a| **a == d.about).copied().unwrap_or("");
+        Self { input, chips, context: d.context.clone(), default: d.default.clone(), about, ..Self::default() }
+    }
+
+    /// The labels of the chips whose file or image is gone: they show in red (CLAUDE-46).
+    pub fn gone(&self) -> Vec<String> {
+        self.chips.iter().filter(|c| c.attach.as_ref().is_some_and(|a| !a.path().exists())).map(|c| c.label.clone()).collect()
+    }
+
+    /// Nothing in the input and no context.
+    pub fn is_blank(&self) -> bool {
+        self.input.is_empty() && self.chips.is_empty() && self.context.is_none()
+    }
+}
+
+/// What a context can be about, for the placeholder of the input (`set_default`).
+const ABOUTS: [&str; 3] = ["the changes", "the selection", "the mark"];
 
 #[path = "at.rs"]
 pub(crate) mod at;
