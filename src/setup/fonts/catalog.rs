@@ -74,12 +74,12 @@ const IA_WRITER: &[Part] = &[
 
 /// The recommended fonts, in the order of the tip and of the request to the agent.
 pub const FONTS: &[Font] = &[
-    Font { name: "JetBrains Mono", prefix: "JetBrainsMono", parts: JETBRAINS },
-    Font { name: "Atkinson Hyperlegible Mono", prefix: "AtkinsonHyperlegibleMono", parts: ATKINSON },
-    Font { name: "IBM Plex Mono", prefix: "IBMPlexMono", parts: PLEX },
-    Font { name: "Iosevka", prefix: "Iosevka", parts: IOSEVKA },
-    Font { name: "Iosevka Term", prefix: "IosevkaTerm", parts: IOSEVKA_TERM },
-    Font { name: "Fira Code", prefix: "FiraCode", parts: FIRA },
-    Font { name: "Cascadia Code", prefix: "CascadiaCode", parts: CASCADIA },
-    Font { name: "iA Writer Mono", prefix: "iAWriterMonoS", parts: IA_WRITER },
+    Font { name: "JetBrains Mono", family: "JetBrains Mono", prefix: "JetBrainsMono", parts: JETBRAINS },
+    Font { name: "Atkinson Hyperlegible Mono", family: "Atkinson Hyperlegible Mono", prefix: "AtkinsonHyperlegibleMono", parts: ATKINSON },
+    Font { name: "IBM Plex Mono", family: "IBM Plex Mono", prefix: "IBMPlexMono", parts: PLEX },
+    Font { name: "Iosevka", family: "Iosevka", prefix: "Iosevka", parts: IOSEVKA },
+    Font { name: "Iosevka Term", family: "Iosevka Term", prefix: "IosevkaTerm", parts: IOSEVKA_TERM },
+    Font { name: "Fira Code", family: "Fira Code", prefix: "FiraCode", parts: FIRA },
+    Font { name: "Cascadia Code", family: "Cascadia Code", prefix: "CascadiaCode", parts: CASCADIA },
+    Font { name: "iA Writer Mono", family: "iA Writer Mono S", prefix: "iAWriterMonoS", parts: IA_WRITER },
 ];

@@ -49,12 +49,12 @@ impl App {
 
     /// A key in the theme list: the keys of `[theme]`; `esc` is fixed (PANES-48).
     pub(crate) fn key_theme(&mut self, k: KeyEvent) {
-        if self.font_tip.asking {
-            return self.key_font_question(k);
+        if let Some(i) = self.font_tip.list {
+            return self.key_font_list(k, i);
         }
         let n = THEMES.len();
         match (k.code, self.keys.local(crate::keys::Pane::Theme, &k)) {
-            (_, Some("font")) => self.press_font_button(),
+            (_, Some("font")) => self.open_font_list(),
             (_, Some("down")) => self.theme = (self.theme + 1) % n,
             (_, Some("up")) => self.theme = (self.theme + n - 1) % n,
             (_, Some("keep")) => {

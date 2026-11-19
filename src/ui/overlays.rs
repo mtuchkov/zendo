@@ -28,26 +28,38 @@ pub(crate) fn draw_themes(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, a
     for s in ["The note changes as you move.", "Your choice is saved in .zendo/."] {
         lines.push(Line::styled(s, dim));
     }
-    fr.font_button = font_tip(app, t, inner, &mut lines);
+    font_tip(app, fr, t, inner, &mut lines);
     f.render_widget(Paragraph::new(lines), inner);
 }
 
-/// Under the themes: the tip while a recommended font is missing, and the font button with an
-/// agent (FONT-13, FONT-16, FONT-21). The rect of the button, when it is on the screen.
-fn font_tip(app: &App, t: &Theme, inner: Rect, lines: &mut Vec<Line<'static>>) -> Option<Rect> {
-    let button = app.font_button();
-    if !app.font_tip.missing && button.is_none() {
-        return None;
-    }
+/// Under the themes: the tip while a font is missing or the terminal has no working recipe
+/// (FONT-37), and the font list with a working recipe (FONT-34). Keeps the rects of the list.
+fn font_tip(app: &App, fr: &mut Cache, t: &Theme, inner: Rect, lines: &mut Vec<Line<'static>>) {
+    let tip = &app.font_tip;
+    fr.font_items.clear();
     lines.push(Line::raw(""));
-    if app.font_tip.missing {
-        let tip = "Recommended fonts for the terminal: run `zendo setup fonts`.";
-        lines.extend(markdown::wrap(vec![Span::styled(tip, Style::new().fg(t.dim))], inner.width as usize, "", ""));
+    if tip.missing || !tip.works {
+        let text = "Fonts: run `zendo setup fonts`.";
+        lines.extend(markdown::wrap(vec![Span::styled(text, Style::new().fg(t.dim))], inner.width as usize, "", ""));
     }
-    let b = button?;
-    let y = inner.y + lines.len() as u16;
-    lines.push(Line::styled(b, Style::new().fg(t.acc)));
-    (y < inner.bottom() && b.width() as u16 <= inner.width).then_some(Rect { x: inner.x, y, width: b.width() as u16, height: 1 })
+    if !tip.shows_list() {
+        fr.font_button = None;
+        return;
+    }
+    let row = |lines: &Vec<Line>, w: usize| {
+        let y = inner.y + lines.len() as u16;
+        (y < inner.bottom()).then_some(Rect { x: inner.x, y, width: (w as u16).min(inner.width), height: 1 })
+    };
+    let button = format!("Font  [ {} ▾ ]", tip.current.as_deref().unwrap_or("choose"));
+    fr.font_button = row(lines, button.width());
+    lines.push(Line::styled(button, Style::new().fg(t.acc)));
+    let Some(sel) = tip.list else { return };
+    for (i, font) in tip.installed.iter().enumerate() {
+        let text = format!("  {} {}", if i == sel { "›" } else { " " }, font.name);
+        fr.font_items.extend(row(lines, text.width()));
+        let style = if i == sel { Style::new().fg(t.fg).bg(t.sel) } else { Style::new().fg(t.dim) };
+        lines.push(Line::styled(text, style));
+    }
 }
 
 /// All keys of the pane where the help key was pressed, and the global keys, from the keymap, in
@@ -166,10 +178,10 @@ pub(crate) fn draw_confirm(f: &mut Frame, app: &App, t: &Theme, area: Rect) {
     f.render_widget(Paragraph::new(lines).block(block), r);
 }
 
-/// The questions over the screen: of the music at the first start, and of the font button.
+/// The questions over the screen: of the music at the first start, and before the undo of an
+/// external change.
 pub(crate) fn draw_questions(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
     draw_music_question(f, app, fr, t, area);
-    draw_font_question(f, app, fr, t, area);
     draw_external_question(f, app, fr, t, area);
 }
 
@@ -185,15 +197,6 @@ pub(crate) fn draw_external_question(f: &mut Frame, app: &App, fr: &mut Cache, t
 fn draw_music_question(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
     let text = "zendo plays calm lofi music that it makes itself. Keep it on at each start? The [music] button and alt-m stop and start it any time.";
     fr.music_answers = app.music.asking.then(|| question(f, t, area, " lofi music ", text, ("[ keep on · y ]", "[ turn off · n ]"))).flatten();
-}
-
-/// The question of the font button: may zendo ask the agent (FONT-14). Its answers take a click.
-fn draw_font_question(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
-    let text = match app.font_tip.missing {
-        true => "May zendo ask the agent to install the recommended fonts? The agent runs `zendo setup fonts`, then asks you which font to set in your terminal.",
-        false => "May zendo ask the agent to change the font of your terminal? The agent asks you which font to use before it changes anything.",
-    };
-    fr.font_answers = app.font_tip.asking.then(|| question(f, t, area, " fonts ", text, ("[ yes · y ]", "[ no · n ]"))).flatten();
 }
 
 /// A float in the middle of the screen with a question and two answers; the rects of the answers,

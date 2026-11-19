@@ -42,7 +42,7 @@ struct Args {
     agent: Option<String>,
     live: bool,
     fix: bool,
-    claude: bool,
+    with_agent: bool,
     offline: bool,
     notes_repo: Option<String>,
     action: String,
@@ -71,7 +71,7 @@ fn read_args() -> Result<Args> {
         match a.as_str() {
             "--live" if sub == "doctor" => o.live = true,
             "--fix" if sub == "doctor" => o.fix = true,
-            "--claude" if sub == "doctor" => o.claude = true,
+            "--agent" if sub == "doctor" => o.with_agent = true,
             "--force" if sub == "upgrade" => o.live = true,
             "--offline" if sub.is_empty() => o.offline = true,
             "-V" | "--version" | "version" => {
@@ -89,7 +89,8 @@ fn read_args() -> Result<Args> {
             "fonts" if sub == "setup" && !o.fonts => o.fonts = true,
             "--notes-repo" if sub == "setup" => o.notes_repo = Some(args.next().context("--notes-repo needs a folder or a git URL")?),
             "move" | "consolidate" if sub == "notes" && o.action.is_empty() => o.action = a.clone(),
-            "--agent" => o.agent = Some(args.next().context("--agent needs a command")?),
+            "--agent-cmd" => o.agent = Some(args.next().context("--agent-cmd needs a command")?),
+            "--agent" => bail!("`--agent CMD` is now `--agent-cmd CMD`\n\n{HELP}"),
             "--mock" => o.agent = Some(mock_agent()?),
             other => bail!("unknown argument: {other}\n\n{HELP}"),
         }
@@ -129,8 +130,8 @@ fn parse() -> Result<Run> {
         "notes" if a.action.is_empty() => bail!("zendo notes needs move or consolidate\n\n{HELP}"),
         "notes" => Run::Notes(paths, a.agent, a.action),
         "init" => Run::Init(paths, a.agent),
-        "doctor" if a.claude && !a.fix => bail!("--claude needs --fix\n\n{HELP}"),
-        "doctor" => Run::Doctor(paths, a.agent, doctor::DoctorFlags { live: a.live, fix: a.fix, claude: a.claude }),
+        "doctor" if a.with_agent && !a.fix => bail!("--agent needs --fix\n\n{HELP}"),
+        "doctor" => Run::Doctor(paths, a.agent, doctor::DoctorFlags { live: a.live, fix: a.fix, agent: a.with_agent }),
         "upgrade" => Run::Upgrade(a.live),
         "keymap" => {
             print!("{}", zendo::keys::DEFAULT_KEYMAP);

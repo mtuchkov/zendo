@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-18"
 revision: "3"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "fonts.md"
 next: "fonts-recipe.md"
 level: "how the user finds the recommended fonts, and how the font list of the theme picker sets the font of the terminal"
-note: "Agent draft of the decisions of the user on 2026-11-18, split from fonts.md revision 2. Approved by the user on 2026-11-18. Revision 2: implemented in zendo 0.96.0. Revision 3, a draft of the request of the user on 2026-11-18: a font list in the theme picker in place of the font button of the agent; the agent only in `zendo setup fonts` and `zendo doctor` (fonts-recipe.md). FONT-5, FONT-6, FONT-13 to FONT-16, FONT-20 and FONT-21 are retired. Not reviewed by the user."
+note: "Agent draft of the decisions of the user on 2026-11-18, split from fonts.md revision 2. Approved by the user on 2026-11-18. Revision 2: implemented in zendo 0.96.0. Revision 3, a draft of the request of the user on 2026-11-18: a font list in the theme picker in place of the font button of the agent; the agent only in `zendo setup fonts` and `zendo doctor` (fonts-recipe.md). FONT-5, FONT-6, FONT-13 to FONT-16, FONT-20 and FONT-21 are retired. Approved by the user on 2026-11-18. Implemented in zendo 0.116.0."
 ---
 
 # Font tip
@@ -73,4 +74,5 @@ the tip at its end. Otherwise it says nothing about fonts. The first run of setu
 | FONT-39 | Ubiquitous | The tip shall tell the key that opens the theme picker, from the keymap of the user, and that its font list sets the font of the terminal. | User, 2026-11-18 |
 
 Tests that verify detailed requirements: `a_failed_recipe_names_doctor_in_the_flash_line`
-(FONT-38), `the_tip_names_the_key_of_the_theme_picker` (FONT-39).
+(FONT-38), `the_tip_names_the_key_of_the_theme_picker` (FONT-39),
+`a_click_opens_the_font_list_and_sets_a_font` (FONT-36).

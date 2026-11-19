@@ -199,7 +199,7 @@ pub(super) fn report_fix(paths: &Paths, before: Option<&str>, answer: Option<&st
         Some(p) => {
             o.fail("structure", "zendo still does not understand it");
             o.more(problem_text(&p));
-            o.hint("Run `zendo doctor --fix --claude`, or fix it by hand. The format is in resources/project-structure.md in the zendo repo.");
+            o.hint("Run `zendo doctor --fix --agent`, or fix it by hand. The format is in resources/project-structure.md in the zendo repo.");
             false
         }
     }
