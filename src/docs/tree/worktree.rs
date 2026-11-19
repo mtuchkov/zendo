@@ -102,17 +102,17 @@ impl Tree {
         self.worktree.clone().or_else(|| self.main_checkout.then(PathBuf::new))
     }
 
-    /// Fill a worktree view: every text file of the worktree, or the files that differ from the base.
-    /// Git reads the changes on a thread, and `poll` takes them (ADR 0009). The paths stay relative
-    /// to `root`, so a row opens the file of the worktree.
+    /// Fill the worktree changed view: the files that differ from the base. Git reads the changes
+    /// on a thread, and `poll` takes them (ADR 0009). The paths stay relative to `root`, so a row
+    /// opens the file of the worktree.
     pub(super) fn scan_worktree(&mut self, root: &Path) {
         self.dirs.clear();
         match self.changes_dir() {
-            Some(wt) if self.view == View::WorktreeChanged => self.scan_changes(root, wt),
-            wt => {
+            Some(wt) => self.scan_changes(root, wt),
+            None => {
                 self.drop_changes();
                 self.deleted.clear();
-                self.files = wt.map(|wt| text_files(&root.join(&wt)).into_iter().map(|p| wt.join(p)).collect()).unwrap_or_default();
+                self.files.clear();
             }
         }
         self.root = root.to_path_buf();
@@ -127,16 +127,4 @@ impl Tree {
         let files: Vec<PathBuf> = self.files.iter().filter_map(|f| f.strip_prefix(wt).ok().map(Path::to_path_buf)).collect();
         self.tree_rows(&files, &[], wt, 0)
     }
-}
-
-/// The text files of a worktree, from it, in path order; its own `.gitignore` holds.
-fn text_files(dir: &Path) -> Vec<PathBuf> {
-    let walk = ignore::WalkBuilder::new(dir).hidden(true).git_ignore(true).git_global(true).git_exclude(true).require_git(false).parents(false).build();
-    let mut out: Vec<PathBuf> = walk
-        .flatten()
-        .filter(|e| e.file_type().is_some_and(|t| t.is_file()) && is_text(e.path()))
-        .filter_map(|e| e.path().strip_prefix(dir).ok().map(Path::to_path_buf))
-        .collect();
-    out.sort();
-    out
 }

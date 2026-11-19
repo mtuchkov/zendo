@@ -64,6 +64,10 @@ impl App {
     /// A worker has an answer: take the answers of the tasks of the app (ADR 0024).
     pub fn poll_tasks(&mut self) {
         self.poll_clipboard();
+        self.poll_marks();
+        if self.files.poll_tree() {
+            self.mark_tree();
+        }
     }
 
     /// The paste key: read the system clipboard on a worker; the answer comes in `poll_clipboard`.

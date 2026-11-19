@@ -40,6 +40,11 @@ impl App {
         for config in [&mut app.attention.config, &mut app.music.config, &mut app.tips.config, &mut app.rekey.config] {
             config.clone_from(&app.cfg.user_config);
         }
+        // `.zendo` and its `.gitignore` before the first frame (IO-7): the writer then writes there.
+        let zendo_dir = crate::setup::state::dir(&app.cfg.root);
+        if std::fs::create_dir_all(&zendo_dir).is_ok() {
+            crate::setup::state::ignore(&zendo_dir);
+        }
         // The worktrees of the sessions, before the first frame (IO-7); then a worker keeps them.
         for n in 1..SESSIONS {
             let git = app.cfg.root.join(crate::docs::tree::worktree::rel(n)).join(".git");

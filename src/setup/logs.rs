@@ -11,7 +11,7 @@ use std::path::Path;
 /// The most documents that the file keeps; the documents that the user changed last stay.
 pub const MAX_DOCS: usize = 64;
 
-const FILE: &str = "db.log.json";
+pub const FILE: &str = "db.log.json";
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct Logs {

@@ -3,7 +3,7 @@
 //! checkout (SESSIONS-23).
 
 mod common;
-use common::{app, draw, key, until};
+use common::{app, draw, draw_now, key, until};
 use ratatui::crossterm::event::KeyCode;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -120,7 +120,8 @@ async fn the_changed_view_reads_git_off_the_ui_thread() {
     a.switch_session(1);
     assert!(a.files.tree().scanning(), "git runs on its own thread");
     assert!(a.files.tree().files.is_empty(), "{:?}", a.files.tree().files);
-    let screen = draw(&mut a, 120, 30).join("\n");
+    // A frame now, while git still runs: draw_now does not wait for the workers.
+    let screen = draw_now(&mut a, 120, 30).join("\n");
     assert!(screen.contains("Reading the changes"), "{screen}");
     settle(&mut a);
     assert_eq!(files(&a), [".worktrees/1/a.md"]);

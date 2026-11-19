@@ -107,6 +107,6 @@ impl App {
         let (log, text) = self.writer.editor_mut().history();
         let rel = self.rel(path);
         self.logs.put(&rel, log, text);
-        self.logs.save(&self.cfg.root);
+        self.save_logs();
     }
 }

@@ -263,7 +263,7 @@ impl App {
         self.state.recent.retain(|o| o.path != rel);
         self.state.recent.insert(0, crate::setup::state::Opened { path: rel, at: Local::now() });
         self.state.recent.truncate(RECENT);
-        self.state.save(&self.cfg.root);
+        self.save_state();
     }
 
     /// A rename or a move in zendo keeps the place of the file in the recent files (FIND-8).
@@ -271,6 +271,6 @@ impl App {
         for o in self.state.recent.iter_mut().filter(|o| o.path == old) {
             o.path = new.to_string();
         }
-        self.state.save(&self.cfg.root);
+        self.save_state();
     }
 }

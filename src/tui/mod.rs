@@ -74,8 +74,6 @@ pub async fn run(
             continue;
         }
         if app.quit && app.settle_quit() {
-            // After the last frame: the writes that wait get a moment to end (IO-7).
-            app.disk.flush(Duration::from_secs(2));
             return Ok(());
         }
         tokio::select! {

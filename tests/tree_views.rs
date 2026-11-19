@@ -34,6 +34,10 @@ fn tree_app(name: &str) -> (std::path::PathBuf, App) {
 
 fn screen(a: &mut App) -> Buffer {
     let mut term = Terminal::new(TestBackend::new(140, 40)).unwrap();
+    // The first frame asks the workers; the tree walks on its thread (IO-1).
+    term.draw(|f| a.draw(f)).unwrap();
+    a.settle_tree();
+    a.settle_facts();
     term.draw(|f| a.draw(f)).unwrap();
     term.backend().buffer().clone()
 }

@@ -77,7 +77,7 @@ impl App {
         }
         // The messages of the old thread go into the common history (HISTORY-2).
         self.state.history.merge(self.state.session.min(SESSIONS - 1), chrono::Local::now());
-        self.state.save(&self.cfg.root);
+        self.save_state();
         self.threads.remove(&key);
         self.flash("new thread");
     }
@@ -137,7 +137,7 @@ impl App {
         if text.split_whitespace().next() == Some("/clear") {
             self.state.history.merge(session, chrono::Local::now());
         }
-        self.state.save(&self.cfg.root);
+        self.save_state();
     }
 
     /// `up` on the first row or `down` on the last row: the history of the session (HISTORY-5).

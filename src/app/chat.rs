@@ -257,7 +257,7 @@ impl App {
     /// The chat inputs of the sessions go to the state with the rest of it (CLAUDE-45).
     pub(crate) fn save_drafts(&mut self) {
         self.state.drafts = self.chat.drafts();
-        self.state.save(&self.cfg.root);
+        self.save_state();
         self.chat.mark_saved();
     }
 }

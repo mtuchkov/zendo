@@ -77,22 +77,29 @@ impl App {
         }
         f.worked_at = Some(Local::now());
         f.seen = Some(Snapshot { hash: state::hash(&text), text, at: Local::now() });
-        self.state.save(&self.cfg.root);
+        self.save_state();
         self.mark_tree();
     }
 
     /// Δ marks for the tree: files whose text differs from the last visit that counted.
+    /// Mark the files that changed since their last visit: a worker reads them, and
+    /// `poll_marks` takes the answer (IO-1).
     pub fn mark_tree(&mut self) {
         let root = self.cfg.root.clone();
-        let changed = self
-            .state
-            .files
-            .iter()
-            .filter_map(|(rel, f)| f.seen.as_ref().map(|s| (rel, s)))
-            .filter(|(rel, s)| std::fs::read_to_string(root.join(rel)).is_ok_and(|t| state::hash(&t) != s.hash))
-            .map(|(rel, _)| std::path::PathBuf::from(rel))
-            .collect();
-        self.files.mark_changed(changed);
+        let seen: Vec<(String, String)> = self.state.files.iter().filter_map(|(rel, f)| f.seen.as_ref().map(|s| (rel.clone(), s.hash.clone()))).collect();
+        self.marks.start(move || {
+            seen.into_iter()
+                .filter(|(rel, hash)| std::fs::read_to_string(root.join(rel)).is_ok_and(|t| state::hash(&t) != *hash))
+                .map(|(rel, _)| std::path::PathBuf::from(rel))
+                .collect()
+        });
+    }
+
+    /// The files that changed since their last visit, when the worker answered.
+    pub fn poll_marks(&mut self) {
+        if let Some(changed) = self.marks.poll() {
+            self.files.mark_changed(changed.into_iter().collect());
+        }
     }
 
     // ----- delta -------------------------------------------------------------
@@ -146,7 +153,7 @@ impl App {
             return;
         }
         self.state.tree = false;
-        self.state.save(&self.cfg.root);
+        self.save_state();
         if self.focus == Focus::Tree {
             self.focus = Focus::Note;
         }

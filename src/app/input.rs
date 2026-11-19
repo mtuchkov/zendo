@@ -15,7 +15,7 @@ impl App {
 
     pub fn toggle_layout(&mut self) {
         self.state.layout = if self.state.wide() { "standard".into() } else { "wide".into() };
-        self.state.save(&self.cfg.root);
+        self.save_state();
         self.flash(if self.state.wide() { "wide screen: panes side by side" } else { "standard layout" });
     }
 

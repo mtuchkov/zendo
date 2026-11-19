@@ -39,7 +39,7 @@ impl App {
     /// The thread and the session of a deleted file go with it.
     fn file_deleted(&mut self, key: String) {
         self.state.take_session(&self.cfg.agent, &key);
-        self.state.save(&self.cfg.root);
+        self.save_state();
         self.threads.remove(&key);
         self.scan_tree();
         self.flash(format!("deleted {key}"));
@@ -72,7 +72,7 @@ impl App {
         let (ok, nk) = (self.rel(old), self.rel(target));
         if let Some(id) = self.state.take_session(&self.cfg.agent, &ok) {
             self.state.set_session(&self.cfg.agent, &nk, id);
-            self.state.save(&self.cfg.root);
+            self.save_state();
         }
         self.rename_session_docs(old, target);
         self.rename_recent(&ok, &nk);

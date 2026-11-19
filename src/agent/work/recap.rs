@@ -166,7 +166,7 @@ impl App {
         }
         let rel = job.rel.clone();
         self.state.file(&rel).recap = Some(Recap { text, of_hash: job.hash, of_text: job.text, at: Local::now(), auto: job.auto });
-        self.state.save(&self.cfg.root);
+        self.save_state();
         let title = self.files.notes().iter().find(|n| self.rel(&n.path) == rel).map(|n| n.title.clone()).unwrap_or(rel);
         self.flash(format!("recap ready: {title}"));
     }

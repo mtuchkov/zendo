@@ -48,7 +48,7 @@ impl App {
             MouseEventKind::Drag(MouseButton::Left) if self.pointer.grabbed().is_some() => self.drag_to(x),
             MouseEventKind::Up(MouseButton::Left) if self.pointer.grabbed().is_some() => {
                 self.pointer.let_go();
-                self.state.save(&self.cfg.root);
+                self.save_state();
             }
             MouseEventKind::Down(MouseButton::Left) => {
                 self.click(x, y);
@@ -264,7 +264,7 @@ impl App {
         let now = self.frame.pane_rects().iter().find(|(p, _)| *p == pane).map(|(_, r)| r.width).unwrap_or(40);
         let w = (now as i32 + by).clamp(20, self.max_width(pane) as i32) as u16;
         self.state.widths.insert(key.into(), w);
-        self.state.save(&self.cfg.root);
+        self.save_state();
     }
 
     /// The widest a pane can get: the note keeps 50 columns, the other panes keep theirs.

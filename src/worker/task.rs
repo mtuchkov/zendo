@@ -10,6 +10,13 @@ pub struct Task<T> {
     limit: Duration,
 }
 
+impl<T: Send + 'static> Default for Task<T> {
+    /// A task with a limit of 30 s.
+    fn default() -> Self {
+        Task::new(Duration::from_secs(30))
+    }
+}
+
 impl<T: Send + 'static> Task<T> {
     /// A task whose operation may take up to `limit`.
     pub fn new(limit: Duration) -> Task<T> {

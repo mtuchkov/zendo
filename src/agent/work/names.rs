@@ -96,7 +96,7 @@ impl App {
         }
         if let Some(name) = pick(answer, &self.taken_names(n)) {
             self.state.names.insert(id, name);
-            self.state.save(&self.cfg.root);
+            self.save_state();
         }
     }
 
@@ -137,7 +137,7 @@ impl App {
             self.state.names.insert(id.clone(), name);
         }
         self.state.set_session(&self.cfg.agent, &key, id.clone());
-        self.state.save(&self.cfg.root);
+        self.save_state();
         let t = self.thread(&key);
         t.session = Some(id);
         if clear {

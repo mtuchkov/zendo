@@ -107,7 +107,7 @@ impl App {
         let Some(id) = self.threads.get(key).and_then(|t| t.session.clone()) else { return };
         if self.state.session(&self.cfg.agent, key).as_ref() != Some(&id) {
             self.state.set_session(&self.cfg.agent, key, id);
-            self.state.save(&self.cfg.root);
+            self.save_state();
         }
     }
 

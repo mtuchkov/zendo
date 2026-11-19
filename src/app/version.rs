@@ -128,7 +128,7 @@ impl App {
             (last.scroll, last.row, last.col) = (scroll, row, col);
         }
         if new {
-            self.state.save(&self.cfg.root);
+            self.save_state();
         }
     }
 

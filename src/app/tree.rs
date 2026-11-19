@@ -4,7 +4,7 @@ use super::*;
 impl App {
     pub fn toggle_tree(&mut self) {
         self.state.tree = !self.state.tree;
-        self.state.save(&self.cfg.root);
+        self.save_state();
         if self.state.tree {
             self.apply_tree_view();
             self.scan_tree();
@@ -38,7 +38,7 @@ impl App {
 
     pub fn toggle_tree_filter(&mut self) {
         self.state.tree_view = self.files.next_view().to_string();
-        self.state.save(&self.cfg.root);
+        self.save_state();
         self.scan_tree();
         self.files.reveal_current();
     }
@@ -56,7 +56,7 @@ impl App {
     /// A click on a letter of the view strip or a name of its hint; `o` (FILES-73, FILES-76).
     pub fn show_tree_view(&mut self, view: crate::docs::tree::View) {
         self.state.tree_view = self.files.pick_view(view).to_string();
-        self.state.save(&self.cfg.root);
+        self.save_state();
         self.scan_tree();
         self.files.reveal_current();
         self.files.first_view_row();

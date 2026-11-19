@@ -162,7 +162,7 @@ impl App {
         let code = self.files.current_path().is_some_and(crate::text::code::is_code);
         let w = ((if code { self.code_width() } else { self.column_width() }) as i16 + by).clamp(30, 300) as u16;
         *(if code { &mut self.state.code_column } else { &mut self.state.column }) = Some(w);
-        self.state.save(&self.cfg.root);
+        self.save_state();
         self.flash(format!("{} width {w}", if code { "code" } else { "text" }));
     }
 }

@@ -168,7 +168,7 @@ pub fn dir(root: &Path) -> PathBuf {
 const IGNORED: &str = "db.json\ndb.json.tmp\ndb.log.json\ndb.log.json.tmp\nstate.json\nagent.log\nslow-ticks.log\n";
 
 /// `.zendo/.gitignore` gets the files of IGNORED that it does not have; its other lines stay.
-pub(crate) fn ignore(d: &Path) {
+pub fn ignore(d: &Path) {
     let path = d.join(".gitignore");
     let has = fs::read_to_string(&path).unwrap_or_default();
     let missing: String = IGNORED.lines().filter(|f| !has.lines().any(|l| l == *f)).map(|f| format!("{f}\n")).collect();

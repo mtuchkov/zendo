@@ -87,7 +87,7 @@ impl App {
     /// The work of each tick; each phase on the clock of the slow-tick log (IO-8).
     pub fn tick(&mut self) {
         let mut c = crate::worker::Clock::start("tick");
-        c.time("poll_clipboard", || self.poll_clipboard());
+        c.time("poll_tasks", || self.poll_tasks());
         c.time("poll_find", || self.poll_find());
         c.time("music_tick", || self.music_tick());
         c.time("tips_tick", || self.tips_tick());

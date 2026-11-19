@@ -201,6 +201,8 @@ pub struct App {
     pub clipboard: Clipboard,
     /// The small facts of the disk that a frame shows, from workers (IO-1); a test puts a slow git here.
     pub facts: Facts,
+    /// The marks of the files that changed since their last visit, from a worker (IO-1).
+    pub marks: crate::worker::Task<Vec<PathBuf>>,
     /// The files whose write failed: each shows once (FAIL-1).
     pub disk_failed: std::collections::HashSet<PathBuf>,
     /// The counts of the actions of the user; off until the start turns them on (USAGE-1).

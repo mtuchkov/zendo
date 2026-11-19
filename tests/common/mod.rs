@@ -43,10 +43,11 @@ pub fn app(root: &Path) -> App {
 }
 
 /// Draw one frame on a test terminal; the screen as text, one line for each row.
-/// A frame asks the workers for the facts of the disk that it shows (IO-1); the second frame has
-/// them.
+/// A frame asks the workers for the facts of the disk that it shows, and the tree walks on its
+/// thread (IO-1); the second frame has them.
 pub fn draw(app: &mut App, w: u16, h: u16) -> Vec<String> {
     draw_now(app, w, h);
+    app.settle_tree();
     app.settle_facts();
     draw_now(app, w, h)
 }

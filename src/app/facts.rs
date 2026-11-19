@@ -70,6 +70,21 @@ impl Facts {
 }
 
 impl App {
+    /// Save the state in `.zendo/db.json` through the writer, without the sync: a file of zendo
+    /// (IO-1, IO-3).
+    pub fn save_state(&self) {
+        if let Ok(bytes) = serde_json::to_vec_pretty(&self.state) {
+            self.disk.write(&crate::setup::state::dir(&self.cfg.root).join("db.json"), bytes, crate::worker::Sync::Own);
+        }
+    }
+
+    /// Save the loglets in `.zendo/db.log.json` through the writer (UNDO-4, IO-1).
+    pub fn save_logs(&self) {
+        if let Ok(bytes) = serde_json::to_vec(&self.logs) {
+            self.disk.write(&crate::setup::state::dir(&self.cfg.root).join(crate::setup::logs::FILE), bytes, crate::worker::Sync::Own);
+        }
+    }
+
     /// For tests: the workers of the facts and of the tree compute each 5 ms.
     pub fn quick_facts(&self) {
         self.facts.quick();

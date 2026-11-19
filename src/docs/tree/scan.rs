@@ -2,50 +2,19 @@
 use super::*;
 
 impl Tree {
-    /// Walk the repo. `.gitignore`, `.git/info/exclude`, the global gitignore and hidden files are skipped.
+    /// Walk the repo on a thread; `.gitignore`, `.git/info/exclude`, the global gitignore and hidden
+    /// files are skipped. The worktree changed view asks git, on its thread (ADR 0009, IO-1).
     pub fn scan(&mut self, root: &Path) {
-        // FILES-79: the text views open each file to see that it is text, on a thread.
-        if self.view == View::Text || self.view == View::Worktree && self.worktree.is_some() {
-            return self.walk_text(root);
-        }
-        if self.view.is_worktree() {
+        if self.view == View::WorktreeChanged {
             return self.scan_worktree(root);
         }
-        self.scan_in(root, root);
+        self.walk_view(root, root);
     }
 
     /// Walk only `under`, a folder in `root`; paths stay relative to `root`. Outside a repo, zendo
     /// walks only the notes folder and not the whole home folder. That walk lists every `.md`.
     pub fn scan_in(&mut self, root: &Path, under: &Path) {
-        let mut files = Vec::new();
-        let all = under != root;
-        let mut dirs = Vec::new();
-        let walk = ignore::WalkBuilder::new(under).hidden(true).git_ignore(true).git_global(true).git_exclude(true).require_git(false).parents(true).build();
-        for entry in walk.flatten() {
-            let p = entry.path();
-            if self.view == View::Text
-                && entry.file_type().is_some_and(|t| t.is_dir())
-                && let Ok(rel) = p.strip_prefix(root)
-                && !rel.as_os_str().is_empty()
-            {
-                dirs.push(rel.to_path_buf());
-            }
-            let md = p.extension().is_some_and(|e| e == "md");
-            if !entry.file_type().is_some_and(|t| t.is_file()) || !(md || self.view == View::Text && is_text(p)) {
-                continue;
-            }
-            let Ok(rel) = p.strip_prefix(root) else { continue };
-            if all || self.view != View::Docs || self.docs.is_match(rel) {
-                files.push(rel.to_path_buf());
-            }
-        }
-        files.sort();
-        self.drop_changes();
-        self.files = files;
-        self.dirs = dirs;
-        self.root = root.to_path_buf();
-        self.scan_notes();
-        self.scanned = Some(Instant::now());
+        self.walk_view(root, under);
     }
 
     /// Older than the scan interval, or never filled; not while git reads the changes (ADR 0009).

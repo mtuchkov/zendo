@@ -51,7 +51,7 @@ impl App {
             "review" => self.review_key(),
             "recap_toggle" => {
                 self.state.show_recap = !self.state.show_recap;
-                self.state.save(&self.cfg.root);
+                self.save_state();
             }
             "layout" => self.toggle_layout(),
             "down" | "select_down" => self.move_cursor(1),

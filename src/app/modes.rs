@@ -59,7 +59,7 @@ impl App {
             (_, Some("up")) => self.theme = (self.theme + n - 1) % n,
             (_, Some("keep")) => {
                 self.state.theme = THEMES[self.theme].name.to_string();
-                self.state.save(&self.cfg.root);
+                self.save_state();
                 self.mode = Mode::Read;
             }
             (KeyCode::Esc, _) | (_, Some("cancel")) => {

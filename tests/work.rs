@@ -60,7 +60,8 @@ async fn brief_open_does_not_count_but_work_does() {
     let f = &a.state.files[REL];
     assert_eq!(f.visits, 1);
     assert!(f.seen.as_ref().unwrap().text.contains("- a"));
-    // The database is on disk.
+    // The database is on disk, after the writer wrote it (IO-1).
+    assert!(a.disk.flush(std::time::Duration::from_secs(5)));
     assert!(std::fs::read_to_string(root.join(".zendo/db.json")).unwrap().contains(REL));
 
     // A change after the visit shows in the delta since the last visit.
