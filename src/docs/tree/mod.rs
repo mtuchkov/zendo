@@ -128,6 +128,8 @@ pub struct Tree {
     /// The walk of the text files on its thread (FILES-79).
     walk: text_walk::TextWalk,
     docs: GlobMatcher,
+    /// Whether a path of the structure is a file, from a worker: the rows read it from memory (IO-1).
+    pub is_file: crate::worker::Memo<PathBuf, bool>,
 }
 
 impl Default for Tree {
@@ -155,6 +157,7 @@ impl Default for Tree {
             walk: text_walk::TextWalk::default(),
             main_checkout: false,
             docs: Glob::new(DOCS_GLOB).expect("valid glob").compile_matcher(),
+            is_file: crate::worker::Memo::new(|p: &PathBuf| p.is_file(), std::time::Duration::from_secs(1)),
         }
     }
 }

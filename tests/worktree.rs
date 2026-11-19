@@ -210,8 +210,13 @@ fn a_file_of_the_worktree_opens_with_the_worktree_in_its_head() {
     assert!(screen[0].contains(" a.md") && !screen[0].contains("worktree 1"), "the top line has the path in the worktree: {}", screen[0]);
     let title = screen.iter().find(|r| r.contains("worktree 1")).expect("the worktree in the head of the note");
     assert!(title.trim_end().ends_with("worktree 1") && title.contains('a'), "at the right end of the title: {title}");
-    // The delta compares with the HEAD of the worktree, not of the main checkout.
-    assert_eq!(a.git_head(".worktrees/1/a.md").as_deref(), Some("# a\n"));
+    // The delta compares with the HEAD of the worktree, not of the main checkout; a worker reads
+    // it (IO-1).
+    let end = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while a.git_head(".worktrees/1/a.md").is_none() && std::time::Instant::now() < end {
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert_eq!(a.git_head(".worktrees/1/a.md").flatten().as_deref(), Some("# a\n"));
 }
 
 // FILES-37

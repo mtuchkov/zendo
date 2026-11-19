@@ -1,32 +1,28 @@
 //! A task: one IO operation on a worker thread, with a time limit; the UI thread polls its answer
 //! (IO-1, IO-5, IO-6).
-use std::sync::Arc;
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::time::{Duration, Instant};
-use tokio::sync::Notify;
 
 /// The answer of the IO operation that runs now, if any. A new start drops the older answer.
 pub struct Task<T> {
     answer: Option<Receiver<T>>,
     started: Option<Instant>,
     limit: Duration,
-    /// Woken when an answer comes, so that the main loop takes it at once.
-    pub wake: Arc<Notify>,
 }
 
 impl<T: Send + 'static> Task<T> {
     /// A task whose operation may take up to `limit`.
     pub fn new(limit: Duration) -> Task<T> {
-        Task { answer: None, started: None, limit, wake: Arc::new(Notify::new()) }
+        Task { answer: None, started: None, limit }
     }
 
-    /// Run `job` on a worker thread. Returns at once; the answer of an older start is dropped.
+    /// Run `job` on a worker thread. Returns at once; the answer of an older start is dropped. The
+    /// answer wakes the main loop (`worker::wake`).
     pub fn start(&mut self, job: impl FnOnce() -> T + Send + 'static) {
         let (tx, rx) = mpsc::channel();
-        let wake = self.wake.clone();
         let spawned = std::thread::Builder::new().name("zendo-task".into()).spawn(move || {
             if tx.send(job()).is_ok() {
-                wake.notify_one();
+                super::wake().notify_one();
             }
         });
         self.answer = spawned.is_ok().then_some(rx);

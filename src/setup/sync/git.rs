@@ -8,6 +8,11 @@ pub fn is_work_tree(dir: &Path) -> bool {
 /// Run git in `repo` with no prompts, and kill it after `limit`. Threads read its output while it
 /// runs: an output larger than the pipe buffer would else block git until the limit.
 pub fn git(repo: &Path, args: &[&str], limit: Duration) -> Result<String, String> {
+    git_out(repo, args, limit).map(|s| s.trim().to_string())
+}
+
+/// The output of git as git printed it, not trimmed: the content of a file at a commit.
+pub fn git_out(repo: &Path, args: &[&str], limit: Duration) -> Result<String, String> {
     let mut child = Command::new("git")
         .arg("-C")
         .arg(repo)
@@ -33,8 +38,8 @@ pub fn git(repo: &Path, args: &[&str], limit: Duration) -> Result<String, String
             Err(e) => return Err(e.to_string()),
         }
     };
-    let text = |h: std::thread::JoinHandle<Vec<u8>>| String::from_utf8_lossy(&h.join().unwrap_or_default()).trim().to_string();
-    if status.success() { Ok(text(stdout)) } else { Err(first_line(&text(stderr))) }
+    let text = |h: std::thread::JoinHandle<Vec<u8>>| String::from_utf8_lossy(&h.join().unwrap_or_default()).into_owned();
+    if status.success() { Ok(text(stdout)) } else { Err(first_line(text(stderr).trim())) }
 }
 
 /// A thread that reads `pipe` to its end.

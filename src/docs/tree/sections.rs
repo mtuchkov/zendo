@@ -19,7 +19,7 @@ impl Tree {
                 continue;
             }
             // A main material that is a file, of any kind (e.g. a .toml).
-            if self.files.contains(&rel) || self.root.join(&rel).is_file() || rel.extension().is_some_and(|x| x == "md") {
+            if self.files.contains(&rel) || self.file_on_disk(&rel) || rel.extension().is_some_and(|x| x == "md") {
                 out.push(Row { rel, name: e.label(), depth: 0, kind: Kind::File, section: true });
                 continue;
             }
@@ -31,6 +31,11 @@ impl Tree {
             }
         }
         out
+    }
+
+    /// `rel` is a file, as the worker saw it last; not known yet counts as no file (IO-1).
+    fn file_on_disk(&self, rel: &Path) -> bool {
+        self.is_file.get(&self.root.join(rel)) == Some(true)
     }
 
     /// A material with more locations: its row, and when it is open, the files of every location
@@ -46,7 +51,7 @@ impl Tree {
 
     /// The files of every location of a material: the listed ones, and files that are locations.
     pub fn group_files(&self, e: &Entry) -> Vec<PathBuf> {
-        let named = e.paths.iter().map(|p| PathBuf::from(p.trim_end_matches('/'))).filter(|p| self.root.join(p).is_file());
+        let named = e.paths.iter().map(|p| PathBuf::from(p.trim_end_matches('/'))).filter(|p| self.file_on_disk(p));
         let mut files: Vec<PathBuf> = self.files.iter().filter(|f| e.covers(f)).cloned().chain(named).collect();
         files.sort();
         files.dedup();

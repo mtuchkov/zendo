@@ -21,11 +21,17 @@ pub(super) fn play(player: Option<Player>) -> bool {
     child.map(|mut c| std::thread::spawn(move || c.wait())).is_ok()
 }
 
-/// The sound of a turn that ended: the player of this system, else the terminal bell.
+/// The sound of a turn that ended: the player of this system, started on a thread of its own
+/// (IO-1), else the terminal bell.
 pub(super) fn ring() {
     let ssh = std::env::var_os("SSH_CONNECTION").is_some() || std::env::var_os("SSH_TTY").is_some();
-    if !play(player(std::env::consts::OS, ssh)) {
-        bell();
+    match player(std::env::consts::OS, ssh) {
+        Some(p) => drop(std::thread::spawn(move || {
+            if !play(Some(p)) {
+                bell();
+            }
+        })),
+        None => bell(),
     }
 }
 

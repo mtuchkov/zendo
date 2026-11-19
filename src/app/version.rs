@@ -55,7 +55,7 @@ impl App {
     /// checkout while it has none (FILES-38, FILES-42). A file outside the repo stays as it is.
     pub fn session_path(&self, p: &Path) -> PathBuf {
         let Some(doc) = self.doc_rel(p) else { return p.to_path_buf() };
-        match worktree::of(&self.cfg.root, self.state.session) {
+        match self.worktree_of(self.state.session) {
             Some(wt) => self.cfg.root.join(wt).join(doc),
             None => self.cfg.root.join(doc),
         }
@@ -67,9 +67,16 @@ impl App {
         notes::Store::new(self.cfg.root.clone(), self.session_path(&self.files.store().dir)).path_for(title, Local::now().date_naive())
     }
 
+    /// The path that a new note would get, for the top line: the memo says which paths are taken
+    /// (IO-1).
+    pub fn new_note_label(&self, title: &str) -> PathBuf {
+        let store = notes::Store::new(self.cfg.root.clone(), self.session_path(&self.files.store().dir));
+        store.path_for_with(title, Local::now().date_naive(), |p| self.facts.exists.get(&p.to_path_buf()) == Some(true))
+    }
+
     /// The open document has no version in the checkout of the session (FILES-40).
     pub fn doc_missing(&self) -> bool {
-        self.files.peek.on.is_none() && self.files.current().is_some_and(|p| !p.exists())
+        self.files.peek.on.is_none() && self.files.current().is_some_and(|p| !self.facts.exists(p))
     }
 
     /// After a change of the agent session: the last document of that session, else the open

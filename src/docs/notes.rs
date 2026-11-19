@@ -81,12 +81,17 @@ impl Store {
 
     /// A free path for a new note: `<dir>/<date>-<slug>.md`.
     pub fn path_for(&self, title: &str, date: NaiveDate) -> PathBuf {
+        self.path_for_with(title, date, Path::exists)
+    }
+
+    /// A free path for a new note, where `taken` says which paths exist: a frame asks a memo (IO-1).
+    pub fn path_for_with(&self, title: &str, date: NaiveDate, taken: impl Fn(&Path) -> bool) -> PathBuf {
         let slug = slug(title);
         let slug = if slug.is_empty() { "note".to_string() } else { slug };
         let base = format!("{}-{}", date.format("%Y-%m-%d"), slug);
         let mut path = self.dir.join(format!("{base}.md"));
         let mut n = 2;
-        while path.exists() {
+        while taken(&path) {
             path = self.dir.join(format!("{base}-{n}.md"));
             n += 1;
         }

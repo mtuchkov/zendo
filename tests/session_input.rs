@@ -18,6 +18,9 @@ fn files() -> Vec<(&'static str, &'static str)> {
 /// The screen as text, and its cells for the colors.
 fn draw_buf(a: &mut App, w: u16, h: u16) -> (Vec<String>, Buffer) {
     let mut term = Terminal::new(TestBackend::new(w, h)).unwrap();
+    // The first frame asks the workers for the facts of the disk; the second has them (IO-1).
+    term.draw(|f| a.draw(f)).unwrap();
+    a.settle_facts();
     term.draw(|f| a.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();
     let rows = (0..h).map(|y| (0..w).map(|x| buf[(x, y)].symbol().to_string()).collect::<String>()).collect();

@@ -3,7 +3,6 @@
 //! and of the view while the file tree has the focus; the float names the branch of its note.
 use super::version::Other;
 use super::*;
-use crate::docs::notes::git_branch;
 use crate::docs::tree::worktree;
 
 impl App {
@@ -19,8 +18,8 @@ impl App {
     /// The branch of the checkout of the active agent session: its worktree, or the main checkout
     /// while it has none (FILES-59).
     pub fn session_branch(&self) -> Option<String> {
-        match worktree::of(&self.cfg.root, self.state.session) {
-            Some(wt) => git_branch(&self.cfg.root.join(wt)),
+        match self.worktree_of(self.state.session) {
+            Some(wt) => self.facts.branch(&self.cfg.root.join(wt)),
             None => self.main_branch(),
         }
     }
@@ -43,7 +42,7 @@ impl App {
     fn view_branch(&self) -> Option<String> {
         let tree = self.files.tree();
         match tree.view.is_worktree() {
-            true => tree.worktree.as_ref().and_then(|wt| git_branch(&self.cfg.root.join(wt))),
+            true => tree.worktree.as_ref().and_then(|wt| self.facts.branch(&self.cfg.root.join(wt))),
             false => self.main_branch(),
         }
     }
@@ -53,13 +52,13 @@ impl App {
         let rel = p.strip_prefix(&self.cfg.root).ok().map(|r| r.to_string_lossy().into_owned());
         match rel {
             Some(r) if worktree::split(&r).is_none() => self.main_branch(),
-            _ => git_branch(p),
+            _ => self.facts.branch(p),
         }
     }
 
-    /// The branch of the main checkout, read again at each frame; the branch of the start where git
-    /// does not say it (FILES-65).
+    /// The branch of the main checkout, from the memo that a worker keeps fresh; the branch of the
+    /// start where git does not say it (FILES-65, IO-1).
     fn main_branch(&self) -> Option<String> {
-        git_branch(&self.cfg.root).or_else(|| self.files.branch().filter(|b| !b.is_empty()).map(str::to_string))
+        self.facts.branch(&self.cfg.root).or_else(|| self.files.branch().filter(|b| !b.is_empty()).map(str::to_string))
     }
 }

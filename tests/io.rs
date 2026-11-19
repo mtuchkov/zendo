@@ -8,9 +8,32 @@ use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use zendo::app::{BoardLink, Clipboard, Focus};
+use zendo::app::{BoardLink, Clipboard, Facts, Focus};
 use zendo::text::clipboard::Clip;
 use zendo::worker::{LIMIT, Sync, Writer};
+
+/// A git that takes 3 s to show a file at HEAD.
+fn slow_head(_: &(PathBuf, String)) -> Option<String> {
+    std::thread::sleep(Duration::from_secs(3));
+    Some("# A\n".into())
+}
+
+// IO-1, IO-2, IO-6: while git does not answer, a frame with the delta pane takes at most 100 ms and
+// says that it reads the file at HEAD.
+#[test]
+fn a_frame_answers_while_git_does_not() {
+    let root = repo("io-delta-git", &[("docs/notes/2026-11-19-a.md", "# A\n\n- new line\n")]);
+    let mut a = app(&root);
+    a.facts = Facts::with_head(slow_head);
+    // A new note has no saved visit: the delta compares with git HEAD.
+    a.open_file(root.join("docs/notes/2026-11-19-a.md"));
+    a.toggle_delta();
+    let mut screen = Vec::new();
+    within_limit("a frame", || screen = draw_now(&mut a, 160, 30));
+    assert!(screen.join("\n").contains("readin"), "the delta says that it reads:\n{}", screen.join("\n"));
+    within_limit("a second frame", || drop(draw_now(&mut a, 160, 30)));
+    let _ = std::fs::remove_dir_all(&root);
+}
 
 /// The folder of a test: an interrupted earlier run leaves nothing behind.
 fn scratch(name: &str) -> PathBuf {

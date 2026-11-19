@@ -8,7 +8,7 @@ impl App {
             // FILES-25: the notes of the notes repo live outside the repository.
             let notes = self.repo_notes_outside();
             // FILES-32: the worktree views show the worktree of the active agent session.
-            let worktree = crate::docs::tree::worktree::of(&self.cfg.root, self.state.session);
+            let worktree = self.worktree_of(self.state.session);
             // SESSIONS-23: agent session 0 works in the main checkout.
             self.files.set_main_checkout(self.state.session == 0);
             self.files.scan(&self.cfg.root, notes, worktree);
@@ -146,7 +146,9 @@ impl App {
 
     /// The repository has no project structure file, and zendo init can make one.
     pub fn structure_missing(&self) -> bool {
-        self.files.structure().is_none() && self.files.structure_error().is_none() && self.cfg.root.join(".git").exists() && !self.cfg.root.join(crate::docs::structure::FILE).exists()
+        // Ask the memo for both paths in each frame, so that the worker learns both at once.
+        let (git, file) = (self.facts.exists.get(&self.cfg.root.join(".git")), self.facts.exists.get(&self.cfg.root.join(crate::docs::structure::FILE)));
+        self.files.structure().is_none() && self.files.structure_error().is_none() && git == Some(true) && file == Some(false)
     }
 
     /// The width of the code column: the one of this repository, else 120.

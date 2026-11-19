@@ -36,7 +36,7 @@ fn text_of(p: &Path) -> std::io::Result<Option<String>> {
 }
 
 /// A stamp of the text of a file: it changes when the file changes.
-fn stamp_of(p: &Path) -> u64 {
+pub fn stamp_of(p: &Path) -> u64 {
     let m = std::fs::metadata(p).ok();
     let nanos = m.as_ref().and_then(|m| m.modified().ok()).and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map_or(0, |d| d.as_nanos() as u64);
     nanos ^ m.map_or(0, |m| m.len()).rotate_left(32)
@@ -78,6 +78,13 @@ impl Composer {
     /// (CLAUDE-56).
     pub fn sync_doc(&mut self, id: &str, stamp: u64) {
         if self.doc_selected(id, stamp) {
+            self.doc_skip = None;
+        }
+    }
+
+    /// Another document, also before its stamp is known: the choice goes (CLAUDE-56, IO-6).
+    pub fn sync_doc_id(&mut self, id: &str) {
+        if self.doc_skip.as_ref().is_some_and(|(i, _)| i != id) {
             self.doc_skip = None;
         }
     }
@@ -182,8 +189,10 @@ impl App {
             self.writer.editor().lines.hash(&mut h);
             return Some((NEW_KEY.to_string(), h.finish()));
         }
-        let p = self.files.current().map(|p| self.session_path(p)).filter(|p| p.exists())?;
-        Some((p.display().to_string(), stamp_of(&p)))
+        // The stamp comes from a worker; None while it is not known or the file is not there (IO-1).
+        let p = self.files.current().map(|p| self.session_path(p))?;
+        let stamp = self.facts.stamp.get(&p).flatten()?;
+        Some((p.display().to_string(), stamp))
     }
 
     /// The line of the open document: Some(true) for `[x]`, Some(false) for `[ ]`, None for no line.
@@ -201,6 +210,9 @@ impl App {
 
     /// Each tick: another document or another text selects the open document again (CLAUDE-56).
     pub(crate) fn doc_tick(&mut self) {
+        if let Some(p) = self.files.current().map(|p| self.session_path(p)).filter(|_| self.scope() != NEW_KEY) {
+            self.composer_mut().sync_doc_id(&p.display().to_string());
+        }
         if let Some((id, stamp)) = self.doc_id() {
             self.composer_mut().sync_doc(&id, stamp);
         }

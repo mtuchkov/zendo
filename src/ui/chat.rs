@@ -93,7 +93,7 @@ fn draw_input(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, input: Rect, 
     let top = vrow.saturating_sub(in_h as usize - 1);
     let chip = chip_styles(t);
     let hot = app.composer().chip_in_focus();
-    let gone = app.composer().gone();
+    let gone = app.composer().gone(|p| app.facts.exists(p));
     let lines: Vec<Line> = segs
         .iter()
         .skip(top)

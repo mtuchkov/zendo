@@ -27,8 +27,9 @@ impl Composer {
     }
 
     /// The labels of the chips whose file or image is gone: they show in red (CLAUDE-46).
-    pub fn gone(&self) -> Vec<String> {
-        self.chips.iter().filter(|c| c.attach.as_ref().is_some_and(|a| !a.path().exists())).map(|c| c.label.clone()).collect()
+    /// `exists` answers from memory (IO-1).
+    pub fn gone(&self, exists: impl Fn(&std::path::Path) -> bool) -> Vec<String> {
+        self.chips.iter().filter(|c| c.attach.as_ref().is_some_and(|a| !exists(a.path()))).map(|c| c.label.clone()).collect()
     }
 
     /// Nothing in the input and no context.

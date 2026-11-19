@@ -44,11 +44,6 @@ impl Clipboard {
         (self.copy)(text);
     }
 
-    /// Woken when a read of the clipboard answered.
-    pub fn wake(&self) -> Arc<tokio::sync::Notify> {
-        self.task.wake.clone()
-    }
-
     fn start(&mut self, to: PasteTo) {
         let read = self.read.clone();
         self.to = Some(to);
@@ -66,6 +61,11 @@ impl Clipboard {
 }
 
 impl App {
+    /// A worker has an answer: take the answers of the tasks of the app (ADR 0024).
+    pub fn poll_tasks(&mut self) {
+        self.poll_clipboard();
+    }
+
     /// The paste key: read the system clipboard on a worker; the answer comes in `poll_clipboard`.
     pub(crate) fn paste_from_clipboard(&mut self, to: PasteTo) {
         self.clipboard.start(to);

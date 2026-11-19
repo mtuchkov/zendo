@@ -129,7 +129,8 @@ impl App {
     fn recap_prompt(&self, rel: &str, path: &std::path::Path, text: &str) -> String {
         let mut prompt = String::from(RECAP_PROMPT);
         prompt.push_str(&format!("File: {}\n--- file ---\n{text}\n", path.display()));
-        let head = self.git_head(rel);
+        // The recap group of ADR 0024 moves this read to a task; until then, git with a limit.
+        let head = crate::app::facts_head_of(&self.in_checkout(rel));
         let d = head.as_deref().map(|h| delta::unified(h, text, rel)).unwrap_or_default();
         match (head, self.last_commit(rel)) {
             (Some(_), _) if !d.trim().is_empty() => prompt.push_str(&format!("{GIT_CHANGES}\n{d}\n")),

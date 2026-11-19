@@ -97,22 +97,23 @@ impl App {
 
     // ----- delta -------------------------------------------------------------
 
-    pub fn git_head(&self, rel: &str) -> Option<String> {
-        // A file of a worktree: the HEAD of the worktree (FILES-34).
-        let (dir, rel) = match crate::docs::tree::worktree::split(rel) {
-            Some((wt, rest)) => (self.cfg.root.join(wt), rest),
-            None => (self.cfg.root.clone(), rel),
-        };
-        let out = std::process::Command::new("git")
-            .args(["show", &format!("HEAD:{rel}")])
-            .current_dir(dir)
-            .stderr(std::process::Stdio::null())
-            .output()
-            .ok()?;
-        out.status.success().then(|| String::from_utf8_lossy(&out.stdout).into_owned())
+    /// The checkout of a file and its path in it: a file of a worktree is in the HEAD of the worktree
+    /// (FILES-34).
+    pub fn in_checkout(&self, rel: &str) -> crate::app::InCheckout {
+        match crate::docs::tree::worktree::split(rel) {
+            Some((wt, rest)) => (self.cfg.root.join(wt), rest.to_string()),
+            None => (self.cfg.root.clone(), rel.to_string()),
+        }
     }
 
-    /// The text the delta starts from, and a label for it.
+    /// The text of a file at HEAD, from the memo: `None` while git has not answered yet, then the
+    /// text, or `Some(None)` for a file that HEAD does not have (IO-1, IO-6).
+    pub fn git_head(&self, rel: &str) -> Option<Option<String>> {
+        self.facts.head.get(&self.in_checkout(rel))
+    }
+
+    /// The text the delta starts from, and a label for it. While git reads, the delta shows no
+    /// change and says that it reads (IO-6).
     pub fn delta_base(&self) -> (String, String) {
         let Some(path) = self.files.current() else { return ("no note".into(), String::new()) };
         let rel = self.rel(path);
@@ -122,8 +123,9 @@ impl App {
             }
         let label = if self.work.base() == Base::LastVisit { "vs git HEAD (no visit saved yet)" } else { "vs git HEAD" };
         match self.git_head(&rel) {
-            Some(t) => (label.into(), t),
-            None => (format!("{label} · new file"), String::new()),
+            Some(Some(t)) => (label.into(), t),
+            Some(None) => (format!("{label} · new file"), String::new()),
+            None => (format!("{label} · reading git HEAD…"), self.note_text().unwrap_or_default()),
         }
     }
 

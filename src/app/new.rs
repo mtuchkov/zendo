@@ -40,6 +40,12 @@ impl App {
         for config in [&mut app.attention.config, &mut app.music.config, &mut app.tips.config, &mut app.rekey.config] {
             config.clone_from(&app.cfg.user_config);
         }
+        // The worktrees of the sessions, before the first frame (IO-7); then a worker keeps them.
+        for n in 1..SESSIONS {
+            let git = app.cfg.root.join(crate::docs::tree::worktree::rel(n)).join(".git");
+            let there = git.exists();
+            app.facts.exists.put(git, there);
+        }
         app.link.start_api(api);
         app.rekey.api = hints.map(|a| crate::agent::api::Api { effort: Some("low".into()), ..a });
         // The chat input of each session, as the user left it (CLAUDE-45).

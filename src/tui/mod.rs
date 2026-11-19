@@ -59,8 +59,8 @@ pub async fn run(
     let printed = app.cli.notify.clone();
     // The worker of the find panel sent results (ADR 0017).
     let found = app.files.find().wake.clone();
-    // A read of the clipboard answered (IO-1).
-    let clip = app.clipboard.wake();
+    // A worker has an answer (IO-1).
+    let woken = crate::worker::wake();
     // The lofi music opens its output here, not in App::new, so tests play nothing (LOFI-11).
     app.start_music(crate::music::Output::System);
     app.start_tips();
@@ -108,7 +108,7 @@ pub async fn run(
             // A Claude Code session printed: draw its screen.
             _ = printed.notified() => {},
             _ = found.notified() => app.poll_find(),
-            _ = clip.notified() => app.poll_clipboard(),
+            _ = woken.notified() => app.poll_tasks(),
             _ = tick.tick() => app.tick(),
             _ = pulse.tick(), if app.attention.blinking() => {},
         }

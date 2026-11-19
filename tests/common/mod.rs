@@ -25,7 +25,7 @@ pub fn repo(name: &str, files: &[(&str, &str)]) -> PathBuf {
 }
 
 /// The app of a test. Its clipboard is empty and in memory: a test does not touch the clipboard of
-/// the system, which other programs share.
+/// the system, which other programs share. Its workers read the disk each 5 ms.
 pub fn app(root: &Path) -> App {
     let mut a = App::new(Config {
         root: root.to_path_buf(),
@@ -38,11 +38,21 @@ pub fn app(root: &Path) -> App {
     })
     .unwrap();
     a.clipboard = zendo::app::Clipboard::with(|| zendo::text::clipboard::Clip::Empty, |_| {});
+    a.quick_facts();
     a
 }
 
 /// Draw one frame on a test terminal; the screen as text, one line for each row.
+/// A frame asks the workers for the facts of the disk that it shows (IO-1); the second frame has
+/// them.
 pub fn draw(app: &mut App, w: u16, h: u16) -> Vec<String> {
+    draw_now(app, w, h);
+    app.settle_facts();
+    draw_now(app, w, h)
+}
+
+/// One frame, without waiting for the workers.
+pub fn draw_now(app: &mut App, w: u16, h: u16) -> Vec<String> {
     let mut term = Terminal::new(TestBackend::new(w, h)).unwrap();
     term.draw(|f| app.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();

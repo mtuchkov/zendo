@@ -1,5 +1,5 @@
 //! IO-1, IO-7: the modules that run on the UI thread call no file, program or system IO; they hand
-//! it to `zendo::worker` (ADR 0024). The reads before the first frame are in `START`, with why.
+//! it to `zendo::worker` (ADR 0024). The files in `ALLOWED` say why their IO is not on the UI thread.
 //! The check sees only direct calls; the slow-tick log of debug builds finds the rest (IO-8).
 
 use std::path::{Path, PathBuf};
@@ -7,8 +7,12 @@ use std::path::{Path, PathBuf};
 /// The folders whose code runs on the UI thread.
 const UI: [&str; 3] = ["src/app", "src/ui", "src/tui"];
 
-/// The files that may do IO on the UI thread, before the first frame or after the last one (IO-7).
-const START: [(&str, &str); 0] = [];
+/// The files of the UI folders whose IO runs before the first frame (IO-7) or on a worker.
+const ALLOWED: [(&str, &str); 3] = [
+    ("src/app/new.rs", "App::new seeds the worktrees of the sessions before the first frame (IO-7)"),
+    ("src/app/facts.rs", "the functions of the memos run on their workers"),
+    ("src/tui/sound.rs", "the player starts on a thread of ring()"),
+];
 
 /// The calls that do IO.
 const IO: [&str; 16] = [
@@ -50,7 +54,7 @@ fn io_lines() -> Vec<String> {
     let rel = |p: &Path| p.strip_prefix(root).unwrap().to_string_lossy().replace('\\', "/");
     files
         .iter()
-        .filter(|p| !START.iter().any(|(f, _)| rel(p) == *f))
+        .filter(|p| !ALLOWED.iter().any(|(f, _)| rel(p) == *f))
         .flat_map(|p| {
             let text = std::fs::read_to_string(p).unwrap();
             let file = rel(p);
@@ -71,12 +75,12 @@ fn ui_code_does_no_io() {
     assert!(found.is_empty(), "the UI thread calls IO here; hand it to zendo::worker (IO-1, ADR 0024):\n{}", found.join("\n"));
 }
 
-// IO-7: each entry of START still does IO; a stale entry goes.
+// IO-7: each entry of ALLOWED still does IO; a stale entry goes.
 #[test]
-fn each_start_entry_still_does_io() {
+fn each_allowed_entry_still_does_io() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    for (file, why) in START {
+    for (file, why) in ALLOWED {
         let text = std::fs::read_to_string(root.join(file)).unwrap();
-        assert!(IO.iter().any(|c| text.contains(c)), "{file} does no IO any more ({why}); remove it from START");
+        assert!(IO.iter().any(|c| text.contains(c)), "{file} does no IO any more ({why}); remove it from ALLOWED");
     }
 }

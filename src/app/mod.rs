@@ -14,6 +14,7 @@ mod chat_pane;
 mod count;
 mod cli;
 mod clip;
+mod facts;
 mod terminal;
 mod terminal_mouse;
 pub mod cursor_map;
@@ -72,6 +73,7 @@ pub(crate) use composer::{at, slash};
 pub use attention::Attention;
 pub use board::BoardLink;
 pub use clip::{Clipboard, PasteTo};
+pub use facts::{Facts, InCheckout, head_of as facts_head_of};
 pub use background::{Background, Bg, ran};
 pub use questions::Ask;
 pub use effect::Effect;
@@ -197,6 +199,8 @@ pub struct App {
     pub disk: crate::worker::Writer,
     /// The system clipboard, read on a worker (IO-1, IO-5); a test puts one here in memory.
     pub clipboard: Clipboard,
+    /// The small facts of the disk that a frame shows, from workers (IO-1); a test puts a slow git here.
+    pub facts: Facts,
     /// The files whose write failed: each shows once (FAIL-1).
     pub disk_failed: std::collections::HashSet<PathBuf>,
     /// The counts of the actions of the user; off until the start turns them on (USAGE-1).
