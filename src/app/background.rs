@@ -177,7 +177,7 @@ impl App {
     /// `enter` or `esc` right after the question of BG-4. True when the key went to the question.
     /// Another key, such as the quit key again, goes on as usual, and a second quit stops them.
     pub(crate) fn background_quit_key(&mut self, k: &KeyEvent) -> bool {
-        if !std::mem::take(&mut self.bg.quit_open) || !self.bg.quit_asked.is_some_and(|t| t.elapsed() < crate::session::QUIT_AGAIN) {
+        if !std::mem::take(&mut self.bg.quit_open) || self.bg.quit_asked.is_none_or(|t| t.elapsed() >= crate::session::QUIT_AGAIN) {
             return false;
         }
         match k.code {

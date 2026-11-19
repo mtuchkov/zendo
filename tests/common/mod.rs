@@ -32,6 +32,7 @@ pub fn app(root: &Path) -> App {
         agent_env: Default::default(),
         offline: false,
         notes_repo: None,
+        user_config: root.join("zendo-config.toml"),
     })
     .unwrap()
 }

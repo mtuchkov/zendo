@@ -178,6 +178,9 @@ impl UserConfig {
     /// Save in `path` the settings that differ from `before`: only their lines change, every other
     /// line stays as it is (CMD-19). Without a file, a new one.
     pub fn save_changes(&self, path: &Path, before: &Self) -> Result<(), String> {
+        if path.as_os_str().is_empty() {
+            return Err("no config file".into());
+        }
         let bytes = match std::fs::read(path) {
             Ok(bytes) => bytes,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => CONFIG_HEAD.as_bytes().to_vec(),

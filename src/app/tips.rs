@@ -20,7 +20,7 @@ pub struct Tips {
     #[default(pick(TIPS.len()))]
     pub tip: usize,
     /// The config file that the option writes (TIPS-7).
-    #[default(crate::setup::config::config_path())]
+    /// `App::new` names it (`Config::user_config`).
     pub config: PathBuf,
 }
 

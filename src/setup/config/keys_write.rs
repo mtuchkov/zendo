@@ -8,6 +8,10 @@ use std::path::{Path, PathBuf};
 /// Write `keys` as the keys of `action` of `pane`; an empty list is no key. Only the line of the
 /// action changes. Returns the file that changed.
 pub fn write_keys(cfg: &Path, pane: Pane, action: &str, keys: &[Key]) -> Result<PathBuf, String> {
+    // Without a config file, no keymap file beside it in the current folder.
+    if cfg.as_os_str().is_empty() {
+        return Err("no config file".into());
+    }
     let user = UserConfig::load_from(cfg);
     let specs: Vec<String> = keys.iter().map(Key::spec).collect();
     if user.keys.get(pane.name()).is_some_and(|m| m.contains_key(action)) {

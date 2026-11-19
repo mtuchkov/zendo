@@ -79,7 +79,9 @@ async fn a_red_chip_goes_without_its_file() {
     key(&mut a, KeyCode::Enter);
     until(&mut a, |a| a.threads.get(CHAT_KEY).is_some_and(|t| t.busy.is_none() && !t.items.is_empty())).await;
     let answer = last_answer(&a);
-    assert!(!answer.contains("file link"), "the gone file does not go: {answer}");
+    // The open document can go as a link too (CLAUDE-26); only the gone file must not.
+    let gone = format!("file://{}", root.join(B).display());
+    assert!(!answer.contains(&gone), "the gone file does not go: {answer}");
     let asked = a.threads[CHAT_KEY].items.iter().find_map(|i| if let Item::User(s) = i { Some(s.clone()) } else { None }).unwrap_or_default();
     assert!(asked.starts_with("⟦otes/b.md\u{2063}"), "the transcript keeps the label: {asked}");
     let _ = std::fs::remove_dir_all(&root);

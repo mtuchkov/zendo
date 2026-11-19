@@ -476,6 +476,7 @@ async fn a_new_note_of_a_notes_repo_stays_in_the_notes_repo() {
         agent_env: Default::default(),
         offline: false,
         notes_repo: None,
+        user_config: root.join("zendo-config.toml"),
     })
     .unwrap();
     a.switch_session(1);

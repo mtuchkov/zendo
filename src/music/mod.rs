@@ -115,7 +115,8 @@ pub struct Music {
 
 impl Default for Music {
     fn default() -> Self {
-        let config = crate::setup::config::config_path();
+        // No config file: `App::new` names it (`Config::user_config`).
+        let config = PathBuf::new();
         let control = Arc::new(Control::default());
         // Not started: no output yet.
         control.report(false);

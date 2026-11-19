@@ -141,6 +141,9 @@ pub struct Config {
     pub offline: bool,
     /// The private notes repo, when it is on and `--notes` did not override it.
     pub notes_repo: Option<crate::setup::config::NotesRepo>,
+    /// The config file of the user that the app reads and writes: `~/.zendo/config.toml`, a file
+    /// of its own in a test.
+    pub user_config: PathBuf,
 }
 
 #[derive(smart_default::SmartDefault)]

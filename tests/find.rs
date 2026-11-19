@@ -317,6 +317,7 @@ async fn a_query_finds_the_notes_of_the_notes_repo() {
         agent_env: Default::default(),
         offline: false,
         notes_repo: Some(zendo::setup::config::NotesRepo { path: notes.clone(), machine: "m".into(), sync_seconds: 15 }),
+        user_config: root.join("zendo-config.toml"),
     })
     .unwrap();
     let got = |a: &App| a.files.find().items.iter().map(|i| i.path.clone()).collect::<Vec<_>>();
