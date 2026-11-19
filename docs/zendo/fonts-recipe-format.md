@@ -5,7 +5,7 @@ date: "2026-11-18"
 parent: "zendo.md"
 prev: "fonts-recipe.md"
 level: "the format of the recipe of the terminal font: the ways to set a font, the size, and how zendo finds the current terminal"
-note: "Agent draft of the decisions of the user on 2026-11-18, split from fonts-recipe.md: a whole file for COSMIC, the size for GNOME, the terminal from more than TERM_PROGRAM. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft of the decisions of the user on 2026-11-18, split from fonts-recipe.md: a whole file for COSMIC, the size for GNOME, the terminal from more than TERM_PROGRAM; no special case for tmux. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Font recipe format
@@ -57,7 +57,8 @@ command = ["alacritty", "msg", "config", 'font.normal.family="{font}"']
 **The current terminal.** zendo takes the name from `TERM_PROGRAM`. Where it is not set, zendo
 takes it from the variables that terminals set, such as `GHOSTTY_RESOURCES_DIR`, `KITTY_WINDOW_ID`,
 `ALACRITTY_WINDOW_ID`, `WEZTERM_PANE`, `GNOME_TERMINAL_SERVICE` and `VTE_VERSION`, and else from
-`TERM`. The first message to Claude names the terminal by this name.
+`TERM`. Inside tmux, `TERM_PROGRAM` is `tmux`, and tmux is a terminal like the others. The first
+message to Claude names the terminal by this name.
 
 ## Architecturally significant requirements
 
@@ -94,9 +95,3 @@ FONT-40, FONT-41)
 | FONT-41 | Where      | Where a text of a recipe has `{size}`, the system shall replace it with the last number that the `size` command of the recipe prints. | User, 2026-11-18 |
 | FONT-42 | Ubiquitous | The system shall name the current terminal from `TERM_PROGRAM`, else from the variables that terminals set, else from `TERM`. | User, 2026-11-18 |
 | FONT-43 | Unwanted   | If a text of a recipe has `{size}` and the `size` command prints no number, then the system shall not set the font and shall name the failure. | Design |
-
-## Open points
-
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| Inside tmux, the escape sequences need the passthrough of tmux, and `TERM_PROGRAM` is `tmux`. Is a recipe for tmux enough? | FONT-29, FONT-42 | User |

@@ -6,7 +6,7 @@ parent: "zendo.md"
 prev: "attention.md"
 next: "cli/cli.md"
 level: "how zendo uses project-structure.toml, how zendo init makes it, and how zendo doctor repairs it"
-note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. Revision 2 moves the writes from zendo doctor to zendo init and zendo doctor --fix, and the repair by Claude to --claude, from the requests of the user on 2026-11-14 (see cli/cli.md)."
+note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. Revision 2 moves the writes from zendo doctor to zendo init and zendo doctor --fix, and the repair by Claude to --agent, from the requests of the user on 2026-11-14 (see cli/cli.md). The flags: `--claude` of doctor is `--agent`, and `--agent CMD` is `--agent-cmd CMD`, on the request of the user on 2026-11-18 (draft)."
 ---
 
 # Project structure
@@ -30,7 +30,7 @@ section about the file into `CLAUDE.md` and `AGENTS.md` (or makes the file of th
 
 [`zendo doctor`](cli/doctor.md) checks the file and changes nothing. When zendo does not understand
 the file, `zendo doctor --fix` repairs what needs no judgement, for example other key names and
-paths that start with `./`. `zendo doctor --fix --claude` then gives the rest to Claude, with the
+paths that start with `./`. `zendo doctor --fix --agent` then gives the rest to Claude, with the
 instructions in
 [resources/fix-project-structure.md](../../resources/fix-project-structure.md).
 
@@ -39,7 +39,7 @@ instructions in
 | ID        | Pattern  | Requirement                                                                                                                                         | Source           |
 | --------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | STRUCT-1  | Event    | When the user asks Claude about a file, the system shall send the project rules and the rules of each entry that covers the file, from the most general to the most specific. | User, 2026-11-11 |
-| STRUCT-2  | Unwanted | If zendo does not understand the file, then `zendo doctor --fix` shall repair it by itself first, and `--claude` shall give only the rest to Claude.                          | User, 2026-11-11 |
+| STRUCT-2  | Unwanted | If zendo does not understand the file, then `zendo doctor --fix` shall repair it by itself first, and `--agent` shall give only the rest to Claude.                          | User, 2026-11-11 |
 | STRUCT-3  | State    | While Claude repairs the file, the system shall allow edits of `project-structure.toml` only, and reject each other edit and each command.          | Design           |
 
 ### Acceptance tests
@@ -59,7 +59,7 @@ instructions in
 **`claude_fixes_the_rest_and_may_change_only_that_file`** (mock agent; verifies STRUCT-2, STRUCT-3)
 
 - Given a file with a problem that needs judgement.
-- When the user runs `zendo doctor --fix --claude`, and the mock agent tries to edit `README.md` and
+- When the user runs `zendo doctor --fix --agent`, and the mock agent tries to edit `README.md` and
   then the file.
 - Then the edit of `README.md` is rejected, the edit of the file is applied, and zendo checks the file again.
 
@@ -70,11 +70,11 @@ instructions in
 | STRUCT-4  | Event      | When `project-structure.toml` changes, the system shall read it again without a restart.                                         | Design           |
 | STRUCT-5  | Ubiquitous | `zendo doctor` shall check that the file parses, has no unknown keys, has clean and unique paths, and has `main` paths that exist, and no `*` in a `main` entry with one path. | Design |
 | STRUCT-6  | Unwanted   | If zendo does not understand the file, then `zendo doctor` shall tell the user the command that repairs it.        | User, 2026-11-11 |
-| STRUCT-7  | Event      | When the user runs `zendo doctor --fix --claude`, the system shall repair the file without a question.                                     | User, 2026-11-11 |
+| STRUCT-7  | Event      | When the user runs `zendo doctor --fix --agent`, the system shall repair the file without a question.                                     | User, 2026-11-11 |
 | STRUCT-8  | Unwanted   | If `zendo doctor` runs without `--fix`, then the system shall not change the file (CMD-14).                         | Design           |
 | STRUCT-9  | Ubiquitous | The system shall keep the comments and the layout of the file when it repairs the file by itself.                                | Design           |
 | STRUCT-10 | Event      | Before a repair, the system shall keep a copy of the file. After it, the system shall show the diff and check the file again.     | Design           |
-| STRUCT-11 | Optional   | Where the repository has no `project-structure.toml` but has `project-structure.md`, `zendo doctor --fix --claude` shall make the TOML file from it with Claude. | User, 2026-11-11 |
+| STRUCT-11 | Optional   | Where the repository has no `project-structure.toml` but has `project-structure.md`, `zendo doctor --fix --agent` shall make the TOML file from it with Claude. | User, 2026-11-11 |
 | STRUCT-12 | Ubiquitous | The system shall keep the instructions for Claude for the repair in the zendo program, not in the repository of the user.          | User, 2026-11-11 |
 | STRUCT-13 | Optional   | Where an entry names a `template`, the system shall use it for new documents in that folder, and `zendo doctor` shall report a template that is not there. | User, 2026-11-12 |
 | STRUCT-14 | Unwanted   | If two entries have the same `label`, not counting case, then `zendo doctor` shall report the second entry.                       | User, 2026-11-12 |
@@ -95,4 +95,4 @@ Tests that verify detailed requirements: `checks_find_what_zendo_does_not_unders
 `the_status_bar_asks_for_zendo_init_without_a_structure_file` (STRUCT-19).
 
 Revision 2 changed STRUCT-2, STRUCT-6 to STRUCT-8, STRUCT-11 and STRUCT-16 to STRUCT-19: `zendo init` and
-`zendo doctor --fix` do the writes, `--claude` asks Claude, and `zendo doctor` changes nothing.
+`zendo doctor --fix` do the writes, `--agent` asks the agent, and `zendo doctor` changes nothing.

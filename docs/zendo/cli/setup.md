@@ -5,7 +5,7 @@ date: "2026-11-14"
 parent: "cli.md"
 next: "init.md"
 level: "what the installer and zendo setup do on the machine"
-note: "Agent draft, split from commands.md on 2026-11-14. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft, split from commands.md on 2026-11-14. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. The flags: `--claude` of doctor is `--agent`, and `--agent CMD` is `--agent-cmd CMD`, on the request of the user on 2026-11-18 (draft)."
 ---
 
 # Setup
@@ -15,7 +15,7 @@ time: a second run changes nothing. See [Commands](cli.md) for the other command
 
 **What it writes.** The pinned Claude Code adapter in the data folder of zendo, when it is not
 there. The config of the user, `~/.zendo/config.toml`: the agent and the notes repo
-(`--agent`, `--notes-repo`, see [Claude](../claude.md) and [Notes repo](../notes-repo.md)). The
+(`--agent-cmd`, `--notes-repo`, see [Claude](../claude.md) and [Notes repo](../notes-repo.md)). The
 zendo section in the instructions of the user (SESSIONS-22, see [zendo session](../zendo-session.md)). It
 writes nothing in the repository.
 
