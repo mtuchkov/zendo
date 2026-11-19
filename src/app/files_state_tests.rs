@@ -169,6 +169,7 @@ fn a_change_on_disk_shows_after_the_first_look() {
 }
 
 // ADR 0008: a structure file that does not parse leaves its reason, and a message for the user.
+// FAIL-1, FAIL-6: a structure that does not parse leaves zendo working and names the fix.
 #[test]
 fn a_structure_that_does_not_parse_leaves_its_reason() {
     let (root, mut f) = repo("structure");
