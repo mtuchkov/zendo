@@ -2,7 +2,7 @@
 status: "draft"
 date: "2026-11-18"
 sources:
-  - "The user, 2026-11-18, in chat: the sessions hand off work and ask each other through zendo and the MCP server `zendo`; channels for one, many and all sessions; questions and tasks with answers and statuses; posts about shared resources; persistence is good; the board shall work with more than one zendo process."
+  - "The user, 2026-11-18, in chat: the sessions hand off work and ask each other through zendo and the MCP server `zendo`; channels for one, many and all sessions; questions and tasks with answers and statuses; posts about shared resources with a lease that another session can ask about; persistence is good; the board shall work with more than one zendo process."
   - "../../zendo/board.md, board-posts.md, board-watch.md (BOARD-1 to BOARD-28)"
   - "src/mcp/mod.rs: `zendo mcp --session N` is a stdio process that the agent starts; it has no connection to the zendo process."
   - "../../zendo/cli-messages.md (CLIMSG-2): the hooks of Claude Code append lines to a file, and zendo reads them on each tick."
@@ -52,8 +52,11 @@ daemon.
   the same sender, and squashes the waiting messages of a recipient into one question.
 - **Kinds.** The server checks the kind and `in_reply_to` against the journal, and refuses a
   response to a response.
-- **Posts.** zendo adds the unseen live posts to the context of the next question. A post that names
-  a process ends when ADR 0016 sees that process end.
+- **Posts and leases.** A renewal of a lease writes no line, so the journal does not grow with time.
+  zendo appends `expired` with the time when the holder of a post dies (the thread ends or ADR 0016
+  sees the process end), and `renewed` when the holder lives again, as after a restart. While the
+  zendo process of the author is down, the time of the last renewal is its last heartbeat. zendo adds
+  the unseen and the newly expired posts to the context of the next question.
 - **Life.** Each zendo process writes a heartbeat to `~/.zendo/board/zendo-<pid>.json` each second;
   the watch exits with a reason when the heartbeat of its repository stops.
 - **Compaction.** When the file is large, the process that holds the lock writes a new file with the
