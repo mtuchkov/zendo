@@ -52,7 +52,7 @@ impl Tree {
         };
         let wt = wt.clone();
         self.git.pending = None;
-        if self.view != View::WorktreeChanged || self.worktree.as_ref() != Some(&wt) {
+        if self.view != View::WorktreeChanged || self.changes_dir().as_ref() != Some(&wt) {
             return false;
         }
         self.files.clear();

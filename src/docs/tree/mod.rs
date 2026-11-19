@@ -123,6 +123,8 @@ pub struct Tree {
     pub deleted: BTreeSet<PathBuf>,
     /// Git for the worktree changed view (ADR 0009).
     git: changes::Changes,
+    /// The active agent session works in the main checkout (SESSIONS-23): the changed view shows it.
+    pub main_checkout: bool,
     /// The walk of the text files on its thread (FILES-79).
     walk: text_walk::TextWalk,
     docs: GlobMatcher,
@@ -151,6 +153,7 @@ impl Default for Tree {
             deleted: BTreeSet::new(),
             git: changes::Changes::default(),
             walk: text_walk::TextWalk::default(),
+            main_checkout: false,
             docs: Glob::new(DOCS_GLOB).expect("valid glob").compile_matcher(),
         }
     }
@@ -192,15 +195,21 @@ impl Tree {
     /// `v`: structure (if there is one) → docs → text → worktree → worktree changed → notes → …;
     /// the worktree views only while the active agent session has a worktree (FILES-4, FILES-31).
     pub fn next_view(&mut self) {
-        let views = self.views();
+        let views: Vec<View> = self.views().into_iter().filter(|v| self.can_show(*v)).collect();
         let at = views.iter().position(|v| *v == self.view).map_or(0, |i| i + 1);
         self.view = views[at % views.len()];
+    }
+
+    /// A view of `views` that the user can choose: not the worktree view of the main checkout
+    /// (FILES-82).
+    pub fn can_show(&self, v: View) -> bool {
+        v != View::Worktree || self.worktree.is_some()
     }
 
     /// The views that the strip and the `v` cycle show now, in their order (FILES-4, FILES-72).
     pub fn views(&self) -> Vec<View> {
         let has = self.structure.as_ref().is_some_and(|s| s.main().next().is_some());
-        let wt = self.worktree.is_some();
+        let wt = self.worktree.is_some() || self.main_checkout;
         [(View::Structure, has), (View::Docs, true), (View::Text, true), (View::Worktree, wt), (View::WorktreeChanged, wt), (View::Notes, true)]
             .into_iter()
             .filter_map(|(v, on)| on.then_some(v))

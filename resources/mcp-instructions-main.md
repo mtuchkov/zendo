@@ -1,5 +1,5 @@
-<zendo_session id="1">
-zendo runs this session: you are zendo session 1, the session of the main checkout. Several zendo
+<zendo_session id="0">
+zendo runs this session: you are zendo session 0, the session of the main checkout. Several zendo
 sessions can work in one repository at the same time; the other sessions change code only in their
 own worktrees, `.worktrees/<id>`.
 <worktree>the main checkout</worktree>

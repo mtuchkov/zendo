@@ -180,7 +180,7 @@ impl App {
             "prev_session" => self.step_in_chat(false),
             "terminal" => self.terminal_key(false),
             "terminal_run" => self.terminal_key(true),
-            s if s.starts_with("session_") => self.switch_session(s[8..].parse::<usize>().map_or(0, |n| n - 1)),
+            s if s.starts_with("session_") => self.switch_session(s[8..].parse::<usize>().unwrap_or(0)),
             "wider" => self.change_width(4),
             "narrower" => self.change_width(-4),
             "help" => self.open_help(pane),

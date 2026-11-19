@@ -184,3 +184,16 @@ fn each_group_of_a_pane_has_one_place() {
         assert_eq!(groups.len(), once.len(), "{pane:?}: {groups:?}");
     }
 }
+
+// SESSIONS-23: the agent sessions count from 0. A keymap of the user from before, with `session_1`
+// to `session_5` and no `session_0`, gets a problem that says so; `session_5` is no action now.
+#[test]
+fn the_old_session_numbers_get_a_problem() {
+    let old: KeyConfig = toml::from_str("[global]\nsession_1 = \"f6\"\nsession_5 = \"f10\"\n").unwrap();
+    let (_, problems) = Keymap::new(None, &old);
+    assert!(problems.iter().any(|p| p.contains("count from 0") && p.contains("session_0")), "{problems:?}");
+    assert!(problems.iter().any(|p| p.contains("session_5") && p.contains("session_4")), "{problems:?}");
+    let new: KeyConfig = toml::from_str("[global]\nsession_0 = \"f6\"\nsession_1 = \"f7\"\n").unwrap();
+    let (_, problems) = Keymap::new(None, &new);
+    assert!(problems.is_empty(), "{problems:?}");
+}

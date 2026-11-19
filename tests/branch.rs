@@ -33,11 +33,11 @@ fn git_repo(name: &str, branch: &str) -> PathBuf {
     d
 }
 
-/// The repository on `main`, and `.worktrees/2` on the branch `agent`.
+/// The repository on `main`, and `.worktrees/1` on the branch `agent`.
 fn repo(name: &str) -> PathBuf {
     let d = git_repo(name, "main");
-    git(&d, &["worktree", "add", "-q", ".worktrees/2", "-b", "agent"]);
-    write(d.join(".worktrees/2/a.md"), "# a\n\nbody one\n");
+    git(&d, &["worktree", "add", "-q", ".worktrees/1", "-b", "agent"]);
+    write(d.join(".worktrees/1/a.md"), "# a\n\nbody one\n");
     d
 }
 
@@ -177,7 +177,7 @@ async fn the_branch_stands_left_of_the_path() {
     let root = repo("left");
     let mut a = app(&root);
     a.switch_session(1);
-    a.open_file(root.join(".worktrees/2/a.md"));
+    a.open_file(root.join(".worktrees/1/a.md"));
     a.focus = Focus::Note;
     let line = top(&mut a);
     assert!(line.trim_start().starts_with("agent · a.md"), "{line}");

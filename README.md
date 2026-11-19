@@ -79,9 +79,9 @@ check the result in the delta. Tell the agent how to review you in
 
 When the design holds, the agents build, and you do not leave zendo.
 
-- **Five agent sessions.** `F6` to `F10` choose a session. Each session is one
-  thread for the whole repository: one does research while you discuss in
-  another.
+- **Five agent sessions.** `F6` to `F10` choose session 0 to 4. Each session is
+  one thread for the whole repository: one does research while you discuss in
+  another. Session 0 works in the main checkout; session N in `.worktrees/N`.
 - **Claude Code in the background.** `ctrl-o` opens Claude Code on the active
   session, with the whole discussion behind it. `alt-q` takes you back to the
   document, and Claude Code continues. The session buttons show its state:

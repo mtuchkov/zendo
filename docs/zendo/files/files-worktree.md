@@ -14,9 +14,10 @@ note: "Agent draft from the requests of the user on 2026-11-14. Approved by the 
 
 Parent: [File tree](files.md).
 
-Each agent session of zendo from session 2 on changes code only in its own worktree,
-`.worktrees/<id>` (SESSIONS-21 in [Sessions](../sessions.md)); session 1 works in the main checkout
-and has no worktree views (SESSIONS-23 in [zendo session](../zendo-session.md)). The other views of the tree show the main checkout,
+Each agent session of zendo from session 1 on changes code only in its own worktree,
+`.worktrees/<id>` (SESSIONS-21 in [Sessions](../sessions.md)); session 0 works in the main checkout
+(SESSIONS-23 in [zendo session](../zendo-session.md)). Session 0 has the worktree changed view of
+the main checkout, against `origin/main` (FILES-81), and no worktree view (FILES-82). The other views of the tree show the main checkout,
 so the user does not see what the agent session in the chat does. Two more views show it:
 
 - **worktree**: every text file of the worktree of the active agent session, as the text view
@@ -80,6 +81,8 @@ The tests are in `tests/worktree.rs`.
 | FILES-33 | Event      | When a file or the branch of the worktree changes, the system shall show the change in both worktree views without a restart. | Design |
 | FILES-34 | Event      | When the user opens a file from a worktree view, the system shall open the file of the worktree like a note, and name the worktree in the head of the note. | Design |
 | FILES-35 | Ubiquitous | The system shall show a deleted file in the worktree changed view as a struck row that does not open. | Design |
+| FILES-81 | State      | While agent session 0 is active, the system shall have a worktree changed view of the main checkout that lists the files that differ from the merge base of `HEAD` and `origin/main`, or of `main` when the repository has no `origin/main`. | User, 2026-11-18 |
+| FILES-82 | State      | While agent session 0 is active, the system shall show `W` in the strip in the dim color, and a click on it, `v` and the hint shall not choose the worktree view. | User, 2026-11-18 |
 | FILES-37 | State      | While the agent of the session of the worktree answers, the system shall ask the user in a popup to confirm a rename, a move, a delete or a new file or folder in a worktree view, and do it only after the confirmation. | User, 2026-11-14 |
 
 Tests that verify detailed requirements, in `tests/worktree.rs`:
@@ -87,7 +90,9 @@ Tests that verify detailed requirements, in `tests/worktree.rs`:
 `the_changed_view_lists_what_differs_from_main` (FILES-33, FILES-35),
 `a_file_of_the_worktree_opens_with_the_worktree_in_its_head` and
 `the_last_commit_of_a_worktree_file_comes_from_the_worktree` (FILES-34),
-`file_actions_in_a_worktree_ask_first_while_the_agent_works` (FILES-37), and
+`file_actions_in_a_worktree_ask_first_while_the_agent_works` (FILES-37),
+`session_0_shows_the_changes_against_origin_main` (FILES-81),
+`session_0_cannot_choose_the_worktree_view` (FILES-82), and
 `the_worktree_views_follow_folders_only_with_a_worktree` in `src/docs/tree/mod_tests.rs` (FILES-31).
 
 Not used: FILES-30 (a proposal for the `v` cycle), because FILES-4 holds the cycle (User,

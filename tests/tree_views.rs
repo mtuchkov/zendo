@@ -46,7 +46,7 @@ fn rows(b: &Buffer) -> Vec<String> {
 fn strip(a: &mut App) -> Vec<(char, u16, u16)> {
     let b = screen(a);
     let tree = a.frame.pane_rects().iter().find(|(f, _)| *f == Focus::Tree).map(|(_, r)| *r).expect("the tree pane");
-    (tree.y..tree.bottom()).filter_map(|y| b[(tree.x, y)].symbol().chars().next().filter(|c| "SDTWΔN".contains(*c)).map(|c| (c, tree.x, y))).collect()
+    (tree.y..tree.bottom()).filter_map(|y| b[(tree.x, y)].symbol().chars().next().filter(|c| "SDTW∆N".contains(*c)).map(|c| (c, tree.x, y))).collect()
 }
 
 fn click(a: &mut App, x: u16, y: u16) {
@@ -59,7 +59,7 @@ fn click(a: &mut App, x: u16, y: u16) {
 async fn the_views_stand_in_a_strip() {
     let (root, mut a) = tree_app("tree-strip");
     let s = strip(&mut a);
-    assert_eq!(s.iter().map(|(c, _, _)| *c).collect::<String>(), "SDTN");
+    assert_eq!(s.iter().map(|(c, _, _)| *c).collect::<String>(), "SDTW∆N", "session 0 shows the changes of the main checkout");
     assert!(s.windows(2).all(|w| w[1].2 > w[0].2 + 1), "one under the other, with a row between: {s:?}");
     let b = screen(&mut a);
     let (_, x, y) = s[0];
@@ -83,13 +83,16 @@ async fn the_active_letter_has_the_accent_color() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FILES-72: W and Δ only with a worktree; S only with main materials.
+// FILES-72, FILES-81: W and ∆ only with a worktree or in session 0; S only with main materials.
 #[tokio::test]
 async fn the_worktree_letters_need_a_worktree() {
     let root = repo("tree-strip-no-structure", &[("docs/a.md", "# A\n")]);
     let mut a = app(&root);
     a.on_key(KeyEvent::new(KeyCode::Char('b'), KeyModifiers::ALT));
-    assert_eq!(strip(&mut a).iter().map(|(c, _, _)| *c).collect::<String>(), "DTN");
+    assert_eq!(strip(&mut a).iter().map(|(c, _, _)| *c).collect::<String>(), "DTW∆N", "session 0");
+    a.state.session = 1;
+    a.scan_tree();
+    assert_eq!(strip(&mut a).iter().map(|(c, _, _)| *c).collect::<String>(), "DTN", "session 1 without .worktrees/1");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -223,12 +226,12 @@ async fn a_long_project_name_does_not_touch_the_view_name() {
 #[tokio::test]
 async fn a_low_tree_keeps_every_letter() {
     let (root, mut a) = tree_app("tree-low");
-    let mut term = Terminal::new(TestBackend::new(100, 12)).unwrap();
+    let mut term = Terminal::new(TestBackend::new(100, 13)).unwrap();
     term.draw(|f| a.draw(f)).unwrap();
     let b = term.backend().buffer().clone();
     let tree = a.frame.pane_rects().iter().find(|(f, _)| *f == Focus::Tree).map(|(_, r)| *r).unwrap();
-    let letters: String = (tree.y..tree.bottom()).filter_map(|y| b[(tree.x, y)].symbol().chars().next().filter(|c| "SDTWN".contains(*c))).collect();
-    assert_eq!(letters, "SDTN");
+    let letters: String = (tree.y..tree.bottom()).filter_map(|y| b[(tree.x, y)].symbol().chars().next().filter(|c| "SDTW∆N".contains(*c))).collect();
+    assert_eq!(letters, "SDTW∆N");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -248,7 +251,8 @@ async fn the_hint_dims_the_tree() {
     let near = |c: Color| matches!(c, Color::Rgb(r, g, b) if [(r, pr), (g, pg), (b, pb)].iter().all(|(v, p)| (*v as i16 - *p as i16).abs() <= 52));
     for y in names[0].0.y..bottom {
         for x in x0..right {
-            if names.iter().any(|(r, _)| r.contains((x, y).into())) {
+            // The names take clicks; the dim name of W does not (FILES-82).
+            if names.iter().any(|(r, _)| r.contains((x, y).into())) || b[(x0, y)].symbol() == "W" {
                 continue;
             }
             let c = &b[(x, y)];

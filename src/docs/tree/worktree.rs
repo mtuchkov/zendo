@@ -8,13 +8,14 @@ const LIMIT: Duration = Duration::from_secs(5);
 /// Paths as they are, not quoted.
 const PLAIN: [&str; 2] = ["-c", "core.quotepath=off"];
 
-/// The folder of the worktree of agent session `n` (from 0), from the repo root.
+/// The folder of the worktree of agent session `n`, from the repo root: the id of the session is the
+/// number of its worktree (SESSIONS-23).
 pub fn rel(n: usize) -> PathBuf {
-    Path::new(".worktrees").join((n + 1).to_string())
+    Path::new(".worktrees").join(n.to_string())
 }
 
-/// The worktree of agent session `n`, when git made it: it has a `.git` file. Agent session 1 (`n`
-/// 0) works in the main checkout and has none (SESSIONS-23).
+/// The worktree of agent session `n`, when git made it: it has a `.git` file. Agent session 0 works
+/// in the main checkout and has none (SESSIONS-23).
 pub fn of(root: &Path, n: usize) -> Option<PathBuf> {
     if n == 0 {
         return None;
@@ -35,11 +36,20 @@ pub fn in_worktree(rel: &str) -> String {
     split(rel).map_or_else(|| rel.to_string(), |(_, rest)| rest.to_string())
 }
 
-/// The commit of `main` that the branch started from, or the last `main` merged into it. Git says
-/// nothing when the branch and `main` have no commit in common.
+/// The branch that the changes of `dir` count from: `main` for a worktree; `origin/main` for the main
+/// checkout, where it is there, so that the commits that origin does not have count too (FILES-81).
+fn against(dir: &Path) -> &'static str {
+    let main_checkout = dir.join(".git").is_dir();
+    let origin = || git(dir, &["rev-parse", "--verify", "-q", "refs/remotes/origin/main"], LIMIT).is_ok_and(|s| !s.is_empty());
+    if main_checkout && origin() { "origin/main" } else { "main" }
+}
+
+/// The commit of `main` (or of `origin/main`, see `against`) that the branch started from, or the
+/// last one merged into it. Git says nothing when they have no commit in common.
 fn base(wt: &Path) -> Result<String, String> {
-    let none = || "the branch has no commit in common with main".to_string();
-    match git(wt, &["merge-base", "HEAD", "main"], LIMIT) {
+    let to = against(wt);
+    let none = || format!("the branch has no commit in common with {to}");
+    match git(wt, &["merge-base", "HEAD", to], LIMIT) {
         Ok(b) if !b.is_empty() => Ok(b),
         Err(e) if !e.is_empty() => Err(e),
         _ => Err(none()),
@@ -86,12 +96,18 @@ pub fn diff(wt: &Path, max: usize) -> String {
 }
 
 impl Tree {
+    /// The folder whose changes the changed view shows, from the repo root: the worktree of the
+    /// session, or the main checkout (the empty path) for agent session 0 (FILES-81).
+    pub fn changes_dir(&self) -> Option<PathBuf> {
+        self.worktree.clone().or_else(|| self.main_checkout.then(PathBuf::new))
+    }
+
     /// Fill a worktree view: every text file of the worktree, or the files that differ from the base.
     /// Git reads the changes on a thread, and `poll` takes them (ADR 0009). The paths stay relative
     /// to `root`, so a row opens the file of the worktree.
     pub(super) fn scan_worktree(&mut self, root: &Path) {
         self.dirs.clear();
-        match self.worktree.clone() {
+        match self.changes_dir() {
             Some(wt) if self.view == View::WorktreeChanged => self.scan_changes(root, wt),
             wt => {
                 self.drop_changes();
@@ -106,7 +122,8 @@ impl Tree {
     /// The rows of a worktree view: the folders and files in the worktree, without the folder of the
     /// worktree itself.
     pub(super) fn worktree_rows(&self) -> Vec<Row> {
-        let Some(wt) = self.worktree.as_deref() else { return Vec::new() };
+        let wt = if self.view == View::WorktreeChanged { self.changes_dir() } else { self.worktree.clone() };
+        let Some(wt) = wt.as_deref() else { return Vec::new() };
         let files: Vec<PathBuf> = self.files.iter().filter_map(|f| f.strip_prefix(wt).ok().map(Path::to_path_buf)).collect();
         self.tree_rows(&files, &[], wt, 0)
     }

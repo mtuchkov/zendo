@@ -27,6 +27,11 @@ impl Files {
         self.fill_notes_view();
     }
 
+    /// The active agent session works in the main checkout (SESSIONS-23).
+    pub fn set_main_checkout(&mut self, on: bool) {
+        self.tree.main_checkout = on;
+    }
+
     /// Scan, and wait for the walk of the text files (FILES-79): for tests.
     pub fn scan_wait(&mut self, root: &Path, notes: Option<PathBuf>, worktree: Option<PathBuf>) {
         self.scan(root, notes, worktree);

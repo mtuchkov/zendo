@@ -106,7 +106,7 @@ in a [float](../float.md), `f2` renames the file to a typed name, and `delete` d
 | -------- | ---------- | ----------- | ------ |
 | FILES-70 | Ubiquitous | The system shall label the views `S`, `D`, `T`, `W`, `∆` and `N`. | User, 2026-11-18 |
 | FILES-71 | Ubiquitous | The system shall show the letter of the active view on the accent color and the other letters in the second accent color. | User, 2026-11-18 |
-| FILES-72 | State      | While the active agent session has no worktree, the system shall not show `W` and `∆`; while `project-structure.toml` has no main materials, `S`. | Design |
+| FILES-72 | State      | While the active agent session is not session 0 and has no worktree, the system shall not show `W` and `∆` (FILES-81, FILES-82 in [Worktree views](files-worktree.md)); while `project-structure.toml` has no main materials, `S`. | Design |
 | FILES-73 | Event      | When the user clicks a letter of the strip or a name of the hint, the system shall show that view until the user chooses another or quits (FILES-66). | User, 2026-11-18 |
 | FILES-74 | Event      | When the user presses `v` in the tree, the system shall show over the tree, for 2.5 seconds after the last `v`, the hint with the letter and the name of each view, without a change of the width of the tree. | User, 2026-11-18 |
 | FILES-75 | Ubiquitous | The system shall name the active view and its key in the head of the tree. | User, 2026-11-18 |

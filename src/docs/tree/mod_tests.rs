@@ -289,17 +289,17 @@ fn the_text_view_walks_off_the_ui_thread() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// SESSIONS-23: agent session 1 (0 from 0) has no worktree, also where `.worktrees/1` exists; agent
-// session 2 has `.worktrees/2`.
+// SESSIONS-23: agent session 0 has no worktree; agent session 1 has `.worktrees/1`.
 #[test]
-fn session_1_has_no_worktree() {
+fn session_0_has_no_worktree() {
     let root = std::env::temp_dir().join(format!("zendo-tree-session-1-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
     for n in [1, 2] {
         std::fs::create_dir_all(root.join(format!(".worktrees/{n}"))).unwrap();
         std::fs::write(root.join(format!(".worktrees/{n}/.git")), "gitdir: x\n").unwrap();
     }
-    assert_eq!(worktree::of(&root, 0), None, "session 1: the main checkout");
-    assert_eq!(worktree::of(&root, 1), Some(PathBuf::from(".worktrees/2")));
+    assert_eq!(worktree::of(&root, 0), None, "session 0: the main checkout");
+    assert_eq!(worktree::of(&root, 1), Some(PathBuf::from(".worktrees/1")));
+    assert_eq!(worktree::of(&root, 2), Some(PathBuf::from(".worktrees/2")));
     let _ = std::fs::remove_dir_all(&root);
 }

@@ -58,11 +58,19 @@ pub(crate) fn draw_strip(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, ar
     }
     for (v, y) in rows {
         let on = v == tree.view;
-        let style = if on { Style::new().bg(t.acc).fg(t.bg).add_modifier(Modifier::BOLD) } else { Style::new().fg(t.acc2) };
+        // FILES-82: a view that the session cannot show stands in the dim color and takes no click.
+        let can = tree.can_show(v);
+        let style = match (on, can) {
+            (true, _) => Style::new().bg(t.acc).fg(t.bg).add_modifier(Modifier::BOLD),
+            (false, true) => Style::new().fg(t.acc2),
+            (false, false) => Style::new().fg(t.dim),
+        };
         let text = if hint { format!("{} {}", v.letter(), hint_name(v)) } else { v.letter().to_string() };
         let r = Rect { y, width: (text.width() as u16).min(w.max(1)), height: 1, ..area };
         f.render_widget(Paragraph::new(Line::styled(text, style)), r);
-        fr.view_buttons.push((r, v));
+        if can {
+            fr.view_buttons.push((r, v));
+        }
     }
 }
 

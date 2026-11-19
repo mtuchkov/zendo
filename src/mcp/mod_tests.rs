@@ -103,16 +103,17 @@ fn initialize_answers_a_known_protocol_version() {
     assert_eq!(init("1999-01-01"), PROTOCOL);
 }
 
-// SESSIONS-23: zendo session 1 works in the main checkout: its instructions name no worktree and
-// tell the agent to make none; session 2 keeps its worktree.
+// SESSIONS-23: zendo session 0 works in the main checkout: its instructions name no worktree and
+// tell the agent to make none; session 1 has `.worktrees/1`.
 #[test]
-fn session_1_works_in_the_main_checkout() {
+fn session_0_works_in_the_main_checkout() {
     let init = || call(1, "initialize", json!({ "protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } }));
+    let zero = talk(0, &[init()]);
+    let text = zero[0]["result"]["instructions"].as_str().unwrap();
+    assert!(text.starts_with("<zendo_session id=\"0\">") && text.contains("<worktree>the main checkout</worktree>"), "{text}");
+    assert!(!text.contains(".worktrees/") || text.contains("`.worktrees/<id>`"), "no worktree of its own: {text}");
+    assert!(text.contains("Do not create, use or remove any worktree"), "{text}");
     let one = talk(1, &[init()]);
     let text = one[0]["result"]["instructions"].as_str().unwrap();
-    assert!(text.starts_with("<zendo_session id=\"1\">") && text.contains("<worktree>the main checkout</worktree>"), "{text}");
-    assert!(!text.contains(".worktrees/1") && !text.contains("git worktree add"), "no worktree of its own: {text}");
-    assert!(text.contains("Do not create, use or remove any worktree"), "{text}");
-    let two = talk(2, &[init()]);
-    assert!(two[0]["result"]["instructions"].as_str().unwrap().contains("<worktree>.worktrees/2</worktree>"));
+    assert!(text.starts_with("<zendo_session id=\"1\">") && text.contains("<worktree>.worktrees/1</worktree>"), "{text}");
 }

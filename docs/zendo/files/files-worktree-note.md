@@ -14,8 +14,8 @@ note: "From the request of the user on 2026-11-14: a question in agent session 2
 
 Parent: [File tree](files.md).
 
-Each agent session from session 2 on changes code only in its own worktree, `.worktrees/<id>`
-(SESSIONS-21 in [Sessions](../sessions.md)); session 1 works in the main checkout (SESSIONS-23). The note pane shows, and a question names and attaches, the version of
+Each agent session from session 1 on changes code only in its own worktree, `.worktrees/<id>`
+(SESSIONS-21 in [Sessions](../sessions.md)); session 0 works in the main checkout (SESSIONS-23). The note pane shows, and a question names and attaches, the version of
 the active agent session: in its worktree, or in the main checkout while it has none.
 
 **The document.** zendo keeps the open document as its path without the worktree:

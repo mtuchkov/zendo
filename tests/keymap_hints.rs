@@ -146,16 +146,16 @@ fn the_handoff_hints_name_its_key() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// CLAUDE-35, TERM-48: with other keys than F6 to F10 and F5, the session buttons show 1 to 5, and the
+// CLAUDE-35, TERM-48: with other keys than F6 to F10 and F5, the session buttons show 0 to 4, and the
 // first terminal shows [>].
 #[tokio::test]
-async fn other_session_keys_name_the_buttons_1_to_5_and_the_terminal_by_its_mark() {
+async fn other_session_keys_name_the_buttons_0_to_4_and_the_terminal_by_its_mark() {
     let (root, mut a) = with_notes("session-names");
-    let cfg: KeyConfig = toml::from_str("[global]\nsession_1 = \"alt-1\"\nsession_2 = \"alt-2\"\nsession_3 = \"alt-3\"\nsession_4 = \"alt-4\"\nsession_5 = \"alt-5\"\nterminal = \"alt-0\"\n").unwrap();
+    let cfg: KeyConfig = toml::from_str("[global]\nsession_0 = \"alt-1\"\nsession_1 = \"alt-2\"\nsession_2 = \"alt-3\"\nsession_3 = \"alt-4\"\nsession_4 = \"alt-5\"\nterminal = \"alt-0\"\n").unwrap();
     a.keys = Keymap::new(None, &cfg).0;
     a.open_panel();
     let screen = draw(&mut a, 160, 30).join("\n");
-    for s in [" 1 ", " 3 ", " 5 ", "[>]"] {
+    for s in [" 0 ", " 2 ", " 4 ", "[>]"] {
         assert!(screen.contains(s), "{s}:\n{screen}");
     }
     for s in ["ALT-", "F6", "F5"] {

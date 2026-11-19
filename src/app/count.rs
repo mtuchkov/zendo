@@ -40,7 +40,7 @@ impl App {
 
     /// A click on the button of an agent session or of the `F5` terminal.
     pub(crate) fn count_session_button(&mut self, n: usize) {
-        let act = if n < SESSIONS { format!("session_{}", n + 1) } else { "terminal".to_string() };
+        let act = if n < SESSIONS { format!("session_{n}") } else { "terminal".to_string() };
         if n <= SESSIONS {
             self.did_by_mouse(Pane::Global, &act);
         }
