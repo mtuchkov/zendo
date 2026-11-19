@@ -107,7 +107,7 @@ impl App {
                 self.bg.list.push(Bg { pgid: g.pgid, label: g.label, started, key, stopping: None });
             }
         }
-        let (alive, ended): (Vec<Bg>, Vec<Bg>) = std::mem::take(&mut self.bg.list).into_iter().partition(|b| procs::alive(procs, b.pgid));
+        let (alive, ended): (Vec<Bg>, Vec<Bg>) = std::mem::take(&mut self.bg.list).into_iter().partition(|b| procs::alive(procs, b.pgid) || procs::group_exists(b.pgid));
         self.bg.list = alive;
         for b in ended {
             self.thread(&b.key).push(Item::Info(format!("{} ended · {}", b.label, ran(b.started.elapsed()))));
