@@ -1,6 +1,10 @@
-//! The processes of the computer, as `ps` lists them, and the background processes of the agent
-//! among them (docs/zendo/background.md, ADR 0016). `ps` works the same on Linux and macOS.
+//! The processes of zendo and the background processes of the agent among them
+//! (docs/zendo/background.md, ADR 0016). On Linux the tree of zendo comes from `/proc`; elsewhere,
+//! and on a kernel without the `children` files, from `ps`.
+use rustix::process::{Pid, Signal};
 use std::process::{Command, Stdio};
+
+mod linux;
 
 /// One process: its id, its parent, its group, its age in seconds, and its command line.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -22,8 +26,18 @@ pub struct Group {
     pub label: String,
 }
 
-/// The processes of the computer now; none when `ps` does not run.
+/// The processes of zendo now: on Linux only its own tree, read from `/proc`, so that zendo starts
+/// no program each second and does not list the other processes of the computer.
 pub fn list() -> Vec<Proc> {
+    #[cfg(target_os = "linux")]
+    if let Some(t) = linux::tree(std::path::Path::new("/proc"), std::process::id()) {
+        return t;
+    }
+    ps()
+}
+
+/// The processes of the computer, as `ps` lists them; none when `ps` does not run.
+fn ps() -> Vec<Proc> {
     let out = Command::new("ps").args(["-A", "-o", "pid=,ppid=,pgid=,stat=,etime=,args="]).stderr(Stdio::null()).output();
     out.map(|o| parse(&String::from_utf8_lossy(&o.stdout))).unwrap_or_default()
 }
@@ -130,15 +144,27 @@ pub fn alive(procs: &[Proc], pgid: u32) -> bool {
     procs.iter().any(|p| p.pgid == pgid)
 }
 
-/// The group of the process `pid`.
-pub fn group_of(procs: &[Proc], pid: u32) -> Option<u32> {
-    procs.iter().find(|p| p.pid == pid).map(|p| p.pgid)
+/// The group of zendo itself.
+fn own_group() -> Option<u32> {
+    u32::try_from(Pid::as_raw(Some(rustix::process::getpgrp()))).ok()
 }
 
-/// The group of zendo itself, read once.
-fn own_group() -> Option<u32> {
-    static OWN: std::sync::OnceLock<Option<u32>> = std::sync::OnceLock::new();
-    *OWN.get_or_init(|| group_of(&list(), std::process::id()))
+/// True while a process of the group `pgid` runs anywhere on the computer, also after it left the
+/// tree of zendo (BG-10). zendo asks the kernel with signal 0: it sends nothing. A group whose
+/// leader is a zombie ended, as `ps` counts it: signal 0 still reaches a zombie.
+pub fn group_exists(pgid: u32) -> bool {
+    let pid = i32::try_from(pgid).ok().and_then(Pid::from_raw);
+    pid.is_some_and(|p| rustix::process::test_kill_process_group(p).is_ok()) && !leader_ended(pgid)
+}
+
+#[cfg(target_os = "linux")]
+fn leader_ended(pgid: u32) -> bool {
+    linux::zombie(std::path::Path::new("/proc"), pgid)
+}
+
+#[cfg(not(target_os = "linux"))]
+fn leader_ended(_pgid: u32) -> bool {
+    false
 }
 
 /// True when zendo may signal the group `pgid`: not 0 (the group of the caller), not 1 (every
@@ -153,8 +179,8 @@ pub fn stop(pgid: u32, force: bool) -> bool {
     if !may_stop(pgid, own_group()) {
         return false;
     }
-    let signal = if force { "-KILL" } else { "-TERM" };
-    let _ = Command::new("kill").args([signal, "--", &format!("-{pgid}")]).stdout(Stdio::null()).stderr(Stdio::null()).status();
+    let Some(pid) = i32::try_from(pgid).ok().and_then(Pid::from_raw) else { return false };
+    let _ = rustix::process::kill_process_group(pid, if force { Signal::KILL } else { Signal::TERM });
     true
 }
 

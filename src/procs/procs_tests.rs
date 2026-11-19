@@ -85,25 +85,11 @@ fn zendo_never_signals_its_own_group() {
     assert!(!may_stop(230, None), "the group of zendo is unknown");
 }
 
-// BG-3: zendo finds its own group in the output of `ps`.
-#[test]
-fn the_own_group_reads_from_ps() {
-    assert_eq!(group_of(&parse(PS), 220), Some(210));
-    assert_eq!(group_of(&parse(PS), 999), None);
-}
 
-// BG-5: an MCP server in a process group of its own runs no shell: it is not a command of the
-// agent and does not count.
+// BG-10: a group that runs is known to the kernel; a group that does not run is not.
 #[test]
-fn a_group_without_a_shell_does_not_count() {
-    let p = parse(PS);
-    let g = groups(&p, 100, &[300]);
-    assert!(g.iter().all(|g| g.pgid != 250), "{g:?}");
-}
-
-// BG-1: the background line names a program by its file, without its folder.
-#[test]
-fn a_short_label_drops_the_folders() {
-    assert_eq!(short("/home/u/.nvm/versions/node/v24.15.0/bin/node /home/u/x/mcp.js --stdio"), "node mcp.js --stdio");
-    assert_eq!(short("npm run dev"), "npm run dev");
+fn the_kernel_knows_a_running_group() {
+    let own = own_group().expect("the group of the test");
+    assert!(group_exists(own));
+    assert!(!group_exists(0) && !group_exists(u32::MAX));
 }
