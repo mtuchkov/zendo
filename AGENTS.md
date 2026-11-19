@@ -51,6 +51,27 @@ The project structure is the set of top-level folders, the folders of `docs/`, a
   document without children shall be a file in the directory of its parent and shall get no
   directory of its own. The agent shall not use `README.md` files as tree nodes.
 
+## Failure requirements
+
+Terms:
+
+- A dependency is a file, a program or a service that the system reads or calls.
+- A dependency fails when it is missing, is not valid, changes during use, or gives no answer.
+- User data is a file that the user can edit: a note, the config, a file of the repository.
+
+Rules:
+
+- The [root specification](docs/zendo/zendo.md) shall define the failure default: what the system
+  does when a dependency fails.
+- A specification shall contain a failure requirement only for behavior that is different from the
+  failure default.
+- WHEN a feature writes or deletes user data, the specification shall state:
+  - the content that the feature does not change;
+  - the behavior of the system when the write is not completed.
+- IF a fix corrects behavior that no requirement covers, THEN the agent shall add a requirement:
+  - to the failure default, when the behavior applies to all features;
+  - to the specification of the feature, in all other cases.
+
 ## Code
 
 - A source file shall have at most 300 lines, and a function at most 70 lines.
