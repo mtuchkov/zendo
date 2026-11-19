@@ -11,13 +11,14 @@ const SYSTEM: &str = "You name things. Answer with the few words that the user a
 /// The longest time of one question; the CLI starts first.
 const LIMIT: Duration = Duration::from_secs(60);
 
-/// The arguments of `claude` for one question to `model`: the message comes on the standard input,
-/// the answer in JSON lines, and nothing of the settings, hooks, tools or MCP servers of the user
-/// takes part.
-pub fn args(model: &str) -> Vec<String> {
+/// The arguments of `claude` for one question to `model` with `effort`: the message comes on the
+/// standard input, the answer in JSON lines, and nothing of the settings, hooks, tools or MCP
+/// servers of the user takes part (REKEY-6, NAMES-21).
+pub fn args(model: &str, effort: Option<&str>) -> Vec<String> {
     let a = ["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--model", model, "--system-prompt", SYSTEM];
     let b = ["--tools", "", "--strict-mcp-config", "--setting-sources", "", "--disable-slash-commands", "--no-session-persistence"];
-    a.iter().chain(b.iter()).map(|s| s.to_string()).collect()
+    let e = effort.map(|e| ["--effort", e]).into_iter().flatten();
+    a.iter().chain(b.iter()).copied().chain(e).map(str::to_string).collect()
 }
 
 /// The line of the standard input: one user message with the content blocks `blocks`.
@@ -41,11 +42,11 @@ pub fn logged_in(path: &Path) -> bool {
     out.ok().and_then(|o| serde_json::from_slice::<Value>(&o.stdout).ok()).is_some_and(|v| v["loggedIn"] == true)
 }
 
-/// One question through `claude -p` at `path`, in the temp folder, so that no `CLAUDE.md` of a
-/// project takes part.
-pub fn ask(path: &Path, api: &Api, prompt: &str, image: Option<&Image>) -> Result<String, String> {
-    let blocks = Api { vendor: Vendor::Anthropic, ..api.clone() }.body(prompt, image)["messages"][0]["content"].clone();
-    let spawn = Command::new(path).args(args(&api.model)).current_dir(std::env::temp_dir()).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn();
+/// One question through `claude -p`, in the temp folder, so that no `CLAUDE.md` of a project takes
+/// part.
+pub fn ask(api: &Api, prompt: &str, image: Option<&Image>) -> Result<String, String> {
+    let blocks = content(prompt, image);
+    let spawn = Command::new(&api.path).args(args(&api.model, api.effort.as_deref())).current_dir(std::env::temp_dir()).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn();
     let mut child = spawn.map_err(|e| format!("claude: {e}"))?;
     let sent = child.stdin.take().map(|mut i| i.write_all(input(&blocks).as_bytes()));
     let mut out = child.stdout.take().ok_or("claude: no output")?;

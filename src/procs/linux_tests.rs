@@ -58,12 +58,25 @@ fn a_zombie_and_an_ended_process_do_not_count() {
     let _ = fs::remove_dir_all(&base);
 }
 
-// ADR 0016: a kernel without the children files gives no tree, so zendo uses `ps`.
+// ADR 0016, ADR 0023: a kernel without the children files gives no tree, and zendo runs no `ps`.
 #[test]
 fn no_children_files_give_no_tree() {
     let base = fake_proc("nochildren");
     process(&base, P(100, 1, 100, 'S', 0), &["zendo"], &[]);
     fs::remove_file(base.join("100/task/100/children")).unwrap();
     assert_eq!(tree(&base, 100), None);
+    let _ = fs::remove_dir_all(&base);
+}
+
+// BG-10, BG-14, ADR 0023: a group runs while its leader runs: `/proc/<pgid>` holds a process that
+// is not a zombie. zendo sends no signal to find it out.
+#[test]
+fn a_group_runs_while_its_leader_runs() {
+    let base = fake_proc("leader");
+    process(&base, P(500, 1, 500, 'S', 10), &["sleep", "60"], &[]);
+    process(&base, P(600, 1, 600, 'Z', 10), &["sleep", "60"], &[]);
+    assert!(leader_runs(&base, 500));
+    assert!(!leader_runs(&base, 600), "a zombie ended");
+    assert!(!leader_runs(&base, 700), "no such process");
     let _ = fs::remove_dir_all(&base);
 }

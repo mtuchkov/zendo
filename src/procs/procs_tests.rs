@@ -1,5 +1,30 @@
 use super::*;
 
+/// The processes of a fixture, one a line as `ps -o pid=,ppid=,pgid=,stat=,etime=,args=` prints
+/// them. A zombie runs no more: it does not count.
+fn parse(text: &str) -> Vec<Proc> {
+    text.lines().filter_map(line).collect()
+}
+
+fn line(l: &str) -> Option<Proc> {
+    let mut it = l.split_whitespace();
+    let (pid, ppid, pgid) = (it.next()?.parse().ok()?, it.next()?.parse().ok()?, it.next()?.parse().ok()?);
+    if it.next()?.starts_with('Z') {
+        return None;
+    }
+    let secs = etime(it.next()?)?;
+    let args = it.collect::<Vec<_>>().join(" ");
+    (!args.is_empty()).then_some(Proc { pid, ppid, pgid, secs, args })
+}
+
+/// The age as `ps` writes it: `[[dd-]hh:]mm:ss`.
+fn etime(s: &str) -> Option<u64> {
+    let (days, rest) = s.split_once('-').map_or(Some((0, s)), |(d, r)| Some((d.parse::<u64>().ok()?, r)))?;
+    let parts: Vec<u64> = rest.split(':').map(str::parse).collect::<Result<_, _>>().ok()?;
+    let secs = parts.iter().fold(0, |a, p| a * 60 + p);
+    (parts.len() <= 3).then_some(days * 86400 + secs)
+}
+
 const PS: &str = "    1     0     1 S  3-01:02:03 /sbin/init
   100     1   100 S       10:00 zendo
   200   100   200 S       09:59 npx claude-agent-acp
@@ -15,19 +40,6 @@ const PS: &str = "    1     0     1 S  3-01:02:03 /sbin/init
   310   300   310 S       07:00 cargo watch
   400     1   400 S       01:00 orphan-of-another-zendo
 ";
-
-// BG-2: `ps` gives the pid, the parent, the group, the age and the command of each process.
-#[test]
-fn ps_output_parses() {
-    let p = parse(PS);
-    assert_eq!(p.len(), 14);
-    assert_eq!((p[0].pid, p[0].ppid, p[0].pgid, p[0].secs), (1, 0, 1, 3 * 86400 + 3600 + 2 * 60 + 3));
-    assert_eq!((p[6].secs, p[6].args.as_str()), (299, "npm run dev"));
-    assert_eq!(p[7].secs, 12);
-    assert_eq!(p[13].pid, 400);
-    assert!(parse("garbage\n  1 2\n").is_empty());
-    assert!(parse("  9 1 9 Z 0:01 [sleep] <defunct>\n").is_empty(), "a zombie does not count");
-}
 
 // BG-2, BG-5: a background process is a process group of its own under zendo; the agent, the MCP
 // server in the group of the agent, and the subtree of a terminal do not count.

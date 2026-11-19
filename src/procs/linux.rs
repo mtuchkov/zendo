@@ -10,7 +10,7 @@ use std::path::Path;
 const TICKS: f64 = 100.0;
 
 /// The process `root` and the processes under it, read from the `/proc` at `base`. `None` when the
-/// kernel has no `children` files: then the caller uses `ps`.
+/// kernel has no `children` files: then zendo finds no background process, and runs no `ps`.
 pub fn tree(base: &Path, root: u32) -> Option<Vec<Proc>> {
     fs::metadata(base.join(format!("{root}/task/{root}/children"))).ok()?;
     let uptime = uptime(base)?;
@@ -24,8 +24,13 @@ pub fn tree(base: &Path, root: u32) -> Option<Vec<Proc>> {
     Some(out)
 }
 
+/// True while the process `pid` runs: it is in `/proc`, and not a zombie (BG-10, ADR 0023).
+pub fn leader_runs(base: &Path, pid: u32) -> bool {
+    base.join(pid.to_string()).is_dir() && !zombie(base, pid)
+}
+
 /// True when the process `pid` is a zombie: it ended, and its parent did not wait for it yet.
-pub fn zombie(base: &Path, pid: u32) -> bool {
+fn zombie(base: &Path, pid: u32) -> bool {
     let stat = fs::read_to_string(base.join(format!("{pid}/stat"))).unwrap_or_default();
     stat.rsplit_once(')').is_some_and(|(_, rest)| rest.trim_start().starts_with('Z'))
 }

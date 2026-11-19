@@ -1,10 +1,12 @@
 //! The processes of zendo and the background processes of the agent among them
-//! (docs/zendo/background.md, ADR 0016). On Linux the tree of zendo comes from `/proc`; elsewhere,
-//! and on a kernel without the `children` files, from `ps`.
+//! (docs/zendo/background.md, ADR 0016, ADR 0023). The tree of zendo comes from `/proc` on Linux and
+//! from libproc on macOS. zendo starts no program for it, lists no other process of the computer,
+//! and sends a signal only to stop a group.
 use rustix::process::{Pid, Signal};
-use std::process::{Command, Stdio};
 
 mod linux;
+#[cfg(target_os = "macos")]
+mod macos;
 
 /// One process: its id, its parent, its group, its age in seconds, and its command line.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -26,47 +28,24 @@ pub struct Group {
     pub label: String,
 }
 
-/// The processes of zendo now: on Linux only its own tree, read from `/proc`, so that zendo starts
-/// no program each second and does not list the other processes of the computer.
+/// The processes of zendo now: only its own tree, so that zendo starts no program each second and
+/// does not list the other processes of the computer. A Linux kernel without the `children` files
+/// gives none.
+#[cfg(target_os = "linux")]
 pub fn list() -> Vec<Proc> {
-    #[cfg(target_os = "linux")]
-    if let Some(t) = linux::tree(std::path::Path::new("/proc"), std::process::id()) {
-        return t;
-    }
-    ps()
+    linux::tree(std::path::Path::new("/proc"), std::process::id()).unwrap_or_default()
 }
 
-/// The processes of the computer, as `ps` lists them; none when `ps` does not run.
-fn ps() -> Vec<Proc> {
-    let out = Command::new("ps").args(["-A", "-o", "pid=,ppid=,pgid=,stat=,etime=,args="]).stderr(Stdio::null()).output();
-    out.map(|o| parse(&String::from_utf8_lossy(&o.stdout))).unwrap_or_default()
+/// The processes of zendo now, from libproc (ADR 0023).
+#[cfg(target_os = "macos")]
+pub fn list() -> Vec<Proc> {
+    macos::tree(std::process::id())
 }
 
-/// The lines of `ps -o pid=,ppid=,pgid=,stat=,etime=,args=`. A zombie runs no more: it does not
-/// count.
-pub fn parse(text: &str) -> Vec<Proc> {
-    text.lines().filter_map(line).collect()
-}
-
-fn line(l: &str) -> Option<Proc> {
-    let mut it = l.split_whitespace();
-    let pid = it.next()?.parse().ok()?;
-    let ppid = it.next()?.parse().ok()?;
-    let pgid = it.next()?.parse().ok()?;
-    if it.next()?.starts_with('Z') {
-        return None;
-    }
-    let secs = etime(it.next()?)?;
-    let args = it.collect::<Vec<_>>().join(" ");
-    (!args.is_empty()).then_some(Proc { pid, ppid, pgid, secs, args })
-}
-
-/// The age of `ps`: `[[dd-]hh:]mm:ss`.
-fn etime(s: &str) -> Option<u64> {
-    let (days, rest) = s.split_once('-').map_or(Some((0, s)), |(d, r)| Some((d.parse::<u64>().ok()?, r)))?;
-    let parts: Vec<u64> = rest.split(':').map(str::parse).collect::<Result<_, _>>().ok()?;
-    let secs = parts.iter().fold(0, |a, p| a * 60 + p);
-    (parts.len() <= 3).then_some(days * 86400 + secs)
+/// No process tree on other systems: no background processes.
+#[cfg(not(any(target_os = "linux", target_os = "macos")))]
+pub fn list() -> Vec<Proc> {
+    Vec::new()
 }
 
 /// The processes under `pid`, deep first, with the direct child of `pid` that each one is under.
@@ -149,21 +128,20 @@ fn own_group() -> Option<u32> {
     u32::try_from(Pid::as_raw(Some(rustix::process::getpgrp()))).ok()
 }
 
-/// True while a process of the group `pgid` runs anywhere on the computer, also after it left the
-/// tree of zendo (BG-10). zendo asks the kernel with signal 0: it sends nothing. A group whose
-/// leader is a zombie ended, as `ps` counts it: signal 0 still reaches a zombie.
-pub fn group_exists(pgid: u32) -> bool {
-    let pid = i32::try_from(pgid).ok().and_then(Pid::from_raw);
-    pid.is_some_and(|p| rustix::process::test_kill_process_group(p).is_ok()) && !leader_ended(pgid)
-}
-
+/// True while the group `pgid` runs, also after it left the tree of zendo (BG-10): its leader runs.
+/// zendo reads it from `/proc/<pgid>` or libproc, and sends no signal (ADR 0023).
 #[cfg(target_os = "linux")]
-fn leader_ended(pgid: u32) -> bool {
-    linux::zombie(std::path::Path::new("/proc"), pgid)
+pub fn group_exists(pgid: u32) -> bool {
+    pgid > 0 && linux::leader_runs(std::path::Path::new("/proc"), pgid)
 }
 
-#[cfg(not(target_os = "linux"))]
-fn leader_ended(_pgid: u32) -> bool {
+#[cfg(target_os = "macos")]
+pub fn group_exists(pgid: u32) -> bool {
+    macos::group_exists(pgid)
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "macos")))]
+pub fn group_exists(_pgid: u32) -> bool {
     false
 }
 

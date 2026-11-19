@@ -1,12 +1,8 @@
-//! The questions to the API, each on a thread of its own: the tick of the app takes the answers,
-//! so the UI never waits for the network (ADR 0009, ADR 0010).
+//! The questions to the light model, each on a thread of its own: the tick of the app takes the
+//! answers, so the UI never waits for `claude -p` (ADR 0009, ADR 0010).
 use super::*;
 use chrono::{DateTime, Local};
 use std::sync::mpsc::{Receiver, Sender, channel};
-use std::time::Duration;
-
-/// The longest time of one question.
-const LIMIT: Duration = Duration::from_secs(20);
 
 /// What a question asks for.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -63,23 +59,10 @@ impl Asker {
     }
 }
 
-/// One question to `api`: the text of the answer, or the error. The proxy of the environment
-/// applies.
+/// One question to `api` through `claude -p`: the text of the answer, or the error (NAMES-21).
 pub fn ask(api: &Api, prompt: &str, image: Option<&Path>) -> Result<String, String> {
     let image = image.map(read_image).transpose()?;
-    if let Credential::Claude(path) = &api.cred {
-        return cli::ask(path, api, prompt, image.as_ref());
-    }
-    let token = api.token()?;
-    let agent: ureq::Agent = ureq::Agent::config_builder().timeout_global(Some(LIMIT)).http_status_as_error(false).build().into();
-    let req = api.headers(&token).into_iter().fold(agent.post(&api.url()), |r, (k, v)| r.header(k, v));
-    let mut resp = req.send_json(api.body(prompt, image.as_ref())).map_err(|e| e.to_string())?;
-    let status = resp.status().as_u16();
-    let v: Value = resp.body_mut().read_json().unwrap_or(Value::Null);
-    match status {
-        200..=299 => answer_text(api.vendor, &v).ok_or_else(|| "no text in the answer".to_string()),
-        _ => Err(error_text(status, &v)),
-    }
+    cli::ask(api, prompt, image.as_ref())
 }
 
 /// The image at `path` in base64.

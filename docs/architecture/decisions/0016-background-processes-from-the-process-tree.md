@@ -1,6 +1,7 @@
 ---
 status: "approved"
 approved: "2026-11-18"
+note: "ADR 0023 (draft, 2026-11-18) changes it in part: no `ps` fallback and no signal 0; libproc on macOS; scans only around commands."
 date: "2026-11-18"
 sources:
   - "The user, 2026-11-18: show that background processes still run, and which ones; much asked for."

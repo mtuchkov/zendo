@@ -177,7 +177,8 @@ pub const CONSOLIDATE_PROMPT: &str = include_str!(concat!(env!("CARGO_MANIFEST_D
 pub const SSH_REPO: &str = "ssh://git@github.com/mtuchkov/zendo.git";
 pub const HTTPS_REPO: &str = "https://github.com/mtuchkov/zendo.git";
 
-const UPDATE_EVERY: Duration = Duration::from_secs(12 * 3600);
+/// The update check asks GitHub at most once in this time (CMD-20, ADR 0023).
+const UPDATE_EVERY: Duration = Duration::from_secs(24 * 3600);
 
 #[cfg(test)]
 #[path = "mod_tests.rs"]

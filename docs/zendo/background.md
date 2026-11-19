@@ -1,13 +1,13 @@
 ---
 status: "approved"
 approved: "2026-11-18"
-revision: "2"
+revision: "3"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "interactivity.md"
 next: "terminal/terminal.md"
 level: "the background processes of the agent and of Claude Code: that they still run, which ones, their end, their stop, and the quit"
-note: "Agent draft from the request of the user on 2026-11-18 in chat: show that background processes still run, and which ones; much asked for. It replaces ACT-12, INTER-4 and INTER-12, which are retired. Approved by the user on 2026-11-18. Revision 2, agent draft from the user on 2026-11-18 in chat: the line counted processes that it did not show and an MCP server; quit again did not quit; a click on the mark shall open the list of all processes (BG-11, BG-12, BG-4, BG-5). Revision 2 approved by the user on 2026-11-18."
+note: "Agent draft from the request of the user on 2026-11-18 in chat: show that background processes still run, and which ones; much asked for. It replaces ACT-12, INTER-4 and INTER-12, which are retired. Approved by the user on 2026-11-18. Revision 2, agent draft from the user on 2026-11-18 in chat: the line counted processes that it did not show and an MCP server; quit again did not quit; a click on the mark shall open the list of all processes (BG-11, BG-12, BG-4, BG-5). Revision 2 approved by the user on 2026-11-18. Revision 3 (user, 2026-11-18, in chat; the text waits for the review of the user): BG-13 and BG-14, no `ps` and no signal 0 (ADR 0023)."
 ---
 
 # Background processes
@@ -17,7 +17,11 @@ long test run or a monitor. The user must see at any time that such a process st
 one, also after the turn ended. zendo finds these processes itself, in the processes that it
 started: the agent and each Claude Code session
 ([ADR 0016](../architecture/decisions/0016-background-processes-from-the-process-tree.md)). So this
-works on ACP v1 and v2, in a Claude Code session, and with each agent.
+works on ACP v1 and v2, in a Claude Code session, and with each agent. zendo reads its own tree from
+`/proc` on Linux and from libproc on macOS; it starts no program for it, lists no other process of
+the computer, and sends a signal only to stop a group (BG-14). It reads the tree only while a
+command step runs, for 10 s after the start of the last command step, and while the background line
+shows a process (BG-13, ADR 0023).
 
 **What counts.** A background process is a command of the agent or of Claude Code that still runs
 when no step runs it: its step ended, or it was started in the background. A process that the agent
@@ -100,7 +104,9 @@ child processes in a folder of its own.
 
 Detailed tests: `the_mark_opens_the_list_of_all_processes` (BG-11) and
 `a_process_without_room_shows_as_more` (BG-12) in `tests/background.rs`;
-`a_group_without_a_shell_does_not_count` (BG-5) in `src/procs/procs_tests.rs`.
+`a_group_without_a_shell_does_not_count` (BG-5) in `src/procs/procs_tests.rs`;
+`the_tree_is_read_only_around_commands` (BG-13) in `src/app/background_tests.rs`;
+`a_group_runs_while_its_leader_runs` (BG-10, BG-14) in `src/procs/linux_tests.rs`.
 
 ## Detailed requirements
 
@@ -114,6 +120,8 @@ Detailed tests: `the_mark_opens_the_list_of_all_processes` (BG-11) and
 | BG-10 | State     | While a background process runs after its agent stopped or its Claude Code session ended, the system shall keep it in the background line until it ends. | Design |
 | BG-11 | Event     | When the user clicks the mark `⏵` of the background line, the system shall show above the line the list of all background processes of the session, one row for each with its whole command, its time and `×`; when the user clicks `⏷`, the system shall close the list. | User, 2026-11-18 |
 | BG-12 | Unwanted  | If the background line has no room for a process, then the system shall end the line with the number of the processes that it does not show, such as `+1`. | User, 2026-11-18 |
+| BG-13 | State     | While no command step runs, the last command step started more than 10 s ago, and the background line shows no process, the system shall not read the process tree. | User, 2026-11-18; ADR 0023 |
+| BG-14 | Ubiquitous | The system shall find the background processes without a start of a program, without a list of the other processes of the computer, and without a signal other than the stop of a group (BG-3, BG-9). | User, 2026-11-18; ADR 0023 |
 
 Retired: ACT-12 (the background line on ACP v2 only), INTER-4 and INTER-12 (the stop of one task on
 ACP v2 only), because BG-1 to BG-3 cover them on every version (User, 2026-11-18).

@@ -23,7 +23,7 @@ fn mock_claude(name: &str, status: &str, answer: &str) -> PathBuf {
 }
 
 fn api(path: &std::path::Path) -> Api {
-    Api { vendor: Vendor::Anthropic, base: "https://api.anthropic.com".into(), model: "claude-haiku-5-5".into(), cred: Credential::Claude(path.into()), effort: None }
+    Api { path: path.into(), model: "claude-haiku-5-5".into(), effort: None }
 }
 
 // NAMES-21: `claude -p` gets one user message with the prompt and the image, and no tools, no
@@ -33,17 +33,24 @@ fn api(path: &std::path::Path) -> Api {
 fn claude_p_answers_with_no_tools_and_no_settings() {
     let path = mock_claude("ask", "{\"loggedIn\": true}", "parser, lexer");
     let img = Image { media: "image/png", data: "AAA=".into() };
-    assert_eq!(ask(&path, &api(&path), "name it", Some(&img)).as_deref(), Ok("parser, lexer"));
+    assert_eq!(ask(&api(&path), "name it", Some(&img)).as_deref(), Ok("parser, lexer"));
     let sent: Value = serde_json::from_str(&std::fs::read_to_string(path.with_extension("in")).unwrap()).unwrap();
     assert_eq!(sent["type"], "user");
     assert_eq!(sent["message"]["content"][0]["source"]["data"], "AAA=");
     assert_eq!(sent["message"]["content"][1]["text"], "name it");
-    let a = args("claude-haiku-5-5");
+    let a = args("claude-haiku-5-5", None);
     for flag in ["-p", "--strict-mcp-config", "--disable-slash-commands", "--no-session-persistence", "--system-prompt"] {
         assert!(a.iter().any(|x| x == flag), "{flag}: {a:?}");
     }
     assert!(a.windows(2).any(|w| w == ["--model", "claude-haiku-5-5"]) && a.windows(2).any(|w| w == ["--tools", ""]));
     let _ = std::fs::remove_dir_all(path.parent().unwrap());
+}
+
+// REKEY-6: a question with an effort asks `claude -p` for it; without one, no `--effort`.
+#[test]
+fn an_effort_goes_into_the_arguments() {
+    assert!(args("claude-haiku-5-5", Some("low")).windows(2).any(|w| w == ["--effort", "low"]));
+    assert!(!args("claude-haiku-5-5", None).iter().any(|a| a == "--effort"));
 }
 
 // NAMES-21: `claude auth status` decides whether the CLI is a credential.

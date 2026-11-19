@@ -2,7 +2,9 @@
 //! ADR 0016): zendo finds them in its own process tree, shows them, stops one, and asks at quit.
 use super::*;
 use crate::procs::{self, Proc};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, channel};
+use std::sync::Arc;
 
 /// A background process that the chat shows.
 #[derive(Clone, Debug)]
@@ -21,6 +23,8 @@ pub struct Bg {
 pub struct Background {
     pub list: Vec<Bg>,
     scans: Option<Receiver<Vec<Proc>>>,
+    /// The scanner reads the tree only while this is on (ADR 0023).
+    wanted: Arc<AtomicBool>,
     /// The quit asked about the background processes at this time (BG-4).
     pub quit_asked: Option<Instant>,
     /// The next key answers the question of the quit: `enter` or `esc` (BG-4).
@@ -41,15 +45,31 @@ const FORCE_AFTER: Duration = Duration::from_secs(5);
 /// A process that starts this soon after a step belongs to that step.
 const SLACK: Duration = Duration::from_secs(2);
 
-/// The scans of the process tree, off the UI thread (ADR 0009, ADR 0016).
-fn scanner() -> Receiver<Vec<Proc>> {
+/// After the start of the last command step, the scans go on this long: a command shows in the
+/// background only after its step, and the step of a Claude Code session can come when it ended
+/// (BG-1, ADR 0023).
+const SCAN_AFTER: Duration = Duration::from_secs(10);
+
+/// The scans of the process tree, off the UI thread, once a second while `wanted` is on (ADR 0009,
+/// ADR 0016, ADR 0023).
+fn scanner(wanted: Arc<AtomicBool>) -> Receiver<Vec<Proc>> {
     let (tx, rx) = channel();
     std::thread::spawn(move || {
-        while tx.send(procs::list()).is_ok() {
+        loop {
+            if wanted.load(Ordering::Relaxed) && tx.send(procs::list()).is_err() {
+                return;
+            }
             std::thread::sleep(Duration::from_secs(1));
         }
     });
     rx
+}
+
+/// True while zendo shall read its process tree: a command step of `threads` runs or started less
+/// than `SCAN_AFTER` ago, or the background line is not `empty` (ADR 0023).
+fn scan_wanted<'a>(threads: impl IntoIterator<Item = &'a Thread>, empty: bool, now: Instant) -> bool {
+    let recent = |t: &Thread| exec_step(t, now, false).is_some_and(|s| now.saturating_duration_since(s) < SCAN_AFTER);
+    !empty || threads.into_iter().any(|t| exec_step(t, now, true).is_some() || recent(t))
 }
 
 /// Add `line` to `.zendo/agent.log` of `root`.
@@ -81,9 +101,13 @@ fn exec_step(t: &Thread, at: Instant, running: bool) -> Option<Instant> {
 }
 
 impl App {
-    /// Take the last scan of the process tree; the first call starts the scans.
+    /// Take the last scan of the process tree; the first call starts the scans. The scanner reads
+    /// the tree only while a command can have gone to the background (ADR 0023).
     pub(crate) fn background_tick(&mut self) {
-        let rx = self.bg.scans.get_or_insert_with(scanner);
+        let want = scan_wanted(self.threads.values(), self.bg.list.is_empty(), Instant::now());
+        self.bg.wanted.store(want, Ordering::Relaxed);
+        let wanted = self.bg.wanted.clone();
+        let rx = self.bg.scans.get_or_insert_with(|| scanner(wanted));
         if let Some(p) = rx.try_iter().last() {
             self.on_procs(&p);
         }

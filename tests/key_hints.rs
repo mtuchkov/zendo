@@ -1,20 +1,17 @@
 //! The suggestions of the light model in the key float (docs/zendo/panes/key-hints.md, ADR 0013):
-//! `haiku` with low effort through a mock API, without a wait for the user.
+//! `haiku` with low effort through a mock `claude -p`, without a wait for the user.
 
 mod common;
-use common::http::{mock_api, mock_api_after, mock_api_status};
+use common::claude::{MockClaude, mock_claude, mock_claude_with};
 use common::rekey::*;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use std::time::{Duration, Instant};
-use zendo::agent::api::{Api, Credential, Vendor};
+use zendo::agent::api::Api;
 use zendo::keys::{Key, Pane};
 
-fn answer(text: &str) -> serde_json::Value {
-    serde_json::json!({"content": [{"type": "text", "text": text}]})
-}
-
-fn api(url: &str) -> Api {
-    Api { vendor: Vendor::Anthropic, base: url.into(), model: "claude-haiku-5-5".into(), cred: Credential::Key("test-key".into()), effort: Some("low".into()) }
+/// The light model of the key hints at the mock: `haiku` with low effort (REKEY-6).
+fn api(cli: &MockClaude) -> Api {
+    Api { effort: Some("low".into()), ..cli.api("haiku") }
 }
 
 fn key(s: &str) -> Key {
@@ -25,34 +22,34 @@ fn key(s: &str) -> Key {
 /// checked keys take the place of the keys of the rules.
 #[test]
 fn a_clash_asks_the_model_with_low_effort_and_the_keymap() {
-    let server = mock_api(answer("alt-y\nalt-u"));
-    let (_root, mut a) = app_with("hints-ask");
-    a.rekey.api = Some(api(&server.url));
+    let (root, mut a) = app_with("hints-ask");
+    let cli = mock_claude(&root.join(".claude-mock"), "alt-y\nalt-u");
+    a.rekey.api = Some(api(&cli));
     open_float(&mut a);
     press(&mut a, KeyCode::Tab, KeyModifiers::NONE);
     assert!(!a.rekey.float().unwrap().from_model, "the rules first");
     assert!(tick_until(&mut a, 10, |a| a.rekey.float().is_some_and(|f| f.from_model)), "the model answers");
     assert_eq!(a.rekey.float().unwrap().suggestions(), &[key("alt-y"), key("alt-u")]);
-    let reqs = server.requests.lock().unwrap();
-    assert_eq!(reqs.len(), 1);
-    let body = &reqs[0].body;
-    assert_eq!(body["model"], "claude-haiku-5-5");
-    assert_eq!(body["output_config"]["effort"], "low");
-    let prompt = body["messages"][0]["content"][0]["text"].as_str().unwrap();
+    let asked = cli.asked();
+    assert_eq!(asked.len(), 1);
+    assert!(asked[0].args.contains("--model claude-haiku-5-5") && asked[0].args.contains("--effort low"), "{}", asked[0].args);
+    let prompt = asked[0].prompt();
     assert!(prompt.contains("toggle_tree") && prompt.contains("[read]") && prompt.contains("next_pane = tab"), "{prompt}");
 }
 
-/// REKEY-4: the user sets a key while the model thinks, without a wait.
+/// REKEY-4: the user sets a key while the model thinks, without a wait. The model answers after
+/// `THINKS`; the keys take far less even on a busy machine, so a wait for the model would show.
 #[test]
 fn the_user_presses_keys_while_the_model_thinks() {
-    let server = mock_api_after(200, answer("alt-y"), Duration::from_secs(2));
-    let (_root, mut a) = app_with("hints-wait");
-    a.rekey.api = Some(api(&server.url));
+    const THINKS: f32 = 20.0;
+    let (root, mut a) = app_with("hints-wait");
+    let cli = mock_claude_with(&root.join(".claude-mock"), Ok("alt-y"), THINKS);
+    a.rekey.api = Some(api(&cli));
     open_float(&mut a);
     let start = Instant::now();
     press(&mut a, KeyCode::Tab, KeyModifiers::NONE);
     press(&mut a, KeyCode::Char('t'), KeyModifiers::ALT);
-    assert!(start.elapsed() < Duration::from_millis(500), "{:?}", start.elapsed());
+    assert!(start.elapsed() < Duration::from_secs_f32(THINKS / 2.0), "{:?}", start.elapsed());
     assert!(a.rekey.float().is_none());
     assert_eq!(a.keys.first(Pane::Global, "toggle_tree"), "alt-t");
 }
@@ -60,9 +57,9 @@ fn the_user_presses_keys_while_the_model_thinks() {
 /// REKEY-5: an answer that comes after the float closed changes nothing, also in the next float.
 #[test]
 fn a_late_answer_does_not_change_the_float() {
-    let server = mock_api_after(200, answer("alt-y"), Duration::from_millis(300));
-    let (_root, mut a) = app_with("hints-late");
-    a.rekey.api = Some(api(&server.url));
+    let (root, mut a) = app_with("hints-late");
+    let cli = mock_claude_with(&root.join(".claude-mock"), Ok("alt-y"), 0.3);
+    a.rekey.api = Some(api(&cli));
     open_float(&mut a);
     press(&mut a, KeyCode::Tab, KeyModifiers::NONE);
     press(&mut a, KeyCode::Esc, KeyModifiers::NONE);
@@ -74,9 +71,9 @@ fn a_late_answer_does_not_change_the_float() {
 /// REKEY-7: a key of the model that clashes is not shown.
 #[test]
 fn a_suggestion_that_clashes_is_not_shown() {
-    let server = mock_api(answer("x, tab, `alt-y`"));
-    let (_root, mut a) = app_with("hints-check");
-    a.rekey.api = Some(api(&server.url));
+    let (root, mut a) = app_with("hints-check");
+    let cli = mock_claude(&root.join(".claude-mock"), "x, tab, `alt-y`");
+    a.rekey.api = Some(api(&cli));
     open_float(&mut a);
     press(&mut a, KeyCode::Tab, KeyModifiers::NONE);
     assert!(tick_until(&mut a, 10, |a| a.rekey.float().is_some_and(|f| f.from_model)));
@@ -86,14 +83,14 @@ fn a_suggestion_that_clashes_is_not_shown() {
 /// REKEY-13: without the model, or when it fails, the keys of the rules stay and no error shows.
 #[test]
 fn without_the_model_the_rules_stay() {
-    let server = mock_api_status(500, serde_json::json!({"error": {"message": "down"}}));
-    let (_root, mut a) = app_with("hints-down");
-    a.rekey.api = Some(api(&server.url));
+    let (root, mut a) = app_with("hints-down");
+    let cli = mock_claude_with(&root.join(".claude-mock"), Err("down"), 0.0);
+    a.rekey.api = Some(api(&cli));
     open_float(&mut a);
     press(&mut a, KeyCode::Tab, KeyModifiers::NONE);
     let rules = a.rekey.float().unwrap().suggestions().to_vec();
     assert!(!rules.is_empty());
-    tick_until(&mut a, 1, |_| !server.requests.lock().unwrap().is_empty());
+    tick_until(&mut a, 1, |_| !cli.asked().is_empty());
     tick_until(&mut a, 1, |_| false);
     assert_eq!(a.rekey.float().unwrap().suggestions(), rules.as_slice());
     assert!(a.flash.is_none(), "{:?}", a.flash);

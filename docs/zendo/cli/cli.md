@@ -42,7 +42,8 @@ and `zendo doctor --fix` run the same checks. For each failed check, the command
 and the fix.
 
 **Network.** `zendo setup` and `zendo doctor --fix` use the network only to install a missing
-adapter. `zendo upgrade` and the update suggestion use GitHub. Nothing else uses the network.
+adapter. `zendo upgrade` and the update suggestion use GitHub; the update suggestion asks GitHub at
+most once a day (CMD-20, ADR 0023). Nothing else uses the network.
 
 ## Architecturally significant requirements
 
@@ -55,6 +56,7 @@ adapter. `zendo upgrade` and the update suggestion use GitHub. Nothing else uses
 | CMD-17 | Unwanted  | If a line of `~/.zendo/config.toml` has an error, then zendo shall still read every other setting in the file. | User, 2026-11-15 |
 | CMD-18 | Unwanted  | If a line of `~/.zendo/config.toml` has an error, then `zendo doctor` shall show the line number and the error. | User, 2026-11-15 |
 | CMD-19 | Event     | When zendo saves a setting, zendo shall change only the line of that setting, or add one line when the setting is missing, and shall keep every other line as it is. | User, 2026-11-15 |
+| CMD-20 | Event     | When the last check for a newer version is younger than 24 h, the system shall take its answer and shall not use the network; when GitHub did not answer that check, the system shall show no update until the next check. | User, 2026-11-18; ADR 0023 |
 
 CMD-14, that `zendo doctor` writes no file, is in [Doctor](doctor.md).
 

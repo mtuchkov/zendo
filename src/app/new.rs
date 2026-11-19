@@ -15,9 +15,8 @@ impl App {
         let (keys, key_problems) = user.keymap();
         let kind = crate::setup::config::kind_of(&cfg.agent);
         let name_model = user.name_model(kind);
-        let env = |k: &str| cfg.agent_env.get(k).cloned().or_else(|| std::env::var(k).ok());
-        let api = crate::agent::api::Api::find(kind, name_model.clone(), &env, &crate::agent::api::on_path);
-        let hints = crate::agent::api::Api::find(kind, user.hint_model(kind), &env, &crate::agent::api::on_path);
+        let api = crate::agent::api::Api::find(kind, name_model.clone(), &crate::agent::api::on_path);
+        let hints = crate::agent::api::Api::find(kind, user.hint_model(kind), &crate::agent::api::on_path);
         crate::text::highlight::init(user.highlight.as_ref());
         let logs = crate::setup::logs::Logs::load(&cfg.root);
         let mut app = Self {
