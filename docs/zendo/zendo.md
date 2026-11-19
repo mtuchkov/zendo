@@ -30,6 +30,7 @@ children:
   - "zendo-session.md"
   - "board.md"
   - "board-posts.md"
+  - "board-leases.md"
   - "board-watch.md"
   - "chat.md"
   - "chat-chips.md"
@@ -93,6 +94,7 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [zendo session](zendo-session.md)            | What a zendo session is, its id, and what zendo tells its agent |
 | [Message board](board.md)                    | The emergency channel between zendo sessions: channels, questions, tasks, limits |
 | [Posts](board-posts.md)                      | Posts about shared resources to all sessions of the machine   |
+| [Leases](board-leases.md)                    | The lease of a post, its age, the restart, and the tombstone of a dead post |
 | [Watch the board](board-watch.md)            | `zendo board watch`: the messages of a session during its turn, for the Monitor of Claude Code |
 | [Chat](chat.md)                              | The chat input: chips, attachments, `@` file suggestions        |
 | [Chips and the open document](chat-chips.md) | The chip window, images, the choice of the open document      |

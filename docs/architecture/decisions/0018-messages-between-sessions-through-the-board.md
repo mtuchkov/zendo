@@ -2,8 +2,8 @@
 status: "draft"
 date: "2026-11-18"
 sources:
-  - "The user, 2026-11-18, in chat: the sessions hand off work and ask each other through zendo and the MCP server `zendo`; channels for one, many and all sessions; questions and tasks with answers and statuses; posts about shared resources with a lease that another session can ask about; persistence is good; the board shall work with more than one zendo process."
-  - "../../zendo/board.md, board-posts.md, board-watch.md (BOARD-1 to BOARD-28)"
+  - "The user, 2026-11-18, in chat: the sessions hand off work and ask each other through zendo and the MCP server `zendo`; channels for one, many and all sessions; questions and tasks with answers and statuses; posts about shared resources with a lease that another session can ask about, and a tombstone when the owner is dead; persistence is good; the board shall work with more than one zendo process."
+  - "../../zendo/board.md, board-posts.md, board-leases.md, board-watch.md (BOARD-1 to BOARD-35)"
   - "src/mcp/mod.rs: `zendo mcp --session N` is a stdio process that the agent starts; it has no connection to the zendo process."
   - "../../zendo/cli-messages.md (CLIMSG-2): the hooks of Claude Code append lines to a file, and zendo reads them on each tick."
   - "ADR 0003 (state in the repository), ADR 0009 (no UI stalls), ADR 0016 (process tree), ADR 0019 (one daemon for each user)"
@@ -55,7 +55,9 @@ daemon.
 - **Posts and leases.** A renewal of a lease writes no line, so the journal does not grow with time.
   zendo appends `expired` with the time when the holder of a post dies (the thread ends or ADR 0016
   sees the process end), and `renewed` when the holder lives again, as after a restart. While the
-  zendo process of the author is down, the time of the last renewal is its last heartbeat. zendo adds
+  zendo process of the author is down, the time of the last renewal is its last heartbeat. Another
+  session appends `tombstone` for an expired post; the first of `renewed` and `tombstone` after the
+  expiry wins, and a tombstoned post is not renewed again. zendo adds
   the unseen and the newly expired posts to the context of the next question.
 - **Life.** Each zendo process writes a heartbeat to `~/.zendo/board/zendo-<pid>.json` each second;
   the watch exits with a reason when the heartbeat of its repository stops.
