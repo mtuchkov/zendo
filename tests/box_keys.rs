@@ -2,7 +2,7 @@
 //! the question of a file come from the keymap; only `esc` stays fixed (docs/zendo/panes/keymap.md,
 //! PANES-48).
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use zendo::app::{App, Mode};

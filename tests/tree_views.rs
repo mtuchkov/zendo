@@ -1,6 +1,6 @@
 //! The view strip of the file tree and the Notes view (docs/zendo/files/files-view-column.md).
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;

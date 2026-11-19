@@ -2,7 +2,7 @@
 //! real git repository with a worktree for agent session 1; agent session 0 works in the main
 //! checkout (SESSIONS-23).
 
-mod common;
+use crate::common;
 use common::{app, draw, key, until};
 use ratatui::crossterm::event::KeyCode;
 use std::path::{Path, PathBuf};

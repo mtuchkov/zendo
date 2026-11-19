@@ -1,7 +1,7 @@
 //! A selection that starts in a table with box borders keeps to the columns (PANES-34): the keys of
 //! read mode and the mouse.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, MouseButton, MouseEvent, MouseEventKind, KeyModifiers};
 

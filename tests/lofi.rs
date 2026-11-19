@@ -1,7 +1,7 @@
 //! The lofi music in the app (docs/zendo/lofi.md): the music button, the key, the question at the
 //! first start, the pause without focus, and the chime of a turn. A test output plays nothing.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;

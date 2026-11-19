@@ -1,7 +1,7 @@
 //! The message board between zendo sessions (docs/zendo/board.md, board-posts.md, board-leases.md,
 //! board-watch.md): the MCP server of one session writes, the zendo app delivers to another.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use serde_json::{Value, json};

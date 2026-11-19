@@ -1,7 +1,7 @@
 //! Usage counts (docs/zendo/usage.md): zendo counts the actions of the keymap by pane, action and
 //! trigger, at the place where they run, and never reads the counts.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use std::path::PathBuf;

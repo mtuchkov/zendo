@@ -1,6 +1,6 @@
 //! The keys help: f1 or alt-? in every pane and mode, and its hint in the status bar.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use zendo::app::{Focus, Mode};

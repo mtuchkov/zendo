@@ -1,7 +1,7 @@
 //! Templates of project-structure.toml: a new file starts from the template of its folder, and
 //! `ctrl-t` in the chat adds a template for the agent.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::KeyCode;
 use zendo::app::Focus;

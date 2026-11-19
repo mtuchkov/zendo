@@ -1,7 +1,7 @@
 //! The terminals of zendo (docs/zendo/terminal/terminal.md): shell blocks in the chat, `F5`, `alt-F5`, and the
 //! `F5` and `[>]` terminals, with `/bin/sh` as the shell.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::time::{Duration, Instant};

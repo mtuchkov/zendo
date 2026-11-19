@@ -1,6 +1,6 @@
 //! A drag of the edge between two panes changes the width of the pane (PANES-10).
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 

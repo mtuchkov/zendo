@@ -1,6 +1,6 @@
 //! The queue of the chat: a question while the agent answers waits, and goes when the turn ends.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::KeyCode;
 use zendo::app::{App, CHAT_KEY, Focus, Item};

@@ -1,7 +1,7 @@
 //! The MCP server of a zendo session (SESSIONS-21, docs/zendo/sessions.md): `zendo mcp --session N`,
 //! and the terminal of a Claude Code session that zendo starts with it.
 
-mod common;
+use crate::common;
 use common::*;
 use serde_json::{Value, json};
 use std::io::Write;

@@ -1,7 +1,7 @@
 //! Text input: the rich editors (the note in write mode, the chat input) format and go on with
 //! lists and code blocks; every one-line field has the keys of a text box (TEXT-1 to TEXT-11).
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use zendo::app::{App, Focus, Mode};

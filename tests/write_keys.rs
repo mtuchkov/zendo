@@ -1,6 +1,6 @@
 //! Write mode saves by itself, and the alt keys that work in every terminal.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::time::{Duration, Instant};

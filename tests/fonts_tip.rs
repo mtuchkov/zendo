@@ -1,7 +1,7 @@
 //! The font list of the theme picker (docs/zendo/fonts-tip.md): the list, the font that it sets by
 //! the recipe of the terminal, and the tip without a recipe.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use std::path::{Path, PathBuf};

@@ -1,7 +1,7 @@
 //! Note to spec (docs/zendo/note-to-spec.md): `[ → spec ]` and `s` give the agent the task to turn
 //! a note into specifications.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use zendo::app::{App, Item};

@@ -3,7 +3,7 @@
 //! They run one at a time: zendo finds the processes under the process of the test, and the mock
 //! agents of the tests of this file are all under it (`#[serial]`).
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use serial_test::serial;

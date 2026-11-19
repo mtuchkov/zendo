@@ -1,10 +1,22 @@
 [package]
 name = "zendo"
-version = "0.121.1"
+version = "0.121.2"
 edition = "2024"
 rust-version = "1.89"
 license = "Apache-2.0"
 repository = "https://github.com/mtuchkov/zendo"
+# The integration tests are modules of one binary, tests/main.rs: one link instead of one for each
+# file. tests/main.rs checks that each file of tests/ is a module there or a target below.
+autotests = false
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+# A binary of its own: .githooks/pre-commit runs it, and it builds faster alone.
+[[test]]
+name = "project_structure"
+path = "tests/project_structure.rs"
 
 [dependencies]
 smart-default = "0.7"
@@ -48,3 +60,36 @@ proc-macro2 = { version = "1", features = ["span-locations"] }
 [lints.clippy]
 too_many_lines = "deny"
 cognitive_complexity = "deny"
+
+# Less debug info: target/ is about a third of the size, and the build is faster. Panics and
+# backtraces still show the file and the line of zendo code. Dependencies get no debug info.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+# Full debug info for ratatui in a debugger: about 35 MB more in target/, the same build time.
+[profile.dev.package.ratatui]
+debug = "full"
+
+[profile.dev.package.ratatui-core]
+debug = "full"
+
+[profile.dev.package.ratatui-crossterm]
+debug = "full"
+
+[profile.dev.package.ratatui-macros]
+debug = "full"
+
+[profile.dev.package.ratatui-widgets]
+debug = "full"
+
+# Full debug info for a debugger (variables, types, the code of the dependencies):
+# cargo build --profile debugging, the binary is target/debugging/zendo.
+[profile.debugging]
+inherits = "dev"
+debug = "full"
+
+[profile.debugging.package."*"]
+debug = "full"

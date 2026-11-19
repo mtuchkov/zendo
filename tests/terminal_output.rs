@@ -1,7 +1,7 @@
 //! The result of the last command of a terminal (docs/zendo/terminal/terminal-output.md): `alt-o` in the input
 //! of a chat, the OSC 133 marks that the shell of the user sends, and a shell without marks.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::path::{Path, PathBuf};

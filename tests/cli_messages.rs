@@ -2,7 +2,7 @@
 //! (docs/zendo/cli-messages.md), with the mock command line `zendo-mock-cli`: on `enter` it writes
 //! the inputs of the "prompt sent" and "stop" hooks to the file of the session.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::time::{Duration, Instant};

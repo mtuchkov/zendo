@@ -1,7 +1,7 @@
 //! The new note in a float (docs/zendo/float.md): alt-n from every pane, only the float on the
 //! screen, esc saves and gives the screen back.
 
-mod common;
+use crate::common;
 use common::claude::{MockClaude, mock_claude};
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};

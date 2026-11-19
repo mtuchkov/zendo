@@ -1,6 +1,6 @@
 //! The chips of the chat input before a question goes (docs/zendo/chat-chips.md).
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
