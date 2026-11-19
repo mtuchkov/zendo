@@ -2,91 +2,83 @@
 status: "draft"
 date: "2026-11-18"
 sources:
-  - "The user, 2026-11-18: a session gives work to another session through zendo and the MCP server `zendo`, and the sessions ask each other for more information; today the user copies a brief from one session to another."
-  - "The user, 2026-11-18: a hand-off goes to one of the five sessions, after a question to the user when the agent names none; all messages go without a confirmation."
-  - "../../zendo/board.md (BOARD-1 to BOARD-14)"
-  - "../../zendo/board-watch.md (BOARD-15 to BOARD-22): the user, 2026-11-18, wants a command that Claude can attach the Monitor tool to."
+  - "The user, 2026-11-18, in chat: the sessions hand off work and ask each other through zendo and the MCP server `zendo`; channels for one, many and all sessions; questions and tasks with answers and statuses; posts about shared resources; persistence is good; the board shall work with more than one zendo process."
+  - "../../zendo/board.md, board-posts.md, board-watch.md (BOARD-1 to BOARD-28)"
   - "src/mcp/mod.rs: `zendo mcp --session N` is a stdio process that the agent starts; it has no connection to the zendo process."
-  - "../../zendo/cli-messages.md (CLIMSG-2): the hooks of a Claude Code session append lines to a file in `.zendo/sessions/`, and zendo reads them on each tick."
-  - "ADR 0003 (state in the repository), ADR 0009 (no UI stalls)"
+  - "../../zendo/cli-messages.md (CLIMSG-2): the hooks of Claude Code append lines to a file, and zendo reads them on each tick."
+  - "ADR 0003 (state in the repository), ADR 0009 (no UI stalls), ADR 0016 (process tree), ADR 0019 (one daemon for each user)"
 ---
 
-# 0018 Messages between sessions go through a board in `.zendo/board/`
+# 0018 Messages between sessions go through a journal of the user
 
 ## Context
 
-The agent of each zendo session starts its own MCP server `zendo` as a child process, over stdin
-and stdout. The server knows only the id of its session. It has no connection to the zendo process,
-which holds the threads, the chat inputs, the queues and the Claude Code terminals. An MCP server
-also cannot put a user message into the session of its own client.
+The agent of each zendo session starts its own MCP server `zendo` over stdin and stdout. The server
+knows only its session and has no connection to the zendo process, which holds the threads, the
+queues and the Claude Code terminals. An MCP server cannot put a user message into the session of
+its own client. So a message must go from the server of the sender to a zendo process, and that
+process delivers it.
 
-So a message from session 3 to session 2 must go from the server of session 3 to the zendo process,
-and zendo must send it to session 2. For a hand-off without a target, the answer of the user must
-go back from zendo to the server of session 3, which waits in its tool call.
-
-The plan moves the sessions into a session server later (phase 2). The board must work before that
-and move into the server without a change of the tools.
+Posts are about resources of the machine, such as ports and containers, so they cross
+repositories. More than one zendo process can run, in one repository or in many. The board must
+work before the daemon of ADR 0019 exists, and keep its tools when the daemon comes.
 
 ## Options
 
 | Option | Benefit | Cost or constraint |
-| ------ | ------- | ------------------ |
-| Files in `.zendo/board/`: the servers append lines, zendo reads them on each tick | The pattern of the hooks (CLIMSG-2). Messages survive a restart. Easy to test and to read. No socket on Windows. | One tick of delay. Two zendo processes in one repository read the same files. |
-| A socket of the zendo process; the server connects to it | No delay. | A new protocol and a socket path before phase 2; messages are lost when zendo is down; a named pipe on Windows. |
-| The agent of the sender writes into the other thread itself | No new part. | The agent has no access to the other thread, and it must not change state of another session. |
+| ------ | ------ | ------------------ |
+| A journal file of the user that every writer appends to and every zendo process reads | The pattern of the hooks (CLIMSG-2). Works now, over restarts, with many zendo processes. The daemon later takes the same file. | Polling; a lock for the appends; zendo must compact the file. |
+| A socket of each zendo process | No polling. | No delivery while zendo is down; many processes need discovery; a named pipe on Windows. |
+| Wait for the daemon of ADR 0019 | One writer, no polling. | The board waits for the riskiest phase of the plan. |
 
 ## Decision
 
-Draft of the agent: the first option.
+Draft of the agent, from the discussion with the user on 2026-11-18: the first option, before the
+daemon.
 
-- The server of a session shall append each message as one JSON line, in one write, to
-  `.zendo/board/messages.jsonl`. A line holds the id of the message, the sender, the target (or
-  none), the kind (`handoff` or `message`), the id that it answers (or none), the text and the time.
-- zendo shall read the new lines on each tick, off the UI thread (ADR 0009), and keep in
-  `.zendo/db.json` the offset of the last line that it delivered.
-- zendo shall send a message as a question of the user to the thread of the target. The text for
-  the agent is `<zendo_message from="3" id="m12" kind="handoff" reply_to="m9">…</zendo_message>`.
-  The chat shows the text without the tag, with the label `from 3 · <name>`.
-- zendo shall write the state of the sessions (id, name, state, branch) to
-  `.zendo/board/sessions.json` when it changes, with a write to a new file and a rename. The tool
-  `sessions` reads this file.
-- For a hand-off without a target, the server shall append a `handoff` line without a target and
-  read the file until zendo appends a `choice` line with the same id. The `choice` line holds the
-  target, or `cancelled`.
-- zendo shall count the messages since the last question of the user, keep the count in
-  `.zendo/db.json`, and hold the messages over the limit (BOARD-5).
-- `zendo board watch --session N` shall read `messages.jsonl` from its start, and print each
-  message for session N that has no `delivered` line. Before it prints one, it shall append a
-  `watched` line with the id, and read the file again. zendo shall append a `delivered` line before
-  it sends a message as a question. For each message, the first of the two lines in the file wins,
-  so a message is either a question or watched, not both (BOARD-22). An append in one write keeps
-  one order for all writers.
-- zendo shall write its process id and a time to `sessions.json` each second. The watch shall exit
-  with a reason when the process is gone or the time is older than 5 s (BOARD-17).
-- The checks of a message that need no zendo process (the sender as the target, an id out of 1 to
-  5) shall run in the server, so the tool returns the error at once.
+- **The journal is the contract.** `~/.zendo/board/journal.jsonl` holds one JSON event on each
+  line: a message, a post, a release, an invite, a leave, a close, a choice of the user, and the
+  claims `delivered` and `watched`. Each writer appends a line in one write under a file lock.
+- **Scope.** A repository is named by the path of its main checkout, so its worktrees share it.
+  Inboxes, `all` and named channels belong to a repository; posts belong to the machine.
+- **Channels.** A named channel is stored as `<repository>/<owner id>/<name>`. The server answers
+  `not found` for a channel that the session does not own or belong to, or that is closed, and does
+  so before it writes anything.
+- **Exactly once.** A delivery is a pair of a message and a recipient. Before zendo sends a message
+  as a question, it appends `delivered` for the pair; before the watch prints it, the watch appends
+  `watched`. Each reads the file again after its append, and the first claim of the pair in the file
+  wins. The same rule settles two zendo processes in one repository.
+- **Limits.** zendo derives from the journal which initiations are in flight, holds the next ones of
+  the same sender, and squashes the waiting messages of a recipient into one question.
+- **Kinds.** The server checks the kind and `in_reply_to` against the journal, and refuses a
+  response to a response.
+- **Posts.** zendo adds the unseen live posts to the context of the next question. A post that names
+  a process ends when ADR 0016 sees that process end.
+- **Life.** Each zendo process writes a heartbeat to `~/.zendo/board/zendo-<pid>.json` each second;
+  the watch exits with a reason when the heartbeat of its repository stops.
+- **Compaction.** When the file is large, the process that holds the lock writes a new file with the
+  undelivered messages, the open channels, the live posts and the history within its time, and
+  renames it over the old one.
+- zendo reads the journal off the UI thread (ADR 0009).
 
 ## Consequences
 
-- A message takes one tick to arrive. That is fast enough for a hand-off. The watch reads the file
-  about twice a second, so an answer reaches a waiting agent within a second.
-- The board works when the user leaves a session and comes back. When zendo is down, no session
-  runs (until phase 2), and the messages wait in the file.
-- In phase 2 the session server reads the same file, or the servers connect to it; the tools stay
-  the same.
-- The file grows. zendo can start a new file when all lines are delivered; the size is small.
-- Two zendo processes in one repository would deliver the same messages twice. This is an open
-  point of board.md, together with the open point of zendo-session.md about the id of a session.
-- The instructions of the MCP server (`resources/mcp-instructions.md`) get rules for the new tools
-  (BOARD-14).
+- The board does not need the daemon of the plan; the daemon becomes the only writer later.
+- A message arrives within one tick. The watch reads about twice a second.
+- Two zendo processes in one repository both have a session 2; the claims stop a double delivery,
+  but either process can take the message. ADR 0019 removes this.
+- `.zendo/board/` of revision 1 of the draft is not used; the board leaves the repository, unlike
+  the state of ADR 0003, because posts cross repositories.
+- `resources/mcp-instructions.md` gets the rules of BOARD-12 and BOARD-25.
 
 ## Verification
 
-- `tests/board.rs` runs the server of one session over stdin and the mock agent of another, and
-  checks the delivery, the queue, the choice of the target, the limit, the restart and the watch.
-- Unit tests in `src/mcp/` check the lines that the tools write and the errors of BOARD-11.
-- A check with real Claude: session 3 finds that a branch belongs to session 2 with `sessions`, and
-  gives it a hand-off.
+- `tests/board.rs` runs the servers over stdin with the mock agent and the mock command line, with a
+  journal in a folder of each test, and checks delivery, channels, kinds, limits, posts and the
+  watch.
+- A unit test appends from many threads under the lock and checks that no line breaks.
+- A check with real Claude: session 3 finds with `sessions` that a branch belongs to session 2, and
+  assigns it a task.
 
 ## Decision record
 

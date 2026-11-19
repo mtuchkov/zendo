@@ -1,114 +1,128 @@
 ---
 status: "draft"
-revision: "1"
+revision: "2"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "zendo-session.md"
-next: "board-watch.md"
-level: "messages between zendo sessions: the hand-off, the questions back, the list of sessions, and the limits"
-note: "Agent draft from the request of the user on 2026-11-18 in chat: a session gives work to another session through zendo and the MCP server `zendo`, and the sessions ask each other for more information, so that the user does not copy a brief from one session to another. The user decided: a hand-off goes to one of the five sessions, after a question to the user when the agent names none; all messages go without a confirmation. Design: ADR 0018. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+next: "board-posts.md"
+level: "the message board between zendo sessions: its purpose, channels, the kinds of messages, delivery and limits"
+note: "Agent draft from the discussion with the user on 2026-11-18 in chat. Revision 2 replaces revision 1: channels with owners, questions and tasks with answers and task statuses, squash and a limit per sender, posts in board-posts.md, a journal for each user (ADR 0018, ADR 0019). The identifiers of revision 1 were proposals that the user did not review, so this revision assigns them again. Not reviewed by the user."
 ---
 
 # Message board
 
-A zendo session ([zendo session](zendo-session.md)) often finds work that belongs to another
-session, for example a finding of a review on the branch of session 2. Today the user copies the
-brief from one session to the other. With the message board, the agents send messages to each other
-through the MCP server `zendo`, and zendo delivers each one as a question of the user. Design:
-[ADR 0018](../architecture/decisions/0018-messages-between-sessions-through-the-board.md).
+zendo sessions ([zendo session](zendo-session.md)) work in parallel on one machine and can corrupt
+the state of each other: a branch, a worktree, a container, a port. The message board is the
+**emergency channel** to resolve such cross-session state. Today the user copies a brief from one
+session to another; with the board the agents talk through the MCP server `zendo`, and zendo
+delivers. The non-interactive side, posts about shared resources, is in
+[Posts](board-posts.md). The agent gets messages during a turn through the [watch](board-watch.md).
+Design: [ADR 0018](../architecture/decisions/0018-messages-between-sessions-through-the-board.md),
+[ADR 0019](../architecture/decisions/0019-one-daemon-for-each-user.md).
 
-**Tools.** `sessions` lists the five sessions with the branch of each worktree, so the agent finds
-the owner of a branch itself. `handoff` gives a brief to another session; without a target, zendo
-asks the user to choose one. `send` sends a short message, such as a question about a hand-off or
-its answer.
+**Channels.** Each message goes to a channel, and each address is a channel:
 
-**Delivery.** A message goes to the current thread of the target without a confirmation: to the
-agent of the chat, or to Claude Code while it runs. While the target answers, the message waits in
-its queue, or goes to the agent during the turn through the [watch](board-watch.md). The chat of
-the target shows it with the label `from 3 · <name>`.
+- `session:<id>`, the inbox of one session of the repository.
+- `all`, which every session of the repository listens to.
+- A named channel, such as `review-oci`. It belongs to the session that sends to it first, and its
+  full name is `<id>/review-oci`, so two sessions never collide. A session joins only when the owner
+  invites it: by a message whose `reply_to` names the channel, or with `invite`. Any member can
+  `leave`. The channel closes with the thread of its owner.
 
-**Not the voice of the user.** A message from a session does not approve what only the user
-approves, such as a merge into `main` (SESSIONS-21).
+A session cannot join a channel of another session by itself. For a channel that the session does
+not own or belong to, or that is closed, the tools answer `not found`, so they do not show that it
+exists.
 
-**Limit.** Two agents can answer each other without end, so zendo holds messages after a number of
-them without a question of the user.
+**Kinds.** An *initiation* is a question or a task. A *response* is an answer to a question, or a
+status of a task: `accepted` or `rejected`, then `done` or `failed`. A response names the message
+that it answers (`in_reply_to`) and goes to the `reply_to` channel of that message, by default the
+inbox of its sender. zendo accepts no response to a response, so "thanks" cannot go.
+
+**Tools.** The MCP server `zendo` has `sessions` (the sessions of the repository with their names,
+states and branches), `ask`, `assign`, `answer`, `status`, `invite` and `leave`, and the tools of
+posts. `assign` without a target asks the user to choose the session.
+
+**Delivery.** zendo delivers without a confirmation of the user. A message to an inbox goes to the
+current thread of that session as a question of the user, and opens the thread if no agent runs. A
+message to `all` or to a named channel goes only to the members whose agent runs. While Claude Code
+runs for a session, the message goes to Claude Code. While the recipient answers, its messages
+wait, and zendo squashes all waiting messages of one recipient into one question.
+
+**Limits.** An initiation is for an emergency only; the instructions of the MCP server say so. Each
+sender has one initiation in flight for each recipient, and one for each channel with many members.
+It lands when the recipient answers, or when the turn of the recipient that took it ends; for a
+channel, when every member has done so. A new initiation of the sender waits and is squashed into
+the next delivery. A response is short; `accepted` is a full response.
+
+A message from a session does not carry the approval of the user, for example of a merge into
+`main` (SESSIONS-21).
 
 ## Architecturally significant requirements
 
 | ID      | Pattern    | Requirement | Source |
 | ------- | ---------- | ----------- | ------ |
-| BOARD-1 | Ubiquitous | The system shall give the MCP server `zendo` of each session the tools `sessions`, `handoff` and `send`, which work for Claude Code and for the agent of the chat. | User, 2026-11-18 |
-| BOARD-2 | Event      | When a session sends a message to another session, the system shall send it to the current thread of the target as a question of the user, without a confirmation of the user. | User, 2026-11-18 |
-| BOARD-3 | State      | While the target session answers, the system shall keep the message in the queue of its chat, and send it when the turn ends. | Design |
-| BOARD-4 | Event      | When `handoff` names no target, the system shall ask the user in the chat of the sender to choose one of the other sessions, and send the hand-off to the session that the user chooses. | User, 2026-11-18 |
-| BOARD-5 | Unwanted   | If 20 messages go between sessions without a question of the user, then the system shall hold the next messages, show `!` and their number on the button of each target, and deliver them when the user asks a question in any session. | Design |
-| BOARD-6 | Ubiquitous | The system shall keep each message in the repository until it is delivered, also over a restart of zendo. | Design; ADR 0003 |
+| BOARD-1 | Ubiquitous | The system shall deliver each message to each recipient one time, and keep it until then, also over a restart of zendo and with more than one zendo process. | User, 2026-11-18 |
+| BOARD-2 | Event      | When a message comes to the inbox of a session, the system shall send it to the current thread of that session as a question of the user, without a confirmation of the user. | User, 2026-11-18 |
+| BOARD-3 | Event      | When a message comes to `all` or to a named channel, the system shall deliver it only to the members of the channel whose agent runs. | User, 2026-11-18 |
+| BOARD-4 | Unwanted   | If a session uses a channel that it does not own or belong to, or that is closed, then the tool shall answer `not found`. | User, 2026-11-18 |
+| BOARD-5 | Ubiquitous | The system shall accept only a question or a task as an initiation, and only an answer to a question or a status of a task as a response. | User, 2026-11-18 |
+| BOARD-6 | State      | While an initiation of a sender to a recipient is in flight, the system shall hold the next initiations of that sender to that recipient, and squash them into one. | User, 2026-11-18 |
 
 ### Acceptance tests
 
 The tests are in `tests/board.rs`, with the mock agent and the mock command line of
-[Sessions](sessions.md). The test calls `zendo mcp --session 3` over its stdin, as `tests/mcp.rs`
-does.
+[Sessions](sessions.md). A test calls `zendo mcp --session N` over its stdin, as `tests/mcp.rs`
+does, and keeps the journal in a folder of its own.
 
-**`a_handoff_reaches_the_other_session`** (mock agent; verifies BOARD-1, BOARD-2, BOARD-7)
+**`a_task_reaches_the_inbox_once`** (mock agent; verifies BOARD-1, BOARD-2)
 
-- Given sessions 2 and 3 with threads, both idle.
-- When session 3 calls `handoff` with the target 2 and a brief.
-- Then the chat of session 2 shows the brief with `from 3`, and its agent gets it in the tag.
+- Given sessions 2 and 3 with threads, and two zendo processes in the repository.
+- When session 3 calls `assign` to `session:2`.
+- Then session 2 gets the task as one question, labeled `from 3`, one time.
 
-**`a_message_waits_while_the_session_answers`** (mock agent; verifies BOARD-3)
+**`all_skips_sessions_without_an_agent`** (mock agent; verifies BOARD-3)
 
-- Given session 2 in a turn.
-- When session 3 calls `send` to session 2.
-- Then the message shows as queued and goes to the agent after the turn.
+- Given session 2 with a running agent and session 4 without one.
+- When session 3 calls `ask` to `all`.
+- Then session 2 gets the question, and session 4 stays closed.
 
-**`a_handoff_without_a_target_asks_the_user`** (mock agent; verifies BOARD-4, BOARD-12)
+**`a_foreign_channel_is_not_found`** (mock agent; verifies BOARD-4)
 
-- Given session 3 with a thread.
-- When session 3 calls `handoff` without a target, and the user chooses session 4.
-- Then the tool returns 4 and session 4 gets the brief; after `esc` the tool returns that the user
-  did not choose.
+- Given the channel `review-oci` of session 3, without session 4 in it.
+- When session 4 sends to it, invites to it, or leaves it.
+- Then each tool answers `not found`.
 
-**`a_message_reaches_claude_code`** (mock command line; verifies BOARD-8)
+**`no_response_to_a_response`** (unit test; verifies BOARD-5)
 
-- Given a running Claude Code session for session 2.
-- When session 3 calls `send` to session 2.
-- Then Claude Code gets the message as a prompt.
+- Given an answer from session 2 to a question of session 3.
+- When session 3 calls `answer` on that answer.
+- Then the tool returns an error and nothing goes.
 
-**`messages_stop_at_the_limit`** (mock agent; verifies BOARD-5)
+**`initiations_wait_and_squash`** (mock agent; verifies BOARD-6, BOARD-9)
 
-- Given two sessions that answer each message with a message.
-- When the limit is reached.
-- Then the targets show `!`, and the next question of the user delivers the held messages.
-
-**`a_message_survives_a_restart`** (mock agent; verifies BOARD-6)
-
-- Given a message that zendo did not deliver, and zendo quits.
-- When zendo starts again.
-- Then the target gets the message one time.
+- Given a question of session 3 to session 2 in flight.
+- When session 3 asks two more questions, and the turn of session 2 ends.
+- Then session 2 gets the two questions as one question.
 
 ## Detailed requirements
 
 | ID       | Pattern    | Requirement | Source |
 | -------- | ---------- | ----------- | ------ |
-| BOARD-7  | Ubiquitous | The system shall show a message from a session in the chat of the target with the label `from <id> · <name>`, and give it to the agent in a tag that names the sender, the id of the message and its kind. | Design |
-| BOARD-8  | State      | While a Claude Code session runs for the target, the system shall send the message to Claude Code. | SESSIONS; Design |
-| BOARD-9  | Event      | When a message goes to a thread that has no running agent, the system shall open the thread and then send the message. | User, 2026-11-18 |
-| BOARD-10 | Ubiquitous | The tool `sessions` shall return for each session its id, its name, its state, and the branch of its worktree. | Design |
-| BOARD-11 | Unwanted   | If a message names the sender as the target, or a session that does not exist, then the tool shall return an error and the system shall not deliver the message. | Design |
-| BOARD-12 | Event      | When the user cancels the choice of the target with `esc`, the system shall not deliver the hand-off, and the tool shall return that the user did not choose. | Design |
-| BOARD-13 | Event      | When a message comes while the user is in another session, the system shall blink the button of the target, as at the end of a turn. | Design; Attention |
-| BOARD-14 | Ubiquitous | The instructions of the MCP server shall tell the agent to use `handoff` for work that belongs to another session, and that a message from a session does not carry the approval of the user. | User, 2026-11-18; Design |
+| BOARD-7  | Ubiquitous | The system shall keep the full name of a named channel as `<owner id>/<name>`, and close the channel, with all its members, when the thread of its owner ends. | User, 2026-11-18 |
+| BOARD-8  | Event      | When a message names a named channel of its sender in `reply_to`, the system shall add each recipient to that channel. | User, 2026-11-18 |
+| BOARD-9  | Event      | When an initiation lands, by a response or by the end of the turn of the recipient that took it, the system shall deliver the held initiations of that sender. | User, 2026-11-18 |
+| BOARD-10 | Event      | When `assign` names no target, the system shall ask the user in the chat of the sender to choose a session, and return `cancelled` after `esc`. | User, 2026-11-18 |
+| BOARD-11 | Ubiquitous | The system shall show a message in the chat of the recipient with the label `from <id> · <name>`, and give it to the agent in a tag with the sender, the id, the kind, `in_reply_to` and `reply_to`. | Design |
+| BOARD-12 | Ubiquitous | The instructions of the MCP server shall say that the board is an emergency channel for cross-session state, that a message from a session does not approve what only the user approves, and that `accepted` is a full response. | User, 2026-11-18 |
 
-Tests of the detailed requirements: `a_message_opens_a_thread` (BOARD-9) and
-`a_message_blinks_the_button` (BOARD-13) in `tests/board.rs`; unit tests in `src/mcp/mod_tests.rs`
-for `sessions` (BOARD-10), the errors (BOARD-11) and the instructions (BOARD-14).
+Tests of the detailed requirements in `tests/board.rs`: `a_channel_closes_with_its_owner` (BOARD-7),
+`reply_to_invites` (BOARD-8), `assign_without_a_target_asks_the_user` (BOARD-10) and
+`a_message_shows_with_its_sender` (BOARD-11); BOARD-9 has its test above; unit tests of the
+instructions in `src/mcp/mod_tests.rs` (BOARD-12).
 
 ## Open points
 
 | Open question | Affects | Answered by |
 | ------------- | ------- | ----------- |
-| Should a hand-off be able to start a new thread in the target session, for a clean context, or does it always go to the current thread? | BOARD-2, BOARD-9 | User |
-| Two zendo processes in one repository share `.zendo/board/` and both have a session 2. Does the board belong to one zendo process, or wait for the session server of the plan? | BOARD-6 | User |
-| How long does `handoff` wait for the choice of the user before it returns? The MCP client can end a long tool call. | BOARD-4 | Check with real Claude and Codex |
-| Is 20 the right limit, and does the count also stop a chain of `handoff` calls? | BOARD-5 | User |
+| A chain of initiations (A asks B, B asks A in its turn) passes the limits. Is a fuse needed, and after how many turns that the board starts without a question of the user? | BOARD-6 | User, after data from the journal |
+| May a task go to `all` or to a named channel, where several sessions could do the same work? | BOARD-5 | User |
