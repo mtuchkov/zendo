@@ -3,7 +3,7 @@ status: "draft"
 revision: "1"
 date: "2026-11-12"
 parent: "terminal.md"
-prev: "terminal-output.md"
+prev: "terminal-watch.md"
 level: "the mouse over a terminal or a Claude Code session: who gets the wheel, the click and the drag"
 note: "Agent draft from the bug report of the user on 2026-11-12: the wheel and the selection did not work in a terminal. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. A child of terminal.md."
 ---

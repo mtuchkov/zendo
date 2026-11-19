@@ -4,7 +4,7 @@ approved: "2026-11-17"
 revision: "3"
 date: "2026-11-17"
 parent: "zendo.md"
-prev: "claude.md"
+prev: "questions.md"
 next: "sessions.md"
 level: "the threads of the chat: the five agent sessions, how the user chooses one, and how zendo keeps and resumes them"
 note: "Split from claude.md, revision 4, by topic. Agent rewrite of the reference of zendo 0.9.1. Revision 2: the chat input of each agent session (CLAUDE-43 to CLAUDE-47, ADR 0011), asked by the user on 2026-11-17. The user approved the document on 2026-11-17. Revision 3: the sessions count from 0, session 0 in the main checkout (the user, 2026-11-18)."
@@ -52,8 +52,9 @@ shows the messages of the last session, and the agent sends its slash commands.
 | CLAUDE-47 | Event      | When the name of a pasted image comes (CLAUDE-38), or the queued questions of a thread go back into the input (CLAUDE-34), the system shall change the chat input of the session of that chip or thread, also while another session is active. | Design           |
 | CLAUDE-10 | Optional   | Where the agent has a command line with a resume, the system shall continue the thread there when the user presses `ctrl-o`. | Design           |
 
-This document has no architecturally significant requirement of its own: CLAUDE-1 and CLAUDE-3 of
-[Claude](claude.md) cover the connection that the threads use.
+This document has no architecturally significant requirement of its own: CLAUDE-1 of
+[Claude](claude.md) and ASK-1 and ASK-2 of [Questions of the agent](questions.md) cover the
+connection that the threads use.
 
 Tests: `one_thread_for_every_file_and_the_file_goes_once` (CLAUDE-5),
 `the_chat_shows_the_last_session_when_it_opens` (CLAUDE-27, CLAUDE-6, CLAUDE-40),

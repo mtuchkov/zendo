@@ -57,7 +57,7 @@ pub struct Thread {
     pub files: Vec<Option<String>>,
     /// zendo asked the agent to open the session of this thread.
     pub opened: bool,
-    /// Questions that wait for the end of the turn (CLAUDE-33).
+    /// Questions that wait for the end of the turn (CLAUDE-66).
     pub queue: Vec<Outgoing>,
     /// Questions that the chat sent to Claude Code: the hook does not show them again (CLIMSG-4).
     pub sent_to_cli: Vec<String>,

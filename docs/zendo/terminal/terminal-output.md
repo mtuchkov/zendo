@@ -4,9 +4,9 @@ revision: "3"
 date: "2026-11-18"
 parent: "terminal.md"
 prev: "terminal-view.md"
-next: "terminal-mouse.md"
+next: "terminal-watch.md"
 level: "the result of the last command of a terminal: how zendo finds it, and how the user puts it into the chat of an agent session"
-note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. A child of terminal.md."
+note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. A child of terminal.md. Revision 2 changed TERM-25: a watched command also gives its output to the agent (terminal-watch.md, user, 2026-11-17)."
 ---
 
 # Terminal output
@@ -15,7 +15,8 @@ A command in a [terminal](terminal.md) fails, and the user wants an agent to see
 result of the last command of each terminal: the command, the exit code, and the output without ANSI
 codes. In the input of a chat, `alt-o` puts the result of the terminal that the user viewed last into
 the input, and does not send it. The user reads it, changes it if necessary, and presses `enter`. An
-agent sees the output of a terminal only when the user puts it in.
+agent sees the output of a terminal only when the user puts it in, or when the user started the
+command with `▶▶` ([Watched commands](terminal-watch.md)).
 
 **Through the terminals.** The next `alt-o` replaces the inserted text with the result of the next
 terminal, from the terminal viewed last to the terminal viewed first, and then from the start again.
@@ -39,7 +40,7 @@ shell integration of the user), the marks give the limits of the output and the 
 | ------- | ---------- | ----------- | ------ |
 | TERM-23 | Ubiquitous | The system shall keep the result of the last command of each terminal: the command, the exit code, and the output. | User, 2026-11-12 |
 | TERM-24 | Event      | When the user presses the insert-output key in the input of a chat, the system shall put into that input the result of the terminal that the user viewed last, without sending it. | User, 2026-11-12 |
-| TERM-25 | Ubiquitous | The system shall give the output of a terminal to an agent only when the user puts it into the input. | Design; TERM-2 |
+| TERM-25 | Ubiquitous | The system shall give the output of a terminal to an agent only when the user puts it into the input, or when the user watches the command for that agent (TERM-55). | Design; TERM-2; User, 2026-11-17 |
 | TERM-26 | State      | While the shell sends OSC 133 marks, the system shall take as the result the output between the output-start mark and the command-end mark, and the exit code from the command-end mark. | User, 2026-11-12 |
 | TERM-27 | Unwanted   | If the shell sends no OSC 133 marks, then the system shall take as the result the output from the moment when the command went into the shell to the moment when the terminal became free, and shall show the exit code as unknown. | User, 2026-11-12 |
 
