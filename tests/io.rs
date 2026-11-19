@@ -137,3 +137,30 @@ async fn a_pasted_text_lands_in_the_chat() {
     until(&mut a, "paste", |a| a.composer().input().text().contains("hello from the clipboard"));
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// IO-1, IO-2, UNDO-6: while the disk holds the save of a note, the save and the next keys return
+// within 100 ms; then the file has the text, and the editor knows that it is saved.
+#[test]
+fn a_save_returns_while_the_disk_waits() {
+    let root = repo("io-save-waits", &[("docs/notes/2026-11-19-a.md", "# A\n")]);
+    let mut a = app(&root);
+    draw(&mut a, 120, 30);
+    key(&mut a, KeyCode::Char('i'));
+    a.writer.editor_mut().move_to_end();
+    let (disk, got, go) = gated();
+    a.disk = disk;
+    for c in "\n\nmine".chars() {
+        a.on_key(ratatui::crossterm::event::KeyEvent::new(KeyCode::Char(c), ratatui::crossterm::event::KeyModifiers::NONE));
+    }
+    within_limit("the save", || a.save());
+    within_limit("a key while the disk waits", || a.on_key(ratatui::crossterm::event::KeyEvent::new(KeyCode::Down, ratatui::crossterm::event::KeyModifiers::NONE)));
+    assert!(a.saving.is_some(), "the save waits for the disk");
+    for _ in 0..10 {
+        let _ = go.send(());
+    }
+    a.settle_saves();
+    assert!(a.saving.is_none() && !a.writer.editor().dirty, "saved");
+    let note: Vec<Vec<u8>> = got.lock().unwrap().iter().filter(|(p, _)| p.ends_with("2026-11-19-a.md")).map(|(_, c)| c.clone()).collect();
+    assert!(note.last().is_some_and(|c| String::from_utf8_lossy(c).ends_with("mine\n")), "the text went to the disk");
+    let _ = std::fs::remove_dir_all(&root);
+}

@@ -47,6 +47,7 @@ mod reader;
 mod key_hints;
 pub mod rekey;
 pub mod tips;
+mod save;
 mod say;
 mod spec;
 mod selection;
@@ -213,6 +214,13 @@ pub struct App {
     pub recap_looked: Option<Instant>,
     /// The diff of the worktree for its recap, from a worker (FILES-29, IO-1).
     pub worktree_diff: crate::worker::Task<(PathBuf, String)>,
+    /// The save that waits for the writer, a save asked for while it waits, and what waits for the
+    /// save (UNDO-6, IO-6).
+    pub saving: Option<save::Saving>,
+    pub(crate) save_again: bool,
+    /// The file of the editor and its text as zendo last wrote or read it (UNDO-6).
+    pub(crate) on_disk: Option<(PathBuf, String)>,
+    pub(crate) after_save: Vec<AfterReload>,
     /// What waits for the notes that a worker reads: a jump to a match, a cursor (IO-6).
     pub(crate) after_reload: Vec<AfterReload>,
     /// The marks of the files that changed since their last visit, from a worker (IO-1).

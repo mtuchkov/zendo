@@ -73,6 +73,17 @@ impl App {
 
     /// A question as the transcript shows it and as it goes to the agent (CLAUDE-59, CLAUDE-62).
     pub(crate) fn ask_question(&mut self, q: Question, scope: String) {
+        // The agent reads the file: the question goes after the save (IO-6).
+        if self.mode == Mode::Write && self.writer.editor_mut().dirty && self.saving.is_none() {
+            self.save();
+            if self.saving.is_some() {
+                return self.when_saved(move |a| a.ask_now(q, scope));
+            }
+        }
+        self.ask_now(q, scope);
+    }
+
+    fn ask_now(&mut self, q: Question, scope: String) {
         let (shown, question) = (q.shown.trim().to_string(), q.text.trim().to_string());
         if question.is_empty() || self.cli_blocks() {
             return;
@@ -80,9 +91,6 @@ impl App {
         if self.cfg.offline {
             self.flash("offline: start zendo without --offline to use Claude");
             return;
-        }
-        if self.mode == Mode::Write && self.writer.editor_mut().dirty {
-            self.save();
         }
         self.ensure_agent();
         self.board_user_asked();
@@ -183,6 +191,7 @@ impl App {
             && self.writer.path() == Some(&p)
         {
             self.writer.editor_mut().external(body.trim_end_matches('\n'));
+            self.on_disk = Some((p, body.trim_end_matches('\n').to_string()));
         }
         if !self.files.reloading() {
             std::mem::take(&mut self.after_reload).into_iter().for_each(|f| f(self));

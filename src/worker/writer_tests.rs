@@ -129,3 +129,27 @@ fn the_disk_gets_each_kind_of_write() {
     assert_eq!(std::fs::read_to_string(dir.join("log")).unwrap(), "one\ntwo\n");
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+// UNDO-6, IO-1: a checked write writes only when the disk has what zendo saw last; else it answers
+// with the text of the disk and writes nothing. A new file is written only when it is not there.
+#[test]
+fn a_checked_write_does_not_write_over_a_change_from_outside() {
+    let dir = std::env::temp_dir().join(format!("zendo-writer-checked-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let note = dir.join("note.md");
+    std::fs::write(&note, "# A\n").unwrap();
+    let mut w = Writer::new();
+    let first = w.write_checked(&note, b"# A\n\nmine\n".to_vec(), Some("# A".into()));
+    settle(&w);
+    assert_eq!(w.checked(), [(first, Checked::Written)]);
+    std::fs::write(&note, "# A\n\ntheirs\n").unwrap();
+    let second = w.write_checked(&note, b"# A\n\nmine again\n".to_vec(), Some("# A\n\nmine".into()));
+    settle(&w);
+    assert_eq!(w.checked(), [(second, Checked::Changed("# A\n\ntheirs".into()))]);
+    assert_eq!(std::fs::read_to_string(&note).unwrap(), "# A\n\ntheirs\n", "nothing written over");
+    let taken = w.write_checked(&note, b"# B\n".to_vec(), None);
+    settle(&w);
+    assert_eq!(w.checked(), [(taken, Checked::Taken)]);
+    let _ = std::fs::remove_dir_all(&dir);
+}

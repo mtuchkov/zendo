@@ -22,12 +22,37 @@ pub enum Sync {
 
 type Disk = Box<dyn Fn(&Path, &[u8], Sync) -> std::io::Result<()> + Send>;
 
+/// The answer to a checked write of user data (UNDO-6).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Checked {
+    Written,
+    /// The disk has another text than zendo saw last: this one, without the new lines at its end.
+    /// Nothing was written.
+    Changed(String),
+    /// A new file was to be made, but a file has its name. Nothing was written.
+    Taken,
+    Failed(String),
+    /// A newer checked write of the same file took its place before it ran.
+    Superseded,
+}
+
+/// A checked write: its id, and the text that zendo saw last on the disk; None for a new file.
+#[derive(Clone)]
+struct Check {
+    id: u64,
+    expected: Option<String>,
+}
+
 #[derive(Default)]
 struct Queue {
     /// The files that wait, in the order of their first request.
     order: VecDeque<PathBuf>,
-    /// The newest content of each file that waits.
-    content: HashMap<PathBuf, (Vec<u8>, Sync)>,
+    /// The newest content of each file that waits, and its check.
+    content: HashMap<PathBuf, (Vec<u8>, Sync, Option<Check>)>,
+    /// The answers to the checked writes.
+    checked: Vec<(u64, Checked)>,
+    /// The id of the next checked write.
+    next: u64,
     /// A write runs now.
     busy: bool,
     /// The writer goes: write what waits, then end.
@@ -84,16 +109,43 @@ impl Writer {
     }
 
     fn put(&self, path: &Path, content: Vec<u8>, sync: Sync) {
+        self.put_checked(path, content, sync, None);
+    }
+
+    fn put_checked(&self, path: &Path, content: Vec<u8>, sync: Sync, check: Option<Check>) {
         let mut q = self.shared.lock();
         match q.content.get_mut(path) {
-            Some((c, Sync::Append)) if sync == Sync::Append => c.extend(content),
-            Some(waiting) => *waiting = (content, sync),
+            Some((c, Sync::Append, None)) if sync == Sync::Append => c.extend(content),
+            Some(waiting) => {
+                let old = std::mem::replace(waiting, (content, sync, check));
+                if let Some(c) = old.2 {
+                    q.checked.push((c.id, Checked::Superseded));
+                }
+            }
             None => {
                 q.order.push_back(path.to_path_buf());
-                q.content.insert(path.to_path_buf(), (content, sync));
+                q.content.insert(path.to_path_buf(), (content, sync, check));
             }
         }
         self.shared.wake.notify_one();
+    }
+
+    /// Write user data to `path`, whole and synced, only when the disk has `expected` (without the
+    /// new lines at its end), or no file when `expected` is None. Returns at once with the id of
+    /// the write; `checked` gives its answer (UNDO-6, IO-1).
+    pub fn write_checked(&mut self, path: &Path, content: Vec<u8>, expected: Option<String>) -> u64 {
+        let id = {
+            let mut q = self.shared.lock();
+            q.next += 1;
+            q.next
+        };
+        self.put_checked(path, content, Sync::User, Some(Check { id, expected }));
+        id
+    }
+
+    /// The answers to the checked writes since the last call.
+    pub fn checked(&mut self) -> Vec<(u64, Checked)> {
+        std::mem::take(&mut self.shared.lock().checked)
     }
 
     /// Nothing waits and nothing runs.
@@ -135,15 +187,33 @@ fn run(shared: &Shared, disk: &Disk) {
             q = shared.wake.wait(q).unwrap_or_else(std::sync::PoisonError::into_inner);
         }
         let Some(path) = q.order.pop_front() else { return };
-        let Some((content, sync)) = q.content.remove(&path) else { continue };
+        let Some((content, sync, check)) = q.content.remove(&path) else { continue };
         q.busy = true;
         drop(q);
-        let done = disk(&path, &content, sync);
+        let verdict = check.as_ref().and_then(|c| verdict(&path, c.expected.as_deref()));
+        let done = if verdict.is_some() { Ok(()) } else { disk(&path, &content, sync) };
         let mut q = shared.lock();
         q.busy = false;
-        if let Err(e) = done {
-            q.failures.push((path, e.to_string()));
+        match (check, verdict, done) {
+            (Some(c), Some(v), _) => q.checked.push((c.id, v)),
+            (Some(c), None, Ok(())) => q.checked.push((c.id, Checked::Written)),
+            (Some(c), None, Err(e)) => q.checked.push((c.id, Checked::Failed(e.to_string()))),
+            (None, _, Err(e)) => q.failures.push((path, e.to_string())),
+            (None, _, Ok(())) => {}
         }
+        drop(q);
+        super::wake().notify_one();
+    }
+}
+
+/// Whether a checked write must not go: the disk has another text than `expected`, or a file
+/// where a new one was to be made. None: write.
+fn verdict(path: &Path, expected: Option<&str>) -> Option<Checked> {
+    let now = fs::read_to_string(path).ok();
+    match (expected, now) {
+        (None, Some(_)) => Some(Checked::Taken),
+        (Some(e), Some(d)) if d.trim_end_matches('\n') != e => Some(Checked::Changed(d.trim_end_matches('\n').to_string())),
+        _ => None,
     }
 }
 

@@ -121,6 +121,11 @@ impl Editor {
         true
     }
 
+    /// The text of the file at the last save or change from outside, as zendo saw it (UNDO-6).
+    pub fn logged(&self) -> &str {
+        &self.history.logged
+    }
+
     /// The file of the document is `disk` now. When it differs from the file of the last save,
     /// the change is appended to the loglet as one external operation (UNDO-6). The text that is
     /// not saved stays out of the loglet: it moves over the change, and so does the cursor

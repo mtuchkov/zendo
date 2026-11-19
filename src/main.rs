@@ -209,7 +209,8 @@ async fn main() -> Result<()> {
     app.end_visit();
     app.board_quit();
     app.usage.write();
-    // After the last frame: the writes that wait get a moment to end (IO-7).
+    // After the last frame: the saves and the writes that wait get a moment to end (IO-7).
+    app.finish_saves(Duration::from_secs(5));
     app.disk.flush(Duration::from_secs(5));
     zendo::tui::terminal_off();
     ratatui::restore();

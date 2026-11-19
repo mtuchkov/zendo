@@ -10,7 +10,7 @@ mod writer;
 pub use clock::{Clock, LIMIT, READING_AFTER, reading};
 pub use memo::Memo;
 pub use task::Task;
-pub use writer::{Sync, Writer};
+pub use writer::{Checked, Sync, Writer};
 
 use std::sync::{Arc, LazyLock};
 use tokio::sync::Notify;

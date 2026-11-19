@@ -31,6 +31,7 @@ async fn writing_saves_after_a_pause() {
     assert!(!std::fs::read_to_string(root.join(NOTE)).unwrap().contains("New "), "not while typing");
     a.writer.edited_at(Instant::now() - Duration::from_secs(2));
     a.tick();
+    a.settle_saves();
     assert!(std::fs::read_to_string(root.join(NOTE)).unwrap().contains("New "), "saved after a pause");
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -55,6 +56,7 @@ async fn the_save_keeps_the_empty_lines_at_the_end() {
     let before = (a.writer.editor().text(), a.writer.editor().row, a.writer.editor().col);
     a.writer.edited_at(Instant::now() - Duration::from_secs(2));
     a.tick();
+    a.settle_saves();
     assert!(std::fs::read_to_string(root.join(NOTE)).unwrap().contains(" New"), "saved");
     a.files.look_again();
     a.tick();

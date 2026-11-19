@@ -68,11 +68,14 @@ impl App {
         if self.mode == Mode::Write && self.writer.editor_mut().dirty {
             self.save();
         }
+        // The review reads the file: it starts after the save (IO-6).
         let rel = self.rel(&path);
-        if !self.work.review_waits(&rel) {
-            self.ensure_agent();
-            self.work.ask_review(rel);
-        }
+        self.when_saved(move |a| {
+            if !a.work.review_waits(&rel) {
+                a.ensure_agent();
+                a.work.ask_review(rel);
+            }
+        });
         self.flash("Claude reads the file for confusing lines");
     }
 

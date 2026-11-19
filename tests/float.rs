@@ -137,6 +137,7 @@ async fn the_float_saves_the_open_file_first() {
     draw(&mut a, 120, 40);
     typ(&mut a, "Unsaved ");
     alt(&mut a, 'n');
+    a.settle_saves();
     assert!(std::fs::read_to_string(root.join(NOTE)).unwrap().contains("Unsaved "), "saved before the float");
     key(&mut a, KeyCode::Esc);
     assert_eq!((a.mode, a.writer.file()), (Mode::Write, Some(root.join(NOTE).as_path())), "write mode again");
@@ -172,6 +173,7 @@ async fn the_top_line_shows_the_path_after_the_first_save() {
     alt(&mut a, 'n');
     typ(&mut a, "Green builds");
     a.save();
+    a.settle_saves();
     let screen = draw(&mut a, 120, 40).join("\n");
     let date = chrono::Local::now().format("%Y-%m-%d").to_string();
     assert!(screen.contains(&format!("docs/notes/{date}-green-builds.md")), "{screen}");
@@ -188,6 +190,7 @@ async fn a_long_path_loses_its_head_to_fit_the_buttons() {
     alt(&mut a, 'n');
     typ(&mut a, "Empty new note with a very long title that does not fit into the top line at all");
     a.save();
+    a.settle_saves();
     let screen = draw(&mut a, 80, 30);
     let top = screen.iter().find(|l| l.contains("[ esc close ]")).unwrap_or_else(|| panic!("{}", screen.join("\n")));
     let name = a.writer.path().unwrap().file_name().unwrap().to_string_lossy().to_string();
@@ -380,11 +383,13 @@ async fn the_name_model_titles_the_note_after_three_lines() {
     alt(&mut a, 'n');
     lines(&mut a, &["Green tea.", "Black tea.", "White"]);
     a.save();
+    a.settle_saves();
     until(&mut a, |a| a.writer.editor().lines[0].len() > 2).await;
     assert_eq!(a.writer.editor().lines[..2], ["# Mock title of 3 lines".to_string(), String::new()], "the title and an empty line");
     assert_eq!((a.writer.editor().row, a.writer.editor().col), (4, 5), "the cursor on the same char");
     typ(&mut a, " tea.");
     a.save();
+    a.settle_saves();
     let date = chrono::Local::now().format("%Y-%m-%d").to_string();
     let named = root.join(format!("docs/notes/{date}-mock-title-of-3-lines.md"));
     assert_eq!(a.writer.path(), Some(&named), "the file has the name of the title: {:?}", notes(&root));
@@ -412,6 +417,7 @@ async fn closing_the_float_titles_or_updates_the_note() {
     alt(&mut a, 'n');
     lines(&mut a, &["Cups.", "Pots.", "Leaves."]);
     a.save();
+    a.settle_saves();
     until(&mut a, |a| a.writer.editor().lines[0].len() > 2).await;
     key(&mut a, KeyCode::Enter);
     typ(&mut a, "Water.");
@@ -440,6 +446,7 @@ async fn the_api_titles_the_note_after_three_lines() {
     alt(&mut a, 'n');
     lines(&mut a, &["Green tea.", "Black tea.", "White"]);
     a.save();
+    a.settle_saves();
     until(&mut a, |a| a.writer.editor().lines[0].len() > 2).await;
     assert_eq!(a.writer.editor().lines[0], "# Kinds of tea");
     let asked = cli.asked();

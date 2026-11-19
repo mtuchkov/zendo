@@ -451,6 +451,7 @@ async fn a_new_note_is_saved_in_the_checkout_of_the_session() {
         key(&mut a, if c == '\n' { KeyCode::Enter } else { KeyCode::Char(c) });
     }
     a.save();
+    a.settle_saves();
     let saved = a.files.current().cloned().unwrap();
     assert!(saved.starts_with(root.join(".worktrees/1/docs/notes")) && saved.exists(), "{}", saved.display());
     assert!(!root.join("docs/notes").exists(), "nothing in the main checkout");
@@ -463,6 +464,7 @@ async fn a_new_note_is_saved_in_the_checkout_of_the_session() {
         key(&mut a, KeyCode::Char(c));
     }
     a.save();
+    a.settle_saves();
     assert!(a.files.current().cloned().unwrap().starts_with(root.join("docs/notes")), "no worktree: the main checkout");
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -492,6 +494,7 @@ async fn a_new_note_of_a_notes_repo_stays_in_the_notes_repo() {
         key(&mut a, KeyCode::Char(c));
     }
     a.save();
+    a.settle_saves();
     let saved = a.files.current().cloned().unwrap();
     assert!(saved.starts_with(&notes) && saved.exists(), "{}", saved.display());
     assert!(!root.join(".worktrees/1/docs").exists(), "nothing in the worktree");

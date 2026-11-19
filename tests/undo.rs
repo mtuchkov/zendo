@@ -46,6 +46,7 @@ async fn undo_and_redo_in_write_mode() {
     let mut a = writing(&root);
     typ(&mut a, "alpha");
     a.save();
+    a.settle_saves();
     typ(&mut a, " beta");
     ctrl(&mut a, 'z');
     assert!(text(&a).ends_with("\n\nalpha"), "{}", text(&a));
@@ -66,6 +67,7 @@ async fn a_new_change_after_undo_trims_the_tail() {
     let mut a = writing(&root);
     typ(&mut a, "alpha");
     a.save();
+    a.settle_saves();
     typ(&mut a, " beta");
     ctrl(&mut a, 'z');
     typ(&mut a, "x");
@@ -127,6 +129,7 @@ fn agent_wrote(name: &str) -> (std::path::PathBuf, App) {
     let mut a = writing(&root);
     typ(&mut a, "mine");
     a.save();
+    a.settle_saves();
     let disk = std::fs::read_to_string(root.join(NOTE)).unwrap();
     std::fs::write(root.join(NOTE), format!("theirs\n\n{disk}")).unwrap();
     a.reload_after_agent();
@@ -178,6 +181,7 @@ async fn an_external_change_merges_with_unsaved_text() {
     std::fs::write(root.join(NOTE), format!("theirs\n\n{disk}")).unwrap();
     a.reload_after_agent();
     a.save();
+    a.settle_saves();
     let saved = std::fs::read_to_string(root.join(NOTE)).unwrap();
     assert!(saved.starts_with("theirs") && saved.trim_end().ends_with("unsaved"), "{saved}");
     let _ = std::fs::remove_dir_all(&root);
@@ -210,6 +214,7 @@ async fn undo_moves_the_cursor_to_the_change() {
     let mut a = writing(&root);
     typ(&mut a, "alpha");
     a.save();
+    a.settle_saves();
     typ(&mut a, " beta");
     key(&mut a, KeyCode::Home);
     ctrl(&mut a, 'z');
@@ -244,6 +249,7 @@ async fn the_focus_brings_the_external_change() {
     let mut a = writing(&root);
     typ(&mut a, "mine");
     a.save();
+    a.settle_saves();
     let disk = std::fs::read_to_string(root.join(NOTE)).unwrap();
     std::fs::write(root.join(NOTE), format!("theirs\n\n{disk}")).unwrap();
     a.on_focus(false);

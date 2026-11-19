@@ -187,9 +187,13 @@ impl App {
             fl.title.agent = Some((title.trim().to_string(), body_of(&new).to_string()));
         }
         self.save();
-        if let Some(target) = self.writer.path().cloned().and_then(|p| self.name_by_title(&p, title)) {
-            self.writer.saved(target);
-        }
+        // The file takes the name of the title after the save (IO-6).
+        let title = title.to_string();
+        self.when_saved(move |a| {
+            if let Some(target) = a.writer.path().cloned().and_then(|p| a.name_by_title(&p, &title)) {
+                a.writer.saved(target);
+            }
+        });
     }
 
     /// The title into the file of a closed float (FLOAT-19, FLOAT-20).

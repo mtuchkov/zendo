@@ -84,6 +84,11 @@ impl App {
     /// A note without text makes no file (FLOAT-3, FLOAT-12, FLOAT-13, FLOAT-19).
     pub fn close_float(&mut self) {
         self.save();
+        // The float closes when its note is on the disk, with its name (IO-6).
+        self.when_saved(App::close_saved_float);
+    }
+
+    fn close_saved_float(&mut self) {
         let made = self.writer.path().cloned();
         if let Some(p) = &made {
             self.title_on_close(p.clone());

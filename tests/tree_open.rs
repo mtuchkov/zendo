@@ -30,6 +30,7 @@ async fn file_from_the_tree_works_like_a_note() {
     typ(&mut a, "Added ");
     a.writer.edited_at(Instant::now() - Duration::from_secs(2));
     a.tick();
+    a.settle_saves();
     assert!(std::fs::read_to_string(root.join(DESIGN)).unwrap().contains("Added The first"), "the file on disk has the line");
     key(&mut a, KeyCode::Esc);
 

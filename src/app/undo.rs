@@ -38,18 +38,19 @@ impl App {
     /// opens and nothing changes yet (UNDO-12, UNDO-16). `None`: the work is done.
     pub(super) fn write_undo(&mut self) -> Option<bool> {
         self.save();
-        if self.writer.editor().external_next() {
-            self.writer.set_asks_external(true);
-            return None;
-        }
-        self.undone(Editor::undo);
+        self.when_saved(|a| {
+            if a.writer.editor().external_next() {
+                return a.writer.set_asks_external(true);
+            }
+            a.undone(Editor::undo);
+        });
         None
     }
 
     /// `redo` in write mode: the save comes first, so a new change trims the tail (UNDO-3).
     pub(super) fn write_redo(&mut self) -> Option<bool> {
         self.save();
-        self.undone(Editor::redo);
+        self.when_saved(|a| a.undone(Editor::redo));
         None
     }
 
@@ -57,7 +58,7 @@ impl App {
     /// the head of the loglet again.
     fn undone(&mut self, step: fn(&mut Editor) -> bool) {
         if step(self.writer.editor_mut()) {
-            self.write_note();
+            self.save();
         }
     }
 
