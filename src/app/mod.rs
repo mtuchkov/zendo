@@ -78,7 +78,7 @@ pub use clip::{Clipboard, PasteTo};
 pub use facts::{Facts, InCheckout, head_of as facts_head_of};
 pub use background::{Background, Bg, ran};
 pub use questions::Ask;
-pub use effect::Effect;
+pub use effect::{Effect, IoJob};
 pub use file_prompt::FilePrompt;
 pub use files_state::Files;
 pub use files_state::tree_keys::{FilterKey, Picked};

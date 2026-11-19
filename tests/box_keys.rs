@@ -31,6 +31,8 @@ fn remapped(name: &str) -> App {
 
 fn press(a: &mut App, code: KeyCode, m: KeyModifiers) {
     a.on_key(KeyEvent::new(code, m));
+    // A key that waits for a worker, such as the tab of a path, is done when it returns (IO-6).
+    a.settle_saves();
 }
 
 /// PANES-48: in the theme list, the keys of the keymap move and keep; the old keys do not; `esc`

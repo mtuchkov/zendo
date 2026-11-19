@@ -69,6 +69,7 @@ impl App {
     /// A worker has an answer: take the answers of the tasks of the app (ADR 0024).
     pub fn poll_tasks(&mut self) {
         self.poll_clipboard();
+        self.files.complete_waiting(&self.cfg.root);
         self.poll_jobs();
         self.poll_saves();
         self.disk_answer();

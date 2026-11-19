@@ -30,7 +30,24 @@ fn key(code: KeyCode) -> KeyEvent {
 
 fn typ(f: &mut Files, root: &Path, text: &str) -> Option<Effect> {
     text.chars().for_each(|c| assert_eq!(f.key_prompt(key(KeyCode::Char(c)), action_of(Pane::Question, key(KeyCode::Char(c))), root), None));
-    f.key_prompt(key(KeyCode::Enter), action_of(Pane::Question, key(KeyCode::Enter)), root)
+    answer(f, root, KeyCode::Enter)
+}
+
+/// A key of the question, and its effect: an `Io` job runs here, as the app runs it on a thread,
+/// and the files follow its answer as the app makes them follow (IO-1).
+fn answer(f: &mut Files, root: &Path, code: KeyCode) -> Option<Effect> {
+    let e = f.key_prompt(key(code), action_of(Pane::Question, key(code)), root);
+    let e = match e {
+        Some(Effect::Io(job)) => job.run(),
+        e => e,
+    };
+    match &e {
+        Some(Effect::Deleted(k)) => f.gone(&root.join(k)),
+        Some(Effect::Moved { old, target, .. }) => f.moved(old, target),
+        Some(Effect::MadeFile(_)) => f.reload(),
+        _ => {}
+    }
+    e
 }
 
 fn select(f: &mut Files, root: &Path, rel: &str) {
@@ -85,7 +102,7 @@ fn a_rename_moves_the_file_and_returns_the_paths() {
     assert!(root.join("docs/c.md").exists() && !root.join("docs/a.md").exists() && f.prompt().is_none());
     assert_eq!(f.current_path(), Some(root.join("docs/c.md").as_path()));
     f.ask(FilePrompt::Rename("docs/c.md".into(), "b.md".into()));
-    assert_eq!(f.key_prompt(key(KeyCode::Enter), action_of(Pane::Question, key(KeyCode::Enter)), &root), Effect::flash("a file with that name exists"));
+    assert_eq!(answer(&mut f, &root, KeyCode::Enter), Effect::flash("a file with that name exists"));
     f.ask(FilePrompt::Move("docs/c.md".into(), "../out".into()));
     assert_eq!(f.key_prompt(key(KeyCode::Enter), action_of(Pane::Question, key(KeyCode::Enter)), &root), Effect::flash("give a folder inside the repository"));
     let _ = std::fs::remove_dir_all(&root);
@@ -100,7 +117,7 @@ fn a_delete_removes_the_file_and_returns_its_key() {
     assert_eq!(f.key_prompt(key(KeyCode::Char('n')), action_of(Pane::Question, key(KeyCode::Char('n'))), &root), None);
     assert!(f.prompt().is_none() && root.join("docs/a.md").exists());
     f.ask(FilePrompt::Delete("docs/a.md".into()));
-    assert_eq!(f.key_prompt(key(KeyCode::Char('y')), action_of(Pane::Question, key(KeyCode::Char('y'))), &root), Some(Effect::Deleted("docs/a.md".into())));
+    assert_eq!(answer(&mut f, &root, KeyCode::Char('y')), Some(Effect::Deleted("docs/a.md".into())));
     assert!(!root.join("docs/a.md").exists());
     settled(&mut f);
     assert_eq!((f.notes().len(), f.current()), (1, None), "no document is open");
@@ -121,9 +138,14 @@ fn a_new_file_and_a_new_folder_come_back_as_effects() {
     f.ask(FilePrompt::NewFile("../x".into()));
     assert_eq!(f.key_prompt(key(KeyCode::Enter), action_of(Pane::Question, key(KeyCode::Enter)), &root), Effect::flash("give a path inside the repository"));
     f.ask(FilePrompt::NewFolder("docs/de".into()));
-    assert_eq!(f.key_prompt(key(KeyCode::Enter), action_of(Pane::Question, key(KeyCode::Enter)), &root), Some(Effect::MadeFolder(root.join("docs/de"))));
+    assert_eq!(answer(&mut f, &root, KeyCode::Enter), Some(Effect::MadeFolder(root.join("docs/de"))));
     assert!(root.join("docs/de").is_dir() && f.tree().view == View::Text, "the text view shows a new folder (FILES-17)");
     f.ask(FilePrompt::NewFile("docs/d".into()));
+    // The worker reads the folders; the tab completes when it knows them (IO-1).
+    let end = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while f.complete_folder(&root, "docs/d").is_none() && std::time::Instant::now() < end {
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
     assert_eq!(f.key_prompt(key(KeyCode::Tab), action_of(Pane::Question, key(KeyCode::Tab)), &root), None);
     assert_eq!(f.prompt(), Some(&FilePrompt::NewFile("docs/de/".into())), "tab completes the folder");
     let _ = std::fs::remove_dir_all(&root);

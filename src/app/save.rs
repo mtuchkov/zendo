@@ -101,8 +101,9 @@ impl App {
     /// For tests: wait at most 5 s for the saves, the jobs and the reload of the notes after them.
     pub fn settle_saves(&mut self) {
         let end = Instant::now() + Duration::from_secs(5);
-        while (self.saving.is_some() || self.files.reloading() || self.serial.busy()) && Instant::now() < end {
+        while (self.saving.is_some() || self.files.reloading() || self.serial.busy() || self.files.completes()) && Instant::now() < end {
             std::thread::sleep(Duration::from_millis(2));
+            self.files.complete_waiting(&self.cfg.root);
             self.poll_jobs();
             self.poll_saves();
             self.poll_reload();

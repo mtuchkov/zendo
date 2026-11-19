@@ -1,6 +1,7 @@
 //! `f3` a new file and `f4` a new folder, from the file tree. The field starts with the folder of the
 //! selection; `tab` completes a folder name.
 use super::{Effect, FilePrompt, Files};
+use crate::app::IoJob;
 use crate::docs::tree::{Kind, View};
 use std::path::{Path, PathBuf};
 
@@ -31,15 +32,18 @@ impl Files {
             Err(e) => return Effect::flash(e),
         };
         let path = if path.extension().is_none() { path.with_extension("md") } else { path };
-        if path.exists() {
-            return Effect::flash("a file with that name exists");
-        }
-        let body = self.new_text(root, &path);
-        if let Err(e) = path.parent().map_or(Ok(()), std::fs::create_dir_all).and_then(|_| crate::atomic::write(&path, body)) {
-            return Effect::flash(format!("could not make the file: {e}"));
-        }
-        self.reload();
-        Some(Effect::MadeFile(path))
+        let (title, template) = self.new_text(root, &path);
+        // The file is made on a thread; its answer opens it (IO-1).
+        Some(Effect::Io(IoJob::new(move || {
+            if path.exists() {
+                return Effect::flash("a file with that name exists");
+            }
+            let body = first_text(title, template.and_then(|t| std::fs::read_to_string(t).ok()));
+            match path.parent().map_or(Ok(()), std::fs::create_dir_all).and_then(|()| crate::atomic::write(&path, body)) {
+                Ok(()) => Some(Effect::MadeFile(path)),
+                Err(e) => Effect::flash(format!("could not make the file: {e}")),
+            }
+        })))
     }
 
     /// A new folder. The text view shows it, also while it is empty (FILES-17).
@@ -48,31 +52,36 @@ impl Files {
             Ok(p) => p,
             Err(e) => return Effect::flash(e),
         };
-        if let Err(e) = std::fs::create_dir_all(&path) {
-            return Effect::flash(format!("could not make the folder: {e}"));
-        }
         // A worktree view stays: its files show the new folder when a file is in it.
         if !self.tree.view.is_worktree() {
             self.tree.view = View::Text;
         }
-        Some(Effect::MadeFolder(path))
+        Some(Effect::Io(IoJob::new(move || match std::fs::create_dir_all(&path) {
+            Ok(()) => Some(Effect::MadeFolder(path)),
+            Err(e) => Effect::flash(format!("could not make the folder: {e}")),
+        })))
     }
 
-    /// The first text of a new file: the template of its folder with the title in it, a title, or
-    /// nothing for a file that is not markdown.
-    fn new_text(&self, root: &Path, path: &Path) -> String {
+    /// The title of a new markdown file, and the template of its folder; None for a file that is
+    /// not markdown.
+    fn new_text(&self, root: &Path, path: &Path) -> (Option<String>, Option<PathBuf>) {
         if path.extension().is_none_or(|e| e != "md") {
-            return String::new();
+            return (None, None);
         }
-        let title = title_of_name(path);
         let rel = path.strip_prefix(root).unwrap_or(path);
-        let template = self.tree.structure.as_ref().and_then(|st| st.template_for(rel)).and_then(|t| std::fs::read_to_string(root.join(t)).ok());
-        let Some(t) = template else { return format!("# {title}\n\n") };
-        // The first heading of the template becomes the title.
-        match t.lines().position(|l| l.starts_with("# ")) {
-            Some(h) => t.lines().enumerate().map(|(i, l)| if i == h { format!("# {title}") } else { l.to_string() }).collect::<Vec<_>>().join("\n") + "\n",
-            None => format!("# {title}\n\n{t}"),
-        }
+        (Some(title_of_name(path)), self.tree.structure.as_ref().and_then(|st| st.template_for(rel)).map(|t| root.join(t)))
+    }
+}
+
+/// The first text of a new file: the template with the title in it, a title, or nothing for a file
+/// that is not markdown.
+fn first_text(title: Option<String>, template: Option<String>) -> String {
+    let Some(title) = title else { return String::new() };
+    let Some(t) = template else { return format!("# {title}\n\n") };
+    // The first heading of the template becomes the title.
+    match t.lines().position(|l| l.starts_with("# ")) {
+        Some(h) => t.lines().enumerate().map(|(i, l)| if i == h { format!("# {title}") } else { l.to_string() }).collect::<Vec<_>>().join("\n") + "\n",
+        None => format!("# {title}\n\n{t}"),
     }
 }
 

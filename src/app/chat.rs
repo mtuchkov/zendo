@@ -6,8 +6,8 @@ impl App {
         if self.link.running() || self.cfg.offline {
             return;
         }
+        // `.zendo` is there since the start (IO-7); the agent starts on a tokio task.
         let log = state::dir(&self.cfg.root);
-        let _ = std::fs::create_dir_all(&log);
         let (h, rx) = agent::spawn(self.cfg.agent.clone(), self.cfg.agent_env.clone(), self.cfg.root.clone(), Some(log.join("agent.log")));
         self.link.connect(h, rx);
     }

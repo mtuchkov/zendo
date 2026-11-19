@@ -45,6 +45,11 @@ pub struct Files {
     reload_again: Option<Option<PathBuf>>,
     /// The look at the disk each second, on a worker (IO-1).
     looking: crate::worker::Task<reload::Look>,
+    /// The folders in a folder, for the completion of a path, from a worker (IO-1).
+    #[default(crate::worker::Memo::new(ops::folders_in, std::time::Duration::from_secs(1)))]
+    pub(super) folders: crate::worker::Memo<PathBuf, Vec<PathBuf>>,
+    /// The typed path of a tab that waits for the folders (IO-6).
+    complete_waits: Option<String>,
 }
 
 impl Files {

@@ -11,6 +11,7 @@ impl App {
             Some(Effect::Deleted(key)) => self.file_deleted(key),
             Some(Effect::Moved { old, target, done }) => self.file_moved(&old, &target, done),
             Some(Effect::MadeFile(path)) => self.file_made(path),
+            Some(Effect::Io(job)) => self.run_io(job),
             Some(Effect::MadeFolder(path)) => {
                 self.scan_tree();
                 let rel = path.strip_prefix(&self.cfg.root).unwrap_or(&path).to_path_buf();
@@ -33,11 +34,12 @@ impl App {
 
     /// The best folder for the last part of a typed path: `docs/zen` → `docs/zendo/`.
     pub fn complete_folder(&self, text: &str) -> Option<String> {
-        files_state::ops::complete_folder(&self.cfg.root, text)
+        self.files.complete_folder(&self.cfg.root, text)
     }
 
     /// The thread and the session of a deleted file go with it.
     fn file_deleted(&mut self, key: String) {
+        self.files.gone(&self.cfg.root.join(&key));
         self.state.take_session(&self.cfg.agent, &key);
         self.save_state();
         self.threads.remove(&key);
@@ -47,6 +49,7 @@ impl App {
 
     /// A new file opens to write.
     fn file_made(&mut self, path: PathBuf) {
+        self.files.reload();
         self.scan_tree();
         let rel = path.strip_prefix(&self.cfg.root).unwrap_or(&path).to_path_buf();
         self.files.reveal(&rel);
@@ -57,6 +60,7 @@ impl App {
 
     /// A renamed or moved file shows in the tree and the notes list under its new name.
     fn file_moved(&mut self, old: &Path, target: &Path, done: &str) {
+        self.files.moved(old, target);
         self.keys_moved(old, target);
         self.scan_tree();
         // Show the file under its new name, also when a name filter found it.
@@ -84,5 +88,25 @@ impl App {
         self.files.move_file(old, target)?;
         self.keys_moved(old, target);
         Ok(())
+    }
+}
+impl App {
+    /// Run a change of files on `serial`; its answer is the effect to apply (IO-1).
+    fn run_io(&mut self, job: IoJob) {
+        let Some(job) = job.take() else { return };
+        let slot = std::sync::Arc::new(std::sync::Mutex::new(None));
+        let answer = slot.clone();
+        self.in_background(
+            move || {
+                if let Ok(mut s) = answer.lock() {
+                    *s = job();
+                }
+                Ok(())
+            },
+            move |a, _| {
+                let effect = slot.lock().ok().and_then(|mut s| s.take());
+                a.apply(effect);
+            },
+        );
     }
 }
