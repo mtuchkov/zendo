@@ -14,8 +14,9 @@ note: "Agent draft from the requests of the user on 2026-11-14. Approved by the 
 
 Parent: [File tree](files.md).
 
-Each agent session of zendo changes code only in its own worktree, `.worktrees/<id>`
-(SESSIONS-21 in [Sessions](../sessions.md)). The other views of the tree show the main checkout,
+Each agent session of zendo from session 2 on changes code only in its own worktree,
+`.worktrees/<id>` (SESSIONS-21 in [Sessions](../sessions.md)); session 1 works in the main checkout
+and has no worktree views (SESSIONS-23 in [zendo session](../zendo-session.md)). The other views of the tree show the main checkout,
 so the user does not see what the agent session in the chat does. Two more views show it:
 
 - **worktree**: every text file of the worktree of the active agent session, as the text view
