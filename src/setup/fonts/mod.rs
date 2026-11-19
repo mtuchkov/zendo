@@ -1,6 +1,7 @@
 //! The recommended fonts (docs/zendo/fonts.md, docs/zendo/fonts-tip.md): the catalog, where the
 //! fonts are on the machine, the install of `zendo setup fonts`, and the tip.
 mod catalog;
+pub mod recipe;
 mod install;
 mod remote;
 
@@ -14,6 +15,8 @@ use std::path::{Path, PathBuf};
 /// A recommended font: the files that `zendo setup fonts` installs for it.
 pub struct Font<'a> {
     pub name: &'a str,
+    /// The family name in the font files: what the terminal config names (FONT-27).
+    pub family: &'a str,
     /// The start of the file names: `JetBrainsMono` for `JetBrainsMono-Regular.ttf`.
     pub prefix: &'a str,
     pub parts: &'a [Part<'a>],
@@ -90,14 +93,14 @@ pub fn list(fonts: &[Font]) -> String {
     fonts.iter().map(|f| format!("{}\n", f.name)).collect()
 }
 
-/// The tip: how to open the theme picker, with the key of the keymap of the user, and what the
-/// font button there does (FONT-20).
+/// The tip: how to open the theme picker, with the key of the keymap of the user, and what its
+/// font list does (FONT-39).
 pub fn tip(theme_key: Option<&str>) -> String {
     let open = match theme_key {
         Some(k) => format!("press `{k}` in read mode"),
         None => "give the action `theme` of read mode a key".to_string(),
     };
-    format!("To change the font, open the theme picker in zendo: {open}. The font button there asks the agent to set the font of your terminal.")
+    format!("To change the font, open the theme picker in zendo: {open}. Its font list sets the font of your terminal.")
 }
 
 /// The file where `zendo setup` keeps the list of fonts that it named the last time (FONT-18).

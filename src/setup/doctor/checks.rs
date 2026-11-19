@@ -8,8 +8,8 @@ pub struct DoctorFlags {
     pub live: bool,
     /// Repair what needs no agent and no answer (CMD-15).
     pub fix: bool,
-    /// With `fix`: give the rest of the structure file to Claude (STRUCT-7, STRUCT-11).
-    pub claude: bool,
+    /// `--agent`: the agent repairs what `--fix` cannot (STRUCT-7, FONT-25).
+    pub agent: bool,
 }
 
 /// `zendo doctor`: check every step. Without `--fix` it writes no file (CMD-14).
@@ -17,16 +17,18 @@ pub async fn doctor(paths: &Paths, agent_flag: Option<String>, flags: DoctorFlag
     let mut o = Out::new();
     o.head(if flags.fix { "zendo doctor --fix" } else { "zendo doctor" });
     let (agent, _) = config::resolve_agent(agent_flag.clone(), &UserConfig::load());
-    let repaired = !flags.fix || repair(paths, agent_flag.clone(), &agent, flags.claude, &mut o).await;
+    let repaired = !flags.fix || repair(paths, agent_flag.clone(), &agent, flags.agent, &mut o).await;
     // After an upgrade, `--fix` runs anywhere: outside a repository its checks are no failures.
     let ok = checks(paths, agent_flag, flags.live, flags.fix, &mut o).await && repaired;
+    // The font recipe of this terminal: a broken one names the repair, and is no failure of doctor.
+    fonts::with_session(|s| fonts::recipe_doctor(&o, s, flags.fix && flags.agent, &fonts::find_program));
     let pending: Vec<Change> = user_changes(&user_files()).into_iter().chain(project_changes(&paths.root, &agent)).collect();
     for c in &pending {
         o.warn(c.label, format!("not up to date: {}", c.what));
     }
     println!();
     match structure_problem(&paths.root) {
-        Some(_) if flags.fix => println!("  To give {} to Claude: zendo doctor --fix --claude\n", crate::docs::structure::FILE),
+        Some(_) if flags.fix => println!("  To give {} to the agent: zendo doctor --fix --agent\n", crate::docs::structure::FILE),
         Some(_) => println!("  To repair {}: zendo doctor --fix\n", crate::docs::structure::FILE),
         None if !pending.is_empty() => println!("  To bring these files up to date: zendo doctor --fix\n"),
         None => {}

@@ -1,5 +1,5 @@
 //! `zendo doctor`, `zendo doctor --fix` and `zendo init` (docs/zendo/cli): doctor writes no file,
-//! `--fix` repairs what needs no judgement without the agent, `--claude` gives the rest to the agent,
+//! `--fix` repairs what needs no judgement without the agent, `--agent` gives the rest to the agent,
 //! which may change only the structure file, and init prepares the repository.
 
 use std::path::{Path, PathBuf};
@@ -61,7 +61,7 @@ fn zendo_fixes_key_names_and_paths_by_itself() {
 fn claude_fixes_the_rest_and_may_change_only_that_file() {
     let (root, home) = repo("claude");
     std::fs::write(root.join("project-structure.toml"), "[[entry]\npath = docs\n").unwrap();
-    let (ok, out) = doctor(&root, &home, &["--fix", "--claude"]);
+    let (ok, out) = doctor(&root, &home, &["--fix", "--agent"]);
     assert!(ok, "{out}");
     assert!(out.contains("refused") && out.contains("allowed"), "{out}");
     assert_eq!(std::fs::read_to_string(root.join("README.md")).unwrap(), "# readme\n");
@@ -86,13 +86,13 @@ fn without_fix_nothing_changes() {
 fn a_missing_file_is_created_from_project_structure_md() {
     let (root, home) = repo("create");
     std::fs::write(root.join("project-structure.md"), "# Project directory structure\n\n- docs/: the docs\n").unwrap();
-    let (ok, out) = doctor(&root, &home, &["--fix", "--claude"]);
+    let (ok, out) = doctor(&root, &home, &["--fix", "--agent"]);
     assert!(ok, "{out}");
     assert!(out.contains("created"), "{out}");
     assert!(understood(&root));
 }
 
-// STRUCT-2, STRUCT-7, CMD-15: `--fix` without `--claude` does not call the agent; it names `--claude`
+// STRUCT-2, STRUCT-7, CMD-15: `--fix` without `--agent` does not call the agent; it names `--agent`
 // for what needs judgement.
 #[test]
 fn fix_without_claude_does_not_call_the_agent() {
@@ -100,7 +100,7 @@ fn fix_without_claude_does_not_call_the_agent() {
     std::fs::write(root.join("project-structure.toml"), "[[entry]\npath = docs\n").unwrap();
     let (ok, out) = doctor(&root, &home, &["--fix"]);
     assert!(!ok, "{out}");
-    assert!(out.contains("zendo doctor --fix --claude") && !out.contains("is fixing the file"), "{out}");
+    assert!(out.contains("zendo doctor --fix --agent") && !out.contains("is fixing the file"), "{out}");
     assert_eq!(std::fs::read_to_string(root.join("project-structure.toml")).unwrap(), "[[entry]\npath = docs\n");
 }
 

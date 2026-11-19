@@ -101,14 +101,14 @@ impl App {
         if self.music.asking {
             return self.click_music_question(x, y);
         }
-        if self.font_tip.asking {
-            return self.click_font_question(x, y);
-        }
         if self.writer.asks_external() {
             return self.click_external_question(x, y);
         }
+        if self.mode == Mode::Theme && self.font_tip.list.is_some() && self.click_font_list(x, y) {
+            return;
+        }
         if self.mode == Mode::Theme && self.frame.font_button().is_some_and(|r| hit(&r)) {
-            return self.press_font_button();
+            return self.open_font_list();
         }
         if self.click_key(x, y) {
             return;

@@ -46,9 +46,9 @@ pub struct Frame {
     /// `[.*]` of the find panel or of the filter of the tree (FIND-44, FILES-67).
     pub(super) find_regex: Option<Rect>,
     pub(super) music_answers: Option<(Rect, Rect)>,
-    /// The font button of the theme picker, and the two answers of its question (FONT-14).
+    /// The font list of the theme picker, and the fonts of the open list (FONT-36).
     pub(super) font_button: Option<Rect>,
-    pub(super) font_answers: Option<(Rect, Rect)>,
+    pub(super) font_items: Vec<Rect>,
     /// The two answers of the question before the undo of an external change (UNDO-12).
     pub(super) external_answers: Option<(Rect, Rect)>,
     /// The help or the find panel over the screen, for a click off it (PANES-47).
@@ -229,7 +229,7 @@ impl Frame {
         self.music_answers
     }
 
-    /// The font button of the theme picker.
+    /// The font list of the theme picker.
     pub fn font_button(&self) -> Option<Rect> {
         self.font_button
     }
@@ -239,9 +239,9 @@ impl Frame {
         self.external_answers
     }
 
-    /// The two answers of the font question: yes, no.
-    pub fn font_answers(&self) -> Option<(Rect, Rect)> {
-        self.font_answers
+    /// The fonts of the open font list, in its order.
+    pub fn font_items(&self) -> &[Rect] {
+        &self.font_items
     }
 
     /// The word limit of the document on the screen.

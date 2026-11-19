@@ -1,5 +1,5 @@
 ---
-status: "draft"
+status: "implemented"
 approved: "2026-11-18"
 revision: "5"
 date: "2026-11-18"
@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "tips.md"
 next: "fonts-tip.md"
 level: "which fonts zendo recommends, and what `zendo setup fonts` does on the machine"
-note: "Agent draft of the decisions of the user on 2026-11-17 and 2026-11-18. Revision 2: the answers of the user on 2026-11-18 (Iosevka and Iosevka Term, Fira Code without italic); the theme picker tip moved to fonts-tip.md. Approved by the user on 2026-11-18. Revision 3: implemented in zendo 0.96.0; the test names as in the code. Revision 4: iA Writer Mono, on the request of the user on 2026-11-18, in zendo 0.104.0. Revision 5, a draft of the request of the user on 2026-11-18: after the install, Claude writes the recipe of the terminal font (fonts-recipe.md); FONT-17 is retired. Not reviewed by the user."
+note: "Agent draft of the decisions of the user on 2026-11-17 and 2026-11-18. Revision 2: the answers of the user on 2026-11-18 (Iosevka and Iosevka Term, Fira Code without italic); the theme picker tip moved to fonts-tip.md. Approved by the user on 2026-11-18. Revision 3: implemented in zendo 0.96.0; the test names as in the code. Revision 4: iA Writer Mono, on the request of the user on 2026-11-18, in zendo 0.104.0. Revision 5, a draft of the request of the user on 2026-11-18: after the install, Claude writes the recipe of the terminal font (fonts-recipe.md); FONT-17 is retired. Approved by the user on 2026-11-18. Implemented in zendo 0.116.0."
 ---
 
 # Fonts

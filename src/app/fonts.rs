@@ -1,93 +1,110 @@
-//! The font tip of the theme picker (docs/zendo/fonts-tip.md): the tip while a recommended font
-//! is missing, the font button, the question, and the request to the agent.
+//! The font list of the theme picker (docs/zendo/fonts-tip.md): the recommended fonts on the
+//! machine, set in the terminal by the recipe of the terminal, without the agent.
 use super::*;
-use crate::setup::fonts;
+use crate::setup::fonts::{self, Font, recipe};
 
-/// The state of the font tip.
+/// The state of the font list.
 pub struct FontTip {
     /// The folders where fonts are on the machine; a test sets its own.
     pub dirs: Vec<PathBuf>,
-    /// A recommended font is not on the machine; zendo looks when the picker opens.
+    /// The file of the recipes; a test sets its own.
+    pub recipes: PathBuf,
+    /// The name of the current terminal (FONT-42).
+    pub terminal: String,
+    /// The recommended fonts on the machine; zendo looks when the picker opens.
+    pub installed: Vec<&'static Font<'static>>,
+    /// A recommended font is not on the machine.
     pub missing: bool,
-    /// The question whether zendo may ask the agent is open (FONT-14).
-    pub asking: bool,
+    /// The recipe of the terminal is there and passes its check (FONT-34).
+    pub works: bool,
+    /// The font that zendo set last, from the recipe.
+    pub current: Option<String>,
+    /// The open list, and its selected font (FONT-36).
+    pub list: Option<usize>,
 }
 
 impl Default for FontTip {
     fn default() -> Self {
-        Self { dirs: fonts::search_dirs(), missing: false, asking: false }
+        let (dirs, recipes, terminal) = (fonts::search_dirs(), recipe::path(), recipe::current_terminal());
+        Self { dirs, recipes, terminal, installed: Vec::new(), missing: false, works: false, current: None, list: None }
     }
 }
 
-/// The font button while a font is missing, and while all are on the machine.
-pub const ASK_BUTTON: &str = "[ ask the agent · a ]";
-pub const CHANGE_BUTTON: &str = "[ change the font · a ]";
+impl FontTip {
+    /// The font list shows: a working recipe and a recommended font on the machine (FONT-34).
+    pub fn shows_list(&self) -> bool {
+        self.works && !self.installed.is_empty()
+    }
+}
 
 impl App {
-    /// The picker opens: zendo looks whether a recommended font is missing (FONT-13).
+    /// The picker opens: the fonts on the machine and the recipe of the terminal.
     pub(crate) fn look_at_fonts(&mut self) {
-        self.font_tip.missing = !fonts::missing(fonts::FONTS, &self.font_tip.dirs).is_empty();
+        let tip = &mut self.font_tip;
+        let missing = fonts::missing(fonts::FONTS, &tip.dirs);
+        tip.missing = !missing.is_empty();
+        tip.installed = fonts::FONTS.iter().filter(|f| !missing.iter().any(|m| m.name == f.name)).collect();
+        let recipes = recipe::Recipes::load(&tip.recipes).unwrap_or_default();
+        let own = recipes.get(&tip.terminal);
+        tip.works = own.is_some_and(|r| r.check(&recipe::on_path).is_ok());
+        tip.current = own.and_then(|r| r.font.clone());
+        tip.list = None;
     }
 
-    /// The font button of the picker; none without a connected agent (FONT-16, FONT-21).
-    pub fn font_button(&self) -> Option<&'static str> {
-        let agent = self.link.ready() && !self.cfg.offline;
-        agent.then_some(if self.font_tip.missing { ASK_BUTTON } else { CHANGE_BUTTON })
+    /// `f` or a click on the font list: the list opens at the current font (FONT-36).
+    pub(super) fn open_font_list(&mut self) {
+        let tip = &mut self.font_tip;
+        if tip.shows_list() {
+            let at = tip.installed.iter().position(|f| Some(f.family) == tip.current.as_deref());
+            tip.list = Some(at.unwrap_or(0));
+        }
     }
 
-    /// `a` or a click on the font button: the question opens (FONT-14).
-    pub(super) fn press_font_button(&mut self) {
-        self.font_tip.asking = self.font_button().is_some();
-    }
-
-    /// A key while the question is open: `y` or enter asks the agent, `n` or esc does not.
-    pub(super) fn key_font_question(&mut self, k: KeyEvent) {
-        match k.code {
-            KeyCode::Char('y') | KeyCode::Enter => self.answer_fonts(true),
-            KeyCode::Char('n') | KeyCode::Esc => self.answer_fonts(false),
+    /// A key while the font list is open: the keys of the theme picker move, keep and close it.
+    pub(super) fn key_font_list(&mut self, k: KeyEvent, i: usize) {
+        let n = self.font_tip.installed.len().max(1);
+        match (k.code, self.keys.local(crate::keys::Pane::Theme, &k)) {
+            (_, Some("down")) => self.font_tip.list = Some((i + 1) % n),
+            (_, Some("up")) => self.font_tip.list = Some((i + n - 1) % n),
+            (_, Some("keep")) => self.set_font(i),
+            (KeyCode::Esc, _) | (_, Some("cancel")) | (_, Some("font")) => self.font_tip.list = None,
             _ => {}
         }
     }
 
-    /// A click while the question is open: on one of its answers.
-    pub(super) fn click_font_question(&mut self, x: u16, y: u16) {
-        let Some((yes, no)) = self.frame.font_answers() else { return };
-        let hit = |r: Rect| r.contains(ratatui::layout::Position::new(x, y));
-        if hit(yes) || hit(no) {
-            self.answer_fonts(hit(yes));
-        }
+    /// A click on a font of the open list.
+    pub(super) fn click_font_list(&mut self, x: u16, y: u16) -> bool {
+        let hit = self.frame.font_items().iter().position(|r| r.contains(ratatui::layout::Position::new(x, y)));
+        hit.inspect(|i| self.set_font(*i)).is_some()
     }
 
-    /// The answer: only on yes, the picker closes and the request goes to the agent of the
-    /// current session (FONT-5, FONT-15).
-    pub fn answer_fonts(&mut self, yes: bool) {
-        self.font_tip.asking = false;
-        if !yes {
-            return;
+    /// Set the font in the terminal by the recipe, without the agent (FONT-35); a failure goes to
+    /// the flash line with the repair (FONT-38).
+    pub fn set_font(&mut self, i: usize) {
+        self.font_tip.list = None;
+        let Some(font) = self.font_tip.installed.get(i).copied() else { return };
+        let tip = &self.font_tip;
+        let done = recipe::Recipes::load(&tip.recipes)
+            .and_then(|r| r.get(&tip.terminal).ok_or_else(|| format!("no font recipe for {}", tip.terminal)).and_then(|r| r.set(font.family, &recipe::System)))
+            .and_then(|escape| {
+                if let Some(e) = escape {
+                    write_escape(&e);
+                }
+                recipe::remember(&tip.recipes, &tip.terminal, font.family)
+            });
+        match done {
+            Ok(()) => {
+                self.font_tip.current = Some(font.family.to_string());
+                self.flash(format!("Font: {}", font.name));
+            }
+            Err(e) => self.flash(format!("The font recipe failed: {e}. Run `zendo doctor --fix --agent`.")),
         }
-        self.theme = self.theme_before;
-        self.mode = Mode::Read;
-        self.open_panel();
-        self.focus = Focus::Claude;
-        // No file goes with the request: it is about the machine, not about a note.
-        self.ask(request(self.font_tip.missing), NEW_KEY.to_string());
     }
 }
 
-/// The request to the agent: get the fonts when one is missing, then set the font of the
-/// terminal, and change the config only after the user agrees (FONT-6, FONT-15).
-pub fn request(missing: bool) -> String {
-    let names: Vec<&str> = fonts::FONTS.iter().map(|f| f.name).collect();
-    let get = match missing {
-        true => "Run `zendo setup fonts`: it downloads the fonts into my font folder and asks nothing.",
-        false => "The fonts are already on this machine.",
-    };
-    format!(
-        "Help me set the font of my terminal to one of the fonts that zendo recommends: {}.\n\
-         1. {get}\n\
-         2. Find out which terminal I use and where it keeps its font setting.\n\
-         3. Ask me which of these fonts to use.\n\
-         4. Show me the change of the terminal config, and change it only after I agree. Change nothing else.",
-        names.join(", ")
-    )
+/// An escape sequence of a recipe goes to the terminal at once.
+fn write_escape(text: &str) {
+    use std::io::Write;
+    let mut out = std::io::stdout();
+    let _ = out.write_all(text.as_bytes()).and_then(|()| out.flush());
 }

@@ -57,7 +57,7 @@ fn font(net: &mut Local, prefix: &str, styles: &[&str], raw_license: bool, bad: 
     parts.push(Part { origin, file, sha256: s(sha(&license)) });
     let refs: Vec<(&str, &[u8], bool)> = members.iter().map(|(m, b)| (*m, &b[..], true)).collect();
     net.0.insert(url.into(), zip(&refs));
-    Font { name: s(format!("{prefix} Mono")), prefix: s(prefix.into()), parts: Box::leak(parts.into_boxed_slice()) }
+    Font { name: s(format!("{prefix} Mono")), family: s(format!("{prefix} Mono")), prefix: s(prefix.into()), parts: Box::leak(parts.into_boxed_slice()) }
 }
 
 fn names(dir: &Path) -> Vec<String> {
