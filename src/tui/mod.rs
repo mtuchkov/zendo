@@ -64,6 +64,7 @@ pub async fn run(
     app.start_tips();
     loop {
         term.draw(|f| app.draw(f))?;
+        app.responsiveness.drawn(std::time::Instant::now());
         cursor_shape(app);
         if std::mem::take(&mut app.attention.bells) > 0 {
             sound::ring();
@@ -111,6 +112,8 @@ pub async fn run(
 }
 
 fn on_input(app: &mut App, e: Event) {
+    // RESP-1: the time of the actions of this event starts at its read.
+    app.responsiveness.input(std::time::Instant::now());
     match e {
         // A key that goes up ends `m` or `u` held in read mode (FILES-45, FILES-47).
         Event::Key(k) => app.on_key(k),

@@ -192,6 +192,8 @@ pub struct App {
     pub flash: Option<(String, Instant)>,
     /// The counts of the actions of the user; off until the start turns them on (USAGE-1).
     pub usage: crate::usage::Usage,
+    /// The time of each action of the user; off until the start turns it on (RESP-1).
+    pub responsiveness: crate::responsiveness::Responsiveness,
     pub quit: bool,
     /// The Claude Code sessions of the agent sessions, in terminals that zendo owns.
     pub cli: crate::session::Sessions,

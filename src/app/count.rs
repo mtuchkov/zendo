@@ -1,4 +1,5 @@
-//! Usage counts: what the dispatch of a key or of the mouse tells the counts (docs/zendo/usage.md).
+//! Usage counts and the times of the actions: what the dispatch of a key or of the mouse tells the
+//! counts (docs/zendo/usage.md) and the measurements (docs/zendo/responsiveness.md, RESP-2).
 use super::*;
 use crate::keys::Pane;
 use crate::usage::Trigger;
@@ -11,7 +12,14 @@ pub(crate) fn session_action(act: &str) -> bool {
 impl App {
     /// A key ran the action `act` of the keymap pane `pane` (USAGE-1, USAGE-7).
     pub(crate) fn did(&mut self, pane: Pane, act: &str) {
-        self.usage.count(pane, act, Trigger::Key);
+        self.ran(pane, act, Trigger::Key);
+    }
+
+    /// The one place that every action of the keymap passes: its count and its time (USAGE-1,
+    /// RESP-1, RESP-2).
+    fn ran(&mut self, pane: Pane, act: &str, trigger: Trigger) {
+        self.usage.count(pane, act, trigger);
+        self.responsiveness.ran(pane, act);
     }
 
     /// A key ran the action of `pane` that it has there, if it has one.
@@ -23,7 +31,7 @@ impl App {
 
     /// The mouse did what the action `act` of `pane` does (USAGE-1).
     pub(crate) fn did_by_mouse(&mut self, pane: Pane, act: &str) {
-        self.usage.count(pane, act, Trigger::Mouse);
+        self.ran(pane, act, Trigger::Mouse);
     }
 
     /// The mouse selection is final: a copy, or with alt the text for the chat (PANES-44). The
