@@ -1,10 +1,11 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-18"
 revision: "1"
 date: "2026-11-18"
 parent: "zendo.md"
 level: "what zendo does when a dependency fails, for every feature"
-note: "Agent draft of the failure default that AGENTS.md asks for, from the defects that reached main from 2026-11-12 to 2026-11-17 and the behavior of zendo 0.113. Updated with the atomic write of zendo 0.113.6. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft of the failure default that AGENTS.md asks for, from the defects that reached main from 2026-11-12 to 2026-11-17 and the behavior of zendo 0.113. Updated with the atomic write of zendo 0.113.6. Approved by the user on 2026-11-18."
 ---
 
 # Failure default
