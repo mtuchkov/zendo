@@ -179,7 +179,8 @@ impl Recorder {
         let typed = plain(&self.command).trim().to_string();
         // Without the B mark, the command line at `enter`.
         let command = if typed.is_empty() { self.entered.as_ref().map(|(l, _)| l.clone()).unwrap_or_default() } else { typed };
-        let mut lines: Vec<String> = plain(&self.out).lines().map(str::to_string).collect();
+        let text = plain(&self.out);
+        let mut lines: Vec<String> = text.lines().map(str::to_string).collect();
         // Without a C mark the output starts at enter, with the echo of the command.
         if !self.c_mark {
             let short = command.rsplit("$ ").next().unwrap_or(&command).trim().to_string();
@@ -187,8 +188,9 @@ impl Recorder {
                 lines.remove(0);
             }
         }
-        // Without marks it ends with the prompt; with marks, D comes before the prompt.
-        if done && !self.marks {
+        // Without marks it ends with the prompt; with marks, D comes before the prompt. A prompt that
+        // ends with a carriage return (fish) leaves an empty last line: then no line is the prompt.
+        if done && !self.marks && !text.ends_with('\n') {
             lines.pop();
         }
         while lines.last().is_some_and(|l| l.trim().is_empty()) {

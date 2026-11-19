@@ -1,6 +1,6 @@
 ---
 status: "draft"
-revision: "2"
+revision: "3"
 date: "2026-11-18"
 parent: "terminal.md"
 prev: "terminal-view.md"
@@ -25,13 +25,13 @@ to that moment, marked as not complete.
 **Long output.** Of a long output, zendo keeps the last 500 lines and tells how many lines it
 dropped.
 
-**The limits of a command.** The shell tells zendo where the output of a command starts and ends,
-and its exit code, with OSC 133 marks. zendo loads a short script for the marks when it starts bash,
-zsh, fish or a POSIX shell (`sh`, `dash`, `ash`, `ksh`, `mksh`), and does not change the files of
-the user. A POSIX shell has no hook before a command, so its prompt sends only the end of the last
-command and its exit code: the output starts when the command goes into the shell. For a shell
-without marks, the result is the output from the moment when the command went into the shell to the
-moment when the terminal became free; the exit code is then unknown.
+**The limits of a command.** zendo starts the shell as it is: it gives the shell no startup file
+and no variable for its startup files, so that an endpoint security product does not see a change of
+the shell configuration ([ADR 0018](../../architecture/decisions/0018-shells-start-as-they-are.md)).
+Without marks, the result is the output from the moment when the command went into the shell to the
+moment when the terminal became free (no program of the command runs, and the terminal was quiet for
+300 ms); the exit code is then unknown. When the shell of the user sends OSC 133 marks itself (a
+shell integration of the user), the marks give the limits of the output and the exit code.
 
 ## Architecturally significant requirements
 
@@ -45,21 +45,20 @@ moment when the terminal became free; the exit code is then unknown.
 
 ### Acceptance tests
 
-The tests are in `tests/terminal_output.rs`. They use `bash` and `/bin/sh` as shells with marks, and
-`/bin/sh` under another name as the shell without marks.
+The tests are in `tests/terminal_output.rs`. They use `bash` with a `.bashrc` that sends the marks
+as the shell with marks, and `/bin/sh` as the shell without marks.
 
 **`alt_o_puts_the_result_into_the_input_and_does_not_send_it`** (terminal check; verifies TERM-23, TERM-24, TERM-25, TERM-26)
 
-- Given the `F5` terminal with `bash`, where `echo zendo-out; false` ended, and the user in the
-  input of a chat.
+- Given the `F5` terminal with `bash` and a `.bashrc` of the user that sends the marks, where
+  `echo zendo-out; false` ended, and the user in the input of a chat.
 - When the user presses `alt-o`.
 - Then the input holds the command, the exit code `1` and `zendo-out`, and not the prompt of the
   shell. The agent got no message.
 
 **`a_shell_without_marks_gives_the_output_and_no_exit_code`** (terminal check; verifies TERM-27)
 
-- Given the `F5` terminal with `/bin/sh` under a name that zendo does not know, where `alt-F5` ran a
-  block `echo plain-out`.
+- Given the `F5` terminal with `/bin/sh`, where `alt-F5` ran a block `echo plain-out`.
 - When the user presses `alt-q`, and `alt-o` in the input of the chat.
 - Then the input holds `plain-out`, and shows the exit code as unknown.
 
@@ -80,15 +79,15 @@ The tests are in `tests/terminal_output.rs`. They use `bash` and `/bin/sh` as sh
 | TERM-31 | Unwanted   | If no terminal has a result, then the system shall put nothing into the input, and shall tell the user. | Design |
 | TERM-32 | Event      | When the output is longer than 500 lines, the system shall keep the last 500 lines, and shall tell how many lines it dropped. | User, 2026-11-12 |
 | TERM-33 | Ubiquitous | The system shall put the result into the input as the command, the exit code, and the output without ANSI codes. | Design |
-| TERM-34 | Event      | When a terminal starts a shell that is bash, zsh, fish or a POSIX shell (sh, dash, ash, ksh, mksh), the system shall load its OSC 133 script into that shell, without a change to the files of the user. | User, 2026-11-12; Agent, 2026-11-18 |
+| TERM-34 | —          | Retired in revision 3: zendo loads no script into the shell. Replaced by TERM-55. | User, 2026-11-18 |
 | TERM-35 | Ubiquitous | The system shall not show the OSC 133 marks on the screen of the terminal. | Design |
 | TERM-36 | Ubiquitous | The system shall take the insert-output key from the keymap, with `alt-o` as the default. | Design; TERM-19 |
+| TERM-55 | Ubiquitous | The system shall start the shell of a terminal as it is: without a startup file of zendo, and without a change to the variables that select the startup files of the shell (`ZDOTDIR`, `ENV`, `BASH_ENV`). | User, 2026-11-18; ADR 0018 |
 
 Tests that verify detailed requirements: `alt_o_again_goes_through_the_terminals`,
 `a_command_that_runs_gives_output_that_is_not_complete`, `no_result_puts_nothing`,
-`a_long_output_keeps_the_last_500_lines`, `the_marks_do_not_change_the_files_of_the_user` and
-`sh_marks_give_the_exit_code_and_wait_for_a_quiet_command` in `tests/terminal_output.rs` (TERM-28
-to TERM-35).
+`a_long_output_keeps_the_last_500_lines`, `bash_starts_as_it_is`, `zsh_starts_as_it_is` and
+`fish_starts_as_it_is` in `tests/terminal_output.rs` (TERM-28 to TERM-33, TERM-55).
 
 ## Open points
 
@@ -98,3 +97,7 @@ to TERM-35).
 
 Revision 2 changed TERM-34: the POSIX shells get the marks too, so that a command that prints
 nothing for a long time does not end before its end.
+
+Revision 3 retired TERM-34 and added TERM-55: CrowdStrike Falcon killed zendo together with the zsh
+that zendo started with its own `ZDOTDIR` (ADR 0018). A command of the shell that prints nothing for
+a long time and starts no program (a loop of the shell) can now end before its end.
