@@ -47,7 +47,7 @@ fn zendo_mcp_answers_with_its_session() {
 async fn a_claude_code_session_gets_the_server_of_its_session() {
     let root = repo("mcp-cli", &[("docs/notes/2026-11-13-a.md", "# A\n")]);
     let mut a = app(&root);
-    a.cli.command = Some(Command { program: env!("CARGO_BIN_EXE_zendo-mock-cli").into(), args: vec![] });
+    a.cli.command = Some(Command { program: env!("CARGO_BIN_EXE_zendo-mock-cli").into(), args: vec![], claude: true });
     a.thread(&session_key(1)).session = Some("s2".into());
     a.open_panel();
     a.switch_session(1);

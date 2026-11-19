@@ -50,8 +50,8 @@ pub const CODEX: Profile = Profile {
     entry: "dist/index.js",
     dir: "agent-codex",
     cli: "codex",
-    // Not known: whether the ACP session ID is a Codex session ID. The hand-off stays off.
-    handoff: None,
+    // codex-acp makes the ACP session ID from the Codex thread ID, so `codex resume` takes it.
+    handoff: Some(&["resume"]),
 };
 
 impl Profile {
@@ -79,6 +79,13 @@ impl Profile {
 
     pub fn installed(&self) -> bool {
         self.installed_version().as_deref() == Some(self.version) && self.entry_path().exists()
+    }
+
+    /// The command line of the hand-off (`ctrl-o`), from this profile: only Claude Code gets the
+    /// options of Claude Code (CODEXCLI-1, CODEXCLI-2).
+    pub fn handoff_command(&self) -> Option<crate::session::Command> {
+        let args = self.handoff?.iter().map(|s| s.to_string()).collect();
+        Some(crate::session::Command { program: self.cli.into(), args, claude: self.kind == Kind::Claude })
     }
 
     /// The command: the installed adapter, else npx.

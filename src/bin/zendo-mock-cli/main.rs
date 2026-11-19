@@ -2,7 +2,7 @@
 //!
 //! It prints its arguments, then `tick N` each 100 ms. In raw mode it reads keys: `r` reports the
 //! state "works", `w` reports "waits", `i` reports "idle", `q` exits, and `enter` prints `got: <the line>`;
-//! the line `background <seconds>` also starts `sleep <seconds>` in a process group of its own. A state goes to the file in `$ZENDO_STATE`, as the
+//! the line `hush` stops the ticks, and the line `background <seconds>` starts `sleep <seconds>` in a process group of its own. A state goes to the file in `$ZENDO_STATE`, as the
 //! hooks of Claude Code do. On `enter`, the inputs of the "prompt sent" and "stop" hooks go to the
 //! file in `$ZENDO_MESSAGES`: the line, and `answer: <the line>`. At the start the input of the
 //! "session start" hook of a resume goes there with the session ID after `--resume`, and on
@@ -13,10 +13,13 @@
 use ratatui::crossterm::terminal;
 use std::io::{Read, Write};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 /// The session ID of the conversation; `/clear` changes it.
 static SESSION: Mutex<String> = Mutex::new(String::new());
+/// The line `hush` stops the ticks: the program is quiet, as a tool at its prompt.
+static QUIET: AtomicBool = AtomicBool::new(false);
 
 /// The transcript of the conversation: a file beside the file of the messages.
 fn transcript() -> String {
@@ -80,9 +83,11 @@ fn main() {
     std::thread::spawn(|| {
         let mut n = 0u64;
         loop {
-            n += 1;
-            print!("tick {n}\r\n");
-            let _ = std::io::stdout().flush();
+            if !QUIET.load(Ordering::Relaxed) {
+                n += 1;
+                print!("tick {n}\r\n");
+                let _ = std::io::stdout().flush();
+            }
             std::thread::sleep(Duration::from_millis(100));
         }
     });
@@ -102,6 +107,7 @@ fn main() {
             b'\r' | b'\n' => {
                 print!("got: {}\r\n", String::from_utf8_lossy(&line));
                 background(&String::from_utf8_lossy(&line));
+                QUIET.fetch_or(line == b"hush", Ordering::Relaxed);
                 let _ = std::io::stdout().flush();
                 hooks(&String::from_utf8_lossy(&line));
                 line.clear();
