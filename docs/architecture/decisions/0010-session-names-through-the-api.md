@@ -1,6 +1,7 @@
 ---
 status: "approved"
 approved: "2026-11-17"
+note: "ADR 0023 (draft, 2026-11-18) changes it in part: only `claude -p`; no API key and no `ant`."
 date: "2026-11-17"
 sources:
   - "The user, 2026-11-17: a name shall not change while its session runs; use the AI API directly in place of agent sessions, since only one word comes back; the API depends on the configured agent, Claude or Codex; fall back to a session without a key; consider the sign-in of the `ant` CLI; Anthropic encourages local development with the Agent SDK and `claude -p`."

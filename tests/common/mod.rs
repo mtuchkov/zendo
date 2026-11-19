@@ -1,7 +1,7 @@
 //! A zendo app in a test: a repository in a temp folder, the mock agent, a test terminal, keys.
 #![allow(dead_code)]
 
-pub mod http;
+pub mod claude;
 pub mod rekey;
 
 use ratatui::Terminal;

@@ -69,7 +69,9 @@ pub(super) fn git_env() -> BTreeMap<String, String> {
     }
     env.insert("GIT_TERMINAL_PROMPT".to_string(), "0".to_string());
     if std::env::var("GIT_SSH_COMMAND").is_err() {
-        env.insert("GIT_SSH_COMMAND".into(), "ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new".into());
+        // No new host key without the user (ADR 0023): an unknown GitHub host fails, and HTTPS goes
+        // first anyway.
+        env.insert("GIT_SSH_COMMAND".into(), "ssh -o BatchMode=yes -o ConnectTimeout=5".into());
     }
     env
 }
@@ -113,15 +115,27 @@ pub(super) fn clone_has(src: &Path, head: &str, built: &str) -> bool {
     ok(&["cat-file", "-e", &format!("{head}^{{commit}}")]) && ok(&["merge-base", "--is-ancestor", head, built])
 }
 
-/// The head of main to compare with this build: GitHub's answer, else the cache while it is
-/// fresh (GitHub did not answer, for example offline).
-pub(super) fn head_to_use(fresh: Option<String>, cached: Option<(u64, String)>, now: u64) -> Option<String> {
-    fresh.or_else(|| cached.filter(|(at, _)| now.saturating_sub(*at) < UPDATE_EVERY.as_secs()).map(|(_, h)| h))
+/// The answer of the last check while it is younger than `UPDATE_EVERY`: the head of main, or
+/// `None` when GitHub did not answer. `None` outside: time to ask GitHub (CMD-20).
+pub(super) fn cached_head(cached: Option<(u64, String)>, now: u64) -> Option<Option<String>> {
+    let (_, head) = cached.filter(|(at, _)| now.saturating_sub(*at) < UPDATE_EVERY.as_secs())?;
+    Some(Some(head).filter(|h| !h.is_empty()))
 }
 
-/// On start: is there a newer commit on main? Asks GitHub on each start and never waits longer
-/// than 5 s; when GitHub does not answer, uses the last answer of the last 12 hours. `None` for
-/// builds not installed from git.
+/// The head of main on GitHub, from the first repository that answers within 5 s.
+async fn github_head() -> Option<String> {
+    let env = git_env();
+    for r in repos() {
+        if let Some(h) = remote_head(&r, &env, 5).await {
+            return Some(h);
+        }
+    }
+    None
+}
+
+/// On start: is there a newer commit on main? Asks GitHub at most once a day and never waits longer
+/// than 5 s; until the next day, the answer of that check holds, also when GitHub did not answer
+/// (CMD-4, CMD-20). `None` for builds not installed from git.
 pub async fn update_available() -> Option<String> {
     if std::env::var("ZENDO_NO_UPDATE_CHECK").is_ok() {
         return None;
@@ -133,19 +147,15 @@ pub async fn update_available() -> Option<String> {
         .ok()
         .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
         .and_then(|j| Some((j["checked"].as_u64()?, j["head"].as_str()?.to_string())));
-    let env = git_env();
-    let mut fresh = None;
-    for r in repos() {
-        if let Some(h) = remote_head(&r, &env, 5).await {
-            fresh = Some(h);
-            break;
+    let head = match cached_head(cached, now) {
+        Some(head) => head?,
+        None => {
+            let fresh = github_head().await;
+            let _ = std::fs::create_dir_all(config::data_dir());
+            let _ = std::fs::write(&cache, serde_json::json!({ "checked": now, "head": fresh.clone().unwrap_or_default() }).to_string());
+            fresh?
         }
-    }
-    if let Some(h) = &fresh {
-        let _ = std::fs::create_dir_all(config::data_dir());
-        let _ = std::fs::write(&cache, serde_json::json!({ "checked": now, "head": h }).to_string());
-    }
-    let head = head_to_use(fresh, cached, now)?;
+    };
     if same_commit(&mine, &head) {
         return None;
     }

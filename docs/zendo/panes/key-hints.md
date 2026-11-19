@@ -28,7 +28,7 @@ late answer is dropped.
 | ------- | ---------- | ----------- | ------ |
 | REKEY-4 | Ubiquitous | The system shall show the suggestions as a hint that does not block the input of the user. | User, 2026-11-17 |
 | REKEY-5 | Event      | When the user sets a key, presses another key or closes the float, the system shall cancel the open request and drop its answer. | User, 2026-11-17 |
-| REKEY-6 | Ubiquitous | The system shall ask the model of `[hint_models]` of the config for the suggestions, by default `haiku` with low effort, through the API of the agent (ADR 0010), with the keymap in effect. | User, 2026-11-18 |
+| REKEY-6 | Ubiquitous | The system shall ask the model of `[hint_models]` of the config for the suggestions, by default `haiku` with low effort, through `claude -p` (NAMES-21, ADR 0010), with the keymap in effect. | User, 2026-11-18 |
 | REKEY-7 | Ubiquitous | The system shall show only the suggestions that pass the free-key rules of WIZARD-10. | WIZARD-4, Design |
 
 ### Acceptance tests

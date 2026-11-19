@@ -25,16 +25,24 @@ fn short_and_long_commits_match() {
     assert!(!same_commit("", "865312a"));
 }
 
+// CMD-4, CMD-20, ADR 0023: zendo asks GitHub at most once a day; while the last check is younger,
+// its answer holds, and an empty answer (GitHub did not answer) gives no notice.
 #[test]
-fn the_update_check_asks_github_and_uses_the_cache_only_offline() {
-    let now = 100_000;
-    let cache = Some((now - 60, "a809f25".to_string()));
-    // CMD-4: each start asks GitHub; its answer wins over the cache.
-    assert_eq!(head_to_use(Some("865312a".into()), cache.clone(), now), Some("865312a".into()));
-    // No answer from GitHub: the cache, while it is fresh.
-    assert_eq!(head_to_use(None, cache, now), Some("a809f25".into()));
-    assert_eq!(head_to_use(None, Some((now - UPDATE_EVERY.as_secs(), "a809f25".into())), now), None);
-    assert_eq!(head_to_use(None, None, now), None);
+fn the_update_check_asks_github_once_a_day() {
+    let now = 1_000_000;
+    let day = UPDATE_EVERY.as_secs();
+    assert_eq!(day, 24 * 3600);
+    assert_eq!(cached_head(Some((now - 60, "a809f25".into())), now), Some(Some("a809f25".into())), "fresh: no network");
+    assert_eq!(cached_head(Some((now - 60, String::new())), now), Some(None), "fresh, GitHub did not answer");
+    assert_eq!(cached_head(Some((now - day, "a809f25".into())), now), None, "a day old: ask again");
+    assert_eq!(cached_head(None, now), None, "never asked");
+}
+
+// ADR 0023: the ssh of a check or an upgrade accepts no new host key without the user.
+#[test]
+fn ssh_accepts_no_new_host_key() {
+    let env = super::upgrade::git_env();
+    assert!(env.get("GIT_SSH_COMMAND").is_none_or(|c| !c.contains("accept-new")), "{env:?}");
 }
 
 #[test]

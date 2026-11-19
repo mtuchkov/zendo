@@ -1,7 +1,7 @@
 //! The connection to the agent: its handle and events, its name and what it can do, and the
 //! questions for the names of sessions and images, through the agent or its API (ADR 0008,
 //! ADR 0010). The link does not see the app.
-use crate::agent::api::{Answer, Api, Asker, Credential, Question};
+use crate::agent::api::{Answer, Api, Asker, Question};
 use crate::agent::work::Asked;
 use crate::agent::{AgentHandle, Cmd, Event};
 use std::collections::HashMap;
@@ -26,14 +26,15 @@ pub struct AgentLink {
     asked: HashMap<String, Asked>,
     /// The pasted images that the name model names: by session key, the file and the answer so far.
     image_names: HashMap<String, (PathBuf, String)>,
-    /// The API that names sessions and images, or the check of the `ant` sign-in (NAMES-15, NAMES-20).
+    /// The light model that names sessions and images, or the check of the `claude` login (NAMES-15,
+    /// NAMES-21).
     api: ApiState,
     asker: Asker,
     /// An error of the API has shown in the flash line (NAMES-19).
     api_failed: bool,
 }
 
-/// The API of the agent: known, or the check of the `ant` sign-in on a thread.
+/// The light model: known, or the check of the `claude` login on a thread.
 enum ApiState {
     Ready(Option<Api>),
     Pending(Receiver<Option<Api>>),
@@ -125,17 +126,16 @@ impl AgentLink {
         self.asked.insert(id.to_string(), Asked { size, at: Instant::now() });
     }
 
-    /// The API that `find` gave: a key is ready at once; the sign-in of `ant` or of `claude` waits
-    /// for a check on a thread, since the CLI may refresh its token over the network (NAMES-20,
-    /// NAMES-21).
+    /// The light model that `find` gave: it counts after a check of the `claude` login on a thread,
+    /// since the CLI may refresh its login over the network (NAMES-21).
     pub fn start_api(&mut self, api: Option<Api>) {
         self.api = match api {
-            Some(a) if !matches!(a.cred, Credential::Key(_)) => {
+            Some(a) => {
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || drop(tx.send(Some(a).filter(Api::usable))));
                 ApiState::Pending(rx)
             }
-            a => ApiState::Ready(a),
+            None => ApiState::Ready(None),
         };
     }
 
@@ -144,7 +144,7 @@ impl AgentLink {
         self.api = ApiState::Ready(api);
     }
 
-    /// The check of the `ant` sign-in ended: its answer.
+    /// The check of the `claude` login ended: its answer.
     pub fn poll_api(&mut self) {
         if let ApiState::Pending(rx) = &self.api {
             match rx.try_recv() {
