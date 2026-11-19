@@ -12,7 +12,7 @@ children:
   - "terminal-watch.md"
   - "terminal-mouse.md"
 level: "the terminals of zendo as a whole: what a terminal is, how many, who runs a command"
-note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Revision 3: split into children by topic (user, 2026-11-12). Depends on Sessions (sessions.md, draft) and ADR 0005. Revision 5: the child terminal-watch.md, ADR 0018; TERM-2 takes `Run in terminal` of ADR 0019 (user, 2026-11-17)."
+note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Revision 3: split into children by topic (user, 2026-11-12). Depends on Sessions (sessions.md, draft) and ADR 0005. Revision 5: the child terminal-watch.md, ADR 0018; TERM-2 takes `Run in zendo shell` of ADR 0019 (user, 2026-11-17)."
 ---
 
 # Terminal
@@ -50,7 +50,7 @@ zendo asks first. With `--offline` and with each agent, the `F5` terminal is ava
 
 | ID     | Pattern    | Requirement | Source |
 | ------ | ---------- | ----------- | ------ |
-| TERM-2 | Ubiquitous | The system shall run the text of an agent message only when the user presses `alt-F5` on it, `enter` in the terminal, or answers `Run in terminal` to a question of the agent (ASK-4). | User, 2026-11-12; User, 2026-11-17 |
+| TERM-2 | Ubiquitous | The system shall run the text of an agent message only when the user presses `alt-F5` on it, `enter` in the terminal, or answers `Run in zendo shell` to a question of the agent (ASK-4). | User, 2026-11-12; User, 2026-11-17 |
 | TERM-3 | Ubiquitous | The system shall have at most five terminals: one `F5` terminal and at most four `[>]` terminals. | User, 2026-11-12 |
 | TERM-4 | Unwanted   | If five terminals are open and each one runs a command or belongs to another session (TERM-72), then the system shall not put the block into a terminal, and shall tell the user. | User, 2026-11-12; User, 2026-11-17 |
 | TERM-5 | Ubiquitous | The system shall run each terminal in a terminal that zendo owns, without tmux, a multiplexer, or a server process. | SESSIONS-3 |

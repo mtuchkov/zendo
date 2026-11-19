@@ -14,7 +14,7 @@ sources:
 
 ## Context
 
-For a shell command that the user runs in zendo (`Run in terminal`, ASK-4), the agent must get the
+For a shell command that the user runs in zendo (`Run in zendo shell`, ASK-4), the agent must get the
 output, and for `No` or `Say what to do instead` (ASK-6) it should get a text from zendo. An ACP
 answer to a permission request holds only the id of an option. The Claude adapter gives the model
 the fixed text "User refused permission to run tool" for each reject. So through ACP the agent
@@ -57,7 +57,7 @@ Proposal: a `PermissionRequest` hook that waits for the user, with the ACP answe
   The hook runs `zendo hook permission --session N --pid P`, with a time limit of 600 s.
 - For a shell command, zendo shall show the ACP request as the question (ASK-2) and hold it. The
   answer of the user goes to the hook through a file in `.zendo/watch/<pid>-<session>/`:
-  - `Run in terminal`: zendo runs the command as a watched command (ASK-4), and the hook answers
+  - `Run in zendo shell`: zendo runs the command as a watched command (ASK-4), and the hook answers
     *allow* with the command `zendo await <id>`. `zendo await` prints the output of the terminal and
     exits with its exit code. Before the time limit of the shell tool, it prints the output so far
     and says that the rest comes as `zendo_command_result` (ADR 0018).
@@ -84,9 +84,9 @@ Proposal: a `PermissionRequest` hook that waits for the user, with the ACP answe
 ## Verification
 
 - The test of the Context, as `tests/permission_hook.rs`, with the pinned adapter and a mock
-  Messages API: `run_in_terminal_gives_the_output_as_a_shell_result`,
+  Messages API: `run_in_zendo_shell_gives_the_output_as_a_shell_result`,
   `no_gives_the_text_of_zendo`, `a_late_answer_goes_through_acp`.
-- `zendo doctor --live` with real Claude: `Run in terminal` on `echo zendo-42` gives the agent
+- `zendo doctor --live` with real Claude: `Run in zendo shell` on `echo zendo-42` gives the agent
   `zendo-42` as the shell result.
 
 ## Decision record

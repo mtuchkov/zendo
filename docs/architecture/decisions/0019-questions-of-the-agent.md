@@ -66,11 +66,11 @@ the terminals of zendo.
   (ASK-2).
 - The question shall show the full command or the input of the tool (ASK-3), and the options under
   it in one row. `up` on the first line of the chat input moves to the options (ASK-5).
-- For a shell command the options shall be `Run in terminal`, `No` and `Say what to do instead`. For
+- For a shell command the options shall be `Run in zendo shell`, `No` and `Say what to do instead`. For
   another tool they are the options of the agent and `Say what to do instead`.
 - zendo shall keep the permission mode of the agent, also `auto` (ASK-15). In `auto` the
   classifier of Claude Code decides first; only its open cases come to zendo.
-- On `Run in terminal`, zendo shall run the command in a terminal of the session as a watched
+- On `Run in zendo shell`, zendo shall run the command in a terminal of the session as a watched
   command (ASK-4, TERM-55, TERM-73). With Claude, zendo answers through its hook, so the agent gets
   the output as the result of its shell command (ADR 0020). With another agent, zendo answers *no*,
   and `command_result` tells the agent that the command ran (ASK-11).
@@ -82,7 +82,7 @@ an allowed command to the agent.
 ## Consequences
 
 - CLAUDE-3, CLAUDE-12 and CLAUDE-33 of [Claude](../../zendo/claude.md) are retired; ASK-1 and ASK-2
-  replace them. TERM-2 takes `Run in terminal`.
+  replace them. TERM-2 takes `Run in zendo shell`.
 - `src/agent/acp.rs` allows only edits and the tools of `zendo`, in place of the check on `execute`, and sends the
   other questions to the app with the raw input of the call. The app gets a question item in the
   thread, and a focus on its options.
@@ -106,7 +106,7 @@ an allowed command to the agent.
   a kind; both wait for the user.
 - The adapter test of [ADR 0020](0020-answers-to-claude-through-a-hook.md): without
   `defaultMode` the adapter starts the session in `auto`.
-- `zendo doctor --live` with real Claude: a shell command of the agent asks, `Run in terminal` runs
+- `zendo doctor --live` with real Claude: a shell command of the agent asks, `Run in zendo shell` runs
   it in the `F5` terminal, and the agent continues with the output.
 
 ## Decision record

@@ -43,7 +43,7 @@ agent sees a command that hangs. The agent answers in the chat; it can end the w
 when the agent calls `end_watch`, or when zendo quits. The command continues after the watch. While a session runs in Claude Code
 ([Sessions](../sessions.md)), zendo does not type into it: the push waits for the chat.
 
-`Run in terminal` on a question of the agent starts a watch too
+`Run in zendo shell` on a question of the agent starts a watch too
 ([Questions of the agent](../questions.md), ASK-4).
 
 **Safety.** Each watch starts with a choice of the user; the agent cannot start one. The output can
