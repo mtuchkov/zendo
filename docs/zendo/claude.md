@@ -33,7 +33,8 @@ chat shows why the agent stopped, and zendo starts it again with the next questi
 
 **Agents.** zendo works with Claude (the default) and with Codex (`zendo setup --agent-cmd codex`), each
 through its pinned ACP adapter, and with any other ACP agent command. What an agent cannot do turns off
-only its keys: with Codex there is no hand-off to the command line (`ctrl-o`); the rest works the same.
+only its keys. With Codex, the hand-off to the command line (`ctrl-o`) starts `codex resume`
+([Codex in its terminal](codex-cli.md)); the rest works the same.
 
 The five threads of the chat, and how zendo keeps and resumes them, are in [Threads](threads.md).
 Claude Code sessions that run in the background while the user works in zendo are in

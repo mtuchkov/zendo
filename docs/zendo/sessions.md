@@ -38,7 +38,7 @@ A quiet session that the user left goes back to the agent of the chat by itself
 ([Back to the agent](back-to-the-agent.md)).
 
 **Quit.** A Claude Code session lives while zendo runs; the conversation stays. If sessions run,
-the first quit asks. With Codex these keys are off (CLAUDE-14).
+the first quit asks. With Codex, `ctrl-o` starts `codex resume` ([Codex in its terminal](codex-cli.md)).
 
 ## Architecturally significant requirements
 

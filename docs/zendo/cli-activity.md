@@ -5,7 +5,7 @@ revision: "2"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "cli-messages.md"
-next: "back-to-the-agent.md"
+next: "codex-cli.md"
 level: "what the chat of a running Claude Code session shows about its turn, from the hooks of that run, and what the user can do there"
 note: "Agent draft from the answer of the user on 2026-11-18 in chat: the chat of a Claude Code session shall show the same detail as the chat of the agent. Revision 2: the user answers questions and permissions of Claude Code in the chat; zendo needs the latest Claude Code (User, 2026-11-18). Approved by the user on 2026-11-18."
 ---

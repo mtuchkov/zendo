@@ -66,35 +66,26 @@ fn nz(n: u16) -> NonZeroU16 {
 }
 
 impl Cli {
-    /// Start `cmd` with the hooks, then `id`, in `cwd`, on a screen of `size`.
+    /// Start `cmd`, then `id`, in `cwd`, on a screen of `size`. Only Claude Code gets the hooks; a
+    /// tool without them has its state from the activity of its terminal (CODEXCLI-2, CODEXCLI-3).
     pub fn spawn(cmd: &Command, resume: Resume, cwd: &Path, dir: &Path, n: usize, size: (u16, u16), notify: Arc<tokio::sync::Notify>) -> std::io::Result<Cli> {
         std::fs::create_dir_all(dir)?;
         let state_file = dir.join(format!("{}.state", n + 1));
         let _ = std::fs::remove_file(&state_file);
-        let settings = dir.join("hooks.json");
-        std::fs::write(&settings, hooks::settings())?;
+        let messages = dir.join(format!("{}.messages", n + 1));
+        let _ = std::fs::remove_file(&messages);
         let mut b = CommandBuilder::new(&cmd.program);
-        // The MCP server of this zendo session (SESSIONS-21). `--mcp-config` takes several files, so
-        // the option `--settings` must follow it, not a prompt.
-        if let Ok(exe) = std::env::current_exe() {
-            let mcp = dir.join(format!("{}.mcp.json", n + 1));
-            std::fs::write(&mcp, crate::mcp::config_json(&exe, n + 1))?;
-            b.arg("--mcp-config");
-            b.arg(&mcp);
+        if cmd.claude {
+            claude_options(&mut b, dir, n, &state_file, &messages)?;
         }
-        b.arg("--settings");
-        b.arg(&settings);
         b.args(&cmd.args);
         b.arg(resume.id);
         b.args(resume.prompt);
         b.cwd(cwd);
-        b.env("ZENDO_STATE", &state_file);
-        let messages = dir.join(format!("{}.messages", n + 1));
-        let _ = std::fs::remove_file(&messages);
-        b.env("ZENDO_MESSAGES", &messages);
         b.env("TERM", "xterm-256color");
         let mut cli = Cli::start(b, size, notify, false)?;
-        cli.watch = Some(super::watch::Watch::start(state_file, messages));
+        // Only Claude Code has hooks; another tool has its state from its terminal (CODEXCLI-3).
+        cli.watch = cmd.claude.then(|| super::watch::Watch::start(state_file, messages));
         Ok(cli)
     }
 
@@ -241,6 +232,25 @@ fn writer_thread(mut w: Box<dyn Write + Send>) -> Writer {
         }
     });
     tx
+}
+
+/// The options and the variables of Claude Code: the MCP server of this zendo session (SESSIONS-21),
+/// and the hooks that report the state and the messages (CLIMSG-2).
+fn claude_options(b: &mut CommandBuilder, dir: &Path, n: usize, state_file: &Path, messages: &Path) -> std::io::Result<()> {
+    let settings = dir.join("hooks.json");
+    std::fs::write(&settings, hooks::settings())?;
+    // `--mcp-config` takes several files, so the option `--settings` must follow it, not a prompt.
+    if let Ok(exe) = std::env::current_exe() {
+        let mcp = dir.join(format!("{}.mcp.json", n + 1));
+        std::fs::write(&mcp, crate::mcp::config_json(&exe, n + 1))?;
+        b.arg("--mcp-config");
+        b.arg(&mcp);
+    }
+    b.arg("--settings");
+    b.arg(&settings);
+    b.env("ZENDO_STATE", state_file);
+    b.env("ZENDO_MESSAGES", messages);
+    Ok(())
 }
 
 /// Feed the output of the program to its screen, answer its queries, and wake the terminal loop.
