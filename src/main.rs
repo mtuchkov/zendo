@@ -144,6 +144,23 @@ fn parse() -> Result<Run> {
     })
 }
 
+/// `zendo board watch --session N [--for ID] [--timeout S]`: the watch of the board (BOARD-20).
+/// None for other arguments.
+fn board_watch() -> Result<Option<i32>> {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let [b, w, rest @ ..] = args.as_slice() else { return Ok(None) };
+    if b != "board" || w != "watch" {
+        return Ok(None);
+    }
+    let Some((session, for_id, timeout)) = zendo::board::watch::parse(rest) else {
+        bail!("usage: zendo board watch --session N [--for ID] [--timeout SECONDS]");
+    };
+    let dir = zendo::board::default_dir().ok_or_else(|| anyhow::anyhow!("no home folder for the board"))?;
+    let repo = zendo::board::repo_of(&std::env::current_dir()?);
+    let watch = zendo::board::watch::Watch { journal: zendo::board::Journal::at(dir), repo, session, for_id, timeout, poll: std::time::Duration::from_millis(500) };
+    Ok(Some(watch.run(&mut std::io::stdout().lock())?))
+}
+
 /// `zendo mcp --session N`: the MCP server of zendo session N (SESSIONS-21).
 fn mcp_session() -> Option<usize> {
     let a: Vec<String> = std::env::args().skip(1).collect();
@@ -159,6 +176,9 @@ async fn main() -> Result<()> {
     if let Some(n) = mcp_session() {
         return Ok(zendo::mcp::serve(std::io::stdin().lock(), std::io::stdout().lock(), n)?);
     }
+    if let Some(code) = board_watch()? {
+        std::process::exit(code);
+    }
     let cfg = match parse()? {
         Run::Tui(cfg) => cfg,
         Run::Setup(paths, agent, notes_repo) => std::process::exit(if doctor::setup(&paths, agent, notes_repo).await { 0 } else { 1 }),
@@ -171,6 +191,10 @@ async fn main() -> Result<()> {
     // The path of this binary, before an upgrade replaces it.
     let exe = std::env::current_exe().ok();
     let mut app = open_app(cfg).await?;
+    // The message board between the sessions, in the folder of the user (ADR 0021).
+    if let Some(dir) = zendo::board::default_dir() {
+        app.board = zendo::app::BoardLink::open(dir, &app.cfg.root);
+    }
 
     let mut term = ratatui::init();
     zendo::tui::terminal_on();
@@ -183,6 +207,7 @@ async fn main() -> Result<()> {
         app.save();
     }
     app.end_visit();
+    app.board_quit();
     app.usage.write();
     zendo::tui::terminal_off();
     ratatui::restore();

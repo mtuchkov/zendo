@@ -86,7 +86,9 @@ impl App {
         }
         a.done = true;
         let (request, picks) = (a.request, a.picks.clone());
-        self.link.send(Cmd::Reply { request, picks: Some(picks) });
+        if !self.board_reply(request, Some(&picks)) {
+            self.link.send(Cmd::Reply { request, picks: Some(picks) });
+        }
         true
     }
 
@@ -95,7 +97,9 @@ impl App {
         if let Some(a) = self.threads.get_mut(key).and_then(Thread::asking_mut) {
             a.done = true;
             let request = a.request;
-            self.link.send(Cmd::Reply { request, picks: None });
+            if !self.board_reply(request, None) {
+                self.link.send(Cmd::Reply { request, picks: None });
+            }
         }
     }
 }

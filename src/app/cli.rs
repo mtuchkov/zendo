@@ -108,7 +108,11 @@ impl App {
                     Some(i) => drop(t.sent_to_cli.remove(i)),
                     None => t.push(Item::User(plain(&p))),
                 },
-                Message::Answer(a) | Message::Text(a) => t.push(Item::Agent(a)),
+                Message::Answer(a) => {
+                    t.push(Item::Agent(a));
+                    self.board_turn_ended(n);
+                }
+                Message::Text(a) => t.push(Item::Agent(a)),
                 // The tool calls between two texts are one item, as the tools of the agent (CLIMSG-9).
                 Message::Tool { id, title, kind } => match t.items.last_mut() {
                     Some(Item::Tools { uses, .. }) => uses.push(cli_tool(id, title, kind)),
@@ -143,6 +147,7 @@ impl App {
         let body = if bracketed { text } else { text.replace('\n', "\x1b\r") };
         self.cli.write(n, &keys::paste(&body, bracketed));
         self.cli.write(n, b"\r");
+        self.board_user_asked();
         let key = self.key();
         let t = self.thread(&key);
         t.sent_to_cli.push(sent);

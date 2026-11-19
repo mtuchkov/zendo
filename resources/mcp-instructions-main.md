@@ -9,4 +9,4 @@ own worktrees, `.worktrees/<id>`.
 <rule>Merge a branch into `main` only after the user approves it.</rule>
 </rules>
 <tools>The tool `session` returns the same id.</tools>
-</zendo_session>
+{{BOARD}}</zendo_session>

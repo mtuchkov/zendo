@@ -185,6 +185,9 @@ impl App {
         }
         let next = (!t.queue.is_empty()).then(|| t.queue.remove(0));
         self.chat_turn_ended(&key, &stop, next.is_some());
+        if let Some(n) = (0..SESSIONS).find(|n| session_key(*n) == key) {
+            self.board_turn_ended(n);
+        }
         self.reload_after_agent();
         if let Some(out) = next {
             self.dispatch(key, out);
