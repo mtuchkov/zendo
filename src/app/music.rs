@@ -60,10 +60,16 @@ impl App {
 
     /// Save the setting in the config: only its line changes (CMD-19).
     fn save_music(&mut self, word: &str) {
-        let on = self.music.on;
-        match UserConfig::update(&self.music.config, |user| user.music = Some(on)) {
-            Ok(()) => self.flash(word.to_string()),
-            Err(e) => self.flash(format!("{word}; not saved: {e}")),
-        }
+        let (on, path, word) = (self.music.on, self.music.config.clone(), word.to_string());
+        self.flash(word.clone());
+        // On a thread (IO-1); a failure says so.
+        self.in_background(
+            move || UserConfig::update(&path, |user| user.music = Some(on)),
+            move |a, done| {
+                if let Err(e) = done {
+                    a.flash(format!("{word}; not saved: {e}"));
+                }
+            },
+        );
     }
 }

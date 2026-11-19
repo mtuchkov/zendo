@@ -23,6 +23,7 @@ fn files() -> Vec<(&'static str, &'static str)> {
 
 fn alt(a: &mut App, c: char) {
     a.on_key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::ALT));
+    a.settle_saves();
 }
 
 /// Open a file as the user does, and let zendo see it.

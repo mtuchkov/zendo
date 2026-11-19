@@ -69,6 +69,7 @@ impl App {
     /// A worker has an answer: take the answers of the tasks of the app (ADR 0024).
     pub fn poll_tasks(&mut self) {
         self.poll_clipboard();
+        self.poll_jobs();
         self.poll_saves();
         self.disk_answer();
         self.poll_reload();
@@ -84,10 +85,25 @@ impl App {
         [self.files.reload_waited(), self.clipboard.waited(), self.peeks.waited()].into_iter().flatten().max()
     }
 
+    /// Run `job` on `serial`; `then` gets its answer on the UI thread (IO-1).
+    pub(crate) fn in_background(&mut self, job: impl FnOnce() -> Result<(), String> + Send + 'static, then: impl FnOnce(&mut App, Result<(), String>) + 'static) {
+        let id = self.serial.run(job);
+        self.after_job.insert(id, Box::new(then));
+    }
+
+    /// The answers of the jobs: what follows each runs.
+    pub(crate) fn poll_jobs(&mut self) {
+        for (id, answer) in self.serial.answers() {
+            if let Some(then) = self.after_job.remove(&id) {
+                then(self, answer);
+            }
+        }
+    }
+
     /// For tests: wait at most 5 s until the tasks of the app answered, and take the answers.
     pub fn settle_tasks(&mut self) {
         let end = Instant::now() + Duration::from_secs(5);
-        while (self.peeks.running() || self.marks.running() || self.recaps.running() || self.worktree_diff.running() || self.files.disk_busy() || self.saving.is_some()) && Instant::now() < end {
+        while (self.peeks.running() || self.marks.running() || self.recaps.running() || self.worktree_diff.running() || self.files.disk_busy() || self.saving.is_some() || self.serial.busy()) && Instant::now() < end {
             std::thread::sleep(Duration::from_millis(2));
             self.poll_tasks();
         }

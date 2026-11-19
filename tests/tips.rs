@@ -34,11 +34,13 @@ fn repo_with(name: &str, config: &str) -> (PathBuf, PathBuf) {
 
 fn press(a: &mut App, code: KeyCode) {
     a.on_key(KeyEvent::new(code, KeyModifiers::NONE));
+    a.settle_saves();
 }
 
 fn click(a: &mut App, (column, row): (u16, u16)) {
     a.on_mouse(MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column, row, modifiers: KeyModifiers::NONE });
     a.on_mouse(MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column, row, modifiers: KeyModifiers::NONE });
+    a.settle_saves();
 }
 
 /// TIPS-1 to TIPS-4, TIPS-7: the tip menu comes after the music question; only `[OK]` closes it;

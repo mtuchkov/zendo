@@ -4,11 +4,13 @@
 
 mod clock;
 mod memo;
+mod serial;
 mod task;
 mod writer;
 
 pub use clock::{Clock, LIMIT, READING_AFTER, reading};
 pub use memo::Memo;
+pub use serial::Serial;
 pub use task::Task;
 pub use writer::{Checked, Sync, Writer};
 

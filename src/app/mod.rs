@@ -154,6 +154,8 @@ pub struct Config {
 
 /// An action that waits for the notes that a worker reads (IO-6).
 pub(crate) type AfterReload = Box<dyn FnOnce(&mut App)>;
+/// What follows a job of `App::serial`, with its answer.
+pub(crate) type AfterJob = Box<dyn FnOnce(&mut App, Result<(), String>)>;
 
 #[derive(smart_default::SmartDefault)]
 pub struct App {
@@ -223,6 +225,9 @@ pub struct App {
     pub(crate) after_save: Vec<AfterReload>,
     /// What waits for the notes that a worker reads: a jump to a match, a cursor (IO-6).
     pub(crate) after_reload: Vec<AfterReload>,
+    /// The changes of files of the user, one at a time on a thread, and what follows each (IO-1).
+    pub serial: crate::worker::Serial,
+    pub(crate) after_job: std::collections::HashMap<u64, AfterJob>,
     /// The marks of the files that changed since their last visit, from a worker (IO-1).
     pub marks: crate::worker::Task<Vec<PathBuf>>,
     /// The files whose write failed: each shows once (FAIL-1).

@@ -49,6 +49,7 @@ fn the_settings_go_to_the_config_file_that_config_names() {
     assert_eq!([&a.attention.config, &a.music.config, &a.tips.config, &a.rekey.config], [&file; 4]);
     let mut a = a;
     a.toggle_sound();
+    a.settle_saves();
     let text = std::fs::read_to_string(&file).unwrap();
     assert!(text.contains("sound = false"), "{text}");
     let _ = std::fs::remove_dir_all(&root);

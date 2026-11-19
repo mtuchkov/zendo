@@ -98,14 +98,24 @@ impl App {
         self.mark_edited();
     }
 
-    /// For tests: wait at most 5 s for the saves and the reload of the notes after them.
+    /// For tests: wait at most 5 s for the saves, the jobs and the reload of the notes after them.
     pub fn settle_saves(&mut self) {
         let end = Instant::now() + Duration::from_secs(5);
-        while (self.saving.is_some() || self.files.reloading()) && Instant::now() < end {
+        while (self.saving.is_some() || self.files.reloading() || self.serial.busy()) && Instant::now() < end {
             std::thread::sleep(Duration::from_millis(2));
+            self.poll_jobs();
             self.poll_saves();
             self.poll_reload();
         }
+    }
+
+    /// After the last frame (IO-7): the saves, the jobs and the writes that wait get a moment to
+    /// end.
+    pub fn finish_io(&mut self) {
+        self.finish_saves(Duration::from_secs(5));
+        let done = self.serial.flush(Duration::from_secs(5));
+        drop(done);
+        self.disk.flush(Duration::from_secs(5));
     }
 
     /// After the last frame: wait at most `limit` for the saves, and take their answers (IO-7).

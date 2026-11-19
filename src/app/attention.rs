@@ -135,11 +135,17 @@ impl App {
         self.attention.sound = !self.attention.sound;
         let sound = self.attention.sound;
         let word = if sound { "on" } else { "off" };
-        // Only the line of the sound changes (CMD-19).
-        match UserConfig::update(&self.attention.config, |user| user.sound = Some(sound)) {
-            Ok(()) => self.flash(format!("sound {word}")),
-            Err(e) => self.flash(format!("sound {word}; not saved: {e}")),
-        }
+        // Only the line of the sound changes (CMD-19), on a thread (IO-1).
+        let path = self.attention.config.clone();
+        self.flash(format!("sound {word}"));
+        self.in_background(
+            move || UserConfig::update(&path, |user| user.sound = Some(sound)),
+            move |a, done| {
+                if let Err(e) = done {
+                    a.flash(format!("sound {word}; not saved: {e}"));
+                }
+            },
+        );
     }
 }
 

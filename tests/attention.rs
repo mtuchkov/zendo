@@ -100,6 +100,7 @@ fn find(buf: &Buffer, text: &str) -> Option<(u16, u16)> {
 fn click(a: &mut App, (column, row): (u16, u16)) {
     a.on_mouse(MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column, row, modifiers: KeyModifiers::NONE });
     a.on_mouse(MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column, row, modifiers: KeyModifiers::NONE });
+    a.settle_saves();
 }
 
 /// The background of the button `label` on the right edge of the chat.
@@ -243,6 +244,7 @@ async fn the_sound_button_changes_only_its_line() {
     let broken = "agent = \"my-agent\"\nwidth = \"wide\"\nsound = true\n[name_models\n";
     std::fs::write(root.join("config.toml"), broken).unwrap();
     a.toggle_sound();
+    a.settle_saves();
     assert_eq!(std::fs::read_to_string(root.join("config.toml")).unwrap(), broken.replace("sound = true", "sound = false"));
     done(&root, &mut a);
 }

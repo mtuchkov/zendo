@@ -15,7 +15,9 @@ fn files(dir: &Path) -> Vec<PathBuf> {
     all
 }
 
+/// The file of the counts, after the writer wrote it (IO-1).
 fn read(usage: &Usage) -> toml::Table {
+    usage.flush();
     toml::from_str(&std::fs::read_to_string(usage.file().expect("a usage file")).expect("the file is there")).expect("the file parses")
 }
 
@@ -111,6 +113,8 @@ fn a_failed_write_keeps_the_counts() {
     let t0 = Instant::now();
     u.count(Pane::Read, "copy", Trigger::Key);
     u.tick(t0 + Duration::from_secs(16));
+    // The writer tries on its thread (IO-1); the next tick sees that it failed.
+    u.flush();
     assert_eq!(u.get(Pane::Read, "copy", Trigger::Key), 1);
     std::fs::remove_file(&dir).unwrap();
     u.tick(t0 + Duration::from_secs(20));

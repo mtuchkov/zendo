@@ -72,13 +72,9 @@ fn scan_wanted<'a>(threads: impl IntoIterator<Item = &'a Thread>, empty: bool, n
     !empty || threads.into_iter().any(|t| exec_step(t, now, true).is_some() || recent(t))
 }
 
-/// Add `line` to `.zendo/agent.log` of `root`.
-fn log_line(root: &std::path::Path, line: &str) {
-    use std::io::Write;
-    let path = state::dir(root).join("agent.log");
-    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
-        let _ = writeln!(f, "{line}");
-    }
+/// Add `line` to `.zendo/agent.log` of `root`, through the writer (IO-1).
+fn log_line(disk: &crate::worker::Writer, root: &std::path::Path, line: &str) {
+    disk.append(&state::dir(root).join("agent.log"), format!("{line}\n").into_bytes());
 }
 
 /// How long a process ran, as a line says it: `40 s`, `14 min`.
@@ -146,7 +142,7 @@ impl App {
         let label = self.bg.list.iter().find(|b| b.pgid == pgid).map(|b| b.label.clone()).unwrap_or_default();
         let sent = procs::stop(pgid, force);
         let (sig, what) = (if force { "KILL" } else { "TERM" }, if sent { "sent" } else { "refused" });
-        log_line(&self.cfg.root, &format!("zendo: {what} SIG{sig} to the group {pgid} ({label}), zendo {}", std::process::id()));
+        log_line(&self.disk, &self.cfg.root, &format!("zendo: {what} SIG{sig} to the group {pgid} ({label}), zendo {}", std::process::id()));
         if !sent {
             self.bg.list.retain(|b| b.pgid != pgid);
             self.flash(format!("zendo did not stop {label}: its group {pgid} is not a background process"));

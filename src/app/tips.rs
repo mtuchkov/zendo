@@ -81,8 +81,14 @@ impl App {
         if !self.tips.off {
             return;
         }
-        if let Err(e) = UserConfig::update(&self.tips.config, |u| u.tips = Some(false)) {
-            self.flash(format!("tips: not saved: {e}"));
-        }
+        let path = self.tips.config.clone();
+        self.in_background(
+            move || UserConfig::update(&path, |u| u.tips = Some(false)),
+            |a, done| {
+                if let Err(e) = done {
+                    a.flash(format!("tips: not saved: {e}"));
+                }
+            },
+        );
     }
 }

@@ -209,9 +209,7 @@ async fn main() -> Result<()> {
     app.end_visit();
     app.board_quit();
     app.usage.write();
-    // After the last frame: the saves and the writes that wait get a moment to end (IO-7).
-    app.finish_saves(Duration::from_secs(5));
-    app.disk.flush(Duration::from_secs(5));
+    app.finish_io();
     zendo::tui::terminal_off();
     ratatui::restore();
     if let Some(s) = app.files.take_syncer()

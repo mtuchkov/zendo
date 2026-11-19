@@ -50,12 +50,14 @@ pub struct Usage {
     changed: bool,
     /// The last write, or the last try.
     written: Instant,
+    /// The writer of the file, on a thread of its own (IO-1); made at the first write.
+    disk: Option<crate::worker::Writer>,
 }
 
 impl Default for Usage {
     /// Off: an app counts only when its start turns the counting on.
     fn default() -> Self {
-        Usage { counts: BTreeMap::new(), file: None, started: Utc::now(), changed: false, written: Instant::now() }
+        Usage { counts: BTreeMap::new(), file: None, started: Utc::now(), changed: false, written: Instant::now(), disk: None }
     }
 }
 
@@ -95,15 +97,28 @@ impl Usage {
 
     /// Write the counts when they changed and the last write is 15 seconds old (USAGE-3).
     pub fn tick(&mut self, now: Instant) {
+        // A write that failed says nothing; the counts go with the next write (USAGE-5).
+        if self.disk.as_mut().is_some_and(|d| !d.failures().is_empty()) {
+            self.changed = true;
+        }
         if self.changed && now.saturating_duration_since(self.written) >= EVERY {
             self.write_at(now);
         }
     }
 
-    /// Write the counts now, when they changed: at the exit (USAGE-12).
+    /// Write the counts now, when they changed: at the exit, after the last frame, so it waits for
+    /// the writer (USAGE-12, IO-7).
     pub fn write(&mut self) {
         if self.changed {
             self.write_at(Instant::now());
+        }
+        self.flush();
+    }
+
+    /// Wait at most 2 s for the writer of the file: at the exit, and for tests.
+    pub fn flush(&self) {
+        if let Some(d) = &self.disk {
+            d.flush(std::time::Duration::from_secs(2));
         }
     }
 
@@ -111,10 +126,10 @@ impl Usage {
     /// says nothing; the counts stay for the next write (USAGE-5).
     fn write_at(&mut self, now: Instant) {
         self.written = now;
-        let Some(file) = &self.file else { return };
-        let tmp = file.with_extension("toml.tmp");
-        let done = file.parent().map_or(Ok(()), std::fs::create_dir_all).and_then(|_| std::fs::write(&tmp, self.text(Utc::now()))).and_then(|_| std::fs::rename(&tmp, file));
-        self.changed = done.is_err();
+        let Some(file) = self.file.clone() else { return };
+        let text = self.text(Utc::now());
+        self.disk.get_or_insert_with(crate::worker::Writer::new).write(&file, text.into_bytes(), crate::worker::Sync::Own);
+        self.changed = false;
     }
 
     /// The file: the head, then a table of counts for each pane (USAGE-9, USAGE-11).

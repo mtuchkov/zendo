@@ -49,6 +49,7 @@ fn screen(buf: &Buffer) -> String {
 fn click(a: &mut App, (column, row): (u16, u16)) {
     a.on_mouse(MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column, row, modifiers: KeyModifiers::NONE });
     a.on_mouse(MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column, row, modifiers: KeyModifiers::NONE });
+    a.settle_saves();
 }
 
 fn saved(root: &std::path::Path) -> String {
@@ -113,6 +114,7 @@ fn lofi_asks_at_the_first_start() {
     let text = screen(&frame(&mut a));
     assert!(text.contains("lofi music") && text.contains("turn off"), "{text}");
     a.on_key(KeyEvent::new(KeyCode::Char('n'), KeyModifiers::NONE));
+    a.settle_saves();
     assert!(!a.music.sounds() && !a.music.asking);
     assert!(saved(&root).contains("music = false"), "{}", saved(&root));
     a.music = Music::from_config(&UserConfig::load_from(&root.join("config.toml")));
@@ -183,6 +185,7 @@ fn a_line_with_an_error_stays_when_the_music_is_saved() {
     a.start_music(Output::Test);
     assert!(a.music.asking, "no setting `music`: the first start");
     a.answer_music(false);
+    a.settle_saves();
     assert_eq!(std::fs::read_to_string(&config).unwrap(), "width = \"wide\"\nsound = true\nmusic = false\n");
     let _ = std::fs::remove_dir_all(&root);
 }
