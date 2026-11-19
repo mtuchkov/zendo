@@ -12,6 +12,8 @@ fn repo(name: &str) -> PathBuf {
         "svc/orders/src/main.rs",
         "build/docs/generated.md",
         "node_modules/pkg/docs/readme.md",
+        "docs/.drafts/hidden.md",
+        ".obsidian/docs/hidden.md",
     ] {
         let p = d.join(f);
         std::fs::create_dir_all(p.parent().unwrap()).unwrap();
@@ -41,6 +43,8 @@ fn find_filters_files_by_name() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
+// FILES-1: the tree lists the markdown files of the repository, without the files that git
+// ignores and the files in hidden folders.
 #[test]
 fn docs_filter_and_gitignore() {
     let root = repo("filter");
@@ -52,8 +56,10 @@ fn docs_filter_and_gitignore() {
     t.scan_wait(&root);
     assert!(t.files.iter().any(|p| p == Path::new("README.md")));
     assert!(!t.files.iter().any(|p| p.starts_with("build") || p.starts_with("node_modules")));
+    assert!(!t.files.iter().any(|p| p.components().any(|c| c.as_os_str().to_string_lossy().starts_with('.'))), "no file of a hidden folder: {:?}", t.files);
 }
 
+// FILES-2: the structure view shows the main materials in the order of the file.
 #[test]
 fn structure_view_lists_main_materials_in_file_order() {
     let root = repo("structure");

@@ -184,6 +184,23 @@ fn a_structure_that_does_not_parse_leaves_its_reason() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
+// FILES-2: the tree shows the structure view first when the repository has main materials, and
+// the docs view first when it does not; a saved structure view without main materials gives docs.
+#[test]
+fn the_first_view_is_the_structure_when_there_are_main_materials() {
+    let (root, mut f) = repo("first-view");
+    std::fs::write(root.join(structure::FILE), "[[entry]]\npath = \"docs\"\nlabel = \"Docs\"\n").unwrap();
+    f.load_structure(&root, "", false);
+    assert!(f.tree().view == View::Docs, "no main materials: docs first");
+    std::fs::write(root.join(structure::FILE), "[[entry]]\npath = \"docs\"\nlabel = \"Docs\"\nmain = true\n").unwrap();
+    f.load_structure(&root, "", false);
+    assert!(f.tree().view == View::Structure, "main materials: the structure first");
+    std::fs::remove_file(root.join(structure::FILE)).unwrap();
+    f.load_structure(&root, "structure", false);
+    assert!(f.tree().view == View::Docs, "a saved structure view without main materials gives docs");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
 // ADR 0008: the app changes the tree only through the methods of the files.
 #[test]
 fn the_tree_changes_through_the_files() {

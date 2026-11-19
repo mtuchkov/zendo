@@ -69,7 +69,7 @@ The children of this document hold the details:
 - When zendo opens the file tree.
 - Then the tree shows the three main materials first, in the order of the file.
 
-**`file_from_the_tree_works_like_a_note`** (terminal check, not written yet; verifies FILES-3)
+**`file_from_the_tree_works_like_a_note`** (mock agent; verifies FILES-3)
 
 - Given a test repository with `docs/design.md`.
 - When the user opens it from the tree, writes a line and asks Claude about it.

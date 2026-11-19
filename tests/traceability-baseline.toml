@@ -2,7 +2,7 @@
 # a new gap fails the check, and a closed gap fails it until its number here goes down.
 
 # Architecturally significant requirements of implemented specifications without a test.
-asr_without_test = 3
+asr_without_test = 0
 
 # Acceptance tests of implemented specifications that are not test functions.
 acceptance_tests_missing = 0
