@@ -84,17 +84,6 @@ fn without_marks_a_free_quiet_terminal_ends_the_command() {
     assert_eq!(r.result().map(|o| (o.text, o.done)), Some(("second".to_string(), true)));
 }
 
-// TERM-26: once the shell sends marks, enter and free do not decide.
-#[test]
-fn marks_win_over_enter() {
-    let mut r = Recorder::default();
-    r.feed(b"\x1b]133;A\x07$ \x1b]133;B\x07");
-    r.enter("$ x");
-    assert!(!r.waits());
-    r.free();
-    assert_eq!(r.result(), None);
-}
-
 /// The prompt of `sh` with the marks of zendo: the end of the last command, then A and B (TERM-34).
 fn sh_prompt(code: i32) -> Vec<u8> {
     format!("\x1b]133;D;{code}\x07\x1b]133;A\x07# \x1b]133;B\x07").into_bytes()
@@ -112,20 +101,21 @@ fn marks_without_c_start_the_output_at_enter() {
     assert_eq!((o.command.as_str(), o.exit, o.text.as_str(), o.done), ("echo hi; false", Some(1), "hi", true));
 }
 
-// TERM-26, TERM-34: with marks, a command that is quiet and does not run a program (a loop of the
-// shell) does not end before its D mark, however long it is quiet.
+// TERM-27, TERM-75: with marks, a command that is quiet and starts no program (a loop of the
+// shell) ends when the terminal is free and quiet; a D mark that comes later gives its exit code.
 #[test]
-fn marks_without_c_wait_for_the_end_of_a_quiet_command() {
+fn marks_without_c_end_a_quiet_command_and_a_late_d_gives_the_exit_code() {
     let t0 = std::time::Instant::now();
+    let ms = |n| t0 + std::time::Duration::from_millis(n);
     let mut r = Recorder::default();
     r.feed(&sh_prompt(0));
     r.run("while :; do :; done; echo first");
-    r.feed(b"while :; do :; done; echo first\r\n");
-    r.poll_free(false, t0, t0 + std::time::Duration::from_secs(60));
-    assert_eq!(r.result().map(|o| o.done), Some(false), "it runs");
-    marks(&mut r, &[b"first\r\n", &sh_prompt(0)]);
-    let o = r.result().unwrap();
-    assert_eq!((o.exit, o.text.as_str(), o.done), (Some(0), "first", true));
+    r.feed(b"while :; do :; done; echo first\r\nfirst\r\n");
+    r.poll_free(false, ms(5), ms(10));
+    r.poll_free(false, ms(5), ms(400));
+    assert_eq!(r.result().map(|o| (o.text, o.exit, o.done)), Some(("first".into(), None, true)));
+    r.feed(&sh_prompt(3));
+    assert_eq!(r.result().map(|o| (o.text, o.exit)), Some(("first".into(), Some(3))));
 }
 
 // TERM-27, TERM-34: the user types the command; the command is the text after the B mark, without
@@ -182,4 +172,54 @@ fn fish_without_marks_keeps_the_output() {
     r.free();
     let o = r.result().unwrap();
     assert_eq!((o.text.as_str(), o.exit), ("rc=/tmp/fh", None));
+}
+
+/// Feed `bytes`, then a free terminal that is quiet for longer than the quiet time.
+fn quiet_end(r: &mut Recorder, bytes: &[u8]) {
+    let t0 = std::time::Instant::now();
+    r.feed(bytes);
+    r.poll_free(false, t0, t0 + std::time::Duration::from_millis(1));
+    r.poll_free(false, t0, t0 + std::time::Duration::from_millis(400));
+}
+
+// TERM-27, TERM-76: vte.sh sends C from preexec, and a prompt of the user (oh-my-zsh) dropped D:
+// the free quiet terminal ends the command, without the prompt.
+#[test]
+fn a_c_mark_without_d_ends_when_the_terminal_is_quiet() {
+    let mut r = Recorder::default();
+    r.feed(b"PROMPT> echo hi");
+    r.enter("PROMPT> echo hi");
+    quiet_end(&mut r, b"\r\n\x1b]133;C\x1b\\\rhi\r\nPROMPT> ");
+    let o = r.result().unwrap();
+    assert_eq!((o.text.as_str(), o.exit, o.done), ("hi", None, true));
+}
+
+// TERM-27: a prompt with B and no C or D: the free quiet terminal ends the command.
+#[test]
+fn a_b_mark_without_c_ends_when_the_terminal_is_quiet() {
+    let mut r = Recorder::default();
+    r.feed(b"$ \x1b]133;B\x07echo hi");
+    r.enter("$ echo hi");
+    quiet_end(&mut r, b"\r\nhi\r\n$ ");
+    let o = r.result().unwrap();
+    assert_eq!((o.command.as_str(), o.text.as_str(), o.exit, o.done), ("echo hi", "hi", None, true));
+}
+
+// TERM-74: an A mark while the command runs (the D mark got lost) ends the command with its
+// output, and the exit code is unknown.
+#[test]
+fn an_a_mark_in_the_output_ends_the_command() {
+    let mut r = Recorder::default();
+    marks(&mut r, &[b"\x1b]133;B\x07ls\r\n\x1b]133;C\x07a\r\nb\r\n", b"\x1b]133;A\x07$ \x1b]133;B\x07"]);
+    let o = r.result().unwrap();
+    assert_eq!((o.command.as_str(), o.text.as_str(), o.exit, o.done), ("ls", "a\nb", None, true));
+}
+
+// TERM-74: a B mark while the command runs (a prompt with B only) ends the command too.
+#[test]
+fn a_b_mark_in_the_output_ends_the_command() {
+    let mut r = Recorder::default();
+    marks(&mut r, &[b"\x1b]133;B\x07ls\r\n\x1b]133;C\x07a\r\n", b"$ \x1b]133;B\x07"]);
+    let o = r.result().unwrap();
+    assert_eq!((o.text.as_str(), o.exit, o.done), ("a", None, true));
 }

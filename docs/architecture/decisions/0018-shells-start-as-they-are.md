@@ -39,8 +39,11 @@ The user chose the third option on 2026-11-18.
   `ZDOTDIR`, `ENV` or `BASH_ENV` (TERM-55).
 - zendo shall end a command when no program of the command runs in the terminal and the terminal
   was quiet for 300 ms, and shall show the exit code as unknown (TERM-27).
-- When the shell of the user sends OSC 133 marks itself, zendo shall use them (TERM-26) and shall
-  not show them (TERM-35).
+- The rule of the free quiet terminal shall hold also while the shell sends OSC 133 marks. The
+  end mark ends a command earlier and gives its exit code (TERM-26); a new prompt ends a command
+  whose end mark got lost (TERM-74); zendo shall not show the marks (TERM-35). So marks that are not
+  complete, as `vte.sh` sends them under a prompt of the user, do not hold a command forever.
+- zendo shall start the shell without `VTE_VERSION`: its terminal is not a VTE terminal (TERM-76).
 
 ## Consequences
 

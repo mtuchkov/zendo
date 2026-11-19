@@ -1,12 +1,12 @@
 ---
 status: "draft"
-revision: "3"
+revision: "4"
 date: "2026-11-18"
 parent: "terminal.md"
 prev: "terminal-view.md"
 next: "terminal-watch.md"
 level: "the result of the last command of a terminal: how zendo finds it, and how the user puts it into the chat of an agent session"
-note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. A child of terminal.md. Revision 2 changed TERM-25: a watched command also gives its output to the agent (terminal-watch.md, user, 2026-11-17)."
+note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. A child of terminal.md. Revision 2 changed TERM-25: a watched command also gives its output to the agent (terminal-watch.md, user, 2026-11-17). Revision 4 (user, 2026-11-18, in chat; not reviewed): TERM-26 and TERM-27 changed, TERM-74 to TERM-76 added."
 ---
 
 # Terminal output
@@ -29,10 +29,11 @@ dropped.
 **The limits of a command.** zendo starts the shell as it is: it gives the shell no startup file
 and no variable for its startup files, so that an endpoint security product does not see a change of
 the shell configuration ([ADR 0018](../../architecture/decisions/0018-shells-start-as-they-are.md)).
-Without marks, the result is the output from the moment when the command went into the shell to the
-moment when the terminal became free (no program of the command runs, and the terminal was quiet for
-300 ms); the exit code is then unknown. When the shell of the user sends OSC 133 marks itself (a
-shell integration of the user), the marks give the limits of the output and the exit code.
+A command ends when the terminal becomes free (no program of the command runs, and the terminal was
+quiet for 300 ms); the exit code is then unknown. This rule holds also while the shell sends OSC 133
+marks, so that marks that are not complete do not hold a command forever. When the shell of the user
+sends the marks itself (a shell integration of the user), the end mark ends the command earlier and
+gives the exit code, and a new prompt ends a command whose end mark got lost.
 
 ## Architecturally significant requirements
 
@@ -41,8 +42,8 @@ shell integration of the user), the marks give the limits of the output and the 
 | TERM-23 | Ubiquitous | The system shall keep the result of the last command of each terminal: the command, the exit code, and the output. | User, 2026-11-12 |
 | TERM-24 | Event      | When the user presses the insert-output key in the input of a chat, the system shall put into that input the result of the terminal that the user viewed last, without sending it. | User, 2026-11-12 |
 | TERM-25 | Ubiquitous | The system shall give the output of a terminal to an agent only when the user puts it into the input, or when the user watches the command for that agent (TERM-55). | Design; TERM-2; User, 2026-11-17 |
-| TERM-26 | State      | While the shell sends OSC 133 marks, the system shall take as the result the output between the output-start mark and the command-end mark, and the exit code from the command-end mark. | User, 2026-11-12 |
-| TERM-27 | Unwanted   | If the shell sends no OSC 133 marks, then the system shall take as the result the output from the moment when the command went into the shell to the moment when the terminal became free, and shall show the exit code as unknown. | User, 2026-11-12 |
+| TERM-26 | Event      | When the shell sends the OSC 133 command-end mark before the command ends by TERM-27, the system shall end the command at the mark, take the exit code from the mark, and take the output from the output-start mark, or from the moment when the command went into the shell when no output-start mark came. | User, 2026-11-12; User, 2026-11-18 |
+| TERM-27 | Event      | When no program of the command runs in the terminal and the terminal was quiet for 300 ms, the system shall end the command, also while the shell sends OSC 133 marks, take as the result the output from the moment when the command went into the shell, and show the exit code as unknown. | User, 2026-11-12; User, 2026-11-18 |
 
 ### Acceptance tests
 
@@ -84,11 +85,19 @@ as the shell with marks, and `/bin/sh` as the shell without marks.
 | TERM-35 | Ubiquitous | The system shall not show the OSC 133 marks on the screen of the terminal. | Design |
 | TERM-36 | Ubiquitous | The system shall take the insert-output key from the keymap, with `alt-o` as the default. | Design; TERM-19 |
 | TERM-55 | Ubiquitous | The system shall start the shell of a terminal as it is: without a startup file of zendo, and without a change to the variables that select the startup files of the shell (`ZDOTDIR`, `ENV`, `BASH_ENV`). | User, 2026-11-18; ADR 0018 |
+| TERM-74 | Unwanted   | If the OSC 133 prompt-start or command-line mark comes while a command runs, then the system shall end the command with the output up to the mark, and shall show the exit code as unknown. | User, 2026-11-18 |
+| TERM-75 | Event      | When the command-end mark comes after the command ended by TERM-27 and before the next command, the system shall give the result the exit code of the mark. | Design, 2026-11-18 |
+| TERM-76 | Ubiquitous | The system shall start the shell of a terminal without the variable `VTE_VERSION`, because the terminal of zendo is not a VTE terminal and `vte.sh` would add marks that a prompt of the user can break. | User, 2026-11-18 |
 
 Tests that verify detailed requirements: `alt_o_again_goes_through_the_terminals`,
 `a_command_that_runs_gives_output_that_is_not_complete`, `no_result_puts_nothing`,
 `a_long_output_keeps_the_last_500_lines`, `bash_starts_as_it_is`, `zsh_starts_as_it_is` and
-`fish_starts_as_it_is` in `tests/terminal_output.rs` (TERM-28 to TERM-33, TERM-55).
+`fish_starts_as_it_is` in `tests/terminal_output.rs` (TERM-28 to TERM-33, TERM-55);
+`a_c_mark_without_d_ends_when_the_terminal_is_quiet`, `a_b_mark_without_c_ends_when_the_terminal_is_quiet`,
+`an_a_mark_in_the_output_ends_the_command`, `a_b_mark_in_the_output_ends_the_command` and
+`marks_without_c_end_a_quiet_command_and_a_late_d_gives_the_exit_code` in
+`src/session/output_tests.rs`, and `a_shell_gets_no_vte_version` in `src/session/pty_tests.rs`
+(TERM-27, TERM-74 to TERM-76).
 
 ## Open points
 
@@ -102,3 +111,7 @@ nothing for a long time does not end before its end.
 Revision 3 retired TERM-34 and added TERM-55: CrowdStrike Falcon killed zendo together with the zsh
 that zendo started with its own `ZDOTDIR` (ADR 0018). A command of the shell that prints nothing for
 a long time and starts no program (a loop of the shell) can now end before its end.
+
+Revision 4 made TERM-27 hold also with marks, and added TERM-74 to TERM-76: with `VTE_VERSION` of
+the terminal of the user, `vte.sh` sent the output-start mark from `preexec`, the prompt of the user
+dropped the end mark, and zendo waited for the end of each command forever.
