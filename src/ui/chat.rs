@@ -29,7 +29,7 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
     let slash_h = if app.composer().slash().open { app.composer().slash().hits.len().clamp(1, crate::app::AT_ROWS) } else { 0 };
     let at_h = app.composer().at().map_or(slash_h, |p| p.hits.len().clamp(1, crate::app::AT_ROWS)) as u16;
     let bg_h = super::background::height(app);
-    let [head, _, body, bg, _, input, picks] = Layout::vertical([
+    let [head, _, body, bg, doc, input, picks] = Layout::vertical([
         Constraint::Length(1),
         Constraint::Length(1),
         Constraint::Min(1),
@@ -39,6 +39,7 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
         Constraint::Length(at_h),
     ])
     .areas(inner);
+    (fr.input_rect, fr.doc_line) = (Some(input), draw_doc_line(f, app, t, doc));
     if let Some(p) = app.composer().at() {
         draw_at(f, t, picks, p);
     } else if app.composer().slash().open {
@@ -64,11 +65,11 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
     fr.regions.push((crate::text::select::Region::Panel, body));
     super::thread::draw_transcript(f, app, fr, t, body, lines, w);
     super::background::draw(f, app, fr, t, bg);
-    draw_input(f, app, t, input, in_h, in_w);
+    draw_input(f, app, fr, t, input, (in_h, in_w));
 }
 
 /// The input box: the text with its chips, or a hint while it is empty.
-fn draw_input(f: &mut Frame, app: &App, t: &Theme, input: Rect, in_h: u16, in_w: usize) {
+fn draw_input(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, input: Rect, (in_h, in_w): (u16, usize)) {
     let key = app.key();
     f.render_widget(Block::new().style(Style::new().bg(t.bg)), input);
     let box_in = Rect { x: input.x + 1, y: input.y + 1, width: input.width.saturating_sub(2), height: in_h };
@@ -101,6 +102,8 @@ fn draw_input(f: &mut Frame, app: &App, t: &Theme, input: Rect, in_h: u16, in_w:
             Line::from(chip_spans_at(&text, sg.start, Style::new().fg(t.fg), chip, hot, &gone))
         })
         .collect();
+    let rows: Vec<(&str, usize, usize)> = segs.iter().skip(top).take(in_h as usize).map(|sg| (app.composer().input().lines[sg.line].as_str(), sg.start, sg.end)).collect();
+    fr.chip_rects = chip_rects(text_area, &rows);
     f.render_widget(Paragraph::new(Line::from(mark)), Rect { height: 1, width: 2, ..box_in });
     f.render_widget(Paragraph::new(lines), text_area);
     if focused {

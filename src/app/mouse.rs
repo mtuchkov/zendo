@@ -12,6 +12,11 @@ impl App {
         if self.hold.is_some() {
             return;
         }
+        // The chip window takes the mouse: the wheel scrolls it, clicks do nothing (CLAUDE-50).
+        if self.composer().view().is_some() {
+            let by = match m.kind { MouseEventKind::ScrollUp => -1, MouseEventKind::ScrollDown => 1, _ => 0 };
+            return self.composer_mut().scroll_view(by);
+        }
         if !matches!(m.kind, MouseEventKind::Moved) {
             self.work.input_now();
             self.tab_run.end();
@@ -128,6 +133,12 @@ impl App {
         }
         if self.click_panel_button(&hit) {
             return;
+        }
+        if let Some(label) = self.frame.chip_rects().iter().find(|(r, _)| hit(r)).map(|(_, l)| l.clone()) {
+            return self.click_chip(label);
+        }
+        if self.frame.doc_line().is_some_and(|r| hit(&r)) {
+            return self.toggle_doc();
         }
         if self.click_tree(&hit) {
             return;

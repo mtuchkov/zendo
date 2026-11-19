@@ -33,6 +33,11 @@ pub struct Frame {
     pub(super) word_count: usize,
     pub(super) over_limit: Option<usize>,
     pub(super) input_width: usize,
+    /// The chat input, its chips, the line of the open document, and the chip window.
+    pub(super) input_rect: Option<Rect>,
+    pub(super) chip_rects: Vec<(Rect, String)>,
+    pub(super) doc_line: Option<Rect>,
+    pub(super) chip_view_rect: Option<Rect>,
     pub(super) sound_button: Option<Rect>,
     pub(super) music_button: Option<Rect>,
     pub(super) spec_button: Option<Rect>,
@@ -155,6 +160,31 @@ impl Frame {
     /// The width of the chat input, for up and down moves in it.
     pub fn input_width(&self) -> usize {
         self.input_width
+    }
+
+    /// The places for the mouse that each draw of the panes sets again.
+    pub(super) fn clear_places(&mut self) {
+        self.regions.clear();
+        self.clear_pane_buttons();
+        (self.input_rect, self.doc_line, self.chip_view_rect) = (None, None, None);
+        self.chip_rects.clear();
+    }
+
+    pub fn input_rect(&self) -> Option<Rect> {
+        self.input_rect
+    }
+
+    /// The chips of the chat input on the screen, with their labels.
+    pub fn chip_rects(&self) -> &[(Rect, String)] {
+        &self.chip_rects
+    }
+
+    pub fn doc_line(&self) -> Option<Rect> {
+        self.doc_line
+    }
+
+    pub fn chip_view_rect(&self) -> Option<Rect> {
+        self.chip_view_rect
     }
 
     /// The sound button, for the mouse.

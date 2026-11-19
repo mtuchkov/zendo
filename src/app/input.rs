@@ -46,8 +46,8 @@ impl App {
         false
     }
 
-    /// The views that take a key before the panes: the music question, the float, the waiting view, a session on the
-    /// full screen, a terminal in the chat pane. True when one of them took it.
+    /// The views that take a key before the panes: the music question, the chip window, the float, the waiting view, a
+    /// session on the full screen, a terminal in the chat pane. True when one of them took it.
     fn key_to_view(&mut self, k: KeyEvent) -> bool {
         // The float and find open over every pane and view, also a session on the full screen
         // (FLOAT-14, FIND-15).
@@ -61,6 +61,8 @@ impl App {
             _ if self.rekey.float().is_some() => self.key_key_float(k),
             // The question before the undo of an external change takes every key (UNDO-12).
             _ if self.writer.asks_external() => self.key_external_question(k),
+            // The chip window takes every key (CLAUDE-50).
+            _ if self.composer().view().is_some() => self.key_chip_view(k),
             _ if self.writer.float().is_some() => self.key_float(k),
             _ if global == Some("new_note") => drop(self.global_key("new_note", crate::keys::Pane::Global)),
             _ if global == Some("music") => drop(self.global_key("music", crate::keys::Pane::Global)),
