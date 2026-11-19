@@ -5,13 +5,12 @@
 use std::path::{Path, PathBuf};
 
 /// The files of `src` that write files of zendo itself, with what they write.
-const OWN: [(&str, &str); 13] = [
+const OWN: [(&str, &str); 12] = [
     ("src/atomic.rs", "the atomic write itself"),
     ("src/app/background.rs", "the log of the background mode"),
     ("src/agent/acp.rs", "the log of the agent"),
     ("src/usage/mod.rs", "the usage counts, with a temporary file and a rename"),
     ("src/session/pty.rs", "the hook settings and the MCP config of a session"),
-    ("src/session/marks.rs", "the shell start files of the terminal, in the data folder"),
     ("src/setup/state.rs", "the state in .zendo and its .gitignore"),
     ("src/setup/logs.rs", "the index of the logs"),
     ("src/setup/doctor/upgrade.rs", "the cache of the update check"),
