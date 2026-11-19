@@ -20,10 +20,16 @@ impl App {
         let hit = (0..lines.len()).find(|i| self.frame.read_rows().get(*i) == Some(&at) && task_box(&lines[*i]).is_some());
         let Some(i) = hit else { return false };
         lines[i] = toggle_task(&lines[i]).unwrap_or_default();
-        match crate::docs::notes::save(&path, &format!("{}\n", lines.join("\n").trim_end())) {
-            Ok(()) => self.files.saved(path),
-            Err(e) => self.flash(format!("could not save: {e}")),
-        }
+        // The box goes to the file on a worker (IO-1); the notes read it again after.
+        let body = format!("{}\n", lines.join("\n").trim_end());
+        let file = path.clone();
+        self.in_background_with(
+            move || crate::docs::notes::save(&file, &body).map_err(|e| e.to_string()),
+            move |a, done| match done {
+                Ok(()) => a.files.saved(path),
+                Err(e) => a.flash(format!("could not save: {e}")),
+            },
+        );
         true
     }
 

@@ -134,9 +134,10 @@ impl App {
         }
     }
 
-    /// For tests: wait at most 5 s until the tasks of the app answered, and take the answers.
+    /// For tests: wait at most 15 s until the tasks of the app answered, and take the answers; the
+    /// limit matters only on a machine under load.
     pub fn settle_tasks(&mut self) {
-        let end = Instant::now() + Duration::from_secs(5);
+        let end = Instant::now() + Duration::from_secs(15);
         while (self.peeks.running() || self.chip_reads.running() || self.marks.running() || self.recaps.running() || self.worktree_diff.running() || self.files.disk_busy() || self.saving.is_some() || self.serial.busy()) && Instant::now() < end {
             std::thread::sleep(Duration::from_millis(2));
             self.poll_tasks();

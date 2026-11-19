@@ -213,6 +213,8 @@ fn click(a: &mut App, x: u16, y: u16) {
     for kind in [MouseEventKind::Down(MouseButton::Left), MouseEventKind::Up(MouseButton::Left)] {
         a.on_mouse(MouseEvent { kind, column: x, row: y, modifiers: KeyModifiers::NONE });
     }
+    // A worker writes the box into the file (IO-1).
+    a.settle_saves();
 }
 
 /// The place of the first `c` on the screen.
