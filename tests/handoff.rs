@@ -9,7 +9,7 @@ use zendo::app::{App, Focus, Item, session_key};
 use zendo::session::Command;
 
 fn mock() -> Command {
-    Command { program: env!("CARGO_BIN_EXE_zendo-mock-cli").into(), args: vec!["--resume".into()] }
+    Command { program: env!("CARGO_BIN_EXE_zendo-mock-cli").into(), args: vec!["--resume".into()], claude: true }
 }
 
 /// The chat on agent session 1, with a question that the mock agent answers. The agent events do

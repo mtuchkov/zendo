@@ -67,9 +67,9 @@ pub(super) fn handoff_key(cfg: &config::UserConfig) -> String {
     cfg.keymap().0.key(crate::keys::Pane::Chat, "handoff").unwrap_or_else(|| "the hand-off key".into())
 }
 
-/// What Codex cannot do (CLAUDE-14), with the hand-off key of the user (PANES-28).
+/// What differs with Codex (CLAUDE-14, CODEXCLI-1), with the hand-off key of the user (PANES-28).
 pub(super) fn codex_note(handoff: &str) -> String {
-    format!("With Codex: no hand-off to the command line ({handoff}). Everything else works the same.")
+    format!("With Codex: the hand-off ({handoff}) starts `codex resume`; its prompts and answers do not show in the chat. Everything else works the same.")
 }
 
 /// Claude Code and its login, when the agent is Claude.

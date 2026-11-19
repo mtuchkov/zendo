@@ -1,5 +1,15 @@
 use super::*;
 
+// CODEXCLI-1, CODEXCLI-2: the profile builds the command line of the hand-off; only Claude Code
+// gets the options of Claude Code.
+#[test]
+fn the_profile_builds_the_command_line_of_the_handoff() {
+    let codex = CODEX.handoff_command().expect("Codex has a hand-off");
+    assert_eq!((codex.program.as_str(), codex.args, codex.claude), ("codex", vec!["resume".to_string()], false));
+    let claude = CLAUDE.handoff_command().expect("Claude has a hand-off");
+    assert_eq!((claude.program.as_str(), claude.args, claude.claude), ("claude", vec!["--resume".to_string()], true));
+}
+
 #[test]
 fn old_folders_move_to_the_new_name_once() {
     let base = std::env::temp_dir().join(format!("zendo-move-{}", std::process::id()));

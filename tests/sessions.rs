@@ -9,7 +9,7 @@ use zendo::app::{App, Focus, session_key};
 use zendo::session::{Command, State};
 
 fn mock() -> Command {
-    Command { program: env!("CARGO_BIN_EXE_zendo-mock-cli").into(), args: vec!["--resume".into()] }
+    Command { program: env!("CARGO_BIN_EXE_zendo-mock-cli").into(), args: vec!["--resume".into()], claude: true }
 }
 
 /// An app with the mock command line, and agent sessions 1 and 2 with session IDs.
@@ -195,6 +195,55 @@ async fn quit_asks_while_sessions_run() {
     ctrl(&mut a, 'q');
     assert!(a.settle_quit(), "the second quit quits");
     assert!(!a.cli.running(0), "the session stopped");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// The mock command line in the place of `codex resume`: a tool without the hooks of Claude Code.
+fn codex_mock() -> Command {
+    Command { program: env!("CARGO_BIN_EXE_zendo-mock-cli").into(), args: vec!["resume".into()], claude: false }
+}
+
+// CODEXCLI-1, CODEXCLI-2: ctrl-o in a Codex session starts `codex resume <thread id>`, without
+// the options of Claude Code.
+#[tokio::test(flavor = "multi_thread")]
+async fn ctrl_o_resumes_the_codex_thread() {
+    let (root, mut a) = app_with_cli("sessions-codex");
+    a.cfg.agent = "codex".into();
+    a.cli.command = None;
+    let cmd = a.handoff_cli().expect("Codex has a hand-off");
+    assert_eq!((cmd.program.as_str(), cmd.args, cmd.claude), ("codex", vec!["resume".to_string()], false));
+    a.cli.command = Some(codex_mock());
+    chat_on(&mut a, 0);
+    ctrl(&mut a, 'o');
+    assert_eq!(a.cli.view, Some(0), "ctrl-o shows the session");
+    wait(&mut a, 10, |a| counter(a, 0) >= 1);
+    let text = a.cli.text(0);
+    assert!(text.lines().any(|l| l.trim_end() == "mock cli: resume s1"), "the thread ID after `resume`: {text}");
+    assert!(!text.contains("--settings") && !text.contains("--mcp-config"), "no options of Claude Code: {text}");
+    a.cli.stop_all();
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// CODEXCLI-3: a session without hooks takes its state from the activity of its terminal.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_session_without_hooks_takes_its_state_from_its_terminal() {
+    let (root, mut a) = app_with_cli("sessions-no-hooks");
+    a.cli.command = Some(codex_mock());
+    chat_on(&mut a, 0);
+    ctrl(&mut a, 'o');
+    wait(&mut a, 10, |a| counter(a, 0) >= 1);
+    // `w` would report *waits* through a hook; this session has none.
+    typ(&mut a, "w");
+    key(&mut a, KeyCode::Enter);
+    std::thread::sleep(Duration::from_millis(300));
+    a.tick();
+    assert_eq!(a.cli.state(0), Some(State::Works), "it prints, so it works");
+    // The line `hush`: the mock stops printing.
+    typ(&mut a, "hush");
+    key(&mut a, KeyCode::Enter);
+    leave(&mut a);
+    wait(&mut a, 5, |a| a.cli.state(0) == Some(State::Idle));
+    a.cli.stop_all();
     let _ = std::fs::remove_dir_all(&root);
 }
 

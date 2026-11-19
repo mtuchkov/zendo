@@ -149,7 +149,7 @@ async fn a_message_reaches_claude_code() {
     let root = repo("board-cli", &[("README.txt", "x\n")]);
     let dir = board_dir("cli");
     let mut a = app_on(&root, &dir);
-    a.cli.command = Some(zendo::session::Command { program: env!("CARGO_BIN_EXE_zendo-mock-cli").into(), args: vec!["--resume".into()] });
+    a.cli.command = Some(zendo::session::Command { program: env!("CARGO_BIN_EXE_zendo-mock-cli").into(), args: vec!["--resume".into()], claude: true });
     a.thread(&session_key(0)).session = Some("s1".into());
     a.open_panel();
     a.switch_session(0);
