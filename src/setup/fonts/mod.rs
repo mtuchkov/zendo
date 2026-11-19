@@ -47,8 +47,7 @@ pub fn user_dir() -> PathBuf {
     if cfg!(target_os = "macos") {
         return home().join("Library/Fonts");
     }
-    // An empty XDG_DATA_HOME counts as not set: it would name a folder in the current one.
-    std::env::var_os("XDG_DATA_HOME").filter(|d| !d.is_empty()).map(PathBuf::from).unwrap_or_else(|| home().join(".local/share")).join("fonts")
+    crate::setup::config::xdg("XDG_DATA_HOME", ".local/share").join("fonts")
 }
 
 /// The folders where a font can be on this machine: the folder of the user first.
