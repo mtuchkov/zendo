@@ -191,7 +191,7 @@ pub struct App {
 
     pub flash: Option<(String, Instant)>,
     /// The counts of the actions of the user; off until the start turns them on (USAGE-1).
-    pub usage: crate::usage::Usage,
+    pub telemetry: crate::telemetry::Telemetry,
     /// The time of each action of the user; off until the start turns it on (RESP-1).
     pub responsiveness: crate::responsiveness::Responsiveness,
     pub quit: bool,

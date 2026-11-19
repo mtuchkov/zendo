@@ -1,11 +1,11 @@
 ---
-status: "draft"
+status: "implemented"
 approved: "2026-11-19"
 revision: "5"
 date: "2026-11-19"
 parent: "zendo.md"
 level: "what zendo measures about the responsiveness of each action, and where the measurement lives in the code"
-note: "Agent draft of the note of the user of 2026-11-19 (measuring responsiveness of zendo actions), approved by the user on 2026-11-19 with RESP-1 to RESP-7. Revision 2: implemented in zendo 0.121.0; the test names and kinds as in the code; the mechanism in ADR 0024. Revision 3, from the decisions of the user of 2026-11-19: the time spans the wait for the result, also for work in the background (RESP-1); `stats = false` turns the measurements off (RESP-8); approved by the user on 2026-11-19. Revision 4, after the code review of 2026-11-19: each piece of work in the background has its own identity, each input waits only for its own work, the time starts at the read of the event, and an action whose result has not come at the exit gets no time (User, 2026-11-19); implemented in zendo 0.123.2. Revision 5, an agent draft of the decisions of the user of 2026-11-19 that waits for the review of the user: the time of each action goes into its event of the telemetry log (telemetry.md), which takes the place of the file of the measurements; the requirements of the file move there. The design text and the test names of revisions 4 and 5 wait for the review of the user."
+note: "Agent draft of the note of the user of 2026-11-19 (measuring responsiveness of zendo actions), approved by the user on 2026-11-19 with RESP-1 to RESP-7. Revision 2: implemented in zendo 0.121.0; the test names and kinds as in the code; the mechanism in ADR 0024. Revision 3, from the decisions of the user of 2026-11-19: the time spans the wait for the result, also for work in the background (RESP-1); `stats = false` turns the measurements off (RESP-8); approved by the user on 2026-11-19. Revision 4, after the code review of 2026-11-19: each piece of work in the background has its own identity, each input waits only for its own work, the time starts at the read of the event, and an action whose result has not come at the exit gets no time (User, 2026-11-19); implemented in zendo 0.123.2. Revision 5, from the decisions of the user of 2026-11-19, approved by the user on 2026-11-19 and implemented in zendo 0.124.0: the time of each action goes into its event of the telemetry log (telemetry.md), which takes the place of the file of the measurements; the requirements of the file move there."
 ---
 
 # Responsiveness of actions

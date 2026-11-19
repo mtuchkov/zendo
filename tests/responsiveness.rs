@@ -1,6 +1,6 @@
 //! Responsiveness of actions (docs/zendo/responsiveness.md): zendo measures the time of each action
-//! of the keymap at the place where it counts the action, and the code of an action holds no
-//! measurement code.
+//! of the keymap at the place where it counts the action, puts it into the event of the action
+//! (TELEM-1), and the code of an action holds no measurement code.
 
 mod common;
 use common::*;
@@ -10,8 +10,23 @@ use std::time::{Duration, Instant};
 use zendo::app::App;
 use zendo::keys::Pane;
 use zendo::responsiveness::Responsiveness;
+use zendo::telemetry::Telemetry;
 
 const NOTE: &str = "docs/notes/2026-11-19-a.md";
+
+/// An app of `root` that records into the data folder `data`.
+fn timing(root: &Path, data: &Path) -> App {
+    let _ = std::fs::remove_dir_all(data);
+    let mut a = app(root);
+    a.keys = zendo::keys::Keymap::defaults();
+    (a.telemetry, a.responsiveness) = (Telemetry::start(data, std::process::id()), Responsiveness::on());
+    a
+}
+
+/// The waits of the events of `name` of `pane`, in milliseconds; `None` for an event without a time.
+fn waits(a: &App, pane: Pane, name: &str) -> Vec<Option<u128>> {
+    a.telemetry.waiting().iter().filter(|e| e.pane == pane && e.action == name).map(|e| e.wait.map(|w| w.as_millis())).collect()
+}
 
 /// The key `alt-c` read at `t`, and the draw of its screen 10 ms later.
 fn alt_in_10_ms(a: &mut App, c: char, t: Instant) {
@@ -27,10 +42,7 @@ fn alt_in_10_ms(a: &mut App, c: char, t: Instant) {
 async fn every_action_gets_a_time() {
     let root = repo("responsiveness-time", &[(NOTE, "# A\n\nBefore the table there is text.\n")]);
     let data = std::env::temp_dir().join(format!("zendo-responsiveness-data-time-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&data);
-    let mut a = app(&root);
-    a.keys = zendo::keys::Keymap::defaults();
-    a.responsiveness = Responsiveness::start(&data, std::process::id());
+    let mut a = timing(&root, &data);
     draw(&mut a, 140, 30);
     let t0 = Instant::now();
     alt_in_10_ms(&mut a, 'a', t0);
@@ -39,12 +51,8 @@ async fn every_action_gets_a_time() {
     alt_in_10_ms(&mut a, 'a', t0 + Duration::from_secs(1));
     key(&mut a, KeyCode::Esc);
     alt_in_10_ms(&mut a, 'b', t0 + Duration::from_secs(2));
-    let chat = a.responsiveness.times(Pane::Read, "add_to_chat").expect("the times of add_to_chat");
-    assert_eq!(chat.runs(), 2);
-    assert_eq!(chat.within(16) - chat.within(8), 2, "each run took 10 ms");
-    let tree = a.responsiveness.times(Pane::Global, "toggle_tree").expect("the times of the global action");
-    assert_eq!(tree.runs(), 1);
-    assert_eq!(tree.within(16) - tree.within(8), 1);
+    assert_eq!(waits(&a, Pane::Read, "add_to_chat"), [Some(10), Some(10)], "each run took 10 ms");
+    assert_eq!(waits(&a, Pane::Global, "toggle_tree"), [Some(10)], "the global action");
     let _ = std::fs::remove_dir_all(&root);
     let _ = std::fs::remove_dir_all(&data);
 }
@@ -55,10 +63,7 @@ async fn every_action_gets_a_time() {
 async fn an_action_waits_for_the_work_that_it_started() {
     let root = repo("responsiveness-wait", &[(NOTE, "# A\n\nSome text.\n")]);
     let data = std::env::temp_dir().join(format!("zendo-responsiveness-data-wait-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&data);
-    let mut a = app(&root);
-    a.keys = zendo::keys::Keymap::defaults();
-    a.responsiveness = Responsiveness::start(&data, std::process::id());
+    let mut a = timing(&root, &data);
     draw(&mut a, 140, 30);
     let t0 = Instant::now();
     a.drawn_at(t0);
@@ -70,27 +75,27 @@ async fn an_action_waits_for_the_work_that_it_started() {
     (t.busy, t.turn) = (Some(t0), Some(1));
     draw(&mut a, 140, 30);
     a.drawn_at(t0 + Duration::from_millis(10));
-    assert!(a.responsiveness.times(Pane::Global, "toggle_tree").is_none(), "the screen shows the turn, the answer is not there");
+    assert!(waits(&a, Pane::Global, "toggle_tree").is_empty(), "the screen shows the turn, the answer is not there");
     // The note moves while the agent answers: the thread moves to the new key, the answer is the same.
     let key = format!("{key}-moved");
     a.threads.rename(&a.key(), key.clone());
     a.drawn_at(t0 + Duration::from_millis(20));
-    assert!(a.responsiveness.times(Pane::Global, "toggle_tree").is_none(), "the move does not end the wait");
+    assert!(waits(&a, Pane::Global, "toggle_tree").is_empty(), "the move does not end the wait");
     a.thread(&key).busy = None;
     a.drawn_at(t0 + Duration::from_millis(1500));
-    let t = a.responsiveness.times(Pane::Global, "toggle_tree").expect("the time after the answer");
-    assert_eq!((t.runs(), t.within(2000) - t.within(1000)), (1, 1), "1.5 s: the bucket up to 2 s");
+    assert_eq!(waits(&a, Pane::Global, "toggle_tree"), [Some(1500)], "the time after the answer");
     let _ = std::fs::remove_dir_all(&root);
     let _ = std::fs::remove_dir_all(&data);
 }
 
 /// The files of `src`, outside the module of the measurements, that use it, with their reason.
-const HOOKS: [(&str, &str); 6] = [
+const HOOKS: [(&str, &str); 7] = [
     ("src/lib.rs", "declares the module"),
-    ("src/main.rs", "turns the measurements on at the start and writes them at the exit"),
+    ("src/main.rs", "turns the measurements and the log on at the start"),
     ("src/app/mod.rs", "the field of the app"),
     ("src/app/count.rs", "the one place where the actions of the keymap are counted and timed, with the input, the draw and the work in the background"),
-    ("src/app/files.rs", "the tick that writes the measurements"),
+    ("src/app/files.rs", "the tick that writes the log"),
+    ("src/telemetry/mod.rs", "deletes the old folder `responsiveness/` of the data folder (TELEM-14)"),
     ("src/tui/mod.rs", "the terminal loop: the read of each input event and the end of each draw"),
 ];
 
@@ -137,10 +142,7 @@ fn actions_hold_no_measurement_code() {
 async fn the_time_starts_at_the_read_of_the_event() {
     let root = repo("responsiveness-read", &[(NOTE, "# A\n\nSome text.\n")]);
     let data = std::env::temp_dir().join(format!("zendo-responsiveness-data-read-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&data);
-    let mut a = app(&root);
-    a.keys = zendo::keys::Keymap::defaults();
-    a.responsiveness = Responsiveness::start(&data, std::process::id());
+    let mut a = timing(&root, &data);
     draw(&mut a, 140, 30);
     let read = Instant::now();
     a.drawn_at(read);
@@ -149,8 +151,7 @@ async fn the_time_starts_at_the_read_of_the_event() {
     zendo::tui::on_input(&mut a, zendo::tui::Input { event: key, read });
     draw(&mut a, 140, 30);
     a.drawn_at(read + Duration::from_millis(410));
-    let t = a.responsiveness.times(Pane::Global, "toggle_tree").expect("the time of the key");
-    assert_eq!(t.within(512) - t.within(256), 1, "410 ms from the read");
+    assert_eq!(waits(&a, Pane::Global, "toggle_tree"), [Some(410)], "410 ms from the read");
     let _ = std::fs::remove_dir_all(&root);
     let _ = std::fs::remove_dir_all(&data);
 }

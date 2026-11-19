@@ -1,9 +1,10 @@
-//! Usage counts and the times of the actions: what the dispatch of a key or of the mouse tells the
-//! counts (docs/zendo/usage.md) and the measurements (docs/zendo/responsiveness.md, RESP-2).
+//! The events of the actions: what the dispatch of a key or of the mouse tells the telemetry log
+//! (docs/zendo/usage.md, docs/zendo/telemetry.md) and the measurements (docs/zendo/responsiveness.md,
+//! RESP-2).
 use super::*;
 use crate::keys::Pane;
 use crate::responsiveness::Work;
-use crate::usage::Trigger;
+use crate::telemetry::Trigger;
 use std::collections::BTreeSet;
 
 /// The global actions that choose what the chat pane shows: an agent session or a terminal.
@@ -22,6 +23,22 @@ impl App {
     pub fn drawn_at(&mut self, at: Instant) {
         let now = self.in_flight();
         self.responsiveness.drawn(at, &now);
+        self.record();
+    }
+
+    /// The events of the actions that ended go to the log (TELEM-1).
+    fn record(&mut self) {
+        for e in self.responsiveness.take() {
+            self.telemetry.record(e);
+        }
+    }
+
+    /// At the exit: the actions that still wait get their events, and the log gets its last write
+    /// (RESP-9, TELEM-9).
+    pub fn end_telemetry(&mut self) {
+        self.responsiveness.end();
+        self.record();
+        self.telemetry.finish();
     }
 
     /// The work in the background that the user waits for: the walk and the search of the find
@@ -39,11 +56,11 @@ impl App {
         self.ran(pane, act, Trigger::Key);
     }
 
-    /// The one place that every action of the keymap passes: its count and its time (USAGE-1,
+    /// The one place that every action of the keymap passes: its event and its time (USAGE-1,
     /// RESP-1, RESP-2).
     fn ran(&mut self, pane: Pane, act: &str, trigger: Trigger) {
-        self.usage.count(pane, act, trigger);
-        self.responsiveness.ran(pane, act);
+        self.responsiveness.ran(pane, act, trigger);
+        self.record();
     }
 
     /// A key ran the action of `pane` that it has there, if it has one.

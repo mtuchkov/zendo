@@ -83,8 +83,8 @@ fn a_saved_setting_keeps_a_linked_config_a_link() {
     let _ = std::fs::remove_dir_all(&base);
 }
 
-// RESP-8, USAGE-14: `stats = false` turns off the usage counts and the times of the actions; the
-// old name `usage = false` works the same, and `stats` wins when both are there.
+// TELEM-12: `stats = false` turns off the telemetry log; the old name `usage = false` works the
+// same, and `stats` wins when both are there.
 #[test]
 fn stats_false_turns_the_stats_off() {
     let stats = |text: &str| toml::from_str::<UserConfig>(text).unwrap().stats();

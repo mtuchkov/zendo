@@ -3,7 +3,8 @@ status: "draft"
 date: "2026-11-19"
 note: "Agent draft of the mechanism that the open point of docs/zendo/responsiveness.md asked an ADR for. The user approved the specification on 2026-11-19 and asked to implement it; this record is not reviewed by the user."
 sources:
-  - "../../zendo/responsiveness.md (RESP-1, RESP-2, RESP-4)"
+  - "../../zendo/responsiveness.md (RESP-1, RESP-2, RESP-9)"
+  - "../../zendo/telemetry.md (TELEM-1, TELEM-5)"
   - "../../zendo/usage.md (USAGE-1): zendo counts an action where it runs, in App::did and App::did_by_mouse"
 ---
 
@@ -14,8 +15,8 @@ sources:
 RESP-1 asks for the time that the user waits for the result of every action of the keymap, from the
 read of its input event to the end of the draw of the screen that shows the result, also when the
 action starts work in the background (User, 2026-11-19). RESP-2 asks for one mechanism, with no
-measurement code in the code of an action. RESP-4 asks that the write of the measurements does not
-delay the screen. Every action of the keymap already passes one hook: `App::did` and `App::did_by_mouse` count it (USAGE-1).
+measurement code in the code of an action. TELEM-5 asks that the write of the log does not delay the
+screen. Every action of the keymap already passes one hook: `App::did` and `App::did_by_mouse` count it (USAGE-1).
 
 ## Options
 
@@ -42,12 +43,11 @@ Proposal of the agent: time the actions in the hook of the usage counts.
   measurement code.
 - An action waits for the work that started while the app handled its input event: from the read
   of that event to the read of the next one or to the draw. It gets its time at the first draw after
-  that work ended, or when it waited longer than the last bucket. At the exit, an action that still
-  waits gets no time (User, 2026-11-19).
-- The measurements stay in memory. A thread of their own writes the file, with the name, the head
-  and the writer of the usage counts (`src/stats.rs`, USAGE-15): a temporary file and a rename,
-  without the `fsync` of `zendo::atomic`. The loop only sends the text to it. When the last write
-  failed, the next tick or the exit sends the measurements again.
+  that work ended, or no time when it waited longer than 512 seconds. At the exit, an action that
+  still waits gets no time (User, 2026-11-19).
+- Each action becomes one event of the telemetry log with its time (TELEM-1): the app gives the
+  events of the runs that ended to the log of ADR 0025, which keeps them in memory and writes them
+  in a thread of its own.
 
 The hook in `src/app/count.rs` shall be the only code outside `src/responsiveness/` that reports an
 action to the measurements.
@@ -64,8 +64,8 @@ action to the measurements.
   new kind of work needs one line in the list.
 - Each question gets its number when the user sends it, from one counter of the app: a clear of a
   thread does not start the numbers again, and a rename of a thread does not change the work. A
-  question that stays in the queue after the agent exited waits until it goes to the agent, or goes
-  into the last bucket.
+  question that stays in the queue after the agent exited waits until it goes to the agent, or gets
+  an event with no time.
 
 ## Verification
 

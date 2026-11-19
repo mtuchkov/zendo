@@ -1,10 +1,11 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-19"
 revision: "1"
 date: "2026-11-19"
 parent: "zendo.md"
 level: "what the telemetry log of zendo holds, where it is, how large it grows, and when zendo writes it"
-note: "Agent draft of the decisions of the user of 2026-11-19: the telemetry is a log of events, in files with a rolling rule of 50 files of 1 MB, in the data folder; a later step sends it to an analytics service, only after the user agrees; the log holds only statistics of the use of zendo, with nothing that identifies the user; the old folders of the summaries go. The log takes the place of the files of the usage counts and of the times of the actions; their requirements of the files move here. Waits for the review of the user."
+note: "Agent draft of the decisions of the user of 2026-11-19: the telemetry is a log of events, in files with a rolling rule of 50 files of 1 MB, in the data folder; a later step sends it to an analytics service, only after the user agrees; the log holds only statistics of the use of zendo, with nothing that identifies the user; the old folders of the summaries go. The log takes the place of the files of the usage counts and of the times of the actions; their requirements of the files move here. Approved by the user on 2026-11-19; implemented in zendo 0.124.0."
 ---
 
 # Telemetry log
@@ -83,9 +84,9 @@ the last 15 seconds. `stats = false` in `~/.zendo/config.toml` turns the log off
 
 **`nothing_leaves_the_machine_without_the_agreement`** (integration test in `tests/telemetry.rs`; verifies TELEM-13)
 
-- Given a config without the agreement of the user, and a log with events.
-- When zendo runs and exits.
-- Then zendo opens no connection for the log, and the log stays in the data folder.
+- Given the code of the telemetry log, while zendo has no agreement of the user.
+- When the test looks for the calls that open a connection to another machine.
+- Then the code of the log has none: the log stays in the data folder.
 
 **`a_slow_write_does_not_delay_the_screen`** (unit test; verifies TELEM-5)
 
@@ -108,8 +109,9 @@ the last 15 seconds. `stats = false` in `~/.zendo/config.toml` turns the log off
 
 Tests that verify detailed requirements: `an_event_is_one_line_of_json` (TELEM-6, TELEM-7),
 `the_events_reach_the_disk_within_15_seconds` (TELEM-8), `the_exit_writes_the_events` (TELEM-9),
-`two_processes_write_two_files` (TELEM-10), `a_failed_write_keeps_the_events` (TELEM-11),
-`off_records_nothing_and_writes_nothing` and `stats_false_turns_the_stats_off` (TELEM-12),
+`two_processes_write_two_files` (TELEM-10), `a_failed_write_keeps_the_events` and
+`the_kept_lines_stay_under_1_mb` (TELEM-11), `off_records_nothing_and_writes_nothing`,
+`off_measures_nothing` and `stats_false_turns_the_stats_off` (TELEM-12),
 `the_old_summaries_go_at_the_start` (TELEM-14).
 
 TELEM-11 differs from the [failure default](failures.md): the log is not user data, and a message
