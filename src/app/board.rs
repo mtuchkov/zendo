@@ -1,4 +1,4 @@
-//! The message board in the zendo process (BOARD, ADR 0018): it reads the journal, delivers the
+//! The message board in the zendo process (BOARD, ADR 0021): it reads the journal, delivers the
 //! messages to the sessions, lands them at the end of a turn, beats, and keeps the leases of the
 //! posts.
 use super::*;
@@ -39,7 +39,7 @@ impl BoardLink {
     }
 
     /// Fold the new lines of the journal into the state. After a compaction, the state folds the
-    /// new file from its start (ADR 0018).
+    /// new file from its start (ADR 0021).
     fn poll(&mut self) {
         let Some(j) = &self.journal else { return };
         let (file, len) = j.stamp();

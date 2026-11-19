@@ -1,5 +1,5 @@
 //! The journal file of the board: each writer appends its lines in one write under the lock of
-//! `journal.lock`, and a large journal is compacted under the same lock (ADR 0018).
+//! `journal.lock`, and a large journal is compacted under the same lock (ADR 0021).
 
 use super::{Event, Line, State, now_ms};
 use std::fs::{File, OpenOptions};
@@ -86,7 +86,7 @@ impl Journal {
         Ok(Ok(lines))
     }
 
-    /// Compact the journal now, under the lock (ADR 0018).
+    /// Compact the journal now, under the lock (ADR 0021).
     pub fn compact(&self, now: u64) -> std::io::Result<()> {
         let lock = self.lock()?;
         let r = self.compact_locked(now);

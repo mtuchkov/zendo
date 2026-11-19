@@ -50,7 +50,7 @@ pub fn acp_servers(key: &str) -> Vec<McpServer> {
     vec![McpServer::Stdio(McpServerStdio::new("zendo", exe).args(args(n)))]
 }
 
-/// The board of the server of `session` in the folder `cwd`, when the user has a home (ADR 0018).
+/// The board of the server of `session` in the folder `cwd`, when the user has a home (ADR 0021).
 pub fn board(session: usize, cwd: &Path) -> Option<Ctx> {
     let exe = std::env::current_exe().ok()?.display().to_string();
     let journal = crate::board::Journal::at(crate::board::default_dir()?);

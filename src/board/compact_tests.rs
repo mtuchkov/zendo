@@ -68,7 +68,7 @@ fn view(st: &State) -> Vec<String> {
     v
 }
 
-// ADR 0018, BOARD-1, BOARD-15: a compaction drops the delivered old messages and the posts past
+// ADR 0021, BOARD-1, BOARD-15: a compaction drops the delivered old messages and the posts past
 // the history, and keeps what each session sees.
 #[test]
 fn a_compaction_keeps_what_the_sessions_see() {
@@ -90,7 +90,7 @@ fn a_compaction_keeps_what_the_sessions_see() {
     assert!(after.channels_of("/r", 2).iter().all(|c| c != "2/x"), "a closed channel stays closed");
 }
 
-// ADR 0018: a journal over its limit compacts itself after a write, and no write of another
+// ADR 0021: a journal over its limit compacts itself after a write, and no write of another
 // writer is lost.
 #[test]
 fn writes_during_compactions_are_not_lost() {
@@ -111,7 +111,7 @@ fn writes_during_compactions_are_not_lost() {
     let _ = std::fs::remove_dir_all(c.journal.dir());
 }
 
-// ADR 0018: a compaction makes a new file, and the stamp shows it.
+// ADR 0021: a compaction makes a new file, and the stamp shows it.
 #[test]
 fn a_compaction_makes_a_new_file() {
     let c = fresh("compact-stamp", 3);

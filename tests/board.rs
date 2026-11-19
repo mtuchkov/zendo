@@ -265,7 +265,7 @@ async fn the_author_hears_of_a_tombstone_once() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
-// ADR 0018, BOARD-1: after a compaction of the journal, the app reads the new file from its start,
+// ADR 0021, BOARD-1: after a compaction of the journal, the app reads the new file from its start,
 // delivers the next message, and does not deliver an old one again.
 #[tokio::test]
 async fn delivery_goes_on_after_a_compaction() {

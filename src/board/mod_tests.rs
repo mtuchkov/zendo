@@ -22,7 +22,7 @@ pub(crate) fn beat(c: &tools::Ctx) {
     c.journal.beat(&Beat { pid: std::process::id(), repo: c.repo.clone(), at: now_ms(), sessions: Vec::new() }).unwrap();
 }
 
-// ADR 0018: the start time tells this process from another process with the same id.
+// ADR 0021: the start time tells this process from another process with the same id.
 #[test]
 fn this_process_is_alive_with_its_start_time() {
     let me = std::process::id();
@@ -32,7 +32,7 @@ fn this_process_is_alive_with_its_start_time() {
     }
 }
 
-// ADR 0018: a folder outside git names itself.
+// ADR 0021: a folder outside git names itself.
 #[test]
 fn a_folder_outside_git_is_its_own_repository() {
     let d = std::env::temp_dir().join(format!("zendo-board-nogit-{}", std::process::id()));

@@ -1,4 +1,4 @@
-//! The events of the journal of the board, one JSON object on each line (ADR 0018).
+//! The events of the journal of the board, one JSON object on each line (ADR 0021).
 
 use serde::{Deserialize, Serialize};
 
@@ -126,7 +126,7 @@ pub enum Event {
     Expired { post: String },
     Renewed { post: String },
     Tombstone { post: String, repo: String, session: usize },
-    /// A compaction: the members of an open named channel (ADR 0018).
+    /// A compaction: the members of an open named channel (ADR 0021).
     Channel { repo: String, channel: String, members: Vec<usize> },
     /// A compaction: a channel that is closed.
     Close { repo: String, channel: String },

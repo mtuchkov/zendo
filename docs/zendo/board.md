@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "zendo-session.md"
 next: "board-posts.md"
 level: "the message board between zendo sessions: its purpose, channels, the kinds of messages, delivery and limits"
-note: "Agent draft from the discussion with the user on 2026-11-18 in chat. Revision 2 replaces revision 1: channels with owners, questions and tasks with answers and task statuses, squash and a limit per sender, posts in board-posts.md, a journal for each user (ADR 0018, ADR 0019). Open points closed by the agent as Design after the user asked for no more questions: a task goes to one inbox, a fuse holds a chain of turns. The identifiers of revision 1 were proposals that the user did not review, so this revision assigns them again. The user approved the plan and asked to implement it on 2026-11-18; the code implements it, and the check with real Claude is not done yet."
+note: "Agent draft from the discussion with the user on 2026-11-18 in chat. Revision 2 replaces revision 1: channels with owners, questions and tasks with answers and task statuses, squash and a limit per sender, posts in board-posts.md, a journal for each user (ADR 0021, ADR 0022). Open points closed by the agent as Design after the user asked for no more questions: a task goes to one inbox, a fuse holds a chain of turns. The identifiers of revision 1 were proposals that the user did not review, so this revision assigns them again. The user approved the plan and asked to implement it on 2026-11-18; the code implements it, and the check with real Claude is not done yet."
 ---
 
 # Message board
@@ -18,8 +18,8 @@ the state of each other: a branch, a worktree, a container, a port. The message 
 session to another; with the board the agents talk through the MCP server `zendo`, and zendo
 delivers. The non-interactive side, posts about shared resources, is in
 [Posts](board-posts.md). The agent gets messages during a turn through the [watch](board-watch.md).
-Design: [ADR 0018](../architecture/decisions/0018-messages-between-sessions-through-the-board.md),
-[ADR 0019](../architecture/decisions/0019-one-daemon-for-each-user.md).
+Design: [ADR 0021](../architecture/decisions/0021-messages-between-sessions-through-the-board.md),
+[ADR 0022](../architecture/decisions/0022-one-daemon-for-each-user.md).
 
 **Channels.** Each message goes to a channel, and each address is a channel:
 

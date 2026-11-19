@@ -6,10 +6,10 @@ sources:
   - "../../zendo/board.md, board-posts.md, board-leases.md, board-watch.md (BOARD-1 to BOARD-35)"
   - "src/mcp/mod.rs: `zendo mcp --session N` is a stdio process that the agent starts; it has no connection to the zendo process."
   - "../../zendo/cli-messages.md (CLIMSG-2): the hooks of Claude Code append lines to a file, and zendo reads them on each tick."
-  - "ADR 0003 (state in the repository), ADR 0009 (no UI stalls), ADR 0016 (process tree), ADR 0019 (one daemon for each user)"
+  - "ADR 0003 (state in the repository), ADR 0009 (no UI stalls), ADR 0016 (process tree), ADR 0022 (one daemon for each user)"
 ---
 
-# 0018 Messages between sessions go through a journal of the user
+# 0021 Messages between sessions go through a journal of the user
 
 ## Context
 
@@ -21,7 +21,7 @@ process delivers it.
 
 Posts are about resources of the machine, such as ports and containers, so they cross
 repositories. More than one zendo process can run, in one repository or in many. The board must
-work before the daemon of ADR 0019 exists, and keep its tools when the daemon comes.
+work before the daemon of ADR 0022 exists, and keep its tools when the daemon comes.
 
 ## Options
 
@@ -29,7 +29,7 @@ work before the daemon of ADR 0019 exists, and keep its tools when the daemon co
 | ------ | ------ | ------------------ |
 | A journal file of the user that every writer appends to and every zendo process reads | The pattern of the hooks (CLIMSG-2). Works now, over restarts, with many zendo processes. The daemon later takes the same file. | Polling; a lock for the appends; zendo must compact the file. |
 | A socket of each zendo process | No polling. | No delivery while zendo is down; many processes need discovery; a named pipe on Windows. |
-| Wait for the daemon of ADR 0019 | One writer, no polling. | The board waits for the riskiest phase of the plan. |
+| Wait for the daemon of ADR 0022 | One writer, no polling. | The board waits for the riskiest phase of the plan. |
 
 ## Decision
 
@@ -77,7 +77,7 @@ daemon.
 - The board does not need the daemon of the plan; the daemon becomes the only writer later.
 - A message arrives within one tick. The watch reads about twice a second.
 - Two zendo processes in one repository both have a session 2; the claims stop a double delivery,
-  but either process can take the message. ADR 0019 removes this.
+  but either process can take the message. ADR 0022 removes this.
 - `.zendo/board/` of revision 1 of the draft is not used; the board leaves the repository, unlike
   the state of ADR 0003, because posts cross repositories.
 - `resources/mcp-instructions.md` gets the rules of BOARD-12 and BOARD-25.

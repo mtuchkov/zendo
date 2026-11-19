@@ -1,4 +1,4 @@
-//! The compaction of the journal (ADR 0018): the lines that still matter, and a snapshot of the
+//! The compaction of the journal (ADR 0021): the lines that still matter, and a snapshot of the
 //! channels and of the leases and ends of the posts.
 
 use super::{Event, HISTORY_MS, Line, Msg, State, inbox_of};

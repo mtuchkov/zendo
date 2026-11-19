@@ -191,7 +191,7 @@ async fn main() -> Result<()> {
     // The path of this binary, before an upgrade replaces it.
     let exe = std::env::current_exe().ok();
     let mut app = open_app(cfg).await?;
-    // The message board between the sessions, in the folder of the user (ADR 0018).
+    // The message board between the sessions, in the folder of the user (ADR 0021).
     if let Some(dir) = zendo::board::default_dir() {
         app.board = zendo::app::BoardLink::open(dir, &app.cfg.root);
     }

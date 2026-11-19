@@ -198,7 +198,7 @@ pub struct App {
     pub attention: Attention,
     /// The background processes of the agent and of the Claude Code sessions (BG-1 to BG-10).
     pub bg: Background,
-    /// The message board between the sessions (BOARD, ADR 0018); none without a folder.
+    /// The message board between the sessions (BOARD, ADR 0021); none without a folder.
     pub board: BoardLink,
     /// The lofi music, its button, and the question at the first start (LOFI-8 to LOFI-15).
     pub music: crate::music::Music,

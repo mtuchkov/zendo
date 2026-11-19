@@ -1,4 +1,4 @@
-//! The message board between zendo sessions (BOARD, ADR 0018): a journal of the user that the MCP
+//! The message board between zendo sessions (BOARD, ADR 0021): a journal of the user that the MCP
 //! servers, the watches and the zendo processes append to, and the state that it folds into.
 
 mod beats;
@@ -52,7 +52,7 @@ pub fn default_dir() -> Option<PathBuf> {
 }
 
 /// The name of a repository on the board: the path of its main checkout, so its worktrees share
-/// it (ADR 0018). `dir` is any folder in the repository or in one of its worktrees.
+/// it (ADR 0021). `dir` is any folder in the repository or in one of its worktrees.
 pub fn repo_of(dir: &Path) -> String {
     let out = std::process::Command::new("git")
         .args(["rev-parse", "--path-format=absolute", "--git-common-dir"])

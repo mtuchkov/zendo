@@ -1,5 +1,5 @@
 //! The heartbeats of the zendo processes: each writes `zendo-<pid>.json` with its repository, the
-//! time and the state of its sessions, about each second (ADR 0018).
+//! time and the state of its sessions, about each second (ADR 0021).
 
 use super::{HEARTBEAT_MS, Journal, now_ms};
 use serde::{Deserialize, Serialize};

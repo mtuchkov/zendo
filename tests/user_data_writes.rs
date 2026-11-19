@@ -17,7 +17,7 @@ const OWN: [(&str, &str); 13] = [
     ("src/setup/fonts/mod.rs", "the list of the recommended fonts that zendo named"),
     ("src/setup/fonts/install.rs", "the font files, with a temporary file and a rename"),
     ("src/text/clipboard.rs", "a pasted image in the data folder"),
-    ("src/board/journal.rs", "the journal of the message board: appends under a lock, compaction through zendo::atomic (ADR 0018)"),
+    ("src/board/journal.rs", "the journal of the message board: appends under a lock, compaction through zendo::atomic (ADR 0021)"),
     ("src/bin/", "the mock programs of the tests"),
 ];
 
