@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-18"
 revision: "1"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "fonts-tip.md"
 next: "fonts-recipe-format.md"
 level: "how zendo learns to set the font of the terminal: the recipe that the agent writes, and how zendo doctor checks and repairs it"
-note: "Agent draft of the decisions of the user on 2026-11-18: a recipe from Claude, made in an interactive Claude session by `zendo setup fonts`, checked by `zendo doctor`, repaired by `zendo doctor --fix --agent`; Codex in the same way as Claude. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft of the decisions of the user on 2026-11-18: a recipe from Claude, made in an interactive Claude session by `zendo setup fonts`, checked by `zendo doctor`, repaired by `zendo doctor --fix --agent`; Codex in the same way as Claude. Approved by the user on 2026-11-18. Implemented in zendo 0.113.0."
 ---
 
 # Font recipe
@@ -83,3 +84,6 @@ FONT-25, FONT-31)
 | FONT-28 | Event      | When the session of the agent ends, the system shall check the recipe and say whether it works. | Design |
 | FONT-31 | Unwanted   | If the recipe of the current terminal has a missing file or a command that is not on the `PATH`, then `zendo doctor` shall name the failure and `zendo doctor --fix --agent`. | Design |
 | FONT-33 | Unwanted   | If the command of the agent, `claude` or `codex`, is not on the `PATH`, then the system shall not start the session and shall say how to install it. | Design |
+
+Tests that verify detailed requirements: `a_missing_agent_names_how_to_install_it` (FONT-33),
+`the_session_starts_the_command_of_the_agent` (FONT-44).

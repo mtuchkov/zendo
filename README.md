@@ -101,7 +101,7 @@ document goes.
 zendo init                     # makes the file from a template when there is none
 zendo doctor                   # checks the file, and changes nothing
 zendo doctor --fix             # repairs what needs no judgement
-zendo doctor --fix --claude    # the agent repairs what zendo does not understand
+zendo doctor --fix --agent     # the agent repairs what zendo does not understand
 ```
 
 **From notes to a specification.** `ctrl-t` in the chat adds a template. The
@@ -115,7 +115,7 @@ the default, and Codex:
 
 ```sh
 zendo setup                  # Claude: log in with `claude auth login`
-zendo setup --agent codex    # Codex: log in with `codex login`
+zendo setup --agent-cmd codex    # Codex: log in with `codex login`
 ```
 
 When an agent cannot do something, only that key is off. With Codex, that is

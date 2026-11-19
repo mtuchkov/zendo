@@ -227,7 +227,7 @@ pub enum Source {
 impl Source {
     pub fn label(self) -> &'static str {
         match self {
-            Source::Flag => "--agent",
+            Source::Flag => "--agent-cmd",
             Source::Env => "$ZENDO_AGENT",
             Source::Config => "config",
             Source::Installed => "installed by zendo setup",

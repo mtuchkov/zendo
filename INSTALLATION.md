@@ -94,12 +94,13 @@ Optional: `wl-copy`, `xclip` or `xsel` on Linux, so that a mouse selection goes 
 ## Codex in place of Claude
 
 ```sh
-zendo setup --agent codex      # installs @agentclientprotocol/codex-acp once; `agent = "codex"` in the config
+zendo setup --agent-cmd codex  # installs @agentclientprotocol/codex-acp once; `agent = "codex"` in the config
 codex login                    # or set OPENAI_API_KEY
 ```
 
 Everything works the same, except the hand-off to the command line (`ctrl-o`): it is off with Codex.
-`zendo setup --agent claude` goes back to Claude. Any other ACP agent works with `--agent "<command>"`.
+`zendo setup --agent-cmd claude` goes back to Claude. Any other ACP agent works with
+`--agent-cmd "<command>"`.
 
 ## Keys
 
@@ -164,8 +165,15 @@ checks each file against a pinned checksum, and installs the files with their li
 folder (`~/Library/Fonts` on macOS, `~/.local/share/fonts` on Linux). It needs no `sudo`, and a
 second run changes nothing.
 
-Then set one of the fonts in your terminal. In zendo, `t` opens the theme picker: its font button
-asks the agent to find the font setting of your terminal and to change it after you agree.
+zendo cannot set its own font: the terminal draws it. So, in a terminal without a font recipe,
+`zendo setup fonts` then asks whether it may start your agent (`claude`, or `codex` for Codex). The
+agent finds how your terminal sets its font, asks you before each change, and writes the recipe to
+`~/.zendo/terminal-fonts.toml`. End the session when it is ready.
+
+After that, `t` in zendo opens the theme picker, and `f` opens its font list: a font that you pick
+there goes to your terminal by the recipe, without the agent. If the recipe stops to work, for
+example after an update of the terminal, `zendo doctor` says so, and `zendo doctor --fix --agent`
+starts the agent again to repair it.
 
 ## Sound
 
@@ -323,6 +331,7 @@ zendo migrates old files itself. For example, 0.3 reads `.zendo/state.json` from
 
 | Version | What to do after the upgrade |
 |---|---|
+| 0.113.0 | Scripts that pass `--agent CMD` pass `--agent-cmd CMD` now, also `zendo setup --agent-cmd codex`. `zendo doctor --fix --claude` is `zendo doctor --fix --agent`. Run `zendo setup fonts` once to get the font list of the theme picker. |
 | 0.12.0 | Nothing. New: the keymap (`[keys.*]`), code highlighting (`[highlight]`), Codex (`zendo setup --agent codex`). The top-bar buttons are gone: every action has a key. |
 | 0.11.1 | Nothing. The config moves from `~/.config/zendo/config.json` to `~/.zendo/config.toml` on the first run. |
 | 0.10.x | zendo was called dawn before 0.10. Run the install line (or `./install.sh` in your clone) once: `dawn upgrade` cannot build the new name. The installer removes the `dawn` command. On the first run, zendo moves `~/.config/dawn`, `~/.local/share/dawn`, `~/.cache/dawn` and `.dawn/` of the repository to the new names. Use `ZENDO_*` in place of `DAWN_*` variables. |

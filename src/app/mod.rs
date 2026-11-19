@@ -192,7 +192,7 @@ pub struct App {
     pub bg: Background,
     /// The lofi music, its button, and the question at the first start (LOFI-8 to LOFI-15).
     pub music: crate::music::Music,
-    /// The font tip of the theme picker and its question (FONT-13 to FONT-16, FONT-21).
+    /// The font list of the theme picker (FONT-34 to FONT-38).
     pub font_tip: FontTip,
 
     /// The key button and the key float: the change of a key in place (REKEY-1).

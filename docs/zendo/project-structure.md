@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-18"
 revision: "2"
 date: "2026-11-14"
 parent: "zendo.md"
 prev: "attention.md"
 next: "cli/cli.md"
 level: "how zendo uses project-structure.toml, how zendo init makes it, and how zendo doctor repairs it"
-note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. Revision 2 moves the writes from zendo doctor to zendo init and zendo doctor --fix, and the repair by Claude to --agent, from the requests of the user on 2026-11-14 (see cli/cli.md). The flags: `--claude` of doctor is `--agent`, and `--agent CMD` is `--agent-cmd CMD`, on the request of the user on 2026-11-18 (draft)."
+note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. Revision 2 moves the writes from zendo doctor to zendo init and zendo doctor --fix, and the repair by Claude to --agent, from the requests of the user on 2026-11-14 (see cli/cli.md). The flags: `--claude` of doctor is `--agent`, and `--agent CMD` is `--agent-cmd CMD`, on the request of the user on 2026-11-18 (approved by the user on 2026-11-18)."
 ---
 
 # Project structure

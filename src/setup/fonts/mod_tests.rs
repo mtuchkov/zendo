@@ -13,6 +13,9 @@ fn folder(name: &str) -> PathBuf {
 fn the_catalog_has_the_eight_fonts_and_their_styles() {
     let names: Vec<&str> = FONTS.iter().map(|f| f.name).collect();
     assert_eq!(names, ["JetBrains Mono", "Atkinson Hyperlegible Mono", "IBM Plex Mono", "Iosevka", "Iosevka Term", "Fira Code", "Cascadia Code", "iA Writer Mono"]);
+    let families: Vec<&str> = FONTS.iter().map(|f| f.family).collect();
+    assert_eq!(families[7], "iA Writer Mono S", "the family name in the files of iA Writer Mono");
+    assert!(FONTS[..7].iter().all(|f| f.family == f.name));
     for f in FONTS {
         let files: Vec<&str> = f.parts.iter().map(|p| p.file).collect();
         let styles: &[&str] = if f.prefix == "FiraCode" { &["Regular", "Bold"] } else { &["Regular", "Bold", "Italic", "BoldItalic"] };
@@ -30,7 +33,7 @@ fn the_catalog_has_the_eight_fonts_and_their_styles() {
     }
 }
 
-// FONT-13: a font without its Regular style in the folders is missing; a font with it is not.
+// FONT-34, FONT-37: a font without its Regular style in the folders is missing; a font with it is not.
 #[test]
 fn a_font_is_missing_without_its_regular_style() {
     let d = folder("missing");
@@ -43,11 +46,11 @@ fn a_font_is_missing_without_its_regular_style() {
     let _ = std::fs::remove_dir_all(&d);
 }
 
-// FONT-20: the tip names the key of the theme picker from the keymap, and the font button.
+// FONT-39: the tip names the key of the theme picker from the keymap, and its font list.
 #[test]
 fn the_tip_names_the_key_of_the_theme_picker() {
     let t = tip(Some("T"));
-    assert!(t.contains("`T` in read mode") && t.contains("theme picker") && t.contains("font button"), "{t}");
+    assert!(t.contains("`T` in read mode") && t.contains("theme picker") && t.contains("font list"), "{t}");
     assert!(tip(None).contains("action `theme`"), "an action without a key: {}", tip(None));
 }
 

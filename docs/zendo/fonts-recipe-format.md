@@ -1,11 +1,12 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-18"
 revision: "1"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "fonts-recipe.md"
 level: "the format of the recipe of the terminal font: the ways to set a font, the size, and how zendo finds the current terminal"
-note: "Agent draft of the decisions of the user on 2026-11-18, split from fonts-recipe.md: a whole file for COSMIC, the size for GNOME, the terminal from more than TERM_PROGRAM; no special case for tmux. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft of the decisions of the user on 2026-11-18, split from fonts-recipe.md: a whole file for COSMIC, the size for GNOME, the terminal from more than TERM_PROGRAM; no special case for tmux. Approved by the user on 2026-11-18. Implemented in zendo 0.113.0."
 ---
 
 # Font recipe format
@@ -95,3 +96,7 @@ FONT-40, FONT-41)
 | FONT-41 | Where      | Where a text of a recipe has `{size}`, the system shall replace it with the last number that the `size` command of the recipe prints. | User, 2026-11-18 |
 | FONT-42 | Ubiquitous | The system shall name the current terminal from `TERM_PROGRAM`, else from the variables that terminals set, else from `TERM`. | User, 2026-11-18 |
 | FONT-43 | Unwanted   | If a text of a recipe has `{size}` and the `size` command prints no number, then the system shall not set the font and shall name the failure. | Design |
+
+Tests that verify detailed requirements: `a_missing_line_goes_to_the_end_of_the_file` (FONT-40),
+`a_size_without_a_number_sets_nothing` (FONT-43), `the_check_names_a_missing_file_and_command`
+(FONT-31), `the_font_that_was_set_stays_in_the_recipe` (FONT-32, FONT-34).
