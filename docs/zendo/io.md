@@ -5,7 +5,7 @@ date: "2026-11-19"
 parent: "zendo.md"
 prev: "failures.md"
 level: "where zendo does input and output, for every feature: off the UI thread"
-note: "Agent draft from the request of the user on 2026-11-19, after the UI froze: the heartbeat of the board ran fsync on the UI thread during builds (up to 3.6 s), and a paste waited for wl-paste, which never ended on GNOME Wayland. Answers of the user on 2026-11-19: 100 ms, the reads at the start, the slow-tick log. Not reviewed by the user; the requirement IDs are proposals."
+note: "Agent draft from the request of the user on 2026-11-19, after the UI froze: a heartbeat ran fsync on the UI thread during builds (up to 3.6 s), and a paste waited for wl-paste forever. Answers of the user: 100 ms, IO at the start and the end, the slow-tick log, 350 ms. Not reviewed; the requirement IDs are proposals."
 ---
 
 # Input and output
@@ -34,8 +34,8 @@ follows the [failure default](failures.md). ADR
 [0024](../architecture/decisions/0024-io-on-worker-threads.md) holds the mechanism for all IO,
 after [0009](../architecture/decisions/0009-git-and-agent-sessions-without-ui-stalls.md) and
 [0017](../architecture/decisions/0017-find-search-on-a-worker-thread.md) for git and find. One
-exception: at the start, before the
-first frame, zendo reads its config and its state on the UI thread, when no screen can freeze yet.
+exception: before the first frame zendo reads its config and state, and after the last frame it
+waits for its last writes, on the UI thread, when no screen can freeze.
 
 **Writes.** A write of user data stays whole or does not happen (FAIL-2), and only user data waits
 for the disk to sync. The own files of zendo, such as the heartbeat of the board and the local
@@ -69,7 +69,7 @@ newest content waits.
 
 - Given the source of the modules that run on the UI thread.
 - When the check looks for calls of file, program and network IO.
-- Then it finds none outside the workers, except the reads before the first frame (IO-7), which
+- Then it finds none outside the workers, except the IO before the first frame (IO-7), which
   the check lists with a reason.
 
 **`keys_answer_during_a_full_build`** (terminal check; verifies IO-2)
@@ -87,7 +87,7 @@ newest content waits.
 | IO-4 | Event      | When the system has newer content for a file whose write did not end, the system shall write only the newest content after that write. | Design   |
 | IO-5 | Unwanted   | If a read of the clipboard or a program that the system starts does not end within its time limit, then the system shall stop waiting for it and show the failure once. | Design; FAIL-1, FAIL-6 |
 | IO-6 | State      | While the answer of an IO operation has not come, the system shall show the last known state of what it reads, and after 350 ms "reading" with an animation. | User, 2026-11-19; ADR 0009 |
-| IO-7 | Event      | When the system starts, the system shall read its config and its state on the UI thread before it draws the first frame. | User, 2026-11-19 |
+| IO-7 | Event      | When the system starts or quits, the system shall do IO on the UI thread only before the first frame or after the last frame. | User, 2026-11-19 |
 | IO-8 | Optional   | Where the system is a debug build, the system shall log each tick longer than 100 ms with the phase of the tick that took the time. | User, 2026-11-19 |
 
 Tests of the detailed requirements: `keys_answer_while_a_write_waits` (IO-4),

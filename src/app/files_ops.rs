@@ -64,7 +64,7 @@ impl Files {
     fn delete(&mut self, root: &Path, rel: &Path) -> Option<Effect> {
         let path = root.join(rel);
         let key = self.rel(&path);
-        Some(Effect::Io(IoJob::new(move || match std::fs::remove_file(&path) {
+        Some(Effect::Io(IoJob::new(move || match crate::docs::disk::delete(&path) {
             Ok(()) => Some(Effect::Deleted(key)),
             Err(e) => Effect::flash(format!("delete failed: {e}")),
         })))
@@ -104,14 +104,10 @@ impl Files {
             return None;
         }
         let (old, target) = (old.to_path_buf(), target.to_path_buf());
-        Some(Effect::Io(IoJob::new(move || {
-            if target.exists() {
-                return Effect::flash("a file with that name exists");
-            }
-            match target.parent().map_or(Ok(()), std::fs::create_dir_all).and_then(|()| std::fs::rename(&old, &target)) {
-                Ok(()) => Some(Effect::Moved { old, target, done }),
-                Err(e) => Effect::flash(format!("{done} failed: {e}")),
-            }
+        Some(Effect::Io(IoJob::new(move || match crate::docs::disk::relocate(&old, &target) {
+            crate::docs::disk::Relocated::Done => Some(Effect::Moved { old, target, done }),
+            crate::docs::disk::Relocated::Exists => Effect::flash("a file with that name exists"),
+            crate::docs::disk::Relocated::Failed(e) => Effect::flash(format!("{done} failed: {e}")),
         })))
     }
 
@@ -151,16 +147,6 @@ impl Files {
         let parent = text.rsplit_once('/').map_or("", |(p, _)| p);
         complete_with(&self.folders.get(&root.join(parent))?, text)
     }
-}
-
-/// The folders in `dir` that are not hidden, by name; on a worker.
-pub(super) fn folders_in(dir: &PathBuf) -> Vec<PathBuf> {
-    let Ok(read) = std::fs::read_dir(dir) else { return Vec::new() };
-    read.flatten()
-        .filter(|e| e.file_type().is_ok_and(|t| t.is_dir()))
-        .map(|e| PathBuf::from(e.file_name()))
-        .filter(|n| !n.to_string_lossy().starts_with('.'))
-        .collect()
 }
 
 /// The best folder of `names` for the last part of `text`.

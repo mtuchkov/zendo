@@ -34,15 +34,10 @@ impl Files {
         let path = if path.extension().is_none() { path.with_extension("md") } else { path };
         let (title, template) = self.new_text(root, &path);
         // The file is made on a thread; its answer opens it (IO-1).
-        Some(Effect::Io(IoJob::new(move || {
-            if path.exists() {
-                return Effect::flash("a file with that name exists");
-            }
-            let body = first_text(title, template.and_then(|t| std::fs::read_to_string(t).ok()));
-            match path.parent().map_or(Ok(()), std::fs::create_dir_all).and_then(|()| crate::atomic::write(&path, body)) {
-                Ok(()) => Some(Effect::MadeFile(path)),
-                Err(e) => Effect::flash(format!("could not make the file: {e}")),
-            }
+        Some(Effect::Io(IoJob::new(move || match crate::docs::disk::make_file(&path, template.as_deref(), |t| first_text(title, t)) {
+            Ok(true) => Some(Effect::MadeFile(path)),
+            Ok(false) => Effect::flash("a file with that name exists"),
+            Err(e) => Effect::flash(format!("could not make the file: {e}")),
         })))
     }
 
@@ -56,7 +51,7 @@ impl Files {
         if !self.tree.view.is_worktree() {
             self.tree.view = View::Text;
         }
-        Some(Effect::Io(IoJob::new(move || match std::fs::create_dir_all(&path) {
+        Some(Effect::Io(IoJob::new(move || match crate::docs::disk::make_folder(&path) {
             Ok(()) => Some(Effect::MadeFolder(path)),
             Err(e) => Effect::flash(format!("could not make the folder: {e}")),
         })))

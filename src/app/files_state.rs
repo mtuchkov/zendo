@@ -4,7 +4,7 @@
 //! `files_new.rs`, the tree in `files_tree.rs`, its keys in `tree_keys.rs`.
 use super::version::Peek;
 use super::{Effect, FilePrompt, Find, WorktreeUi};
-use crate::docs::notes::{self, Note, Store};
+use crate::docs::notes::{Note, Store};
 use crate::docs::tree::Tree;
 use crate::setup::sync::Syncer;
 use std::path::{Path, PathBuf};
@@ -46,7 +46,7 @@ pub struct Files {
     /// The look at the disk each second, on a worker (IO-1).
     looking: crate::worker::Task<reload::Look>,
     /// The folders in a folder, for the completion of a path, from a worker (IO-1).
-    #[default(crate::worker::Memo::new(ops::folders_in, std::time::Duration::from_secs(1)))]
+    #[default(crate::worker::Memo::new(crate::docs::disk::folders_in, std::time::Duration::from_secs(1)))]
     pub(super) folders: crate::worker::Memo<PathBuf, Vec<PathBuf>>,
     /// The typed path of a tab that waits for the folders (IO-6).
     complete_waits: Option<String>,

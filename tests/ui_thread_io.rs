@@ -8,8 +8,9 @@ use std::path::{Path, PathBuf};
 const UI: [&str; 3] = ["src/app", "src/ui", "src/tui"];
 
 /// The files of the UI folders whose IO runs before the first frame (IO-7) or on a worker.
-const ALLOWED: [(&str, &str); 3] = [
+const ALLOWED: [(&str, &str); 4] = [
     ("src/app/new.rs", "App::new seeds the worktrees of the sessions before the first frame (IO-7)"),
+    ("src/app/files_disk.rs", "load_structure reads project-structure.toml before the first frame (IO-7); later the look at the disk reads it on a worker"),
     ("src/app/facts.rs", "the functions of the memos run on their workers"),
     ("src/tui/sound.rs", "the player starts on a thread of ring()"),
 ];
@@ -69,7 +70,6 @@ fn io_lines() -> Vec<String> {
 
 // IO-1, IO-7: no IO in the code of the UI thread, except the reads at the start.
 #[test]
-#[ignore = "IO-1: on in the last commit of the branch docs/io-spec, when every group of IO is on zendo::worker"]
 fn ui_code_does_no_io() {
     let found = io_lines();
     assert!(found.is_empty(), "the UI thread calls IO here; hand it to zendo::worker (IO-1, ADR 0024):\n{}", found.join("\n"));

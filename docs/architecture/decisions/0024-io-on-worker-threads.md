@@ -37,22 +37,23 @@ find IO that a code check cannot see.
 
 Proposal, not yet accepted:
 
-- A module `io` shall hold the IO of the TUI. Its **writer** shall run on one thread, take a write
-  as (path, content, sync), keep only the newest content for each path while a write of it runs
-  (IO-4), and report each failure as a message.
-- Its **job runner** shall run each read, program and other IO operation on a worker thread, under
-  a key: a new request of the same key replaces an older one that has not started, and the answer
-  of an older one is dropped. Each job has a time limit (IO-5).
-- The UI thread shall call `io` only to send a request or to take the answers, once each tick, and
-  shall keep the last known state until an answer comes (IO-6).
-- The writer shall sync only user data (IO-3); `atomic::write` keeps the sync, and the own files of
-  zendo use a write and a rename without sync.
-- The clipboard shall go through arboard, with the feature `wayland-data-control`, on the job
-  runner, with a limit of 2 s.
-- In a debug build, the main loop shall time the phases of each tick, and the writer shall append
-  each tick over 100 ms, with its slowest phase, to `.zendo/slow-ticks.log` (IO-8).
-- A test shall check that the modules of the UI thread call no file, program or network IO outside
-  `io`, except the reads at the start (IO-7).
+- The module `worker` shall hold the means; the UI thread shall only send a request or take an
+  answer, and one shared wake shall bring the main loop to the answers.
+  - `Writer`: one thread; the newest content of each file waits (IO-4); sync only for user data
+    (IO-3); a checked write writes a note only over the text that zendo saw last (UNDO-6).
+  - `Task`: one operation with a time limit (IO-5); a new start drops the older answer.
+  - `Memo`: facts that a frame shows (a branch, a file that exists, the text at HEAD), computed
+    again while asked.
+  - `Serial`: changes of files of the user, one at a time, in order.
+- The disk work of the documents shall live in `docs::disk`, not in the modules of the UI thread;
+  the file actions of the tree shall return an `Effect::Io` job (ADR 0008).
+- What needs an answer shall wait for it ("wait, then act"): a jump to a match, a merge, the close
+  of the float, a question after a save; after 350 ms the status bar says "reading" (IO-6).
+- Programs (sessions, terminals) shall start on a task; their input waits until they run.
+- The clipboard shall go through arboard, with `wayland-data-control`, on a task, limit 2 s.
+- A debug build shall log each tick, key or frame over 100 ms with its slowest phase (IO-8).
+- `ui_code_does_no_io` shall check the modules of the UI thread; the IO before the first frame and
+  after the last one is named with its reason (IO-7).
 
 ## Consequences
 
