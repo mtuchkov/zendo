@@ -35,7 +35,7 @@ impl Files {
             return Effect::flash("a file with that name exists");
         }
         let body = self.new_text(root, &path);
-        if let Err(e) = path.parent().map_or(Ok(()), std::fs::create_dir_all).and_then(|_| std::fs::write(&path, body)) {
+        if let Err(e) = path.parent().map_or(Ok(()), std::fs::create_dir_all).and_then(|_| crate::atomic::write(&path, body)) {
             return Effect::flash(format!("could not make the file: {e}"));
         }
         self.reload();
