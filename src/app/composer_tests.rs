@@ -84,14 +84,13 @@ fn slash_suggests_the_commands_and_tab_takes_one() {
 // ADR 0008: `@` and a part of a name suggest files; enter takes one and removes `@word`.
 #[test]
 fn at_suggests_files_and_enter_takes_one() {
-    let root = std::env::temp_dir().join(format!("zendo-composer-at-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&root);
-    std::fs::create_dir_all(root.join("docs")).unwrap();
-    std::fs::write(root.join("docs/plan.md"), "# plan\n").unwrap();
-    std::fs::write(root.join("docs/other.md"), "# other\n").unwrap();
+    // The files of the repository, as the worker reads them (IO-1).
+    let files = || Some(vec![PathBuf::from("docs/other.md"), PathBuf::from("docs/plan.md")]);
     let mut c = Composer::default();
     c.input_mut().type_str("see @pla");
-    c.update_at(&root, &[]);
+    c.update_at(None, &[]);
+    assert_eq!(c.at().map(|p| p.hits.len()), Some(0), "the suggestions wait for the files");
+    c.update_at(files(), &[]);
     assert_eq!(c.at().map(|p| p.hits.clone()), Some(vec![PathBuf::from("docs/plan.md")]));
     assert_eq!(c.key_at(key(KeyCode::Char('x'))), AtKey::Unused);
     assert_eq!(c.key_at(key(KeyCode::Enter)), AtKey::Taken("docs/plan.md".into(), false));
@@ -99,11 +98,10 @@ fn at_suggests_files_and_enter_takes_one() {
     assert!(c.at().is_none());
     c.pick_template();
     assert_eq!(c.input().text(), "see @");
-    c.update_at(&root, &["docs/other.md".into()]);
+    c.update_at(files(), &["docs/other.md".into()]);
     assert_eq!(c.at().map(|p| (p.templates, p.hits.clone())), Some((true, vec![PathBuf::from("docs/other.md")])));
     c.close_picks();
     assert!(c.at().is_none());
-    let _ = std::fs::remove_dir_all(&root);
 }
 
 // ADR 0008: `\` before the cursor makes `enter` a new line.

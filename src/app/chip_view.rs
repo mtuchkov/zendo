@@ -6,8 +6,6 @@ use super::chips;
 
 /// Two clicks on one chip within this time are a double-click.
 pub const DOUBLE_CLICK: Duration = Duration::from_millis(500);
-/// The most bytes of a file that the chip window reads.
-const MOST: u64 = 1 << 20;
 
 /// The chip window: the label of the chip, its lines (the text, and true for a dim line), the
 /// scroll, and the style of the chip: 0 a text or a file, 1 text from the chat, 2 an error.
@@ -27,19 +25,12 @@ pub fn context_lines(ctx: &str) -> Vec<(String, bool)> {
     }).collect()
 }
 
-/// The text of a file, or None when it is not text.
-fn text_of(p: &Path) -> std::io::Result<Option<String>> {
-    use std::io::Read;
-    let mut bytes = Vec::new();
-    std::fs::File::open(p)?.take(MOST).read_to_end(&mut bytes)?;
-    Ok(if bytes.contains(&0) { None } else { String::from_utf8(bytes).ok() })
-}
-
-/// A stamp of the text of a file: it changes when the file changes.
-pub fn stamp_of(p: &Path) -> u64 {
-    let m = std::fs::metadata(p).ok();
-    let nanos = m.as_ref().and_then(|m| m.modified().ok()).and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map_or(0, |d| d.as_nanos() as u64);
-    nanos ^ m.map_or(0, |m| m.len()).rotate_left(32)
+/// What the worker found for the window of a file chip.
+pub enum ChipFile {
+    Text(String),
+    /// The file is not text, or an image: it opened in the program of the system, or why not.
+    Outside(Result<(), String>),
+    Error(String),
 }
 
 impl Composer {
@@ -135,23 +126,26 @@ impl App {
         let style = usize::from(name.starts_with(CHAT_MARK));
         let lines = match (&attach, &context) {
             (Some(a), _) if !self.facts.exists(a.path()) => return self.chip_error(name, format!("{} is gone", a.path().display())),
-            (Some(Attachment::Image(p)), _) => return self.open_outside(name, p),
-            (Some(a), _) => match text_of(a.path()) {
-                Ok(Some(t)) => t.lines().map(|l| (l.to_string(), false)).collect(),
-                Ok(None) => return self.open_outside(name, a.path()),
-                Err(e) => return self.chip_error(name, format!("{} does not open: {e}", a.path().display())),
-            },
+            // A worker reads the file or opens it outside; `poll_chip` shows it (IO-1).
+            (Some(a), _) => {
+                let (path, image, opener) = (a.path().to_path_buf(), matches!(a, Attachment::Image(_)), self.opener);
+                return self.chip_reads.start(move || (name, crate::app::facts::chip_file(&path, image, opener)));
+            }
             (None, Some(ctx)) => context_lines(&chips::unescape(ctx)),
             (None, None) => Vec::new(),
         };
         self.composer_mut().view = Some(ChipView { label: name, lines, scroll: 0, style });
     }
 
-    /// The file in the program of the system; its error in the chip window (CLAUDE-52, CLAUDE-53).
-    fn open_outside(&mut self, name: String, p: &Path) {
-        match (self.opener)(p) {
-            Ok(()) => self.flash(format!("{name} opens in the program of the system")),
-            Err(e) => self.chip_error(name, format!("{} does not open: {e}", p.display())),
+    /// The worker read the file of a chip: its text in the window, or the program of the system
+    /// opened it, or its error in the window (CLAUDE-52, CLAUDE-53).
+    pub(crate) fn poll_chip(&mut self) {
+        let Some((name, file)) = self.chip_reads.poll() else { return };
+        let style = usize::from(name.starts_with(CHAT_MARK));
+        match file {
+            ChipFile::Text(t) => self.composer_mut().view = Some(ChipView { label: name, lines: t.lines().map(|l| (l.to_string(), false)).collect(), scroll: 0, style }),
+            ChipFile::Outside(Ok(())) => self.flash(format!("{name} opens in the program of the system")),
+            ChipFile::Outside(Err(e)) | ChipFile::Error(e) => self.chip_error(name, e),
         }
     }
 

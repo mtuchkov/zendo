@@ -70,16 +70,6 @@ pub fn template_files(named: &[PathBuf], files: &[PathBuf]) -> Vec<PathBuf> {
     all
 }
 
-/// The files of the repository, from its root; what git ignores is left out.
-pub(crate) fn repo_files(root: &Path) -> Vec<PathBuf> {
-    let walk = ignore::WalkBuilder::new(root).hidden(true).git_ignore(true).require_git(false).build();
-    walk.flatten()
-        .filter(|e| e.file_type().is_some_and(|t| t.is_file()))
-        .filter_map(|e| e.path().strip_prefix(root).ok().map(Path::to_path_buf))
-        .take(20_000)
-        .collect()
-}
-
 /// What a key did in the open suggestions.
 #[derive(Debug, PartialEq)]
 pub enum AtKey {
@@ -100,28 +90,33 @@ impl Composer {
         (starts && !word.contains(char::is_whitespace)).then_some((at, word))
     }
 
-    /// After a key in the chat input: open, update or close the suggestions. `root` is the
-    /// repository, `named` the templates that project-structure.toml names.
-    pub fn update_at(&mut self, root: &Path, named: &[PathBuf]) {
+    /// After a key in the chat input: open, update or close the suggestions. `all` is the files of
+    /// the repository, when a worker read them (IO-1); `named` the templates that
+    /// project-structure.toml names. Without the files, the suggestions wait for them (IO-6).
+    pub fn update_at(&mut self, all: Option<Vec<PathBuf>>, named: &[PathBuf]) {
         let Some((at, query)) = self.at_token() else {
             self.at = None;
             self.at_files = None;
             self.at_templates = false;
             return;
         };
-        if self.at.as_ref().is_some_and(|p| p.at == at && p.query == query) {
+        if self.at.as_ref().is_some_and(|p| p.at == at && p.query == query) && self.at_files.is_some() {
             return;
         }
         let templates = self.at.as_ref().map_or(self.at_templates, |p| p.templates);
-        let files = self.at_files.get_or_insert_with(|| {
-            let all = repo_files(root);
-            if templates { template_files(named, &all) } else { all }
-        });
-        let hits = rank(files, &query);
+        if self.at_files.is_none() {
+            self.at_files = all.map(|all| if templates { template_files(named, &all) } else { all });
+        }
+        let hits = self.at_files.as_ref().map(|files| rank(files, &query)).unwrap_or_default();
         self.at = Some(AtPick { query, hits, sel: 0, at, templates });
     }
 
     /// The keys of the open suggestions: the arrows choose, tab or enter takes one, esc closes.
+    /// The suggestions are open and wait for the files of the repository.
+    pub fn at_waits(&self) -> bool {
+        self.at.is_some() && self.at_files.is_none()
+    }
+
     pub fn key_at(&mut self, k: KeyEvent) -> AtKey {
         let Some(p) = self.at.as_mut() else { return AtKey::Unused };
         match k.code {

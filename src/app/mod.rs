@@ -228,6 +228,8 @@ pub struct App {
     /// The changes of files of the user, one at a time on a thread, and what follows each (IO-1).
     pub serial: crate::worker::Serial,
     pub(crate) after_job: std::collections::HashMap<u64, AfterJob>,
+    /// The file of a chip window, read on a worker (IO-1).
+    pub chip_reads: crate::worker::Task<(String, composer::chip_view::ChipFile)>,
     /// The marks of the files that changed since their last visit, from a worker (IO-1).
     pub marks: crate::worker::Task<Vec<PathBuf>>,
     /// The files whose write failed: each shows once (FAIL-1).

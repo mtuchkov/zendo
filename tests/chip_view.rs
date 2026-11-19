@@ -35,6 +35,8 @@ fn click(a: &mut App, x: u16, y: u16) {
     for kind in [MouseEventKind::Down(MouseButton::Left), MouseEventKind::Up(MouseButton::Left)] {
         a.on_mouse(MouseEvent { kind, column: x, row: y, modifiers: KeyModifiers::NONE });
     }
+    // A worker reads the file of a chip (IO-1).
+    a.settle_saves();
 }
 
 /// Draw, then double-click the chip `n` of the chat input.

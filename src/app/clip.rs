@@ -69,7 +69,12 @@ impl App {
     /// A worker has an answer: take the answers of the tasks of the app (ADR 0024).
     pub fn poll_tasks(&mut self) {
         self.poll_clipboard();
+        self.poll_chip();
         self.files.complete_waiting(&self.cfg.root);
+        // The suggestions of `@` fill when the worker read the files (IO-6).
+        if self.composer().at_waits() && self.facts.files.get(&self.cfg.root).is_some() {
+            self.update_at();
+        }
         self.poll_jobs();
         self.poll_saves();
         self.disk_answer();
@@ -104,7 +109,7 @@ impl App {
     /// For tests: wait at most 5 s until the tasks of the app answered, and take the answers.
     pub fn settle_tasks(&mut self) {
         let end = Instant::now() + Duration::from_secs(5);
-        while (self.peeks.running() || self.marks.running() || self.recaps.running() || self.worktree_diff.running() || self.files.disk_busy() || self.saving.is_some() || self.serial.busy()) && Instant::now() < end {
+        while (self.peeks.running() || self.chip_reads.running() || self.marks.running() || self.recaps.running() || self.worktree_diff.running() || self.files.disk_busy() || self.saving.is_some() || self.serial.busy()) && Instant::now() < end {
             std::thread::sleep(Duration::from_millis(2));
             self.poll_tasks();
         }

@@ -5,7 +5,8 @@ impl App {
     /// After a key in the chat input: open, update or close the file suggestions.
     pub(crate) fn update_at(&mut self) {
         let named: Vec<PathBuf> = self.files.structure().map(|st| st.templates().map(|(t, _)| PathBuf::from(t)).collect()).unwrap_or_default();
-        self.chat.composer_mut(self.state.session).update_at(&self.cfg.root, &named);
+        let all = self.facts.files.get(&self.cfg.root);
+        self.chat.composer_mut(self.state.session).update_at(all, &named);
     }
 
     /// A key of the open file suggestions. A file that the user takes goes into the chat as an
