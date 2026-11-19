@@ -18,7 +18,7 @@ fn chat(name: &str) -> (std::path::PathBuf, App) {
     (root, a)
 }
 
-// CLAUDE-33: a question while the agent answers goes to the queue, shows there, and goes to the agent
+// CLAUDE-66: a question while the agent answers goes to the queue, shows there, and goes to the agent
 // when the turn ends.
 #[tokio::test]
 async fn a_question_while_the_agent_answers_waits_in_the_queue() {
