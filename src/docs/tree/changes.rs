@@ -41,6 +41,9 @@ impl Tree {
 
     /// Take the answer of git, when it came. True when the rows changed.
     pub fn poll(&mut self) -> bool {
+        if self.poll_text() {
+            return true;
+        }
         let Some((wt, rx)) = &self.git.pending else { return false };
         let answer = match rx.try_recv() {
             Ok(a) => a,
@@ -49,7 +52,7 @@ impl Tree {
         };
         let wt = wt.clone();
         self.git.pending = None;
-        if self.view != View::WorktreeChanged || self.worktree.as_ref() != Some(&wt) {
+        if self.view != View::WorktreeChanged || self.changes_dir().as_ref() != Some(&wt) {
             return false;
         }
         self.files.clear();

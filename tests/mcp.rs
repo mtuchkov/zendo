@@ -81,18 +81,18 @@ fn wait_args(a: &mut App, n: usize) -> String {
     }
 }
 
-// SESSIONS-21: the chat of agent session 3 gets the server of zendo session 3; a thread that is not
+// SESSIONS-21: the chat of agent session 2 gets the server of zendo session 2; a thread that is not
 // an agent session gets none.
 #[test]
 fn the_chat_gets_the_server_of_its_session() {
     let servers = zendo::mcp::acp_servers(&session_key(2));
     let v = serde_json::to_value(&servers).unwrap();
     assert_eq!(v[0]["name"], "zendo");
-    assert_eq!(v[0]["args"], json!(["mcp", "--session", "3"]));
+    assert_eq!(v[0]["args"], json!(["mcp", "--session", "2"]));
     assert!(zendo::mcp::acp_servers("docs/notes/2026-11-13-a.md").is_empty());
 }
 
-// SESSIONS-21: the chat of agent session 2 opens its ACP session with the server of zendo session 2;
+// SESSIONS-21: the chat of agent session 1 opens its ACP session with the server of zendo session 1;
 // the mock agent writes the MCP servers that it got to `.zendo/mock-mcp.json`.
 #[tokio::test(flavor = "multi_thread")]
 async fn the_chat_opens_its_session_with_the_server() {
@@ -106,6 +106,6 @@ async fn the_chat_opens_its_session_with_the_server() {
     until(&mut a, |a| a.threads.get(&session_key(1)).is_some_and(|t| t.session.is_some())).await;
     let got: Value = serde_json::from_str(&std::fs::read_to_string(root.join(".zendo/mock-mcp.json")).unwrap()).unwrap();
     assert_eq!(got[0]["name"], "zendo");
-    assert_eq!(got[0]["args"], json!(["mcp", "--session", "2"]));
+    assert_eq!(got[0]["args"], json!(["mcp", "--session", "1"]));
     let _ = std::fs::remove_dir_all(&root);
 }

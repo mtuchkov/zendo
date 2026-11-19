@@ -60,10 +60,10 @@ fn names(a: &mut App, branch: &str) -> bool {
 async fn the_top_line_names_the_branch_of_the_session() {
     let root = repo("session");
     let mut a = app(&root);
-    a.switch_session(0);
+    a.switch_session(1);
     a.focus = Focus::Claude;
     assert!(names(&mut a, "agent") && !names(&mut a, "main"), "session 1: its worktree\n{}", top(&mut a));
-    a.switch_session(1);
+    a.switch_session(2);
     assert!(names(&mut a, "main") && !names(&mut a, "agent"), "session 2 has no worktree: the main checkout\n{}", top(&mut a));
     git(&root, &["checkout", "-q", "-b", "trunk"]);
     assert!(names(&mut a, "trunk"), "a new branch shows without a restart\n{}", top(&mut a));
@@ -77,13 +77,13 @@ async fn the_top_line_names_the_branch_of_the_document() {
     let root = repo("doc");
     let notes = git_repo("doc-notes", "notes");
     let mut a = app(&root);
-    a.switch_session(1);
+    a.switch_session(2);
     a.open_file(notes.join("a.md"));
     a.focus = Focus::Note;
     assert!(names(&mut a, "notes"), "the note pane: the branch of the document\n{}", top(&mut a));
     a.focus = Focus::Claude;
     assert!(names(&mut a, "main") && !names(&mut a, "notes"), "the chat: the branch of the session\n{}", top(&mut a));
-    a.switch_session(0);
+    a.switch_session(1);
     a.open_file(root.join("a.md"));
     a.focus = Focus::Note;
     assert!(names(&mut a, "agent"), "the version of session 1 is in its worktree\n{}", top(&mut a));
@@ -108,7 +108,7 @@ fn tree_in(a: &mut App, view: View) {
 async fn the_top_line_names_the_branch_of_the_view() {
     let root = repo("view");
     let mut a = app(&root);
-    a.switch_session(0);
+    a.switch_session(1);
     a.focus = Focus::Tree;
     tree_in(&mut a, View::Text);
     assert!(names(&mut a, "main") && !names(&mut a, "agent"), "the text view: the main checkout\n{}", top(&mut a));
@@ -123,9 +123,9 @@ async fn the_top_line_names_the_branch_of_the_view() {
 async fn a_worktree_view_without_a_worktree_names_no_branch() {
     let root = repo("no-worktree");
     let mut a = app(&root);
-    a.switch_session(0);
-    tree_in(&mut a, View::Worktree);
     a.switch_session(1);
+    tree_in(&mut a, View::Worktree);
+    a.switch_session(2);
     a.focus = Focus::Tree;
     assert!(a.files.tree().view.is_worktree(), "the view stays");
     assert!(!names(&mut a, "main") && !names(&mut a, "agent"), "no branch\n{}", top(&mut a));
@@ -139,7 +139,7 @@ async fn holding_m_and_u_names_their_branch() {
     let root = repo("peek");
     git(&root, &["checkout", "-q", "-b", "trunk"]);
     let mut a = app(&root);
-    a.switch_session(0);
+    a.switch_session(1);
     a.open_file(root.join("a.md"));
     a.focus = Focus::Note;
     assert!(names(&mut a, "agent"), "{}", top(&mut a));
@@ -158,7 +158,7 @@ async fn the_float_names_the_branch_of_the_document() {
     let root = repo("float");
     let notes = git_repo("float-notes", "notes");
     let mut a = app(&root);
-    a.switch_session(0);
+    a.switch_session(1);
     a.open_file(notes.join("a.md"));
     a.focus = Focus::Claude;
     a.open_float();
@@ -168,4 +168,20 @@ async fn the_float_names_the_branch_of_the_document() {
     a.cli.stop_all();
     let _ = std::fs::remove_dir_all(&root);
     let _ = std::fs::remove_dir_all(&notes);
+}
+
+// FILES-80: the branch stands at the left end of the top line, before the path of the document, and
+// the buttons stay at the right end.
+#[tokio::test]
+async fn the_branch_stands_left_of_the_path() {
+    let root = repo("left");
+    let mut a = app(&root);
+    a.switch_session(1);
+    a.open_file(root.join(".worktrees/1/a.md"));
+    a.focus = Focus::Note;
+    let line = top(&mut a);
+    assert!(line.trim_start().starts_with("agent · a.md"), "{line}");
+    assert!(line.trim_end().ends_with("[sound]"), "{line}");
+    a.cli.stop_all();
+    let _ = std::fs::remove_dir_all(&root);
 }

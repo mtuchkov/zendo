@@ -27,6 +27,20 @@ impl Files {
         self.fill_notes_view();
     }
 
+    /// The active agent session works in the main checkout (SESSIONS-23).
+    pub fn set_main_checkout(&mut self, on: bool) {
+        self.tree.main_checkout = on;
+    }
+
+    /// Scan, and wait for the walk of the text files (FILES-79): for tests.
+    pub fn scan_wait(&mut self, root: &Path, notes: Option<PathBuf>, worktree: Option<PathBuf>) {
+        self.scan(root, notes, worktree);
+        while self.tree.walking() {
+            std::thread::sleep(std::time::Duration::from_millis(2));
+            self.poll_tree();
+        }
+    }
+
     /// The rows of the Notes view: the notes of the notes folder by age, under the heads Today,
     /// This week and Older (FILES-69).
     pub(super) fn fill_notes_view(&mut self) {

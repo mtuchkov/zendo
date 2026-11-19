@@ -40,24 +40,54 @@ fn places(views: &[View], area: Rect) -> (Vec<(View, u16)>, Option<u16>) {
 pub(crate) fn draw_strip(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, area: Rect) {
     fr.view_buttons.clear();
     let tree = app.files.tree();
+    // The first letter stands two rows under the head of the tree, at the first row of files.
+    let area = Rect { y: area.y + 2, height: area.height.saturating_sub(2), ..area };
     let (rows, rule) = places(&tree.views(), area);
     let hint = app.files.view_hint();
-    let w = if hint { 14.min(area.width) } else { 1 };
+    let names = rows.iter().map(|(v, _)| hint_name(*v).width() as u16 + 2).max().unwrap_or(1);
+    let w = if hint { names.min(area.width) } else { 1 };
     if hint {
-        // The hint dims the tree under it; the chars of the tree stay (FILES-74).
+        // FILES-74: a box at 80% opacity, one column wider than the names: the tree under it shows
+        // at 20%, mixed with the background of the tree.
         let bottom = rows.last().map_or(area.y, |(_, y)| y + 1);
         let under = Rect { width: w + 1, height: bottom - area.y, ..area }.intersection(f.area());
-        f.buffer_mut().set_style(under, Style::new().fg(t.dim).bg(t.panel).remove_modifier(Modifier::BOLD));
+        veil(f.buffer_mut(), under, t);
     }
     if let Some(y) = rule {
         f.render_widget(Paragraph::new(Line::styled("─".repeat(w as usize), Style::new().fg(t.dim))), Rect { y, width: w, height: 1, ..area });
     }
     for (v, y) in rows {
         let on = v == tree.view;
-        let style = if on { Style::new().bg(t.acc).fg(t.bg).add_modifier(Modifier::BOLD) } else { Style::new().fg(t.acc2) };
+        // FILES-82: a view that the session cannot show stands in the dim color and takes no click.
+        let can = tree.can_show(v);
+        let style = match (on, can) {
+            (true, _) => Style::new().bg(t.acc).fg(t.bg).add_modifier(Modifier::BOLD),
+            (false, true) => Style::new().fg(t.acc2),
+            (false, false) => Style::new().fg(t.dim),
+        };
         let text = if hint { format!("{} {}", v.letter(), hint_name(v)) } else { v.letter().to_string() };
         let r = Rect { y, width: (text.width() as u16).min(w.max(1)), height: 1, ..area };
         f.render_widget(Paragraph::new(Line::styled(text, style)), r);
-        fr.view_buttons.push((r, v));
+        if can {
+            fr.view_buttons.push((r, v));
+        }
+    }
+}
+
+/// The cells under the hint at 20%: each color four fifths of the way to the background of the tree.
+fn veil(buf: &mut ratatui::buffer::Buffer, area: Rect, t: &Theme) {
+    let mix = |c: Color| match (c, t.panel) {
+        (Color::Rgb(r, g, b), Color::Rgb(pr, pg, pb)) => {
+            let m = |v: u8, p: u8| ((v as u16 + 4 * p as u16) / 5) as u8;
+            Color::Rgb(m(r, pr), m(g, pg), m(b, pb))
+        }
+        _ => t.dim,
+    };
+    for y in area.y..area.bottom() {
+        for x in area.x..area.right() {
+            let cell = &mut buf[(x, y)];
+            let fg = mix(cell.fg);
+            cell.set_fg(fg).set_bg(t.panel).set_style(Style::new().remove_modifier(Modifier::BOLD | Modifier::REVERSED));
+        }
     }
 }

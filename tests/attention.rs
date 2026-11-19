@@ -204,7 +204,7 @@ async fn a_blinking_button_fades_to_the_accent_and_back() {
     done(&root, &mut a);
 }
 
-// ATTN-7, ATTN-8, ATTN-1: the sound button left of the branch name turns the sound off and on, and
+// ATTN-7, ATTN-8, ATTN-1: the sound button right of the branch name turns the sound off and on, and
 // saves the setting; without sound, the end of a turn only blinks.
 #[tokio::test(flavor = "multi_thread")]
 async fn the_sound_button_turns_the_bell_off_and_saves_it() {
@@ -215,7 +215,7 @@ async fn the_sound_button_turns_the_bell_off_and_saves_it() {
     let at = find(&buf, "[sound]").expect("the sound button");
     let branch = find(&buf, "main").expect("the branch");
     assert_eq!(at.1, branch.1, "on the line of the branch");
-    assert!(at.0 < branch.0, "left of the branch");
+    assert!(at.0 > branch.0, "right of the branch");
     let (blue, gray) = (a.theme().ext.doc, a.theme().dim);
     assert_eq!(buf[at].fg, blue, "blue while the sound is on");
     assert!(!buf[at].modifier.contains(Modifier::CROSSED_OUT));

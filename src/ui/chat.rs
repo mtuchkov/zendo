@@ -28,7 +28,7 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
     let in_h = in_rows.min((inner.height as usize / 4).max(1)) as u16;
     let slash_h = if app.composer.slash().open { app.composer.slash().hits.len().clamp(1, crate::app::AT_ROWS) } else { 0 };
     let at_h = app.composer.at().map_or(slash_h, |p| p.hits.len().clamp(1, crate::app::AT_ROWS)) as u16;
-    let bg_h = u16::from(app.bg.of(&app.key()).next().is_some());
+    let bg_h = super::background::height(app);
     let [head, _, body, bg, _, input, picks] = Layout::vertical([
         Constraint::Length(1),
         Constraint::Length(1),

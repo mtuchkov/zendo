@@ -9,6 +9,8 @@ impl App {
             let notes = self.repo_notes_outside();
             // FILES-32: the worktree views show the worktree of the active agent session.
             let worktree = crate::docs::tree::worktree::of(&self.cfg.root, self.state.session);
+            // SESSIONS-23: agent session 0 works in the main checkout.
+            self.files.set_main_checkout(self.state.session == 0);
             self.files.scan(&self.cfg.root, notes, worktree);
         } else {
             self.files.scan_in(&self.cfg.root, &self.cfg.notes_dir);

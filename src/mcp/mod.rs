@@ -17,8 +17,14 @@ const KNOWN: [&str; 3] = ["2024-11-05", "2025-03-26", PROTOCOL];
 /// The rules of a zendo session, in XML tags; `{{ID}}` stands for its id.
 const INSTRUCTIONS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/mcp-instructions.md"));
 
+/// The rules of zendo session 0, which works in the main checkout (SESSIONS-23).
+const MAIN_INSTRUCTIONS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/mcp-instructions-main.md"));
+
 /// The instructions of the server of zendo session `session`.
 fn instructions(session: usize) -> String {
+    if session == 0 {
+        return MAIN_INSTRUCTIONS.to_string();
+    }
     INSTRUCTIONS.replace("{{ID}}", &session.to_string())
 }
 
@@ -37,7 +43,7 @@ pub fn config_json(exe: &Path, session: usize) -> String {
 pub fn acp_servers(key: &str) -> Vec<McpServer> {
     let session = (0..SESSIONS).find(|n| session_key(*n) == key);
     let (Some(n), Ok(exe)) = (session, std::env::current_exe()) else { return Vec::new() };
-    vec![McpServer::Stdio(McpServerStdio::new("zendo", exe).args(args(n + 1)))]
+    vec![McpServer::Stdio(McpServerStdio::new("zendo", exe).args(args(n)))]
 }
 
 /// Answer each request on `input` on `output`, until `input` ends.

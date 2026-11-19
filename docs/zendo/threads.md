@@ -1,13 +1,13 @@
 ---
 status: "approved"
 approved: "2026-11-17"
-revision: "2"
+revision: "3"
 date: "2026-11-17"
 parent: "zendo.md"
 prev: "claude.md"
 next: "sessions.md"
 level: "the threads of the chat: the five agent sessions, how the user chooses one, and how zendo keeps and resumes them"
-note: "Split from claude.md, revision 4, by topic. Agent rewrite of the reference of zendo 0.9.1. Revision 2: the chat input of each agent session (CLAUDE-43 to CLAUDE-47, ADR 0011), asked by the user on 2026-11-17. The user approved the document on 2026-11-17."
+note: "Split from claude.md, revision 4, by topic. Agent rewrite of the reference of zendo 0.9.1. Revision 2: the chat input of each agent session (CLAUDE-43 to CLAUDE-47, ADR 0011), asked by the user on 2026-11-17. The user approved the document on 2026-11-17. Revision 3: the sessions count from 0, session 0 in the main checkout (the user, 2026-11-18)."
 ---
 
 # Threads
@@ -16,7 +16,7 @@ The connection to Claude, what zendo sends and what Claude may do are in [Claude
 document is a sibling of it, under [zendo](zendo.md).
 
 **Threads.** zendo keeps five agent sessions for the repository, each one thread for all files.
-`F6` to `F10` (or `alt` and the F key, where the terminal takes the F key) choose a session, and
+`F6` to `F10` (or `alt` and the F key, where the terminal takes the F key) choose session 0 to 4, and
 `alt-]` goes to the next one, after the last through the terminals of [Terminal](terminal/terminal.md),
 then to the first; `alt-[` (`alt-}` on macOS) goes back. Buttons in one row above the header of the
 chat, or on its right edge, show the sessions, each with its key and its name
@@ -44,7 +44,7 @@ shows the messages of the last session, and the agent sends its slash commands.
 | CLAUDE-27 | Event      | When the chat opens the first time, the system shall open the session of the thread and show the messages of the last session in their order, each question without the context that zendo sent with it. | User, 2026-11-12 |
 | CLAUDE-31 | Event      | When the user presses `F6` to `F10`, or `alt` and one of them, the system shall open the chat on that agent session; when the user presses `alt-]`, or `alt-[` (`alt-}` on macOS), on the next or the previous session, after the last the terminals (TERM-41, TERM-49). | User, 2026-11-12; User, 2026-11-13 |
 | CLAUDE-32 | Ubiquitous | The system shall show a button for each agent session in one row above the header of the chat, or on its right edge (NAMES-8), named by its F key and its name (NAMES-6): the active one in the accent color, the others in the second accent, and all in the second accent while a terminal shows in the chat pane (TERM-15); a click chooses the session. | User, 2026-11-12; User, 2026-11-14; User, 2026-11-17 |
-| CLAUDE-35 | Unwanted   | If the keymap in effect gives the agent sessions other keys than `F6` to `F10`, then the system shall name the agent sessions `1` to `5` on their buttons and in their names. | User, 2026-11-13 |
+| CLAUDE-35 | Unwanted   | If the keymap in effect gives the agent sessions other keys than `F6` to `F10`, then the system shall name the agent sessions `0` to `4` on their buttons and in their names. | User, 2026-11-13; User, 2026-11-18 (from 0) |
 | CLAUDE-43 | Ubiquitous | The system shall keep a chat input of its own for each agent session: its text, its chips, its files and images, and its context. | User, 2026-11-17 |
 | CLAUDE-44 | Event      | When the user chooses another agent session, the system shall show the chat input of that session as the user left it, and keep the input of the session before unchanged. | User, 2026-11-17 |
 | CLAUDE-45 | Ubiquitous | The system shall keep the chat input of each agent session in the repository, and show it again in its session after a restart of zendo. | User, 2026-11-17 |
@@ -64,5 +64,5 @@ Tests: `one_thread_for_every_file_and_the_file_goes_once` (CLAUDE-5),
 `five_agent_sessions_with_f6_to_f10_and_alt_n` (CLAUDE-5, CLAUDE-31, CLAUDE-32) and
 `alt_and_an_f_key_choose_a_session_too` (CLAUDE-31) in `tests/chat_flows.rs`;
 `shell_is_blocked_and_resume_replays` (CLAUDE-6) in `tests/acp_mock.rs`;
-`other_session_keys_name_the_buttons_1_to_5_and_the_terminal_by_its_mark` (CLAUDE-35, TERM-48) in
+`other_session_keys_name_the_buttons_0_to_4_and_the_terminal_by_its_mark` (CLAUDE-35, TERM-48) in
 `tests/keymap_hints.rs`.

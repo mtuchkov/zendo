@@ -1,13 +1,13 @@
 ---
 status: "approved"
 approved: "2026-11-18"
-revision: "1"
+revision: "2"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "interactivity.md"
 next: "terminal/terminal.md"
 level: "the background processes of the agent and of Claude Code: that they still run, which ones, their end, their stop, and the quit"
-note: "Agent draft from the request of the user on 2026-11-18 in chat: show that background processes still run, and which ones; much asked for. It replaces ACT-12, INTER-4 and INTER-12, which are retired. Approved by the user on 2026-11-18."
+note: "Agent draft from the request of the user on 2026-11-18 in chat: show that background processes still run, and which ones; much asked for. It replaces ACT-12, INTER-4 and INTER-12, which are retired. Approved by the user on 2026-11-18. Revision 2, agent draft from the user on 2026-11-18 in chat: the line counted processes that it did not show and an MCP server; quit again did not quit; a click on the mark shall open the list of all processes (BG-11, BG-12, BG-4, BG-5). Revision 2 approved by the user on 2026-11-18."
 ---
 
 # Background processes
@@ -21,13 +21,17 @@ works on ACP v1 and v2, in a Claude Code session, and with each agent.
 
 **What counts.** A background process is a command of the agent or of Claude Code that still runs
 when no step runs it: its step ended, or it was started in the background. A process that the agent
-needs for itself, such as an MCP server, does not count.
+needs for itself, such as an MCP server, does not count. The agents run each command in a shell, so
+zendo counts only a process group in which a shell or the background terminal of Claude Code runs.
 
 **The background line.** While at least one background process of the agent session runs, the chat
 pane shows one line above the chat input, also between turns:
 `⏵ 2 running · npm run dev 12 min · cargo watch -x test 3 min`. Each process has its command, cut to
 the width, and the time since its start. When the agent named the command in a step, the line
-shows the same text as the step. A click on a name opens its step in the transcript
+shows the same text as the step. When a process has no room in the line, the line ends with
+`+1`, so that the number and the names agree. A click on `⏵` opens the list of all background
+processes above the input, one row for each, with its whole command, its time and `×`; a click on
+`⏷` closes it. A click on a name opens its step in the transcript
 ([Interactivity of the chat](interactivity.md)); for a process without a step, the click shows its
 whole command and its folder.
 
@@ -48,7 +52,7 @@ Claude Code session to the agent ([Back to the agent](back-to-the-agent.md)), th
 
 **Quit.** When the user quits zendo while background processes run, zendo asks first, as for the
 terminals (SESSIONS-6): stop them, or leave them running. The default answer stops them (User,
-2026-11-18).
+2026-11-18). The quit key a second time also stops them and quits.
 
 ## Architecturally significant requirements
 
@@ -88,16 +92,28 @@ child processes in a folder of its own.
 - When the user quits zendo.
 - Then zendo asks whether to stop it or to leave it running, and `enter` stops it.
 
+**`quit_again_stops_background_processes`** (mock agent; verifies BG-4)
+
+- Given one background process of the agent, and the question of the quit.
+- When the user presses the quit key again.
+- Then zendo stops the process and quits.
+
+Detailed tests: `the_mark_opens_the_list_of_all_processes` (BG-11) and
+`a_process_without_room_shows_as_more` (BG-12) in `tests/background.rs`;
+`a_group_without_a_shell_does_not_count` (BG-5) in `src/procs/procs_tests.rs`.
+
 ## Detailed requirements
 
 | ID   | Pattern    | Requirement | Source |
 | ---- | ---------- | ----------- | ------ |
-| BG-5 | Ubiquitous | The system shall not count a process that the agent needs for itself, such as an MCP server, as a background process. | Design |
+| BG-5 | Ubiquitous | The system shall not count a process that the agent needs for itself, such as an MCP server, as a background process: a process group counts only when a shell or the background terminal of Claude Code runs in it. | Design; User, 2026-11-18 |
 | BG-6 | State      | While an agent session that the user does not see has background processes, the system shall show their number on its button. | User, 2026-11-18 |
 | BG-7 | Event      | When a background process ends, the system shall remove it from the background line and show one line in the chat with its command, its exit code when known, and the time that it ran. | Design |
 | BG-8 | Event      | When the user clicks a name in the background line, the system shall open its step in the transcript, or show its whole command and its folder when it has no step. | Design |
 | BG-9 | Unwanted   | If a stopped process does not end within 5 s, then the system shall end it by force. | Design |
 | BG-10 | State     | While a background process runs after its agent stopped or its Claude Code session ended, the system shall keep it in the background line until it ends. | Design |
+| BG-11 | Event     | When the user clicks the mark `⏵` of the background line, the system shall show above the line the list of all background processes of the session, one row for each with its whole command, its time and `×`; when the user clicks `⏷`, the system shall close the list. | User, 2026-11-18 |
+| BG-12 | Unwanted  | If the background line has no room for a process, then the system shall end the line with the number of the processes that it does not show, such as `+1`. | User, 2026-11-18 |
 
 Retired: ACT-12 (the background line on ACP v2 only), INTER-4 and INTER-12 (the stop of one task on
 ACP v2 only), because BG-1 to BG-3 cover them on every version (User, 2026-11-18).

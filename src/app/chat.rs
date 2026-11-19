@@ -44,7 +44,7 @@ impl App {
         self.follow_open_file();
         self.composer.close_picks();
         self.open_panel();
-        let f = self.keys.hint(crate::keys::Pane::Global, &format!("session_{}", self.state.session + 1), "");
+        let f = self.keys.hint(crate::keys::Pane::Global, &format!("session_{}", self.state.session), "");
         self.flash(format!("agent session {}{}", self.state.session + 1, if f.is_empty() { f } else { format!(" · {f}") }));
     }
 

@@ -119,7 +119,7 @@ The tests are in `tests/terminal.rs`, with `/bin/sh` as the shell.
 `the_plus_button_opens_a_new_terminal` in `tests/terminal.rs` verifies TERM-53 and TERM-54.
 
 Retired in revision 3: TERM-16 (a busy mark on the button of a terminal that runs a command); the user removed the dots from the buttons on 2026-11-14. Revision 3 changed TERM-51: the step leaves no agent session out. Retired identifiers are never reused.
-`other_session_keys_name_the_buttons_1_to_5_and_the_terminal_by_its_mark` in `tests/keymap_hints.rs`
+`other_session_keys_name_the_buttons_0_to_4_and_the_terminal_by_its_mark` in `tests/keymap_hints.rs`
 verifies TERM-48. `the_linux_keymap_gives_alt_brackets_to_the_sessions` and
 `the_mac_keymap_gives_alt_brace_to_the_previous_session` in `tests/keymap_hints.rs` verify TERM-41 and
 TERM-49; `the_mac_and_linux_keymaps_differ_only_in_the_previous_session` verifies TERM-19.

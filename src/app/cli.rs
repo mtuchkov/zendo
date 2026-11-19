@@ -64,7 +64,7 @@ impl App {
             return self.next_terminal();
         }
         let session = global.and_then(|a| a.strip_prefix("session_")).and_then(|s| s.parse::<usize>().ok());
-        if let Some(m) = session.and_then(|m| m.checked_sub(1)) {
+        if let Some(m) = session {
             self.cli.view = self.cli.running(m).then_some(m);
             return self.switch_session(m);
         }

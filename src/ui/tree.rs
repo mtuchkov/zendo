@@ -37,16 +37,21 @@ fn draw_tree_body(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, inner
     }
     if rows.is_empty() {
         let msg = match app.files.tree().view {
+            // FILES-79: the walk of the text files runs on a thread.
+            View::Text | View::Worktree if app.files.tree().walking() => "Reading the files…".to_string(),
             View::Text => "No text files.".to_string(),
             View::Docs => format!("No .md files under a docs folder.{}", app.keys.key(crate::keys::Pane::Tree, "view").map(|k| format!(" Press {k} to show all.")).unwrap_or_default()),
             View::Structure => "No main materials. Mark entries with main = true in project-structure.toml.".to_string(),
+            // SESSIONS-23: agent session 0 works in the main checkout.
+            View::Worktree if app.files.tree().main_checkout => "Agent session 0 works in the main checkout: it has no worktree.".to_string(),
             // FILES-31: the agent makes its worktree when it changes code the first time.
-            View::Worktree | View::WorktreeChanged if app.files.tree().worktree.is_none() => {
-                format!("Agent session {} has no worktree yet: .worktrees/{} comes when its agent changes code.", app.state.session + 1, app.state.session + 1)
+            View::Worktree | View::WorktreeChanged if app.files.tree().changes_dir().is_none() => {
+                let n = app.state.session;
+                format!("Agent session {n} has no worktree yet: .worktrees/{n} comes when its agent changes code.")
             }
             View::Worktree => "No text files in the worktree.".to_string(),
             // ADR 0009: git reads the changes on a thread, and its error shows.
-            View::WorktreeChanged if let Some(e) = app.files.tree().error() => format!("Cannot read the changes against main: {e}"),
+            View::WorktreeChanged if let Some(e) = app.files.tree().error() => format!("Cannot read the changes: {e}"),
             View::WorktreeChanged if app.files.tree().scanning() => "Reading the changes against main…".to_string(),
             View::WorktreeChanged => "No changes against main.".to_string(),
             View::Notes => format!("No notes yet.{}", app.keys.key(crate::keys::Pane::Tree, "new_note").map(|k| format!(" Press {k}.")).unwrap_or_default()),

@@ -26,11 +26,11 @@ find = ["alt-/", "/"]  # find: notes, docs and code; `/` where no text is typed
 new_note = ["alt-n"]  # a new note in a float
 
 # sessions and terminals
-session_1 = ["f6", "alt-f6"]  # agent session 1
-session_2 = ["f7", "alt-f7"]  # agent session 2
-session_3 = ["f8", "alt-f8"]  # agent session 3
-session_4 = ["f9", "alt-f9"]  # agent session 4
-session_5 = ["f10", "alt-f10"]  # agent session 5
+session_0 = ["f6", "alt-f6"]  # agent session 0, in the main checkout
+session_1 = ["f7", "alt-f7"]  # agent session 1
+session_2 = ["f8", "alt-f8"]  # agent session 2
+session_3 = ["f9", "alt-f9"]  # agent session 3
+session_4 = ["f10", "alt-f10"]  # agent session 4
 next_session = ["alt-]"]  # the next agent session, after the last the terminals
 prev_session = ["alt-["]  # the previous agent session or terminal
 terminal = ["f5"]  # put the shell block under the cursor into a terminal; elsewhere the F5 terminal

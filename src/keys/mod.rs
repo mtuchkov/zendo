@@ -240,6 +240,19 @@ const RETIRED_PANES: [&str; 1] = ["notes"];
 
 /// The panes and actions of a layer that zendo does not know.
 fn unknown(layer: &str, cfg: &KeyConfig) -> Vec<String> {
+    old_sessions(layer, cfg).into_iter().chain(unknown_actions(layer, cfg)).collect()
+}
+
+/// SESSIONS-23: the agent sessions count from 0 now. A layer with `session_1` and no `session_0` is
+/// from before: its keys go to the next session.
+fn old_sessions(layer: &str, cfg: &KeyConfig) -> Option<String> {
+    let global = cfg.get("global")?;
+    let old = global.contains_key("session_5") || global.keys().any(|k| k.starts_with("session_")) && !global.contains_key("session_0");
+    old.then(|| format!("[{layer}.global]: the agent sessions count from 0 now: session_0 is the main checkout, and session_5 is session_4; check the session_ keys"))
+}
+
+/// The panes and actions that zendo does not know.
+fn unknown_actions(layer: &str, cfg: &KeyConfig) -> Vec<String> {
     cfg.iter()
         .filter(|(pane, _)| !RETIRED_PANES.contains(&pane.as_str()))
         .flat_map(|(pane, actions)| match Pane::from_name(pane) {

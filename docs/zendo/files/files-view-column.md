@@ -17,7 +17,8 @@ Parent: [File tree](files.md). The views are in [File tree: views](files-views.m
 ## The view strip
 
 The left edge of the tree pane has a strip of two columns: one letter for each view, one under the
-other with an empty row between them, and one empty column after the letters.
+other with an empty row between them, and one empty column after the letters. The first letter
+stands at the first row of files, two rows under the head.
 
 | Letter | View |
 | ------ | ---- |
@@ -36,12 +37,16 @@ without them. A click on a letter shows its view. The head of the tree names the
 and its key, as before: `structure · v`.
 
 ```
- S  ZENDO · structure · v    [+][-]
- D  docs/zendo
- T    find.md
- W  src
- ∆
+    ZENDO · structure · v
+                     [+] [-]
+ S  docs/zendo
+      find.md
+ D  src
+
+ T
+
  ─
+
  N
 ```
 
@@ -49,7 +54,8 @@ and its key, as before: `structure · v`.
 
 When the user presses `v`, the tree shows the next view (FILES-4), and the strip opens into a hint
 over the tree: each letter with the name of its view, the active one marked. The tree under the
-hint keeps its width and its chars, in the dim color on its own background. After 2.5 seconds the hint closes into the strip again; a `v` while it is open
+hint keeps its width; the hint is a box at 80% opacity, one column wider than the names, so the
+tree under it shows at 20%. After 2.5 seconds the hint closes into the strip again; a `v` while it is open
 starts the 2.5 seconds again. A click on a name shows its view.
 
 ```
@@ -100,7 +106,7 @@ in a [float](../float.md), `f2` renames the file to a typed name, and `delete` d
 | -------- | ---------- | ----------- | ------ |
 | FILES-70 | Ubiquitous | The system shall label the views `S`, `D`, `T`, `W`, `∆` and `N`. | User, 2026-11-18 |
 | FILES-71 | Ubiquitous | The system shall show the letter of the active view on the accent color and the other letters in the second accent color. | User, 2026-11-18 |
-| FILES-72 | State      | While the active agent session has no worktree, the system shall not show `W` and `∆`; while `project-structure.toml` has no main materials, `S`. | Design |
+| FILES-72 | State      | While the active agent session is not session 0 and has no worktree, the system shall not show `W` and `∆` (FILES-81, FILES-82 in [Worktree views](files-worktree.md)); while `project-structure.toml` has no main materials, `S`. | Design |
 | FILES-73 | Event      | When the user clicks a letter of the strip or a name of the hint, the system shall show that view until the user chooses another or quits (FILES-66). | User, 2026-11-18 |
 | FILES-74 | Event      | When the user presses `v` in the tree, the system shall show over the tree, for 2.5 seconds after the last `v`, the hint with the letter and the name of each view, without a change of the width of the tree. | User, 2026-11-18 |
 | FILES-75 | Ubiquitous | The system shall name the active view and its key in the head of the tree. | User, 2026-11-18 |
