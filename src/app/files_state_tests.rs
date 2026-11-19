@@ -35,7 +35,7 @@ fn typ(f: &mut Files, root: &Path, text: &str) -> Option<Effect> {
 
 fn select(f: &mut Files, root: &Path, rel: &str) {
     f.set_view(View::Text);
-    f.scan(root, None, None);
+    f.scan_wait(root, None, None);
     f.reveal(Path::new(rel));
     assert_eq!(f.tree_file().as_deref(), Some(Path::new(rel)), "the row of {rel}");
 }
@@ -190,7 +190,7 @@ fn the_tree_changes_through_the_files() {
     let (root, mut f) = repo("tree-methods");
     f.set_view(View::Text);
     assert!(f.tree_stale(), "a tree that was never filled");
-    f.scan(&root, None, None);
+    f.scan_wait(&root, None, None);
     assert!(!f.tree_stale() && !f.tree().rows().is_empty());
     f.scan_again();
     assert!(f.tree_stale(), "the next tick fills it again");
@@ -225,7 +225,7 @@ fn the_tree_follows_the_open_document() {
     f.open(root.join("docs/b.md"));
     f.follow_current();
     assert_eq!(f.tree().rows().len(), 0, "a tree that was never filled does nothing");
-    f.scan(&root, None, None);
+    f.scan_wait(&root, None, None);
     f.follow_current();
     assert_eq!(f.tree_file().as_deref(), Some(Path::new("docs/b.md")));
     f.collapse_all();

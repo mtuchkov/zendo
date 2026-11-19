@@ -17,7 +17,8 @@ Parent: [File tree](files.md). The views are in [File tree: views](files-views.m
 ## The view strip
 
 The left edge of the tree pane has a strip of two columns: one letter for each view, one under the
-other with an empty row between them, and one empty column after the letters.
+other with an empty row between them, and one empty column after the letters. The first letter
+stands at the first row of files, two rows under the head.
 
 | Letter | View |
 | ------ | ---- |
@@ -36,12 +37,16 @@ without them. A click on a letter shows its view. The head of the tree names the
 and its key, as before: `structure · v`.
 
 ```
- S  ZENDO · structure · v    [+][-]
- D  docs/zendo
- T    find.md
- W  src
- ∆
+    ZENDO · structure · v
+                     [+] [-]
+ S  docs/zendo
+      find.md
+ D  src
+
+ T
+
  ─
+
  N
 ```
 
@@ -49,7 +54,8 @@ and its key, as before: `structure · v`.
 
 When the user presses `v`, the tree shows the next view (FILES-4), and the strip opens into a hint
 over the tree: each letter with the name of its view, the active one marked. The tree under the
-hint keeps its width and its chars, in the dim color on its own background. After 2.5 seconds the hint closes into the strip again; a `v` while it is open
+hint keeps its width; the hint is a box at 80% opacity, one column wider than the names, so the
+tree under it shows at 20%. After 2.5 seconds the hint closes into the strip again; a `v` while it is open
 starts the 2.5 seconds again. A click on a name shows its view.
 
 ```

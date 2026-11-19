@@ -169,3 +169,19 @@ async fn the_float_names_the_branch_of_the_document() {
     let _ = std::fs::remove_dir_all(&root);
     let _ = std::fs::remove_dir_all(&notes);
 }
+
+// FILES-80: the branch stands at the left end of the top line, before the path of the document, and
+// the buttons stay at the right end.
+#[tokio::test]
+async fn the_branch_stands_left_of_the_path() {
+    let root = repo("left");
+    let mut a = app(&root);
+    a.switch_session(0);
+    a.open_file(root.join(".worktrees/1/a.md"));
+    a.focus = Focus::Note;
+    let line = top(&mut a);
+    assert!(line.trim_start().starts_with("agent · a.md"), "{line}");
+    assert!(line.trim_end().ends_with("[sound]"), "{line}");
+    a.cli.stop_all();
+    let _ = std::fs::remove_dir_all(&root);
+}

@@ -5,6 +5,7 @@ use common::*;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::buffer::Buffer;
+use ratatui::style::Color;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use std::time::{Duration, SystemTime};
 use zendo::app::{App, Focus, Mode};
@@ -231,8 +232,8 @@ async fn a_low_tree_keeps_every_letter() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// FILES-74: the hint dims the tree under it: the chars of the tree stay in the dim color, on the
-// background of the tree, not the float color.
+// FILES-74: the hint stands on a box at 80% opacity: the tree under it shows at 20%, mixed with the
+// background of the tree; the names stand over it.
 #[tokio::test]
 async fn the_hint_dims_the_tree() {
     let (root, mut a) = tree_app("tree-hint-dim");
@@ -240,15 +241,19 @@ async fn the_hint_dims_the_tree() {
     let b = screen(&mut a);
     let t = *a.theme();
     let names = a.frame.view_buttons().to_vec();
-    let area = names.iter().map(|(r, _)| *r).reduce(|x, y| x.union(y)).unwrap();
-    for y in area.y..area.bottom() {
-        for x in area.x..area.x + 14 {
+    let right = names.iter().map(|(r, _)| r.right()).max().unwrap() + 1;
+    let bottom = names.iter().map(|(r, _)| r.bottom()).max().unwrap();
+    let x0 = names[0].0.x;
+    let Color::Rgb(pr, pg, pb) = t.panel else { panic!("an RGB theme") };
+    let near = |c: Color| matches!(c, Color::Rgb(r, g, b) if [(r, pr), (g, pg), (b, pb)].iter().all(|(v, p)| (*v as i16 - *p as i16).abs() <= 52));
+    for y in names[0].0.y..bottom {
+        for x in x0..right {
             if names.iter().any(|(r, _)| r.contains((x, y).into())) {
                 continue;
             }
             let c = &b[(x, y)];
-            assert_eq!(c.bg, t.panel, "the background of the tree at {x},{y}");
-            assert!(c.symbol() == " " || c.fg == t.dim, "the tree under the hint is dim at {x},{y}: {:?}", c.symbol());
+            assert_eq!(c.bg, t.panel, "the box has the background of the tree at {x},{y}");
+            assert!(c.symbol() == " " || c.symbol() == "─" || near(c.fg), "the tree shows at 20% at {x},{y}: {:?} {:?}", c.symbol(), c.fg);
         }
     }
     let _ = std::fs::remove_dir_all(&root);

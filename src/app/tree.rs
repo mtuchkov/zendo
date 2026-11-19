@@ -43,6 +43,16 @@ impl App {
         self.files.reveal_current();
     }
 
+    /// Wait until the walk of the text files and git end, and take their rows: for tests (FILES-79,
+    /// ADR 0009).
+    pub fn settle_tree(&mut self) {
+        let until = std::time::Instant::now() + std::time::Duration::from_secs(20);
+        while (self.files.tree().walking() || self.files.tree().scanning()) && std::time::Instant::now() < until {
+            std::thread::sleep(std::time::Duration::from_millis(5));
+            self.files.poll_tree();
+        }
+    }
+
     /// A click on a letter of the view strip or a name of its hint; `o` (FILES-73, FILES-76).
     pub fn show_tree_view(&mut self, view: crate::docs::tree::View) {
         self.state.tree_view = self.files.pick_view(view).to_string();
