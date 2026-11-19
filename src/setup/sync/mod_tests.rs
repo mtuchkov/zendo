@@ -173,7 +173,7 @@ fn a_failure_clears_without_a_new_note() {
     let _ = std::fs::remove_dir_all(&base);
 }
 
-// NOTESREP-19: zendo starts without the network and with every note pushed. When the network
+// NOTESREP-19, FAIL-4: zendo starts without the network and with every note pushed. When the network
 // comes back, the next interval removes "offline" from the status, also with nothing to push.
 #[test]
 fn offline_clears_when_the_network_comes_back() {

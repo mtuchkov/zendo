@@ -61,8 +61,8 @@ Terms:
 
 Rules:
 
-- The [root specification](docs/zendo/zendo.md) shall define the failure default: what the system
-  does when a dependency fails.
+- The [failure default](docs/zendo/failures.md), a child of the root specification, shall define
+  what the system does when a dependency fails.
 - A specification shall contain a failure requirement only for behavior that is different from the
   failure default.
 - WHEN a feature writes or deletes user data, the specification shall state:
