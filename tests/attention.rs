@@ -14,7 +14,7 @@ use zendo::app::{App, Focus, session_key};
 use zendo::session::{Command, State, shell};
 
 fn mock() -> Command {
-    Command { program: env!("CARGO_BIN_EXE_zendo-mock-cli").into(), args: vec!["--resume".into()] }
+    Command { program: env!("CARGO_BIN_EXE_zendo-mock-cli").into(), args: vec!["--resume".into()], claude: true }
 }
 
 /// An app with the mock command line, `/bin/sh` for the terminals, the chat open, and a config file

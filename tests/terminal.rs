@@ -292,10 +292,12 @@ async fn slash_goes_to_a_full_screen_session() {
     f5(&mut a, false);
     ctrl(&mut a, 'o');
     assert_eq!(a.cli.view, Some(shell(0)));
+    // Keys typed before the prompt echo in front of it ("e$ cho a/b"): wait for the prompt first.
+    wait(&mut a, 10, |a| a.cli.text(shell(0)).contains('$'));
     typ(&mut a, "echo a/b");
     key(&mut a, KeyCode::Enter);
     assert_ne!(a.mode, zendo::app::Mode::Find, "the panel does not open");
-    wait(&mut a, 10, |a| a.cli.text(shell(0)).contains("echo a/b"));
+    wait(&mut a, 10, |a| a.cli.text(shell(0)).lines().any(|l| l.trim_end() == "a/b"));
     done(&root, &mut a);
 }
 

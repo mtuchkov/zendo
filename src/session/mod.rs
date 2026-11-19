@@ -28,6 +28,9 @@ use std::time::{Duration, Instant};
 pub struct Command {
     pub program: String,
     pub args: Vec<String>,
+    /// Claude Code: it gets the options of Claude Code, the hooks and the MCP server of the zendo
+    /// session. Another tool gets none of them (CODEXCLI-2).
+    pub claude: bool,
 }
 
 /// What a Claude Code session resumes: the session ID, and the first prompt, if any (HANDOFF-5).

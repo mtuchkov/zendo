@@ -26,6 +26,7 @@ children:
   - "handoff.md"
   - "cli-messages.md"
   - "cli-activity.md"
+  - "codex-cli.md"
   - "back-to-the-agent.md"
   - "zendo-session.md"
   - "board.md"
@@ -91,6 +92,7 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Hand-off during a turn](handoff.md)         | `ctrl-o` while the chat answers: wait, or stop and continue    |
 | [Claude Code messages in the chat](cli-messages.md) | The prompts and answers of a running Claude Code session in its chat |
 | [Activity of a Claude Code session](cli-activity.md) | The status line, steps, checklist and questions of a Claude Code session in its chat, from its hooks |
+| [Codex in its terminal](codex-cli.md) | `ctrl-o` with Codex: `codex resume` in a terminal of zendo, its state from the terminal |
 | [Back to the agent](back-to-the-agent.md) | A quiet Claude Code session that the user left goes back to the chat agent through ACP |
 | [zendo session](zendo-session.md)            | What a zendo session is, its id, and what zendo tells its agent |
 | [Message board](board.md)                    | The emergency channel between zendo sessions: channels, questions, tasks, limits |

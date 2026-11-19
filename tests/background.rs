@@ -68,7 +68,7 @@ async fn a_claude_code_session_shows_its_background_process() {
     clean(&["6201"]);
     let root = repo("bg-cli", &[]);
     let mut a = app(&root);
-    a.cli.command = Some(Command { program: env!("CARGO_BIN_EXE_zendo-mock-cli").into(), args: vec![] });
+    a.cli.command = Some(Command { program: env!("CARGO_BIN_EXE_zendo-mock-cli").into(), args: vec![], claude: true });
     a.thread(&session_key(0)).session = Some("s1".into());
     a.open_panel();
     a.focus = Focus::Claude;

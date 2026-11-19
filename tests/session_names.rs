@@ -136,7 +136,7 @@ async fn a_new_thread_clears_the_name() {
 }
 
 fn mock_cli() -> Command {
-    Command { program: env!("CARGO_BIN_EXE_zendo-mock-cli").into(), args: vec!["--resume".into()] }
+    Command { program: env!("CARGO_BIN_EXE_zendo-mock-cli").into(), args: vec!["--resume".into()], claude: true }
 }
 
 /// Tick until `done` holds, at most `secs` seconds.
