@@ -101,6 +101,18 @@ Rules:
   `serial_test`, so that it runs sequentially, and shall state the reason in a comment at the test.
 - Each test that writes files or changes shared state, parallel or sequential, shall start with a
   setup step that removes what an interrupted earlier run of the test left behind.
+- `tests/traceability.rs` checks the links between the specifications in `docs/zendo` and the tests,
+  in `cargo test`:
+  - Each architecturally significant requirement of a specification with the status `implemented`
+    or `completed` shall be named in at least one test.
+  - Each requirement ID in a test or in the code shall be in a requirement table, or in a `Retired`
+    or `Not used` line.
+  - Each acceptance test that such a specification names shall be a test function. A terminal
+    check, a browser check and a test with real Claude are not checked.
+  - WHEN a test names a requirement of a specification with the status `draft`, the check shall
+    list the specification as "waits for the review of the user".
+    `cargo test --test traceability -- --nocapture` shows the list.
+  - The number of gaps shall not go above the number in `tests/traceability-baseline.toml`.
 
 ## Code review
 
