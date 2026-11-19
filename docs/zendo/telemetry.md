@@ -1,11 +1,11 @@
 ---
 status: "implemented"
 approved: "2026-11-19"
-revision: "1"
+revision: "2"
 date: "2026-11-19"
 parent: "zendo.md"
 level: "what the telemetry log of zendo holds, where it is, how large it grows, and when zendo writes it"
-note: "Agent draft of the decisions of the user of 2026-11-19: the telemetry is a log of events, in files with a rolling rule of 50 files of 1 MB, in the data folder; a later step sends it to an analytics service, only after the user agrees; the log holds only statistics of the use of zendo, with nothing that identifies the user; the old folders of the summaries go. The log takes the place of the files of the usage counts and of the times of the actions; their requirements of the files move here. Approved by the user on 2026-11-19; implemented in zendo 0.124.0."
+note: "Agent draft of the decisions of the user of 2026-11-19: the telemetry is a log of events, in files with a rolling rule of 50 files of 1 MB, in the data folder; a later step sends it to an analytics service, only after the user agrees; the log holds only statistics of the use of zendo, with nothing that identifies the user; the old folders of the summaries go. The log takes the place of the files of the usage counts and of the times of the actions; their requirements of the files move here. Approved by the user on 2026-11-19; implemented in zendo 0.124.0. Revision 2, from the decision of the user of 2026-11-19: zendo asks for the agreement in a popup at its first try to send the log; the service and the send come later."
 ---
 
 # Telemetry log
@@ -32,9 +32,10 @@ Design: each event is one line of JSON:
 
 ## Sharing
 
-A later step sends the log to an analytics service. zendo sends nothing before the user agrees to
-share the statistics (User, 2026-11-19). The code of zendo is public, so the user can see what an
-event holds and what zendo sends.
+A later step sends the log to an analytics service; the service and that step come later
+(User, 2026-11-19). zendo sends nothing before the user agrees to share the statistics: at its
+first try to send the log, zendo shows a popup that asks the user (User, 2026-11-19). The code of
+zendo is public, so the user can see what an event holds and what zendo sends.
 
 ## Where and when zendo writes the log
 
@@ -58,7 +59,7 @@ the last 15 seconds. `stats = false` in `~/.zendo/config.toml` turns the log off
 | TELEM-3 | Ubiquitous | The system shall keep at most 50 files of the telemetry log, each of at most 1 MB, for all zendo processes together. | User, 2026-11-19 |
 | TELEM-4 | Event      | When the file of the log that the system writes reaches 1 MB, the system shall continue in a new file and delete the oldest files above 50. | User, 2026-11-19 |
 | TELEM-5 | Ubiquitous | The system shall keep the new events in memory and write them in a thread of their own, so that keys and the drawing of the screen do not wait for the write. | User, 2026-11-19 |
-| TELEM-13 | Ubiquitous | The system shall send the telemetry log out of the machine only after the user agreed to share the statistics. | User, 2026-11-19 |
+| TELEM-13 | Ubiquitous | The system shall send the telemetry log out of the machine only after the user agreed to share the statistics in a popup that the system shows at its first try to send the log. | User, 2026-11-19 |
 
 ### Acceptance tests
 
@@ -116,9 +117,3 @@ Tests that verify detailed requirements: `an_event_is_one_line_of_json` (TELEM-6
 
 TELEM-11 differs from the [failure default](failures.md): the log is not user data, and a message
 about it would disturb the user more than the loss of some events.
-
-## Open points
-
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| Which analytics service gets the log, and how does zendo ask the user to agree: in `zendo setup`, or in zendo? | TELEM-13 | User |
