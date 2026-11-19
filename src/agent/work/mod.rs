@@ -3,7 +3,7 @@
 mod image_names;
 mod meta;
 mod names;
-mod recap;
+pub mod recap;
 mod review;
 mod title;
 

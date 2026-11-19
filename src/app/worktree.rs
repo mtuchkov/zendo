@@ -72,8 +72,15 @@ impl App {
         if self.files.worktree.recap_check.is_some_and(|t| t.elapsed() < RECAP_EVERY) {
             return;
         }
+        // git reads the diff on a worker; the answer comes on a later tick (IO-1).
+        let Some((wt, diff)) = self.worktree_diff.poll() else {
+            if !self.worktree_diff.running() {
+                let dir = self.cfg.root.join(&wt);
+                self.worktree_diff.start(move || (wt, worktree::diff(&dir, DIFF_MAX)));
+            }
+            return;
+        };
         self.files.worktree.recap_check = Some(Instant::now());
-        let diff = worktree::diff(&self.cfg.root.join(&wt), DIFF_MAX);
         let rel = wt.display().to_string();
         let hash = state::hash(&diff);
         let fresh = self.state.files.get(&rel).and_then(|f| f.recap.as_ref()).is_some_and(|r| r.of_hash == hash);

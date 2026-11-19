@@ -152,23 +152,22 @@ impl App {
             self.files.peek.repeated = true;
             return;
         }
-        let doc = self.files.current().and_then(|p| self.doc_rel(p));
-        self.files.peek.note = doc.and_then(|d| self.other_version(other, &d));
+        // A worker reads the other version; `poll_peek` shows it (IO-1).
+        self.files.peek.note = None;
+        if let Some(doc) = self.files.current().and_then(|p| self.doc_rel(p)) {
+            let root = self.cfg.root.clone();
+            self.peeks.start(move || (other, other_version(&root, other, &doc)));
+        }
         self.files.peek.on = Some(other);
         self.files.peek.repeated = false;
     }
 
-    /// The note of `doc` in the last commit of `main` or in the main checkout on disk (FILES-48).
-    fn other_version(&self, other: Other, doc: &str) -> Option<Note> {
-        let path = self.cfg.root.join(doc);
-        match other {
-            Other::Disk => notes::load(&path).ok(),
-            Other::Main => {
-                let out = std::process::Command::new("git").args(["show", &format!("main:{doc}")]).current_dir(&self.cfg.root).stderr(std::process::Stdio::null()).output().ok()?;
-                let body = out.status.success().then(|| String::from_utf8_lossy(&out.stdout).into_owned())?;
-                let title = notes::title_of(&body).unwrap_or_else(|| doc.to_string());
-                Some(Note { path, title, created: None, modified: chrono::Local::now(), body })
-            }
+    /// The other version came: it shows while its key is held.
+    pub(crate) fn poll_peek(&mut self) {
+        if let Some((other, note)) = self.peeks.poll()
+            && self.files.peek.on == Some(other)
+        {
+            self.files.peek.note = note;
         }
     }
 
@@ -194,6 +193,20 @@ impl App {
         let wait = if self.files.peek.repeated { NEXT_REPEAT } else { FIRST_REPEAT };
         if self.files.peek.on.is_some() && self.files.peek.last.elapsed() > wait {
             self.peek_end();
+        }
+    }
+}
+
+/// The note of `doc` in the last commit of `main` or in the main checkout on disk (FILES-48). On a
+/// worker; git gets 5 s (IO-5).
+fn other_version(root: &Path, other: Other, doc: &str) -> Option<Note> {
+    let path = root.join(doc);
+    match other {
+        Other::Disk => notes::load(&path).ok(),
+        Other::Main => {
+            let body = crate::setup::sync::git_out(root, &["show", &format!("main:{doc}")], std::time::Duration::from_secs(5)).ok()?;
+            let title = notes::title_of(&body).unwrap_or_else(|| doc.to_string());
+            Some(Note { path, title, created: None, modified: chrono::Local::now(), body })
         }
     }
 }

@@ -48,6 +48,7 @@ pub fn app(root: &Path) -> App {
 pub fn draw(app: &mut App, w: u16, h: u16) -> Vec<String> {
     draw_now(app, w, h);
     app.settle_tree();
+    app.settle_tasks();
     app.settle_facts();
     draw_now(app, w, h)
 }

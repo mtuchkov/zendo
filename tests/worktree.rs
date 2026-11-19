@@ -290,9 +290,9 @@ fn the_last_commit_of_a_worktree_file_comes_from_the_worktree() {
     write(wt.join("a.md"), "# a\n\nchanged\n");
     git(&wt, &["commit", "-q", "-am", "agent changes a"]);
     let a = app(&root);
-    let commit = a.last_commit(".worktrees/1/a.md").unwrap_or_default();
+    let commit = zendo::agent::work::recap::last_commit(&a.cfg.root, ".worktrees/1/a.md").unwrap_or_default();
     assert!(commit.contains("agent changes a"), "{commit:?}");
-    assert!(a.last_commit("a.md").is_some_and(|c| c.contains("start")), "a file of the main checkout as before");
+    assert!(zendo::agent::work::recap::last_commit(&a.cfg.root, "a.md").is_some_and(|c| c.contains("start")), "a file of the main checkout as before");
 }
 
 // ----- The document of the session (docs/zendo/files/files-worktree-note.md) ------------------

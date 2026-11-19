@@ -11,23 +11,66 @@ pub const LAST_COMMIT: &str = "--- no changes against git HEAD; the last commit 
 /// The last commit goes to the agent up to this many chars.
 const COMMIT_MAX: usize = 8000;
 
-impl App {
-    /// The last commit that changed the file: its id, date, message and diff, shortened.
-    pub fn last_commit(&self, rel: &str) -> Option<String> {
-        // A file of a worktree: the branch of the worktree (FILES-34).
-        let (dir, rel) = match crate::docs::tree::worktree::split(rel) {
-            Some((wt, rest)) => (self.cfg.root.join(wt), rest),
-            None => (self.cfg.root.clone(), rel),
-        };
-        let out = std::process::Command::new("git")
-            .args(["log", "-1", "--date=short", "--format=%h %ad %s%n%b", "-p", "--", rel])
-            .current_dir(dir)
-            .stderr(std::process::Stdio::null())
-            .output()
-            .ok()?;
-        let text = String::from_utf8_lossy(&out.stdout);
-        (out.status.success() && !text.trim().is_empty()).then(|| text.chars().take(COMMIT_MAX).collect())
+/// Git for a recap gets this long (IO-5).
+const GIT_LIMIT: std::time::Duration = std::time::Duration::from_secs(5);
+/// Without a file to recap, the next look for an automatic recap waits this long.
+const AUTO_AGAIN: std::time::Duration = std::time::Duration::from_secs(30);
+
+/// The checkout of `rel` and its path in it: a file of a worktree is in its worktree (FILES-34).
+fn in_checkout(root: &std::path::Path, rel: &str) -> crate::app::InCheckout {
+    match crate::docs::tree::worktree::split(rel) {
+        Some((wt, rest)) => (root.join(wt), rest.to_string()),
+        None => (root.to_path_buf(), rel.to_string()),
     }
+}
+
+/// The last commit that changed the file: its id, date, message and diff, shortened. On a worker.
+pub fn last_commit(root: &std::path::Path, rel: &str) -> Option<String> {
+    let (dir, rel) = in_checkout(root, rel);
+    let text = crate::setup::sync::git_out(&dir, &["log", "-1", "--date=short", "--format=%h %ad %s%n%b", "-p", "--", &rel], GIT_LIMIT).ok()?;
+    (!text.trim().is_empty()).then(|| text.chars().take(COMMIT_MAX).collect())
+}
+
+/// A recap that a worker prepared: the file, its text, and the prompt.
+pub struct Prepared {
+    pub rel: String,
+    pub auto: bool,
+    pub text: String,
+    pub prompt: String,
+}
+
+/// A file that may get an automatic recap: when it was worked on, and the hash of its last recap.
+type Candidate = (chrono::DateTime<Local>, String, Option<String>);
+
+/// On a worker: the newest candidate whose text changed since its recap, and its prompt.
+fn prepare(root: &std::path::Path, cands: Vec<Candidate>, auto: bool) -> Option<Prepared> {
+    let mut fresh: Vec<(chrono::DateTime<Local>, String, String)> = cands
+        .into_iter()
+        .filter_map(|(when, rel, recap)| {
+            let body = std::fs::read_to_string(root.join(&rel)).ok()?;
+            let stale = recap.as_deref() != Some(state::hash(&body).as_str());
+            (stale && !body.trim().is_empty()).then_some((when, rel, body))
+        })
+        .collect();
+    fresh.sort();
+    let (_, rel, text) = fresh.pop()?;
+    let prompt = recap_prompt(root, &rel, &text);
+    Some(Prepared { rel, auto, text, prompt })
+}
+
+/// The recap prompt: the file, and its changes against git HEAD, or else its last commit.
+fn recap_prompt(root: &std::path::Path, rel: &str, text: &str) -> String {
+    let path = root.join(rel);
+    let mut prompt = String::from(RECAP_PROMPT);
+    prompt.push_str(&format!("File: {}\n--- file ---\n{text}\n", path.display()));
+    let head = crate::app::facts_head_of(&in_checkout(root, rel));
+    let d = head.as_deref().map(|h| delta::unified(h, text, rel)).unwrap_or_default();
+    match (head, last_commit(root, rel)) {
+        (Some(_), _) if !d.trim().is_empty() => prompt.push_str(&format!("{GIT_CHANGES}\n{d}\n")),
+        (Some(_), Some(c)) => prompt.push_str(&format!("{LAST_COMMIT}\n{c}\n")),
+        _ => prompt.push_str("--- the file is not in git yet ---\n"),
+    }
+    prompt
 }
 
 impl App {
@@ -58,30 +101,41 @@ impl App {
         self.agent_free() && self.threads.values().all(|t| t.busy.is_none())
     }
 
-    /// The next file for an automatic recap: worked on in the last week, changed since its recap.
-    /// Any markdown file counts, also files opened from the tree.
-    pub(super) fn next_auto(&self) -> Option<String> {
+    /// The files for an automatic recap: worked on in the last week, with the hash of their last
+    /// recap; any markdown file counts, also files opened from the tree. A worker reads them.
+    pub(super) fn auto_candidates(&self) -> Vec<Candidate> {
         let week = chrono::Duration::days(7);
-        let mut cands: Vec<(chrono::DateTime<Local>, String)> = Vec::new();
         let here = self.work.visit().filter(|_| self.visit_counts()).map(|v| self.rel(&v.path));
         let mut rels: Vec<String> = self.state.files.keys().cloned().collect();
         if let Some(h) = &here
-            && !rels.contains(h) {
-                rels.push(h.clone());
-            }
-        for rel in rels {
-            let f = self.state.files.get(&rel);
-            let worked = f.and_then(|f| f.worked_at).filter(|t| Local::now() - *t < week);
-            let when = if here.as_deref() == Some(rel.as_str()) { Some(Local::now()) } else { worked };
-            let Some(when) = when else { continue };
-            let Ok(body) = std::fs::read_to_string(self.cfg.root.join(&rel)) else { continue };
-            let fresh = f.and_then(|f| f.recap.as_ref()).is_some_and(|r| r.of_hash == state::hash(&body));
-            if !fresh && !body.trim().is_empty() {
-                cands.push((when, rel));
-            }
+            && !rels.contains(h)
+        {
+            rels.push(h.clone());
         }
-        cands.sort();
-        cands.pop().map(|(_, r)| r)
+        rels.into_iter()
+            .filter_map(|rel| {
+                let f = self.state.files.get(&rel);
+                let worked = f.and_then(|f| f.worked_at).filter(|t| Local::now() - *t < week);
+                let when = if here.as_deref() == Some(rel.as_str()) { Some(Local::now()) } else { worked }?;
+                Some((when, rel, f.and_then(|f| f.recap.as_ref()).map(|r| r.of_hash.clone())))
+            })
+            .collect()
+    }
+
+    /// Start the preparation of the next recap on a worker: the one that the user asked for, or an
+    /// automatic one at most each 30 s (IO-1).
+    fn prepare_recap(&mut self) {
+        let root = self.cfg.root.clone();
+        if let Some(rel) = self.work.next_recap() {
+            let cands = vec![(Local::now(), rel, None)];
+            return self.recaps.start(move || prepare(&root, cands, false));
+        }
+        if !self.work.auto_allowed() || self.recap_looked.is_some_and(|t| t.elapsed() < AUTO_AGAIN) {
+            return;
+        }
+        self.recap_looked = Some(std::time::Instant::now());
+        let cands = self.auto_candidates();
+        self.recaps.start(move || prepare(&root, cands, true));
     }
 
     /// Called on every tick: start a requested recap, or an automatic one when all is idle. A
@@ -103,41 +157,20 @@ impl App {
         if self.title_tick() || self.name_tick() || !idle {
             return;
         }
-        let (rel, auto) = if let Some(r) = self.work.next_recap() {
-            (r, false)
-        } else {
-            if !self.work.auto_allowed() {
-                return;
+        // The worker prepares the recap; its answer starts the job (IO-1).
+        let Some(prepared) = self.recaps.poll() else {
+            if !self.recaps.running() {
+                self.prepare_recap();
             }
-            match self.next_auto() {
-                Some(r) => {
-                    self.work.count_auto();
-                    (r, true)
-                }
-                None => return,
-            }
+            return;
         };
-        let path = self.cfg.root.join(&rel);
-        let Ok(text) = std::fs::read_to_string(&path) else { return };
-        let prompt = self.recap_prompt(&rel, &path, &text);
+        let Some(Prepared { rel, auto, text, prompt }) = prepared else { return };
+        if auto {
+            self.work.count_auto();
+        }
         let key = format!("{RECAP_PREFIX}{rel}");
         self.work.start(RecapJob { rel, hash: state::hash(&text), text, buf: String::new(), auto, failed: None, meta: None, review: false, name: None, title: None });
         self.link.send(Cmd::Prompt { key, known: None, text: prompt, attach: vec![] });
-    }
-
-    /// The recap prompt: the file, and its changes against git HEAD, or else its last commit.
-    fn recap_prompt(&self, rel: &str, path: &std::path::Path, text: &str) -> String {
-        let mut prompt = String::from(RECAP_PROMPT);
-        prompt.push_str(&format!("File: {}\n--- file ---\n{text}\n", path.display()));
-        // The recap group of ADR 0024 moves this read to a task; until then, git with a limit.
-        let head = crate::app::facts_head_of(&self.in_checkout(rel));
-        let d = head.as_deref().map(|h| delta::unified(h, text, rel)).unwrap_or_default();
-        match (head, self.last_commit(rel)) {
-            (Some(_), _) if !d.trim().is_empty() => prompt.push_str(&format!("{GIT_CHANGES}\n{d}\n")),
-            (Some(_), Some(c)) => prompt.push_str(&format!("{LAST_COMMIT}\n{c}\n")),
-            _ => prompt.push_str("--- the file is not in git yet ---\n"),
-        }
-        prompt
     }
 
     /// The recap turn ended: keep the text, drop the throwaway session.

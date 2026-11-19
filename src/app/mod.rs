@@ -202,6 +202,14 @@ pub struct App {
     pub clipboard: Clipboard,
     /// The small facts of the disk that a frame shows, from workers (IO-1); a test puts a slow git here.
     pub facts: Facts,
+    /// The other version of the open document, while `m` or `u` is held, from a worker (IO-1).
+    pub peeks: crate::worker::Task<(version::Other, Option<Note>)>,
+    /// The recap that a worker prepares: the file, git and the prompt (IO-1).
+    pub recaps: crate::worker::Task<Option<crate::agent::work::recap::Prepared>>,
+    /// The last look for an automatic recap.
+    pub recap_looked: Option<Instant>,
+    /// The diff of the worktree for its recap, from a worker (FILES-29, IO-1).
+    pub worktree_diff: crate::worker::Task<(PathBuf, String)>,
     /// The marks of the files that changed since their last visit, from a worker (IO-1).
     pub marks: crate::worker::Task<Vec<PathBuf>>,
     /// The files whose write failed: each shows once (FAIL-1).
