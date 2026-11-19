@@ -82,7 +82,7 @@ impl App {
     /// Start a review that waits. True when one started.
     pub(super) fn review_tick(&mut self) -> bool {
         let Some(rel) = self.work.next_review() else { return false };
-        let Ok(text) = std::fs::read_to_string(self.cfg.root.join(&rel)) else { return true };
+        let Some(text) = self.doc_text(&self.cfg.root.join(&rel)) else { return true };
         let numbered: String = text.lines().enumerate().map(|(i, l)| format!("{:>4}| {l}\n", i + 1)).collect();
         let prompt = format!("{REVIEW_PROMPT}File: {rel}\n--- the file, with line numbers ---\n{numbered}");
         let key = format!("{RECAP_PREFIX}review {rel}");

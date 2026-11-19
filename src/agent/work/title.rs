@@ -97,7 +97,7 @@ impl App {
         }
         let Some(job) = self.writer.next_title() else { return false };
         let Some(path) = self.writer.closed_note(job.opened).cloned() else { return true };
-        let Ok(text) = std::fs::read_to_string(&path) else { return true };
+        let Some(text) = self.doc_text(&path) else { return true };
         let rel = self.rel(&path);
         self.send_title(job, rel, text)
     }
@@ -190,43 +190,64 @@ impl App {
         // The file takes the name of the title after the save (IO-6).
         let title = title.to_string();
         self.when_saved(move |a| {
-            if let Some(target) = a.writer.path().cloned().and_then(|p| a.name_by_title(&p, &title)) {
-                a.writer.saved(target);
-            }
+            let Some(path) = a.writer.path().cloned() else { return };
+            let root = a.cfg.root.clone();
+            // A worker renames the file (IO-1).
+            a.in_background_with(
+                move || rename_by_title(&root, &path, &title).map(|t| (path, t)),
+                |a, renamed: Option<(PathBuf, PathBuf)>| {
+                    if let Some((old, target)) = renamed {
+                        a.writer.saved(target.clone());
+                        a.file_renamed(&old, &target);
+                    }
+                },
+            );
         });
     }
 
     /// The title into the file of a closed float (FLOAT-19, FLOAT-20).
     fn title_into_file(&mut self, tj: &TitleJob, title: &str) {
         let Some(path) = self.writer.closed_note(tj.opened).cloned() else { return };
-        let Ok(now) = std::fs::read_to_string(&path) else { return };
-        let Some(new) = with_title(&now, title, tj.old.as_deref()) else { return };
-        if let Err(e) = crate::atomic::write(&path, new) {
-            self.flash(format!("cannot write the title into {}: {e}", path.display()));
-            return;
-        }
-        let target = self.name_by_title(&path, title);
-        if let Some(t) = &target {
-            self.writer.closed_moved(tj.opened, t.clone());
-        }
-        self.reload();
-        self.flash(format!("added a title to {}", self.rel(target.as_ref().unwrap_or(&path))));
+        let (root, title, old, opened) = (self.cfg.root.clone(), title.to_string(), tj.old.clone(), tj.opened);
+        // A worker writes the title into the file and renames it (IO-1).
+        self.in_background_with(
+            move || -> Result<Option<(PathBuf, Option<PathBuf>)>, String> {
+                let now = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+                let Some(new) = with_title(&now, &title, old.as_deref()) else { return Ok(None) };
+                crate::atomic::write(&path, new).map_err(|e| format!("cannot write the title into {}: {e}", path.display()))?;
+                let target = rename_by_title(&root, &path, &title);
+                Ok(Some((path, target)))
+            },
+            move |a, done| match done {
+                Err(e) => a.flash(e),
+                Ok(None) => {}
+                Ok(Some((path, target))) => {
+                    if let Some(t) = &target {
+                        a.writer.closed_moved(opened, t.clone());
+                        a.file_renamed(&path, t);
+                    } else {
+                        a.reload();
+                    }
+                    a.flash(format!("added a title to {}", a.rel(target.as_ref().unwrap_or(&path))));
+                }
+            },
+        );
     }
+}
 
-    /// Rename a note to its date and a short form of its title (FLOAT-20, NOTE-7). The new path,
-    /// when the name changed.
-    fn name_by_title(&mut self, path: &Path, title: &str) -> Option<PathBuf> {
-        let dir = path.parent()?.to_path_buf();
-        let stem = path.file_stem()?.to_string_lossy().into_owned();
-        let date = stem.get(..10).and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()).unwrap_or_else(|| Local::now().date_naive());
-        let slug = Some(notes::slug(title)).filter(|s| !s.is_empty()).unwrap_or_else(|| "note".to_string());
-        let want = dir.join(format!("{}-{slug}.md", date.format("%Y-%m-%d")));
-        if want == path {
-            return None;
-        }
-        let target = if want.exists() { notes::Store::new(self.cfg.root.clone(), dir).path_for(title, date) } else { want };
-        self.move_file(path, &target).ok().map(|()| target)
+/// Rename a note to its date and a short form of its title, on a worker (FLOAT-20, NOTE-7). The
+/// new path, when the name changed.
+fn rename_by_title(root: &Path, path: &Path, title: &str) -> Option<PathBuf> {
+    let dir = path.parent()?.to_path_buf();
+    let stem = path.file_stem()?.to_string_lossy().into_owned();
+    let date = stem.get(..10).and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()).unwrap_or_else(|| Local::now().date_naive());
+    let slug = Some(notes::slug(title)).filter(|s| !s.is_empty()).unwrap_or_else(|| "note".to_string());
+    let want = dir.join(format!("{}-{slug}.md", date.format("%Y-%m-%d")));
+    if want == path {
+        return None;
     }
+    let target = if want.exists() { notes::Store::new(root.to_path_buf(), dir).path_for(title, date) } else { want };
+    std::fs::rename(path, &target).ok().map(|()| target)
 }
 
 #[cfg(test)]

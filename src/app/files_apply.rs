@@ -83,11 +83,10 @@ impl App {
         self.threads.rename(&ok, nk);
     }
 
-    /// Move a file, and its thread and session with it.
-    pub(crate) fn move_file(&mut self, old: &Path, target: &Path) -> std::io::Result<()> {
-        self.files.move_file(old, target)?;
+    /// A worker renamed a file: the files, and its thread and session, follow it.
+    pub(crate) fn file_renamed(&mut self, old: &Path, target: &Path) {
+        self.files.moved(old, target);
         self.keys_moved(old, target);
-        Ok(())
     }
 }
 impl App {

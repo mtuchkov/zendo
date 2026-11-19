@@ -123,15 +123,6 @@ impl Files {
         self.reload();
     }
 
-    /// Move a file on disk; the open document follows it.
-    pub fn move_file(&mut self, old: &Path, target: &Path) -> std::io::Result<()> {
-        std::fs::rename(old, target)?;
-        if self.current.as_deref() == Some(old) {
-            self.current = Some(target.to_path_buf());
-        }
-        self.reload();
-        Ok(())
-    }
 }
 
 impl Files {

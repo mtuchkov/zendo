@@ -9,7 +9,7 @@ impl App {
         if path.extension().is_none_or(|e| e != "md") {
             return None;
         }
-        let text = std::fs::read_to_string(path).ok()?;
+        let text = self.doc_text(path)?;
         if text.trim().is_empty() {
             return None;
         }
@@ -37,7 +37,7 @@ impl App {
         let Some(rel) = self.writer.next_meta() else { return false };
         let path = self.cfg.root.join(&rel);
         let Some(meta) = self.meta_needs(&path) else { return true };
-        let Ok(text) = std::fs::read_to_string(&path) else { return true };
+        let Some(text) = self.doc_text(&path) else { return true };
         let mut parts = String::new();
         if meta.title {
             parts.push_str("TITLE: <the title>\n");
@@ -60,24 +60,38 @@ impl App {
     pub(super) fn meta_done(&mut self, job: RecapJob) {
         let Some(meta) = job.meta else { return };
         let path = self.cfg.root.join(&job.rel);
-        let Ok(now) = std::fs::read_to_string(&path) else { return };
         let (title, front) = parse_meta(&job.buf);
-        let Some(new) = with_meta(&now, meta, title.as_deref(), front.as_deref()) else {
-            if let Some(e) = job.failed {
-                self.flash(format!("no title from the agent: {}", e.lines().next().unwrap_or("")));
+        let (rel, failed) = (job.rel.clone(), job.failed.clone());
+        let (t, f) = (title.clone(), front.clone());
+        // A worker reads the file and writes the title and the front matter into it (IO-1).
+        self.in_background_with(
+            move || {
+                let now = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+                let Some(new) = with_meta(&now, meta, t.as_deref(), f.as_deref()) else { return Ok(false) };
+                crate::atomic::write(&path, &new).map(|()| true).map_err(|e| e.to_string())
+            },
+            move |a, done: Result<bool, String>| a.meta_written(&rel, meta, title.is_some(), front.is_some(), failed, done),
+        );
+    }
+
+    /// The worker wrote the meta into the file, or why not.
+    fn meta_written(&mut self, rel: &str, meta: Meta, title: bool, front: bool, failed: Option<String>, done: Result<bool, String>) {
+        match done {
+            Ok(false) => {
+                if let Some(e) = failed {
+                    self.flash(format!("no title from the agent: {}", e.lines().next().unwrap_or("")));
+                }
             }
-            return;
-        };
-        if let Err(e) = crate::atomic::write(&path, &new) {
-            self.flash(format!("cannot write the front matter into {}: {e}", job.rel));
-        } else {
-            self.reload();
-            let what = match (title.is_some() && meta.title, front.is_some() && meta.front) {
-                (true, true) => "a title and front matter",
-                (true, false) => "a title",
-                _ => "front matter",
-            };
-            self.flash(format!("added {what} to {}", job.rel));
+            Err(e) => self.flash(format!("cannot write the front matter into {rel}: {e}")),
+            Ok(true) => {
+                self.reload();
+                let what = match (title && meta.title, front && meta.front) {
+                    (true, true) => "a title and front matter",
+                    (true, false) => "a title",
+                    _ => "front matter",
+                };
+                self.flash(format!("added {what} to {rel}"));
+            }
         }
     }
 }

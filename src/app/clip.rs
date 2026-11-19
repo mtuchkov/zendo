@@ -97,6 +97,34 @@ impl App {
         self.after_job.insert(id, Box::new(then));
     }
 
+    /// Run `job` on `serial`; `then` gets its value on the UI thread (IO-1).
+    pub(crate) fn in_background_with<T: Send + 'static>(&mut self, job: impl FnOnce() -> T + Send + 'static, then: impl FnOnce(&mut App, T) + 'static) {
+        let slot = std::sync::Arc::new(std::sync::Mutex::new(None));
+        let put = slot.clone();
+        self.in_background(
+            move || {
+                if let Ok(mut s) = put.lock() {
+                    *s = Some(job());
+                }
+                Ok(())
+            },
+            move |a, _| {
+                if let Some(v) = slot.lock().ok().and_then(|mut s| s.take()) {
+                    then(a, v);
+                }
+            },
+        );
+    }
+
+    /// The text of a document as zendo has it in memory: the editor for its file, else the notes
+    /// that the workers read (IO-1).
+    pub(crate) fn doc_text(&self, path: &Path) -> Option<String> {
+        if self.writer.path().is_some_and(|p| p == path) {
+            return Some(self.writer.editor().text());
+        }
+        self.files.notes().iter().find(|n| n.path == path).map(|n| n.body.clone())
+    }
+
     /// The answers of the jobs: what follows each runs.
     pub(crate) fn poll_jobs(&mut self) {
         for (id, answer) in self.serial.answers() {
