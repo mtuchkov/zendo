@@ -82,3 +82,14 @@ fn a_saved_setting_keeps_a_linked_config_a_link() {
     assert_eq!(std::fs::read_to_string(base.join("dotfiles/config.toml")).unwrap(), "# my settings\nsound = false\n");
     let _ = std::fs::remove_dir_all(&base);
 }
+
+// TELEM-12: `stats = false` turns off the telemetry log; the old name `usage = false` works the
+// same, and `stats` wins when both are there.
+#[test]
+fn stats_false_turns_the_stats_off() {
+    let stats = |text: &str| toml::from_str::<UserConfig>(text).unwrap().stats();
+    assert!(stats(""), "on by default");
+    assert!(!stats("stats = false"));
+    assert!(!stats("usage = false"), "the old name");
+    assert!(stats("stats = true\nusage = false"), "the new name wins");
+}

@@ -5,6 +5,17 @@ pub(super) fn home() -> PathBuf {
     std::env::var_os("HOME").map(PathBuf::from).unwrap_or_else(|| PathBuf::from("."))
 }
 
+/// The XDG folder in `value`, or `home/default` when it is not set, is empty or is relative: an
+/// empty or relative value would name a folder in the current one (CMD-21).
+pub(super) fn xdg_dir(value: Option<std::ffi::OsString>, home: &Path, default: &str) -> PathBuf {
+    value.map(PathBuf::from).filter(|d| d.is_absolute()).unwrap_or_else(|| home.join(default))
+}
+
+/// The XDG folder of the variable `var` of the environment (CMD-21).
+pub(crate) fn xdg(var: &str, default: &str) -> PathBuf {
+    xdg_dir(std::env::var_os(var), &home(), default)
+}
+
 /// `~/.zendo`: the config of the user.
 pub fn config_dir() -> PathBuf {
     home().join(".zendo")
@@ -12,16 +23,16 @@ pub fn config_dir() -> PathBuf {
 
 /// Before 0.11.1 the config was `~/.config/zendo/config.json`.
 pub(super) fn legacy_config_dir() -> PathBuf {
-    std::env::var_os("XDG_CONFIG_HOME").map(PathBuf::from).unwrap_or_else(|| home().join(".config")).join("zendo")
+    xdg("XDG_CONFIG_HOME", ".config").join("zendo")
 }
 
 pub fn data_dir() -> PathBuf {
-    std::env::var_os("XDG_DATA_HOME").map(PathBuf::from).unwrap_or_else(|| home().join(".local/share")).join("zendo")
+    xdg("XDG_DATA_HOME", ".local/share").join("zendo")
 }
 
 /// Cargo's build folder for installs and upgrades, kept so that an upgrade builds only zendo.
 pub fn build_dir() -> PathBuf {
-    std::env::var_os("XDG_CACHE_HOME").map(PathBuf::from).unwrap_or_else(|| home().join(".cache")).join("zendo/target")
+    xdg("XDG_CACHE_HOME", ".cache").join("zendo/target")
 }
 
 /// The folders and the config file of zendo of one user.
@@ -104,3 +115,7 @@ pub fn quote(p: &Path) -> String {
     let s = p.display().to_string();
     if s.contains(char::is_whitespace) { format!("'{s}'") } else { s }
 }
+
+#[cfg(test)]
+#[path = "paths_tests.rs"]
+mod tests;

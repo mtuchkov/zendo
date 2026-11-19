@@ -49,7 +49,11 @@ pub struct UserConfig {
     /// music button changes it (docs/zendo/lofi.md, LOFI-11, LOFI-12).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub music: Option<bool>,
-    /// The usage counts in the data folder; default on (docs/zendo/usage.md, USAGE-14).
+    /// The telemetry log in the data folder: the events of the actions with their times; default on
+    /// (TELEM-12).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stats: Option<bool>,
+    /// The old name of `stats` (TELEM-12).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub usage: Option<bool>,
     /// The model that names the agent sessions, for each agent: `claude`, `codex` or `other`; an
@@ -140,6 +144,11 @@ impl UserConfig {
     /// for Claude and `luna` for Codex (REKEY-6).
     pub fn hint_model(&self, kind: Kind) -> Option<String> {
         model_of(&self.hint_models, kind)
+    }
+
+    /// The telemetry log is on: `stats`, or the old `usage`; default on (TELEM-12).
+    pub fn stats(&self) -> bool {
+        self.stats.or(self.usage).unwrap_or(true)
     }
 
     pub fn load() -> Self {

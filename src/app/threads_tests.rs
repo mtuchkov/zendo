@@ -80,3 +80,13 @@ fn the_pinned_thread_swaps_with_the_one_of_the_float() {
     t.hide();
     assert!(!t.shown());
 }
+
+// RESP-1: each question gets a number of its own, also in a new thread of the same key.
+#[test]
+fn each_question_gets_a_new_number() {
+    let mut t = Threads::default();
+    let a = t.number();
+    t.entry("a");
+    t.remove("a");
+    assert_eq!((a, t.number()), (1, 2), "a clear of a thread does not start the numbers again");
+}

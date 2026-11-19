@@ -56,6 +56,8 @@ children:
   - "fonts-recipe.md"
   - "fonts-recipe-format.md"
   - "failures.md"
+  - "responsiveness.md"
+  - "telemetry.md"
 level: "what zendo is, its parts, and the qualities that hold for all parts"
 note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
@@ -114,9 +116,11 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Commands](cli/cli.md)                       | Install, `zendo setup`, `zendo init`, `zendo doctor`, `zendo upgrade` |
 | [Landing page](site.md)                      | The page in `site/`: the pixel garden, the demo, the lofi music  |
 | [Lofi music](lofi.md)                        | Calm music that zendo makes itself: `[music]` and `alt-m`        |
-| [Usage counts](usage.md)                     | Local counts of the actions of the user, by pane, for the choice of key hints |
+| [Usage counts](usage.md)                     | The actions of the user, by pane and trigger, for the choice of key hints |
 | [Tips](tips.md)                              | The tip menu at start and the tip in the status bar              |
 | [Failure default](failures.md)               | What zendo does when a dependency fails, for every feature       |
+| [Responsiveness of actions](responsiveness.md) | The time that the user waits for the result of each action, measured in one place |
+| [Telemetry log](telemetry.md)                | The events of the actions in rolling files in the data folder, for a later analytics service |
 
 ## Scope
 

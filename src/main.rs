@@ -208,7 +208,7 @@ async fn main() -> Result<()> {
     }
     app.end_visit();
     app.board_quit();
-    app.usage.write();
+    app.end_telemetry();
     zendo::tui::terminal_off();
     ratatui::restore();
     if let Some(s) = app.files.take_syncer()
@@ -258,7 +258,8 @@ async fn open_app(cfg: Config) -> Result<App> {
     };
     let mut app = App::new(cfg)?;
     app.files.set_syncer(syncer);
-    app.usage = zendo::usage::Usage::for_process(zendo::setup::config::UserConfig::load().usage.unwrap_or(true));
+    let stats = zendo::setup::config::UserConfig::load().stats();
+    (app.telemetry, app.responsiveness) = (zendo::telemetry::Telemetry::for_process(stats), zendo::responsiveness::Responsiveness::for_process(stats));
     app.keys.legacy = !zendo::tui::kitty();
     if !app.key_help.problems().is_empty() {
         app.flash(format!("[keys] {} problem(s) · zendo doctor", app.key_help.problems().len()));
