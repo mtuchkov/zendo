@@ -67,7 +67,7 @@ the tip at its end. Otherwise it says nothing about fonts. The first run of setu
 | ------- | ---------- | ----------- | ------ |
 | FONT-36 | Event      | When the user presses `f` or clicks the font list, the system shall open the list of the recommended fonts that are on the machine. | User, 2026-11-18 |
 | FONT-37 | State      | While a recommended font is not on the machine, or the current terminal has no working recipe, the theme picker shall show the tip with `zendo setup fonts` in place of the font list. | User, 2026-11-18 |
-| FONT-38 | Unwanted   | If the recipe fails to set the font, then the system shall show the failure and `zendo doctor --fix --claude` in the flash line. | User, 2026-11-18 |
+| FONT-38 | Unwanted   | If the recipe fails to set the font, then the system shall show the failure and `zendo doctor --fix --agent` in the flash line. | User, 2026-11-18 |
 | FONT-18 | Event      | When `zendo setup` ends and the list of recommended fonts differs from the list that `zendo setup` named the last time, the system shall name `zendo setup fonts` and the tip of FONT-39, and keep the list. | User, 2026-11-18 |
 | FONT-19 | Unwanted   | If the list of recommended fonts is the same as the list that `zendo setup` named the last time, then `zendo setup` shall say nothing about fonts. | User, 2026-11-18 |
 | FONT-39 | Ubiquitous | The tip shall tell the key that opens the theme picker, from the keymap of the user, and that its font list sets the font of the terminal. | User, 2026-11-18 |
