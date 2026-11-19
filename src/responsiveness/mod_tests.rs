@@ -1,5 +1,6 @@
 use super::*;
 use crate::keys::Pane;
+use std::collections::BTreeSet;
 use std::sync::mpsc;
 
 /// A data folder of one test, empty: what an interrupted earlier run left is removed.
@@ -13,11 +14,20 @@ fn read(r: &Responsiveness) -> toml::Table {
     toml::from_str(&std::fs::read_to_string(r.file().expect("a file")).expect("the file is there")).expect("the file parses")
 }
 
+/// Nothing runs in the background.
+fn idle() -> BTreeSet<Work> {
+    BTreeSet::new()
+}
+
+fn ms(n: u64) -> Duration {
+    Duration::from_millis(n)
+}
+
 /// One run of `name` of `pane` that took `ms` from the input to the draw.
-fn run(r: &mut Responsiveness, pane: Pane, name: &str, t0: Instant, ms: u64) {
+fn run(r: &mut Responsiveness, pane: Pane, name: &str, t0: Instant, n: u64) {
     r.input(t0);
     r.ran(pane, name);
-    r.drawn(t0 + Duration::from_millis(ms));
+    r.drawn(t0 + ms(n), &idle());
 }
 
 // RESP-1, RESP-5: each action gets the time from its input to the draw, in a bucket of its pane
@@ -43,15 +53,63 @@ fn only_actions_after_an_input_get_a_time() {
     let mut r = Responsiveness::start(&data("input"), 1);
     let t0 = Instant::now();
     r.ran(Pane::Read, "copy");
-    r.drawn(t0);
+    r.drawn(t0, &idle());
     run(&mut r, Pane::Read, "no_such_action", t0, 5);
     assert!(r.times(Pane::Read, "copy").is_none(), "no input, no time");
     assert!(r.times(Pane::Read, "no_such_action").is_none());
     // The draw ends the input: the next action without a new input gets no time.
     run(&mut r, Pane::Read, "copy", t0, 5);
     r.ran(Pane::Read, "copy");
-    r.drawn(t0 + Duration::from_millis(900));
+    r.drawn(t0 + ms(900), &idle());
     assert_eq!(r.times(Pane::Read, "copy").expect("times").runs(), 1);
+}
+
+// RESP-1: an action that starts work in the background waits for the end of that work: the time
+// ends at the first draw after it, not at the first screen.
+#[test]
+fn an_action_waits_for_the_end_of_its_work() {
+    let mut r = Responsiveness::start(&data("wait"), 1);
+    let t0 = Instant::now();
+    let search = BTreeSet::from([Work::Find]);
+    r.drawn(t0, &idle());
+    r.input(t0);
+    r.ran(Pane::Global, "find");
+    r.drawn(t0 + ms(5), &search);
+    r.drawn(t0 + ms(300), &search);
+    assert!(r.times(Pane::Global, "find").is_none(), "the search still runs");
+    r.drawn(t0 + ms(700), &idle());
+    let t = r.times(Pane::Global, "find").expect("the time after the search");
+    assert_eq!((t.runs(), t.within(1000) - t.within(512)), (1, 1), "700 ms: the bucket up to 1 s");
+}
+
+// RESP-1: work that ran before the key, such as a turn of the agent, does not hold the action.
+#[test]
+fn work_that_ran_before_the_key_does_not_hold_it() {
+    let mut r = Responsiveness::start(&data("before"), 1);
+    let t0 = Instant::now();
+    let turn = BTreeSet::from([Work::Turn("chat".into())]);
+    r.drawn(t0, &turn);
+    r.input(t0 + ms(10));
+    r.ran(Pane::Global, "toggle_tree");
+    r.drawn(t0 + ms(12), &turn);
+    assert_eq!(r.times(Pane::Global, "toggle_tree").expect("times").within(2), 1, "2 ms, not the turn");
+}
+
+// RESP-1: a result that does not come goes into the last bucket, and the action waits no more.
+#[test]
+fn a_result_that_does_not_come_goes_into_the_last_bucket() {
+    let mut r = Responsiveness::start(&data("never"), 1);
+    let t0 = Instant::now();
+    let turn = BTreeSet::from([Work::Turn("chat".into())]);
+    r.drawn(t0, &idle());
+    r.input(t0);
+    r.ran(Pane::Chat, "send");
+    r.drawn(t0 + ms(5), &turn);
+    r.drawn(t0 + Duration::from_secs(600), &turn);
+    let t = r.times(Pane::Chat, "send").expect("the time of the last bucket");
+    assert_eq!((t.runs(), t.within(512_000)), (1, 0), "over the last bound");
+    r.drawn(t0 + Duration::from_secs(700), &idle());
+    assert_eq!(r.times(Pane::Chat, "send").expect("times").runs(), 1, "counted once");
 }
 
 // RESP-3: the measurements go to a file of this process in the data folder, and nowhere else.

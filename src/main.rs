@@ -259,8 +259,8 @@ async fn open_app(cfg: Config) -> Result<App> {
     };
     let mut app = App::new(cfg)?;
     app.files.set_syncer(syncer);
-    let usage = zendo::setup::config::UserConfig::load().usage.unwrap_or(true);
-    (app.usage, app.responsiveness) = (zendo::usage::Usage::for_process(usage), zendo::responsiveness::Responsiveness::for_process(usage));
+    let stats = zendo::setup::config::UserConfig::load().stats();
+    (app.usage, app.responsiveness) = (zendo::usage::Usage::for_process(stats), zendo::responsiveness::Responsiveness::for_process(stats));
     app.keys.legacy = !zendo::tui::kitty();
     if !app.key_help.problems().is_empty() {
         app.flash(format!("[keys] {} problem(s) · zendo doctor", app.key_help.problems().len()));

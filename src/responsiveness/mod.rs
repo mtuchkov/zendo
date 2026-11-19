@@ -1,5 +1,7 @@
-//! Responsiveness of actions (docs/zendo/responsiveness.md): the time of each action of the keymap,
-//! from the read of its input event to the end of the draw of its screen. The app times an action
+//! Responsiveness of actions (docs/zendo/responsiveness.md): the time that the user waits for the
+//! result of each action of the keymap, from the read of its input event to the end of the draw of
+//! the screen that shows the result. An action that starts work in the background, a search or a
+//! turn of the agent, waits for the end of that work (RESP-1). The app times an action
 //! where it counts it (`App::did`, USAGE-1), so the code of an action holds no measurement code
 //! (RESP-2, ADR 0024). For each keymap pane and action name zendo keeps the number of runs and a
 //! bucket count of their times, in a file of this process in the data folder (RESP-3, RESP-5). A
@@ -7,7 +9,7 @@
 
 use crate::keys::{ACTIONS, Pane};
 use chrono::{DateTime, SecondsFormat, Utc};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -15,8 +17,21 @@ use std::time::{Duration, Instant};
 /// The time between two writes of the file, as for the usage counts (USAGE-3).
 pub const EVERY: Duration = Duration::from_secs(15);
 
-/// The upper bounds of the buckets, in milliseconds; a longer run goes to the last bucket.
-const BOUNDS: [u64; 11] = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
+/// The upper bounds of the buckets, in milliseconds: up to 512 ms for the screen, then seconds
+/// for the wait for work in the background. A longer run goes to the last bucket.
+const BOUNDS: [u64; 20] = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1_000, 2_000, 4_000, 8_000, 16_000, 32_000, 64_000, 128_000, 256_000, 512_000];
+
+/// The longest wait for a result: after it, the action goes into the last bucket.
+const LONGEST: Duration = Duration::from_millis(BOUNDS[BOUNDS.len() - 1]);
+
+/// Work in the background that the user waits for (RESP-1).
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Work {
+    /// The search of the find panel.
+    Find,
+    /// The turn of the agent in the thread of this key.
+    Turn(String),
+}
 
 /// How long the exit waits for the last write.
 const LAST_WRITE: Duration = Duration::from_secs(1);
@@ -44,9 +59,10 @@ impl Times {
         BOUNDS.iter().zip(self.buckets).take_while(|(b, _)| **b <= ms).map(|(_, n)| n).sum()
     }
 
-    /// `{ runs = 3, upto_8ms = 1, upto_16ms = 2 }`, without the empty buckets (RESP-6).
+    /// `{ runs = 3, upto_8ms = 1, upto_2s = 2 }`, without the empty buckets (RESP-6).
     fn toml(&self) -> String {
-        let name = |i: usize| BOUNDS.get(i).map_or(format!("over_{}ms", BOUNDS[BOUNDS.len() - 1]), |b| format!("upto_{b}ms"));
+        let span = |b: u64| if b < 1_000 { format!("{b}ms") } else { format!("{}s", b / 1_000) };
+        let name = |i: usize| BOUNDS.get(i).map_or(format!("over_{}", span(LONGEST.as_millis() as u64)), |b| format!("upto_{}", span(*b)));
         let parts: Vec<String> = self.buckets.iter().enumerate().filter(|(_, n)| **n > 0).map(|(i, n)| format!("{} = {n}", name(i))).collect();
         format!("{{ runs = {}, {} }}", self.runs(), parts.join(", "))
     }
@@ -99,6 +115,14 @@ fn write_file(file: &Path, text: &str) -> std::io::Result<()> {
     std::fs::rename(&tmp, file)
 }
 
+/// An action that waits for the end of the work that it started.
+struct Held {
+    pane: Pane,
+    name: &'static str,
+    from: Instant,
+    works: BTreeSet<Work>,
+}
+
 /// The times of the actions of this zendo process and their file.
 pub struct Responsiveness {
     times: BTreeMap<(Pane, &'static str), Times>,
@@ -110,6 +134,10 @@ pub struct Responsiveness {
     input: Option<Instant>,
     /// The actions since that input, which wait for the draw.
     waiting: Vec<(Pane, &'static str, Instant)>,
+    /// The actions that wait for the end of the work that they started.
+    held: Vec<Held>,
+    /// The work that ran at the last draw, before the input of the next actions.
+    before: BTreeSet<Work>,
     changed: bool,
     written: Instant,
 }
@@ -117,7 +145,7 @@ pub struct Responsiveness {
 impl Default for Responsiveness {
     /// Off: an app measures only when its start turns the measurements on.
     fn default() -> Self {
-        Responsiveness { times: BTreeMap::new(), file: None, writer: None, started: Utc::now(), input: None, waiting: Vec::new(), changed: false, written: Instant::now() }
+        Responsiveness { times: BTreeMap::new(), file: None, writer: None, started: Utc::now(), input: None, waiting: Vec::new(), held: Vec::new(), before: BTreeSet::new(), changed: false, written: Instant::now() }
     }
 }
 
@@ -135,7 +163,8 @@ impl Responsiveness {
         Responsiveness { writer: Some(Writer::spawn(file.clone(), Box::new(write))), file: Some(file), ..Responsiveness::default() }
     }
 
-    /// The measurements of this process in the data folder of zendo; off with `usage = false`.
+    /// The measurements of this process in the data folder of zendo; off with `stats = false`
+    /// (RESP-8).
     pub fn for_process(on: bool) -> Responsiveness {
         if on { Responsiveness::start(&crate::setup::config::data_dir(), std::process::id()) } else { Responsiveness::default() }
     }
@@ -157,13 +186,20 @@ impl Responsiveness {
         self.waiting.push((pane, act.name, at));
     }
 
-    /// The draw of the screen ended at `at`: the waiting actions get their times (RESP-1).
-    pub fn drawn(&mut self, at: Instant) {
+    /// The draw of the screen ended at `at`, while the work `now` runs in the background. An action
+    /// of the last input waits for the work that started with it; an action gets its time when its
+    /// work ended, or when it waited longer than the last bucket (RESP-1).
+    pub fn drawn(&mut self, at: Instant, now: &BTreeSet<Work>) {
         self.input = None;
-        for (pane, name, from) in std::mem::take(&mut self.waiting) {
-            self.times.entry((pane, name)).or_default().add(at.saturating_duration_since(from));
+        let started: BTreeSet<Work> = now.difference(&self.before).cloned().collect();
+        let fresh = std::mem::take(&mut self.waiting).into_iter().map(|(pane, name, from)| Held { pane, name, from, works: started.clone() });
+        let all: Vec<Held> = std::mem::take(&mut self.held).into_iter().chain(fresh).collect();
+        let (done, held): (Vec<Held>, Vec<Held>) = all.into_iter().partition(|h| h.works.is_disjoint(now) || at.saturating_duration_since(h.from) > LONGEST);
+        for h in done {
+            self.times.entry((h.pane, h.name)).or_default().add(at.saturating_duration_since(h.from));
             self.changed = true;
         }
+        (self.held, self.before) = (held, now.clone());
     }
 
     pub fn times(&self, pane: Pane, name: &str) -> Option<Times> {

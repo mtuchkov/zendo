@@ -11,10 +11,11 @@ sources:
 
 ## Context
 
-RESP-1 asks for the time of every action of the keymap, from the read of its input event to the end
-of the draw of its screen. RESP-2 asks for one mechanism, with no measurement code in the code of an
-action. RESP-4 asks that the write of the measurements does not delay the screen. Every action of
-the keymap already passes one hook: `App::did` and `App::did_by_mouse` count it (USAGE-1).
+RESP-1 asks for the time that the user waits for the result of every action of the keymap, from the
+read of its input event to the end of the draw of the screen that shows the result, also when the
+action starts work in the background (User, 2026-11-19). RESP-2 asks for one mechanism, with no
+measurement code in the code of an action. RESP-4 asks that the write of the measurements does not
+delay the screen. Every action of the keymap already passes one hook: `App::did` and `App::did_by_mouse` count it (USAGE-1).
 
 ## Options
 
@@ -30,8 +31,14 @@ Proposal of the agent: time the actions in the hook of the usage counts.
 
 - The terminal loop marks the read of each input event and the end of each draw.
 - `App::did` and `App::did_by_mouse` call one private function that counts the action and gives it
-  to the measurements. The measurements keep the action until the next draw, and then add the time
-  from its input event to the draw.
+  to the measurements. The measurements keep the action until its result is on the screen, and then
+  add the time from its input event to that draw.
+- At each draw, the app says which work runs in the background: the search of the find panel, and
+  the turn of the agent in each thread. The app reads this from its own state; the code that starts
+  or ends the work holds no measurement code.
+- An action waits for the work that started between the draw before its input and the first draw
+  after it. It gets its time at the first draw after that work ended, or when it waited longer than
+  the last bucket.
 - A thread of the measurements writes the file. The loop only sends the text to it.
 
 The hook in `src/app/count.rs` shall be the only code outside `src/responsiveness/` that reports an
@@ -43,12 +50,17 @@ action to the measurements.
 - An action that zendo does not count is not timed: typed text, keys that go to a session or a
   terminal (USAGE-8).
 - The exit waits at most one second for the last write.
+- Work that a key starts while work of the same kind runs, such as a question that waits in the
+  queue of a busy thread, does not hold the action: its kind ran before the key.
+- Work that is not in the list, such as a recap or the scan of the tree, does not hold an action. A
+  new kind of work needs one line in the list.
 
 ## Verification
 
 `actions_hold_no_measurement_code` in `tests/responsiveness.rs` lists the files that use the
 measurements and checks the one call in the hook. `every_action_gets_a_time` checks the times of
-real keys through the app. `a_slow_write_does_not_delay_the_screen` checks the writer thread.
+real keys through the app; `an_action_waits_for_the_work_that_it_started` checks the wait for a turn
+of the agent. `a_slow_write_does_not_delay_the_screen` checks the writer thread.
 
 ## Decision record
 

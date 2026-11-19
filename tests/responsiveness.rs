@@ -15,10 +15,10 @@ const NOTE: &str = "docs/notes/2026-11-19-a.md";
 
 /// The key `alt-c` read at `t`, and the draw of its screen 10 ms later.
 fn alt_in_10_ms(a: &mut App, c: char, t: Instant) {
-    a.responsiveness.input(t);
+    a.input_at(t);
     a.on_key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::ALT));
     draw(a, 140, 30);
-    a.responsiveness.drawn(t + Duration::from_millis(10));
+    a.drawn_at(t + Duration::from_millis(10));
 }
 
 // RESP-1: each action of the keymap gets the time from its key to the draw of its screen, under
@@ -49,14 +49,42 @@ async fn every_action_gets_a_time() {
     let _ = std::fs::remove_dir_all(&data);
 }
 
+// RESP-1: an action that starts a turn of the agent waits for the end of the turn: its time spans
+// the wait for the answer, not only the first screen.
+#[tokio::test]
+async fn an_action_waits_for_the_work_that_it_started() {
+    let root = repo("responsiveness-wait", &[(NOTE, "# A\n\nSome text.\n")]);
+    let data = std::env::temp_dir().join(format!("zendo-responsiveness-data-wait-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&data);
+    let mut a = app(&root);
+    a.keys = zendo::keys::Keymap::defaults();
+    a.responsiveness = Responsiveness::start(&data, std::process::id());
+    draw(&mut a, 140, 30);
+    let t0 = Instant::now();
+    a.drawn_at(t0);
+    a.input_at(t0);
+    a.on_key(KeyEvent::new(KeyCode::Char('b'), KeyModifiers::ALT));
+    // The action started a turn: the thread of the chat answers.
+    let key = a.key();
+    a.thread(&key).busy = Some(t0);
+    draw(&mut a, 140, 30);
+    a.drawn_at(t0 + Duration::from_millis(10));
+    assert!(a.responsiveness.times(Pane::Global, "toggle_tree").is_none(), "the screen shows the turn, the answer is not there");
+    a.thread(&key).busy = None;
+    a.drawn_at(t0 + Duration::from_millis(1500));
+    let t = a.responsiveness.times(Pane::Global, "toggle_tree").expect("the time after the answer");
+    assert_eq!((t.runs(), t.within(2000) - t.within(1000)), (1, 1), "1.5 s: the bucket up to 2 s");
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&data);
+}
+
 /// The files of `src`, outside the module of the measurements, that use it, with their reason.
-const HOOKS: [(&str, &str); 6] = [
+const HOOKS: [(&str, &str); 5] = [
     ("src/lib.rs", "declares the module"),
     ("src/main.rs", "turns the measurements on at the start and writes them at the exit"),
     ("src/app/mod.rs", "the field of the app"),
-    ("src/app/count.rs", "the one place where the actions of the keymap are counted and timed"),
+    ("src/app/count.rs", "the one place where the actions of the keymap are counted and timed, with the input, the draw and the work in the background"),
     ("src/app/files.rs", "the tick that writes the measurements"),
-    ("src/tui/mod.rs", "the loop: the read of an input event and the end of the draw"),
 ];
 
 fn sources(dir: &Path, out: &mut Vec<PathBuf>) {

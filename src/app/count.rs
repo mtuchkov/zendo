@@ -2,7 +2,9 @@
 //! counts (docs/zendo/usage.md) and the measurements (docs/zendo/responsiveness.md, RESP-2).
 use super::*;
 use crate::keys::Pane;
+use crate::responsiveness::Work;
 use crate::usage::Trigger;
+use std::collections::BTreeSet;
 
 /// The global actions that choose what the chat pane shows: an agent session or a terminal.
 pub(crate) fn session_action(act: &str) -> bool {
@@ -10,6 +12,25 @@ pub(crate) fn session_action(act: &str) -> bool {
 }
 
 impl App {
+    /// The loop read an input event at `at`: the time of its actions starts (RESP-1).
+    pub fn input_at(&mut self, at: Instant) {
+        self.responsiveness.input(at);
+    }
+
+    /// The draw of the screen ended at `at`: the actions whose work ended get their times (RESP-1).
+    pub fn drawn_at(&mut self, at: Instant) {
+        let now = self.in_flight();
+        self.responsiveness.drawn(at, &now);
+    }
+
+    /// The work in the background that the user waits for: the search of the find panel, and the
+    /// turn of the agent in each thread.
+    fn in_flight(&self) -> BTreeSet<Work> {
+        let search = self.files.find.busy(self.mode == Mode::Find).then_some(Work::Find);
+        let turns = self.threads.keys().filter(|k| self.threads.busy(k)).map(|k| Work::Turn(k.clone()));
+        search.into_iter().chain(turns).collect()
+    }
+
     /// A key ran the action `act` of the keymap pane `pane` (USAGE-1, USAGE-7).
     pub(crate) fn did(&mut self, pane: Pane, act: &str) {
         self.ran(pane, act, Trigger::Key);

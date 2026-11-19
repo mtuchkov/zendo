@@ -1,13 +1,13 @@
 ---
 status: "implemented"
 approved: "2026-11-14"
-revision: "3"
+revision: "4"
 date: "2026-11-15"
 parent: "zendo.md"
 prev: "lofi.md"
 next: "tips.md"
 level: "what zendo counts about the actions of the user, where it keeps the counts, and what it never does with them"
-note: "Agent draft of the decisions of the user on 2026-11-14, approved by the user. Revision 2: the test names and kinds as in the code; what the mouse counts. Revision 3: USAGE-6 lets the keymap wizard rank its suggestions by the counts (User, 2026-11-15)."
+note: "Agent draft of the decisions of the user on 2026-11-14, approved by the user. Revision 2: the test names and kinds as in the code; what the mouse counts. Revision 3: USAGE-6 lets the keymap wizard rank its suggestions by the counts (User, 2026-11-15). Revision 4: USAGE-14 names `stats = false`, which also turns off the times of the actions (User, 2026-11-19); the old `usage = false` still works."
 ---
 
 # Usage counts
@@ -55,7 +55,9 @@ add_to_chat = { key = 12, mouse = 3 }
 ```
 
 zendo writes the file every 15 seconds while the counts changed, and when it exits. A crash loses at
-most the last 15 seconds. `usage = false` in `~/.zendo/config.toml` turns the counting off.
+most the last 15 seconds. `stats = false` in `~/.zendo/config.toml` turns the counting off, and the
+times of the actions in [Responsiveness of actions](responsiveness.md) too. The old setting
+`usage = false` works the same.
 
 ## Architecturally significant requirements
 
@@ -116,13 +118,13 @@ most the last 15 seconds. `usage = false` in `~/.zendo/config.toml` turns the co
 | USAGE-11 | Ubiquitous | The system shall write in the usage file the version of zendo, the system, the time of the start and the time of the last write.             | Design           |
 | USAGE-12 | Event      | When zendo exits, the system shall write the counts.                                                                                         | Design           |
 | USAGE-13 | Ubiquitous | The system shall replace the usage file whole, through a temporary file and a rename.                                                        | Design           |
-| USAGE-14 | Optional   | Where `usage = false` is in the config, the system shall count nothing and write no usage file.                                              | Design           |
+| USAGE-14 | Optional   | Where `stats = false` is in the config, the system shall count nothing and write no usage file.                                              | User, 2026-11-19 |
 
 Tests that verify detailed requirements: `a_count_has_the_pane_the_action_and_the_trigger`
 (USAGE-7), `only_actions_of_the_keymap_count` and `typed_text_is_not_counted` in `tests/usage.rs`
 (USAGE-8), `the_file_has_a_head_and_only_counts` (USAGE-9, USAGE-11, USAGE-13),
 `the_exit_writes_the_counts` (USAGE-12), `off_counts_nothing_and_writes_nothing` and
-`the_config_turns_the_counting_off` (USAGE-14). USAGE-10 is in
+`the_config_turns_the_counting_off` and `stats_false_turns_the_stats_off` (USAGE-14). USAGE-10 is in
 `the_usage_file_is_local_and_of_one_process`.
 
 ## Open points

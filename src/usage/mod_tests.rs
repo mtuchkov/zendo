@@ -151,7 +151,8 @@ fn off_counts_nothing_and_writes_nothing() {
     assert_eq!(Usage::default().file(), None, "an app in a test counts nothing until the test turns it on");
 }
 
-// USAGE-14: `usage = false` in the config; without the key, the counting is on.
+// USAGE-14: `usage = false`, the old name of `stats = false`, in the config; without the key, the
+// counting is on.
 #[test]
 fn the_config_turns_the_counting_off() {
     use crate::setup::config::UserConfig;

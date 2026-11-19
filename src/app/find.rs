@@ -59,6 +59,13 @@ pub struct Find {
     meta: std::cell::RefCell<std::collections::HashMap<PathBuf, (String, bool)>>,
 }
 
+impl Find {
+    /// The search of a query runs, or the walk of the files of an open panel has not ended.
+    pub(crate) fn busy(&self, open: bool) -> bool {
+        self.running || (open && self.files.is_none())
+    }
+}
+
 impl App {
     /// `alt-/`, `/`: open the find panel in Docs mode, with the selected text as the query
     /// (FIND-1, FIND-15, FIND-19, FIND-22, FIND-27).
