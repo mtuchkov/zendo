@@ -45,8 +45,8 @@ Proposal of the agent: files of each process, one limit for all files.
 
 ## Consequences
 
-- The summaries `usage/` and `responsiveness/` go; the counts and the distributions come from the
-  events.
+- The summaries `usage/` and `responsiveness/` go: zendo deletes their folders at the start
+  (TELEM-14), and the counts and the distributions come from the events.
 - At most about 50 MB of the disk, also with many processes.
 - A process can lose its current file to another process that rolls: at most the events of that one
   file, the oldest of the log.

@@ -82,9 +82,3 @@ Retired in revision 6: USAGE-2, USAGE-3, USAGE-4, USAGE-5, USAGE-9, USAGE-10, US
 
 The retired requirements were those of the usage file; the telemetry log takes its place (TELEM-2 to
 TELEM-12). Retired identifiers are never reused.
-
-## Open points
-
-| Open question                                                                        | Affects  | Answered by |
-| ------------------------------------------------------------------------------------ | -------- | ----------- |
-| Does zendo delete the old folder `usage/` of the data folder?                        | TELEM-2  | User        |
