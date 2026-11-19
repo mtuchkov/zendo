@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-18"
 revision: "4"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "board.md"
 next: "board-leases.md"
 level: "posts of the message board: what a session tells all sessions of the machine about the shared resources that it uses, and where the agents see posts"
-note: "Agent draft from the discussion with the user on 2026-11-18 in chat. Sibling of board.md, split by topic. Design: ADR 0018, ADR 0019. Revision 3: a post has a lease (User, 2026-11-18). Revision 4: the lease, the restart and the tombstone moved to board-leases.md, to keep this document within two pages. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft from the discussion with the user on 2026-11-18 in chat. Sibling of board.md, split by topic. Design: ADR 0018, ADR 0019. Revision 3: a post has a lease (User, 2026-11-18). Revision 4: the lease, the restart and the tombstone moved to board-leases.md, to keep this document within two pages. The user approved the plan and asked to implement it on 2026-11-18; the code implements it, and the check with real Claude is not done yet."
 ---
 
 # Posts

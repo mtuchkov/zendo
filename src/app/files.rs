@@ -110,6 +110,7 @@ impl App {
         self.api_tick();
         self.recap_tick();
         self.cli_tick();
+        self.board_tick();
         self.hold_tick();
         self.attention_tick();
         self.doc_tick();

@@ -3,6 +3,8 @@
 mod at_keys;
 mod attention;
 mod background;
+mod board;
+mod board_deliver;
 mod questions;
 mod steps;
 mod branch;
@@ -67,6 +69,7 @@ pub use composer::{Composer, Question};
 pub use composer::chips;
 pub(crate) use composer::{at, slash};
 pub use attention::Attention;
+pub use board::BoardLink;
 pub use background::{Background, Bg, ran};
 pub use questions::Ask;
 pub use effect::Effect;
@@ -195,6 +198,8 @@ pub struct App {
     pub attention: Attention,
     /// The background processes of the agent and of the Claude Code sessions (BG-1 to BG-10).
     pub bg: Background,
+    /// The message board between the sessions (BOARD, ADR 0018); none without a folder.
+    pub board: BoardLink,
     /// The lofi music, its button, and the question at the first start (LOFI-8 to LOFI-15).
     pub music: crate::music::Music,
     /// The font list of the theme picker (FONT-34 to FONT-38).

@@ -85,6 +85,7 @@ impl App {
             self.save();
         }
         self.ensure_agent();
+        self.board_user_asked();
         let key = self.key();
         // A slash command goes to the agent as the user typed it.
         let command = question.starts_with('/');
@@ -148,6 +149,9 @@ impl App {
         if let Some(c) = self.composer_mut().take_context() {
             text.push_str(&c);
             text.push('\n');
+        }
+        if let Some(n) = (0..SESSIONS).find(|n| session_key(*n) == key) {
+            text.push_str(&self.board_posts_context(n));
         }
         text.push_str(&format!("Question: {question}"));
         (text, file)

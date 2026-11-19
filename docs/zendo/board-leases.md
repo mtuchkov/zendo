@@ -1,12 +1,13 @@
 ---
-status: "draft"
+status: "implemented"
+approved: "2026-11-18"
 revision: "1"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "board-posts.md"
 next: "board-watch.md"
 level: "the lease of a post: its renewal, its age, the restart of zendo, and the tombstone of a post whose owner is dead"
-note: "Agent draft from the discussion with the user on 2026-11-18 in chat: a post has a lease, other sessions ask how long it is dead, posts survive a restart, and another session can tombstone a post whose owner is dead. Split from board-posts.md, revision 4, by topic. Design: ADR 0018. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft from the discussion with the user on 2026-11-18 in chat: a post has a lease, other sessions ask how long it is dead, posts survive a restart, and another session can tombstone a post whose owner is dead. Split from board-posts.md, revision 4, by topic. Design: ADR 0018. The user approved the plan and asked to implement it on 2026-11-18; the code implements it, and the check with real Claude is not done yet."
 ---
 
 # Leases

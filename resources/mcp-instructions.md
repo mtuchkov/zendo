@@ -10,4 +10,4 @@ repository at the same time, so each session changes code only in its own worktr
 <rule>Merge your branch into `main` only after the user approves it.</rule>
 </rules>
 <tools>The tool `session` returns the same id.</tools>
-</zendo_session>
+{{BOARD}}</zendo_session>

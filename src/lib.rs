@@ -1,6 +1,7 @@
 pub mod agent;
 pub mod atomic;
 pub mod app;
+pub mod board;
 pub mod docs;
 pub mod keys;
 pub mod mcp;
