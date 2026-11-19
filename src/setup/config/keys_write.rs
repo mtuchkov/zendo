@@ -41,7 +41,7 @@ fn edit_file(file: &Path, pane: Pane, action: &str, specs: &[String]) -> Result<
         }
         None => drop(table.insert(action, toml_edit::value(new))),
     }
-    std::fs::write(file, doc.to_string()).map_err(|e| format!("cannot write {}: {e}", file.display()))
+    crate::atomic::write(file, doc.to_string()).map_err(|e| format!("cannot write {}: {e}", file.display()))
 }
 
 fn first_line(e: &impl std::fmt::Display) -> String {

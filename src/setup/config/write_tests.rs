@@ -26,7 +26,7 @@ machine = \"m\"
 A = \"1\"
 ";
 
-// CMD-19: `a saved setting changes one line`, in a file with an error: the line of the setting
+// CMD-19, FAIL-3, FAIL-5: `a saved setting changes one line`, in a file with an error: the line of the setting
 // changes; without it, one line comes at the end of the settings before the first table.
 #[test]
 fn a_saved_setting_changes_one_line() {

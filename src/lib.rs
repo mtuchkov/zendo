@@ -1,4 +1,5 @@
 pub mod agent;
+pub mod atomic;
 pub mod app;
 pub mod docs;
 pub mod keys;

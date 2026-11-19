@@ -68,7 +68,9 @@ impl App {
             }
             return;
         };
-        if std::fs::write(&path, &new).is_ok() {
+        if let Err(e) = crate::atomic::write(&path, &new) {
+            self.flash(format!("cannot write the front matter into {}: {e}", job.rel));
+        } else {
             self.reload();
             let what = match (title.is_some() && meta.title, front.is_some() && meta.front) {
                 (true, true) => "a title and front matter",

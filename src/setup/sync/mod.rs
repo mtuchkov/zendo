@@ -107,7 +107,7 @@ pub fn prepare(dir: &Path, loc: &Location) -> std::io::Result<()> {
     let text = toml::to_string(loc).unwrap_or_default();
     let file = dir.join(LOCATION_FILE);
     if std::fs::read_to_string(&file).ok().as_deref() != Some(text.as_str()) {
-        std::fs::write(file, text)?;
+        crate::atomic::write(&file, text)?;
     }
     Ok(())
 }
