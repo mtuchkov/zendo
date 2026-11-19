@@ -76,16 +76,21 @@ fn the_counts_reach_the_disk_within_15_seconds() {
     let t0 = Instant::now();
     u.count(Pane::Read, "copy", Trigger::Key);
     u.tick(t0 + Duration::from_secs(5));
+    u.settle();
     assert!(files(&dir).is_empty(), "not before 15 seconds");
     u.tick(t0 + Duration::from_secs(16));
+    u.settle();
     assert_eq!(read(&u)["read"]["copy"]["key"].as_integer(), Some(1));
     u.count(Pane::Read, "copy", Trigger::Key);
     u.tick(t0 + Duration::from_secs(20));
+    u.settle();
     assert_eq!(read(&u)["read"]["copy"]["key"].as_integer(), Some(1), "15 seconds after the last write");
     u.tick(t0 + Duration::from_secs(32));
+    u.settle();
     assert_eq!(read(&u)["read"]["copy"]["key"].as_integer(), Some(2));
     std::fs::remove_file(u.file().unwrap()).unwrap();
     u.tick(t0 + Duration::from_secs(60));
+    u.settle();
     assert!(files(&dir).is_empty(), "no change of the counts, no write");
     let _ = std::fs::remove_dir_all(&dir);
 }
@@ -111,13 +116,37 @@ fn a_failed_write_keeps_the_counts() {
     let t0 = Instant::now();
     u.count(Pane::Read, "copy", Trigger::Key);
     u.tick(t0 + Duration::from_secs(16));
+    u.settle();
     assert_eq!(u.get(Pane::Read, "copy", Trigger::Key), 1);
     std::fs::remove_file(&dir).unwrap();
     u.tick(t0 + Duration::from_secs(20));
+    u.settle();
     assert!(files(&dir).is_empty(), "the next try is 15 seconds after the last");
     u.tick(t0 + Duration::from_secs(32));
+    u.settle();
     assert_eq!(read(&u)["read"]["copy"]["key"].as_integer(), Some(1));
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+// USAGE-15: the counts stay in memory and a thread of their own writes them: a write that does not
+// return does not delay the next count, the tick or the exit.
+#[test]
+fn a_slow_write_does_not_delay_the_counts() {
+    let (hold_tx, hold) = std::sync::mpsc::channel::<()>();
+    let mut u = Usage::writing(&data("slow"), 1, move |_, _| {
+        let _ = hold.recv();
+        Ok(())
+    });
+    let t0 = Instant::now();
+    let begin = Instant::now();
+    u.count(Pane::Read, "copy", Trigger::Key);
+    u.tick(t0 + Duration::from_secs(16));
+    u.count(Pane::Read, "copy", Trigger::Key);
+    u.tick(t0 + Duration::from_secs(32));
+    u.write();
+    assert!(begin.elapsed() < Duration::from_secs(3), "the writes did not hold the counts: {:?}", begin.elapsed());
+    assert_eq!(u.get(Pane::Read, "copy", Trigger::Key), 2, "the next count works");
+    drop(hold_tx);
 }
 
 // USAGE-9, USAGE-11, USAGE-13: the head of the file, nothing of the user in it, no temporary file left.

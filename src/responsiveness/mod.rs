@@ -8,10 +8,10 @@
 //! thread of its own writes the file (RESP-4).
 
 use crate::keys::{ACTIONS, Pane};
+use crate::stats::{Flush, LAST_WRITE};
 use chrono::{DateTime, Utc};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
-use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 /// The time between two writes of the file, as for the usage counts (USAGE-3).
@@ -36,9 +36,6 @@ pub enum Work {
     /// number is unique in the process, so a rename of the thread does not change the work.
     Answer(usize),
 }
-
-/// How long the exit waits for the last write.
-const LAST_WRITE: Duration = Duration::from_secs(1);
 
 /// The times of one action in one pane: the runs in each bucket (RESP-5).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -72,50 +69,6 @@ impl Times {
     }
 }
 
-/// The function that writes the text to the file.
-type Write = Box<dyn FnMut(&Path, &str) -> std::io::Result<()> + Send>;
-
-/// The thread that writes the file, and the answers that it sends after each write: true when the
-/// write worked.
-struct Writer {
-    texts: mpsc::Sender<String>,
-    done: mpsc::Receiver<bool>,
-    /// The writes that the thread has not answered yet.
-    open: usize,
-    /// The last answered write failed.
-    lost: bool,
-}
-
-impl Writer {
-    fn spawn(file: PathBuf, mut write: Write) -> Writer {
-        let (texts, rx) = mpsc::channel::<String>();
-        let (done_tx, done) = mpsc::channel();
-        std::thread::spawn(move || {
-            for text in rx {
-                // RESP-7: a write that fails says nothing; the next write has all the runs.
-                let _ = done_tx.send(write(&file, &text).is_ok());
-            }
-        });
-        Writer { texts, done, open: 0, lost: false }
-    }
-
-    fn send(&mut self, text: String) {
-        if self.texts.send(text).is_ok() {
-            self.open += 1;
-        }
-    }
-
-    /// Take the answers of the open writes, and wait for them at most until `until`. True when the
-    /// last write failed and no other write is open: the runs must go again (RESP-7).
-    fn answers(&mut self, until: Instant) -> bool {
-        while self.open > 0 {
-            let Ok(ok) = self.done.recv_timeout(until.saturating_duration_since(Instant::now())) else { break };
-            (self.open, self.lost) = (self.open - 1, !ok);
-        }
-        self.open == 0 && std::mem::take(&mut self.lost)
-    }
-}
-
 /// An action that waits for the end of the work that it started.
 struct Held {
     pane: Pane,
@@ -129,7 +82,7 @@ pub struct Responsiveness {
     times: BTreeMap<(Pane, &'static str), Times>,
     /// The file; `None` when the measurements are off.
     file: Option<PathBuf>,
-    writer: Option<Writer>,
+    flush: Option<Flush>,
     started: DateTime<Utc>,
     /// The read of the input event that the next actions answer.
     input: Option<Instant>,
@@ -139,14 +92,12 @@ pub struct Responsiveness {
     held: Vec<Held>,
     /// The work that ran when that input came or at the last draw.
     seen: BTreeSet<Work>,
-    changed: bool,
-    written: Instant,
 }
 
 impl Default for Responsiveness {
     /// Off: an app measures only when its start turns the measurements on.
     fn default() -> Self {
-        Responsiveness { times: BTreeMap::new(), file: None, writer: None, started: Utc::now(), input: None, waiting: Vec::new(), held: Vec::new(), seen: BTreeSet::new(), changed: false, written: Instant::now() }
+        Responsiveness { times: BTreeMap::new(), file: None, flush: None, started: Utc::now(), input: None, waiting: Vec::new(), held: Vec::new(), seen: BTreeSet::new() }
     }
 }
 
@@ -160,7 +111,7 @@ impl Responsiveness {
     /// As `start`, with the function that writes the file.
     pub fn writing(dir: &Path, pid: u32, write: impl FnMut(&Path, &str) -> std::io::Result<()> + Send + 'static) -> Responsiveness {
         let file = crate::stats::file(dir, "responsiveness", pid);
-        Responsiveness { writer: Some(Writer::spawn(file.clone(), Box::new(write))), file: Some(file), ..Responsiveness::default() }
+        Responsiveness { flush: Some(Flush::spawn(file.clone(), Box::new(write))), file: Some(file), ..Responsiveness::default() }
     }
 
     /// The measurements of this process in the data folder of zendo; off with `stats = false`
@@ -208,9 +159,11 @@ impl Responsiveness {
         self.close(now);
         self.input = None;
         let (done, held): (Vec<Held>, Vec<Held>) = std::mem::take(&mut self.held).into_iter().partition(|h| h.works.is_disjoint(now) || at.saturating_duration_since(h.from) > LONGEST);
+        if let Some(f) = self.flush.as_mut().filter(|_| !done.is_empty()) {
+            f.change();
+        }
         for h in done {
             self.times.entry((h.pane, h.name)).or_default().add(at.saturating_duration_since(h.from));
-            self.changed = true;
         }
         self.held = held;
     }
@@ -219,10 +172,10 @@ impl Responsiveness {
         self.times.iter().find(|((p, n), _)| *p == pane && *n == name).map(|(_, t)| *t)
     }
 
-    /// Send the measurements to the writer when they changed and the last write is 15 seconds old.
+    /// Send the measurements to the writer when they changed and the last write is 15 seconds old,
+    /// or when the last write failed (RESP-7).
     pub fn tick(&mut self, now: Instant) {
-        self.changed |= self.writer.as_mut().is_some_and(|w| w.answers(Instant::now()));
-        if self.changed && now.saturating_duration_since(self.written) >= EVERY {
+        if self.flush.as_mut().is_some_and(|f| f.due(now)) {
             self.send(now);
         }
     }
@@ -231,21 +184,18 @@ impl Responsiveness {
     /// wait a short time for the writes.
     pub fn finish(&mut self) {
         let until = Instant::now() + LAST_WRITE;
-        self.changed |= self.writer.as_mut().is_some_and(|w| w.answers(until));
-        if self.changed {
+        if self.flush.as_mut().is_some_and(|f| f.pending(until)) {
             self.send(Instant::now());
         }
-        if let Some(w) = &mut self.writer {
-            w.answers(until);
+        if let Some(f) = &mut self.flush {
+            f.pending(until);
         }
     }
 
     fn send(&mut self, now: Instant) {
-        self.written = now;
-        self.changed = false;
         let text = self.text(Utc::now());
-        if let Some(w) = &mut self.writer {
-            w.send(text);
+        if let Some(f) = &mut self.flush {
+            f.send(now, text);
         }
     }
 

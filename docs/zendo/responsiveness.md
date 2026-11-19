@@ -66,7 +66,7 @@ Design, until the user answers the open point: the file is
 | RESP-1 | Event      | When an action of the keymap runs, the system shall measure the time that the user waits for its result: from the input event to the end of the draw of the screen that shows the result, also when the action starts work in the background. | User, 2026-11-19 |
 | RESP-2 | Ubiquitous | The system shall measure every action through one mechanism at the place where actions run, so that the code of an action holds no measurement code. | User, 2026-11-19 |
 | RESP-3 | Ubiquitous | The system shall keep the measurements only in files in the data folder of zendo on the local disk, and shall send them nowhere. | User, 2026-11-19; USAGE-2 |
-| RESP-4 | Ubiquitous | The system shall write the measurements off the UI thread, so that keys and the drawing of the screen do not wait for the write. | Design |
+| RESP-4 | Ubiquitous | The system shall write the measurements off the UI thread, so that keys and the drawing of the screen do not wait for the write. | Design; User, 2026-11-19 (USAGE-15) |
 
 ### Acceptance tests
 

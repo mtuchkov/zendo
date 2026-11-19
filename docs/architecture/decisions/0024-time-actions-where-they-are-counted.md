@@ -44,10 +44,10 @@ Proposal of the agent: time the actions in the hook of the usage counts.
   of that event to the read of the next one or to the draw. It gets its time at the first draw after
   that work ended, or when it waited longer than the last bucket. At the exit, an action that still
   waits gets no time (User, 2026-11-19).
-- A thread of the measurements writes the file with the name, the head and the write of the usage
-  file (`src/stats.rs`): a temporary file and a rename, without the `fsync` of `zendo::atomic`.
-  The loop only sends the text to it. When the last write failed, the next tick or the exit sends
-  the measurements again.
+- The measurements stay in memory. A thread of their own writes the file, with the name, the head
+  and the writer of the usage counts (`src/stats.rs`, USAGE-15): a temporary file and a rename,
+  without the `fsync` of `zendo::atomic`. The loop only sends the text to it. When the last write
+  failed, the next tick or the exit sends the measurements again.
 
 The hook in `src/app/count.rs` shall be the only code outside `src/responsiveness/` that reports an
 action to the measurements.

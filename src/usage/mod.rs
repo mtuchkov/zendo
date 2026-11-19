@@ -3,6 +3,7 @@
 //! folder, every 15 seconds while they change and at the exit. zendo never reads them (USAGE-6).
 
 use crate::keys::{ACTIONS, Pane};
+use crate::stats::{Flush, LAST_WRITE};
 use chrono::{DateTime, Utc};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -46,16 +47,14 @@ pub struct Usage {
     /// The usage file; `None` when the counting is off (USAGE-14).
     file: Option<PathBuf>,
     started: DateTime<Utc>,
-    /// The counts changed since the last write.
-    changed: bool,
-    /// The last write, or the last try.
-    written: Instant,
+    /// The thread that writes the file (USAGE-15).
+    flush: Option<Flush>,
 }
 
 impl Default for Usage {
     /// Off: an app counts only when its start turns the counting on.
     fn default() -> Self {
-        Usage { counts: BTreeMap::new(), file: None, started: Utc::now(), changed: false, written: Instant::now() }
+        Usage { counts: BTreeMap::new(), file: None, started: Utc::now(), flush: None }
     }
 }
 
@@ -63,7 +62,13 @@ impl Usage {
     /// The counts of process `pid`, for `usage/<date of the start>-<pid>.toml` in the data folder
     /// `dir` (USAGE-4, USAGE-10).
     pub fn start(dir: &Path, pid: u32) -> Usage {
-        Usage { file: Some(crate::stats::file(dir, "usage", pid)), ..Usage::default() }
+        Usage::writing(dir, pid, crate::stats::write)
+    }
+
+    /// As `start`, with the function that writes the file.
+    pub fn writing(dir: &Path, pid: u32, write: impl FnMut(&Path, &str) -> std::io::Result<()> + Send + 'static) -> Usage {
+        let file = crate::stats::file(dir, "usage", pid);
+        Usage { flush: Some(Flush::spawn(file.clone(), Box::new(write))), file: Some(file), ..Usage::default() }
     }
 
     /// The counts of this process in the data folder of zendo; off with `stats = false` in the
@@ -85,33 +90,51 @@ impl Usage {
         }
         let Some(act) = ACTIONS.iter().find(|a| a.pane == pane && a.name == name) else { return };
         *self.counts.entry((pane, act.name)).or_default().of(trigger) += 1;
-        self.changed = true;
+        if let Some(f) = &mut self.flush {
+            f.change();
+        }
     }
 
     pub fn get(&self, pane: Pane, name: &str, trigger: Trigger) -> u64 {
         self.counts.get(&(pane, name)).map_or(0, |c| *c.clone().of(trigger))
     }
 
-    /// Write the counts when they changed and the last write is 15 seconds old (USAGE-3).
+    /// Send the counts to the writer when they changed and the last write is 15 seconds old
+    /// (USAGE-3), or when the last write failed (USAGE-5).
     pub fn tick(&mut self, now: Instant) {
-        if self.changed && now.saturating_duration_since(self.written) >= EVERY {
-            self.write_at(now);
+        if self.flush.as_mut().is_some_and(|f| f.due(now)) {
+            self.send(now);
         }
     }
 
-    /// Write the counts now, when they changed: at the exit (USAGE-12).
+    /// At the exit: send the counts when they changed, and wait at most one second for the writes
+    /// (USAGE-12).
     pub fn write(&mut self) {
-        if self.changed {
-            self.write_at(Instant::now());
+        let until = Instant::now() + LAST_WRITE;
+        if self.flush.as_mut().is_some_and(|f| f.pending(until)) {
+            self.send(Instant::now());
+        }
+        self.settle_until(until);
+    }
+
+    /// Wait at most one second for the writes that the thread has not done yet.
+    pub fn settle(&mut self) {
+        self.settle_until(Instant::now() + LAST_WRITE);
+    }
+
+    fn settle_until(&mut self, until: Instant) {
+        if let Some(f) = &mut self.flush {
+            f.pending(until);
         }
     }
 
-    /// Replace the file whole (USAGE-13). A write that fails says nothing; the counts stay for the
-    /// next write (USAGE-5).
-    fn write_at(&mut self, now: Instant) {
-        self.written = now;
-        let Some(file) = &self.file else { return };
-        self.changed = crate::stats::write(file, &self.text(Utc::now())).is_err();
+    /// Give the counts to the thread that writes the file whole (USAGE-13). A write that fails
+    /// says nothing; the counts stay for the next write (USAGE-5).
+    fn send(&mut self, now: Instant) {
+        let text = self.text(Utc::now());
+        if let Some(f) = &mut self.flush {
+            f.send(now, text);
+        }
     }
 
     /// The file: the head, then a table of counts for each pane (USAGE-9, USAGE-11).

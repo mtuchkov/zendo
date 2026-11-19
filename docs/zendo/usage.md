@@ -1,13 +1,13 @@
 ---
 status: "implemented"
 approved: "2026-11-19"
-revision: "4"
+revision: "5"
 date: "2026-11-15"
 parent: "zendo.md"
 prev: "lofi.md"
 next: "tips.md"
 level: "what zendo counts about the actions of the user, where it keeps the counts, and what it never does with them"
-note: "Agent draft of the decisions of the user on 2026-11-14, approved by the user. Revision 2: the test names and kinds as in the code; what the mouse counts. Revision 3: USAGE-6 lets the keymap wizard rank its suggestions by the counts (User, 2026-11-15). Revision 4: USAGE-14 names `stats = false`, which also turns off the times of the actions (User, 2026-11-19); the old `usage = false` still works. The user approved revision 4 on 2026-11-19."
+note: "Agent draft of the decisions of the user on 2026-11-14, approved by the user. Revision 2: the test names and kinds as in the code; what the mouse counts. Revision 3: USAGE-6 lets the keymap wizard rank its suggestions by the counts (User, 2026-11-15). Revision 4: USAGE-14 names `stats = false`, which also turns off the times of the actions (User, 2026-11-19); the old `usage = false` still works. The user approved revision 4 on 2026-11-19. Revision 5: USAGE-15, the counts stay in memory and a thread of their own writes them (User, 2026-11-19); the wording of the agent waits for the review of the user."
 ---
 
 # Usage counts
@@ -69,6 +69,7 @@ times of the actions in [Responsiveness of actions](responsiveness.md) too. The 
 | USAGE-4 | Ubiquitous | The system shall write the counts of each zendo process to a file of that process only.                                                                 | Design           |
 | USAGE-5 | Unwanted   | If the write of the usage file fails, then the system shall continue with no message and no delay of the screen.                                        | Design           |
 | USAGE-6 | Ubiquitous | The system shall not read the counts to change what it shows or does, except to rank the suggestions of the keymap wizard (WIZARD-11). | User, 2026-11-14; User, 2026-11-15 |
+| USAGE-15 | Ubiquitous | The system shall keep the counts in memory and write them to the disk in a thread of their own, so that keys and the drawing of the screen do not wait for the write. | User, 2026-11-19 |
 
 ### Acceptance tests
 
@@ -106,6 +107,12 @@ times of the actions in [Responsiveness of actions](responsiveness.md) too. The 
 - Given one empty data folder and one with usage files that hold large counts.
 - When zendo starts with each of them on a terminal of 120×40.
 - Then the status bar and the help show the same key hints.
+
+**`a_slow_write_does_not_delay_the_counts`** (unit test; verifies USAGE-15)
+
+- Given a write of the usage file that does not return.
+- When the user does two actions 15 seconds apart, and zendo exits.
+- Then both actions count, and the exit waits at most one second for the write.
 
 ## Detailed requirements
 
