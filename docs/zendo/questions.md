@@ -6,7 +6,7 @@ parent: "zendo.md"
 prev: "claude.md"
 next: "threads.md"
 level: "the questions of the agent before a tool call: which ones zendo answers, the quick action in the chat, its keys, a shell command in a terminal of zendo"
-note: "Agent draft from the requests of the user on 2026-11-17. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Replaces CLAUDE-3 and CLAUDE-33. See ADR 0019. ASK-14 (a mark on a command that ran without a question) is withdrawn: the user does not want it (2026-11-17); the ID is not reused. The answers of the user on 2026-11-18: `up` goes to the options first (ASK-5), and `Run in terminal` also for Claude Code (ASK-16)."
+note: "Agent draft from the requests of the user on 2026-11-17. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Replaces CLAUDE-3 and CLAUDE-33. See ADR 0019. ASK-14 (a mark on a command that ran without a question) is withdrawn: the user does not want it (2026-11-17); the ID is not reused. The answers of the user on 2026-11-18: `up` goes to the options first (ASK-5), and not for Claude Code in a terminal: ASK-16 is withdrawn, and the ID is not reused."
 ---
 
 # Questions of the agent
@@ -52,8 +52,8 @@ chat input.
 ([Work](work.md)).
 
 **A Claude Code session.** Claude Code asks in its chat through the hook of its permission request
-(CLIACT-10 in [Activity of a Claude Code session](cli-activity.md)). A shell command there gets
-`Run in terminal` too, and the hook gives Claude Code the wait for the result.
+(CLIACT-10 in [Activity of a Claude Code session](cli-activity.md)), with the choices of Claude
+Code. A command there runs in Claude Code, never in a terminal of zendo.
 
 ## Architecturally significant requirements
 
@@ -121,5 +121,4 @@ The tests are in `tests/questions.rs`. They use the mock agent, and `bash` as th
 | ASK-12 | Event      | When the user stops the answer while a question waits, the system shall remove the question and cancel the request. | Design; CLAUDE-11 |
 | ASK-13 | Ubiquitous | The system shall take a shell command that the agent wants to run in the background as any other shell command. | Design |
 | ASK-15 | Ubiquitous | The system shall not change the permission mode of the agent. | User, 2026-11-17 |
-| ASK-16 | Event      | When Claude Code in a terminal asks for a shell command through the hook of its permission request (CLIACT-10), the system shall offer `Run in terminal` too, and answer it as ASK-4 does. | User, 2026-11-18 |
 
