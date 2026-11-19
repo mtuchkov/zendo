@@ -35,7 +35,9 @@ impl vt100::Callbacks for Replies {
 }
 
 type Screen = Arc<Mutex<vt100::Parser<Replies>>>;
-type Writer = Arc<Mutex<Box<dyn Write + Send>>>;
+/// The input of the program: a writer thread takes it, so that the UI thread never waits for a
+/// program that does not read (IO-1).
+type Writer = std::sync::mpsc::Sender<Vec<u8>>;
 
 pub struct Cli {
     child: Box<dyn Child + Send + Sync>,
@@ -115,7 +117,7 @@ impl Cli {
         let child = pair.slave.spawn_command(b).map_err(err)?;
         drop(pair.slave);
         let reader = pair.master.try_clone_reader().map_err(err)?;
-        let writer: Writer = Arc::new(Mutex::new(pair.master.take_writer().map_err(err)?));
+        let writer = writer_thread(pair.master.take_writer().map_err(err)?);
         let screen: Screen = Arc::new(Mutex::new(vt100::Parser::new_with_callbacks(nz(size.0), nz(size.1), SCROLLBACK, Replies::default())));
         let started = Instant::now();
         let last_output = Arc::new(Mutex::new(started));
@@ -156,10 +158,11 @@ impl Cli {
         f(self.screen.lock().unwrap_or_else(|e| e.into_inner()).screen())
     }
 
+    /// Send `bytes` to the program. Returns at once; the writer thread waits for the program
+    /// (IO-1).
     pub fn write(&self, bytes: &[u8]) {
         self.screen.lock().unwrap_or_else(|e| e.into_inner()).screen_mut().set_scrollback(0);
-        let mut w = self.writer.lock().unwrap_or_else(|e| e.into_inner());
-        let _ = w.write_all(bytes).and_then(|_| w.flush());
+        let _ = self.writer.send(bytes.to_vec());
     }
 
     pub fn scroll(&self, up: bool) {
@@ -225,6 +228,20 @@ impl Cli {
     }
 }
 
+/// The thread that writes the input of the program, in order; it ends with the program or when
+/// the session goes.
+fn writer_thread(mut w: Box<dyn Write + Send>) -> Writer {
+    let (tx, rx) = std::sync::mpsc::channel::<Vec<u8>>();
+    let _ = std::thread::Builder::new().name("zendo-pty-writer".into()).spawn(move || {
+        for bytes in rx {
+            if w.write_all(&bytes).and_then(|()| w.flush()).is_err() {
+                break;
+            }
+        }
+    });
+    tx
+}
+
 /// Feed the output of the program to its screen, answer its queries, and wake the terminal loop.
 fn read_loop(mut reader: Box<dyn Read + Send>, screen: Screen, writer: Writer, last: Arc<Mutex<Instant>>, notify: Arc<tokio::sync::Notify>) {
     std::thread::spawn(move || {
@@ -240,8 +257,7 @@ fn read_loop(mut reader: Box<dyn Read + Send>, screen: Screen, writer: Writer, l
                 std::mem::take(&mut p.callbacks_mut().0)
             };
             if !replies.is_empty() {
-                let mut w = writer.lock().unwrap_or_else(|e| e.into_inner());
-                let _ = w.write_all(&replies).and_then(|_| w.flush());
+                let _ = writer.send(replies);
             }
             if let Ok(mut t) = last.lock() {
                 *t = Instant::now();
