@@ -12,9 +12,10 @@ pub(crate) fn session_action(act: &str) -> bool {
 }
 
 impl App {
-    /// The loop read an input event at `at`: the time of its actions starts (RESP-1).
+    /// The input thread read an input event at `at`: the time of its actions starts (RESP-1).
     pub fn input_at(&mut self, at: Instant) {
-        self.responsiveness.input(at);
+        let now = self.in_flight();
+        self.responsiveness.input(at, &now);
     }
 
     /// The draw of the screen ended at `at`: the actions whose work ended get their times (RESP-1).
@@ -23,12 +24,14 @@ impl App {
         self.responsiveness.drawn(at, &now);
     }
 
-    /// The work in the background that the user waits for: the search of the find panel, and the
-    /// turn of the agent in each thread.
+    /// The work in the background that the user waits for: the walk and the search of the find
+    /// panel, and the answer to each question of each thread.
     fn in_flight(&self) -> BTreeSet<Work> {
-        let search = self.files.find.busy(self.mode == Mode::Find).then_some(Work::Find);
-        let turns = self.threads.keys().filter(|k| self.threads.busy(k)).map(|k| Work::Turn(k.clone()));
-        search.into_iter().chain(turns).collect()
+        let f = &self.files.find;
+        let walk = f.walking(self.mode == Mode::Find).then_some(Work::Walk);
+        let search = f.searching().map(Work::Search);
+        let answers = self.threads.values().flat_map(|t| t.waiting()).map(Work::Answer);
+        walk.into_iter().chain(search).chain(answers).collect()
     }
 
     /// A key ran the action `act` of the keymap pane `pane` (USAGE-1, USAGE-7).

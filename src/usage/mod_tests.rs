@@ -139,7 +139,7 @@ fn the_file_has_a_head_and_only_counts() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
-// USAGE-14: with `usage = false`, nothing is counted and nothing is written.
+// USAGE-14: with `stats = false`, nothing is counted and nothing is written.
 #[test]
 fn off_counts_nothing_and_writes_nothing() {
     let mut u = Usage::for_process(false);

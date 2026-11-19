@@ -1,13 +1,13 @@
 ---
 status: "implemented"
-approved: "2026-11-14"
+approved: "2026-11-19"
 revision: "4"
 date: "2026-11-15"
 parent: "zendo.md"
 prev: "lofi.md"
 next: "tips.md"
 level: "what zendo counts about the actions of the user, where it keeps the counts, and what it never does with them"
-note: "Agent draft of the decisions of the user on 2026-11-14, approved by the user. Revision 2: the test names and kinds as in the code; what the mouse counts. Revision 3: USAGE-6 lets the keymap wizard rank its suggestions by the counts (User, 2026-11-15). Revision 4: USAGE-14 names `stats = false`, which also turns off the times of the actions (User, 2026-11-19); the old `usage = false` still works."
+note: "Agent draft of the decisions of the user on 2026-11-14, approved by the user. Revision 2: the test names and kinds as in the code; what the mouse counts. Revision 3: USAGE-6 lets the keymap wizard rank its suggestions by the counts (User, 2026-11-15). Revision 4: USAGE-14 names `stats = false`, which also turns off the times of the actions (User, 2026-11-19); the old `usage = false` still works. The user approved revision 4 on 2026-11-19."
 ---
 
 # Usage counts

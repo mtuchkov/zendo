@@ -59,6 +59,8 @@ pub struct Thread {
     pub opened: bool,
     /// Questions that wait for the end of the turn (CLAUDE-66).
     pub queue: Vec<Outgoing>,
+    /// The number of the question of the turn (`Outgoing::n`).
+    pub turn: Option<usize>,
     /// Questions that the chat sent to Claude Code: the hook does not show them again (CLIMSG-4).
     pub sent_to_cli: Vec<String>,
     /// The first item of the Claude session now, after a `/clear` in Claude Code (NAMES-4).
@@ -79,9 +81,18 @@ pub struct Outgoing {
     pub sent: Option<String>,
     /// A slash command: no context.
     pub command: bool,
+    /// The number of the question among the questions of this zendo process (`Threads::number`):
+    /// what the user waits for, until its answer ends (RESP-1).
+    pub n: usize,
 }
 
 impl Thread {
+    /// The numbers of the questions that wait for an answer: the one of the turn, then the queue.
+    /// A question keeps its number when it leaves the queue for the agent (RESP-1).
+    pub(crate) fn waiting(&self) -> impl Iterator<Item = usize> + '_ {
+        self.busy.and(self.turn).into_iter().chain(self.queue.iter().map(|o| o.n))
+    }
+
     /// The file went with one of the last ATTACH_EVERY questions.
     pub fn sent_lately(&self, rel: &str) -> bool {
         self.files.iter().rev().take(ATTACH_EVERY).any(|f| f.as_deref() == Some(rel))

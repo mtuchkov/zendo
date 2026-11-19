@@ -15,9 +15,17 @@ pub struct Threads {
     details: bool,
     /// The chat pane is open.
     shown: bool,
+    /// The last number of a question (`Outgoing::n`).
+    asked: usize,
 }
 
 impl Threads {
+    /// A new number for a question; a new thread does not start the numbers again (RESP-1).
+    pub fn number(&mut self) -> usize {
+        self.asked += 1;
+        self.asked
+    }
+
     /// The chat pane is open.
     pub fn shown(&self) -> bool {
         self.shown

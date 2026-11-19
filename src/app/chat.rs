@@ -95,7 +95,7 @@ impl App {
             attach.push(Attachment::File(p.clone()));
         }
         let sent = file.as_ref().map(|p| self.rel(p));
-        let out = Outgoing { question: shown, text, attach, sent, command };
+        let out = Outgoing { question: shown, text, attach, sent, command, n: self.threads.number() };
         self.threads.to_end();
         match self.threads.get_mut(&key).filter(|t| t.busy.is_some()) {
             Some(t) => t.queue.push(out),
@@ -109,6 +109,7 @@ impl App {
         let t = self.thread(&key);
         t.push(Item::User(out.question));
         t.busy = Some(Instant::now());
+        t.turn = Some(out.n);
         t.news = t.busy;
         t.dropped = false;
         t.primed |= !out.command;

@@ -29,17 +29,25 @@ delay the screen. Every action of the keymap already passes one hook: `App::did`
 
 Proposal of the agent: time the actions in the hook of the usage counts.
 
-- The terminal loop marks the read of each input event and the end of each draw.
+- The input thread puts the time of its read on each input event; the terminal loop gives that
+  time to the app, and marks the end of each draw. The wait of an event in the queue is in the
+  time.
 - `App::did` and `App::did_by_mouse` call one private function that counts the action and gives it
   to the measurements. The measurements keep the action until its result is on the screen, and then
   add the time from its input event to that draw.
-- At each draw, the app says which work runs in the background: the search of the find panel, and
-  the turn of the agent in each thread. The app reads this from its own state; the code that starts
-  or ends the work holds no measurement code.
-- An action waits for the work that started between the draw before its input and the first draw
-  after it. It gets its time at the first draw after that work ended, or when it waited longer than
-  the last bucket.
-- A thread of the measurements writes the file. The loop only sends the text to it.
+- At each input event and at each draw, the app says which work runs in the background: the walk
+  and the search of the find panel, and the answer to each question of each thread, in its turn or
+  in the queue. Each piece of work has its identity: the number of the query, the number of the
+  question. The app reads this from its own state; the code that starts or ends the work holds no
+  measurement code.
+- An action waits for the work that started while the app handled its input event: from the read
+  of that event to the read of the next one or to the draw. It gets its time at the first draw after
+  that work ended, or when it waited longer than the last bucket. At the exit, an action that still
+  waits gets no time (User, 2026-11-19).
+- A thread of the measurements writes the file with the name, the head and the write of the usage
+  file (`src/stats.rs`): a temporary file and a rename, without the `fsync` of `zendo::atomic`.
+  The loop only sends the text to it. When the last write failed, the next tick or the exit sends
+  the measurements again.
 
 The hook in `src/app/count.rs` shall be the only code outside `src/responsiveness/` that reports an
 action to the measurements.
@@ -50,17 +58,24 @@ action to the measurements.
 - An action that zendo does not count is not timed: typed text, keys that go to a session or a
   terminal (USAGE-8).
 - The exit waits at most one second for the last write.
-- Work that a key starts while work of the same kind runs, such as a question that waits in the
-  queue of a busy thread, does not hold the action: its kind ran before the key.
+- A question that waits in the queue of a busy thread waits for its own answer, and the question
+  before it waits only for its answer.
 - Work that is not in the list, such as a recap or the scan of the tree, does not hold an action. A
   new kind of work needs one line in the list.
+- Each question gets its number when the user sends it, from one counter of the app: a clear of a
+  thread does not start the numbers again, and a rename of a thread does not change the work. A
+  question that stays in the queue after the agent exited waits until it goes to the agent, or goes
+  into the last bucket.
 
 ## Verification
 
 `actions_hold_no_measurement_code` in `tests/responsiveness.rs` lists the files that use the
-measurements and checks the one call in the hook. `every_action_gets_a_time` checks the times of
+measurements or mark the input and the draw, and checks the one call in the hook and the marks in
+the loop. `every_action_gets_a_time` checks the times of
 real keys through the app; `an_action_waits_for_the_work_that_it_started` checks the wait for a turn
-of the agent. `a_slow_write_does_not_delay_the_screen` checks the writer thread.
+of the agent; `the_time_starts_at_the_read_of_the_event` checks the time in the queue. The unit
+tests check the queue of questions, two inputs before one draw, a new search, and the exit.
+`a_slow_write_does_not_delay_the_screen` checks the writer thread.
 
 ## Decision record
 

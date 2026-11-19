@@ -40,3 +40,24 @@ fn the_last_tool_run_still_runs() {
     t.push(tools(Instant::now()));
     assert_eq!(took(&t.items[1]), None);
 }
+
+fn out(q: &str, n: usize) -> Outgoing {
+    Outgoing { question: q.into(), text: q.into(), attach: Vec::new(), sent: None, command: false, n }
+}
+
+// RESP-1: the questions that wait for an answer: the one of the turn, then the queue, each with its
+// own number, which stays when a queued question goes to the agent.
+#[test]
+fn each_question_without_an_answer_has_its_own_number() {
+    let mut t = Thread::default();
+    assert_eq!(t.waiting().collect::<Vec<_>>(), Vec::<usize>::new());
+    (t.busy, t.turn) = (Some(Instant::now()), Some(1));
+    t.queue = vec![out("b", 2), out("c", 3)];
+    assert_eq!(t.waiting().collect::<Vec<_>>(), [1, 2, 3]);
+    // The turn ends; the next question goes to the agent.
+    t.turn = Some(t.queue.remove(0).n);
+    assert_eq!(t.waiting().collect::<Vec<_>>(), [2, 3]);
+    // The agent exits: the turn ends, the queue still waits.
+    t.busy = None;
+    assert_eq!(t.waiting().collect::<Vec<_>>(), [3]);
+}

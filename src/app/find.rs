@@ -60,9 +60,14 @@ pub struct Find {
 }
 
 impl Find {
-    /// The search of a query runs, or the walk of the files of an open panel has not ended.
-    pub(crate) fn busy(&self, open: bool) -> bool {
-        self.running || (open && self.files.is_none())
+    /// The number of the query whose search runs.
+    pub(crate) fn searching(&self) -> Option<u64> {
+        self.running.then_some(self.seq)
+    }
+
+    /// The walk of the files of an open panel has not ended.
+    pub(crate) fn walking(&self, open: bool) -> bool {
+        open && self.files.is_none()
     }
 }
 

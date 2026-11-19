@@ -1,11 +1,11 @@
 ---
 status: "implemented"
 approved: "2026-11-19"
-revision: "3"
+revision: "4"
 date: "2026-11-19"
 parent: "zendo.md"
 level: "what zendo measures about the responsiveness of each action, where it keeps the measurements, and where the measurement lives in the code"
-note: "Agent draft of the note of the user of 2026-11-19 (measuring responsiveness of zendo actions), approved by the user on 2026-11-19 with RESP-1 to RESP-7. Revision 2: implemented in zendo 0.121.0; the test names and kinds as in the code; the mechanism in ADR 0024. Revision 3, from the decisions of the user of 2026-11-19: the time spans the wait for the result, also for work in the background (RESP-1); `stats = false` turns the measurements off (RESP-8, a proposal of the agent until the user reviews this revision)."
+note: "Agent draft of the note of the user of 2026-11-19 (measuring responsiveness of zendo actions), approved by the user on 2026-11-19 with RESP-1 to RESP-7. Revision 2: implemented in zendo 0.121.0; the test names and kinds as in the code; the mechanism in ADR 0024. Revision 3, from the decisions of the user of 2026-11-19: the time spans the wait for the result, also for work in the background (RESP-1); `stats = false` turns the measurements off (RESP-8); approved by the user on 2026-11-19. Revision 4, after the code review of 2026-11-19: each piece of work in the background has its own identity, each input waits only for its own work, the time starts at the read of the event, and an action whose result has not come at the exit gets no time (User, 2026-11-19). The design text and the test names of revision 4 are an agent draft that waits for the review of the user."
 ---
 
 # Responsiveness of actions
@@ -26,9 +26,13 @@ that shows the result of the action is drawn. For an action that starts work in 
 such as a search or a turn of the agent, the time ends at the first screen after the end of that
 work, not at the first screen that shows that the work started (User, 2026-11-19).
 
-Design: zendo knows which work runs in the background: a search, and a turn of each agent session.
-An action that starts such work waits for its end. Work that ran before the key does not hold the
-action. A result that does not come goes into the last bucket of the distribution. A turn of the
+Design: zendo knows which work runs in the background: the walk and the search of the find panel,
+and the answer to each question of each agent session, also to a question in the queue. Each piece
+of work has its own identity: a new search or the next question is other work. An action waits for
+the work that started while zendo handled its input event. Work that ran before the key does not
+hold the action. The time starts when the input thread reads the event, so the wait of the event in
+the queue is in the time. A result that does not come goes into the last bucket of the distribution.
+An action whose result has not come at the exit gets no time (User, 2026-11-19). A turn of the
 agent is timed under its own action (`chat.send`, `read.ask`), so its time stays apart from the
 times of zendo's own work.
 
@@ -109,10 +113,14 @@ Design, until the user answers the open point: the file is
 | RESP-7 | Unwanted   | If the write of the measurements fails, then the system shall continue with no message and no delay of the screen. | Design; USAGE-5 |
 | RESP-8 | Optional   | Where `stats = false` is in the config, the system shall measure nothing and write no file of measurements. | User, 2026-11-19 |
 
-Tests that verify detailed requirements: `a_run_goes_into_the_bucket_of_its_time` (RESP-1, RESP-5),
-`work_that_ran_before_the_key_does_not_hold_it` and `a_result_that_does_not_come_goes_into_the_last_bucket`
-(RESP-1), `the_file_has_a_head_and_only_buckets` (RESP-6), `a_failed_write_keeps_the_measurements`
-(RESP-7), `off_measures_nothing_and_writes_nothing` and `stats_false_turns_the_stats_off` (RESP-8).
+Tests that verify detailed requirements: `a_run_goes_into_the_bucket_of_its_time` (RESP-1, RESP-5);
+`work_that_ran_before_the_key_does_not_hold_it`, `a_result_that_does_not_come_goes_into_the_last_bucket`,
+`a_queued_question_waits_for_its_own_answer`, `each_input_of_one_frame_waits_for_its_own_work`,
+`a_new_search_ends_the_wait_for_the_old_one`, `an_action_without_its_result_at_the_exit_gets_no_time`,
+`each_question_without_an_answer_has_its_own_number`, `each_question_gets_a_new_number` and
+`the_time_starts_at_the_read_of_the_event`
+(RESP-1); `the_file_has_a_head_and_only_buckets` (RESP-6); `a_failed_write_keeps_the_measurements`
+and `a_failed_write_is_written_again_at_the_exit` (RESP-7); `off_measures_nothing_and_writes_nothing` and `stats_false_turns_the_stats_off` (RESP-8).
 
 RESP-7 differs from the [failure default](failures.md): the measurements are not user data, and a
 message about them would disturb the user more than the loss of the measurements.

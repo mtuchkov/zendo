@@ -10,6 +10,7 @@ pub mod responsiveness;
 pub mod music;
 pub mod session;
 pub mod setup;
+pub mod stats;
 pub mod text;
 pub mod tui;
 pub mod ui;

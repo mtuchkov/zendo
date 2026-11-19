@@ -3,13 +3,13 @@
 //! folder, every 15 seconds while they change and at the exit. zendo never reads them (USAGE-6).
 
 use crate::keys::{ACTIONS, Pane};
-use chrono::{DateTime, SecondsFormat, Utc};
+use chrono::{DateTime, Utc};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 /// The time between two writes of the usage file (USAGE-3).
-pub const EVERY: Duration = Duration::from_secs(15);
+pub use crate::stats::EVERY;
 
 /// What started an action.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -63,11 +63,10 @@ impl Usage {
     /// The counts of process `pid`, for `usage/<date of the start>-<pid>.toml` in the data folder
     /// `dir` (USAGE-4, USAGE-10).
     pub fn start(dir: &Path, pid: u32) -> Usage {
-        let name = format!("{}-{pid}.toml", chrono::Local::now().format("%Y-%m-%d"));
-        Usage { file: Some(dir.join("usage").join(name)), ..Usage::default() }
+        Usage { file: Some(crate::stats::file(dir, "usage", pid)), ..Usage::default() }
     }
 
-    /// The counts of this process in the data folder of zendo; off with `usage = false` in the
+    /// The counts of this process in the data folder of zendo; off with `stats = false` in the
     /// config (USAGE-14).
     pub fn for_process(on: bool) -> Usage {
         if on { Usage::start(&crate::setup::config::data_dir(), std::process::id()) } else { Usage::default() }
@@ -107,20 +106,17 @@ impl Usage {
         }
     }
 
-    /// Replace the file whole, through a temporary file and a rename (USAGE-13). A write that fails
-    /// says nothing; the counts stay for the next write (USAGE-5).
+    /// Replace the file whole (USAGE-13). A write that fails says nothing; the counts stay for the
+    /// next write (USAGE-5).
     fn write_at(&mut self, now: Instant) {
         self.written = now;
         let Some(file) = &self.file else { return };
-        let tmp = file.with_extension("toml.tmp");
-        let done = file.parent().map_or(Ok(()), std::fs::create_dir_all).and_then(|_| std::fs::write(&tmp, self.text(Utc::now()))).and_then(|_| std::fs::rename(&tmp, file));
-        self.changed = done.is_err();
+        self.changed = crate::stats::write(file, &self.text(Utc::now())).is_err();
     }
 
     /// The file: the head, then a table of counts for each pane (USAGE-9, USAGE-11).
     pub fn text(&self, written: DateTime<Utc>) -> String {
-        let time = |t: DateTime<Utc>| t.to_rfc3339_opts(SecondsFormat::Secs, true);
-        let head = format!("zendo = \"{}\"\nos = \"{}\"\nstarted = \"{}\"\nwritten = \"{}\"\n", env!("CARGO_PKG_VERSION"), std::env::consts::OS, time(self.started), time(written));
+        let head = crate::stats::head(self.started, written);
         let table = |pane: Pane| {
             let rows: String = self.counts.iter().filter(|((p, _), _)| *p == pane).map(|((_, name), c)| format!("{name} = {}\n", c.toml())).collect();
             Some(rows).filter(|r| !r.is_empty()).map(|r| format!("\n[{}]\n{r}", pane.name()))

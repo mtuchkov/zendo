@@ -1,21 +1,21 @@
 //! Responsiveness of actions (docs/zendo/responsiveness.md): the time that the user waits for the
 //! result of each action of the keymap, from the read of its input event to the end of the draw of
 //! the screen that shows the result. An action that starts work in the background, a search or a
-//! turn of the agent, waits for the end of that work (RESP-1). The app times an action
+//! question to the agent, waits for the end of that work (RESP-1). The app times an action
 //! where it counts it (`App::did`, USAGE-1), so the code of an action holds no measurement code
 //! (RESP-2, ADR 0024). For each keymap pane and action name zendo keeps the number of runs and a
 //! bucket count of their times, in a file of this process in the data folder (RESP-3, RESP-5). A
 //! thread of its own writes the file (RESP-4).
 
 use crate::keys::{ACTIONS, Pane};
-use chrono::{DateTime, SecondsFormat, Utc};
+use chrono::{DateTime, Utc};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 /// The time between two writes of the file, as for the usage counts (USAGE-3).
-pub const EVERY: Duration = Duration::from_secs(15);
+pub use crate::stats::EVERY;
 
 /// The upper bounds of the buckets, in milliseconds: up to 512 ms for the screen, then seconds
 /// for the wait for work in the background. A longer run goes to the last bucket.
@@ -24,13 +24,17 @@ const BOUNDS: [u64; 20] = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1_000, 2_000, 
 /// The longest wait for a result: after it, the action goes into the last bucket.
 const LONGEST: Duration = Duration::from_millis(BOUNDS[BOUNDS.len() - 1]);
 
-/// Work in the background that the user waits for (RESP-1).
+/// One piece of work in the background that the user waits for (RESP-1). Each piece has its own
+/// identity: a new search or the next question is other work.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Work {
-    /// The search of the find panel.
-    Find,
-    /// The turn of the agent in the thread of this key.
-    Turn(String),
+    /// The walk of the files of the open find panel.
+    Walk,
+    /// The search of query `n` of the find panel.
+    Search(u64),
+    /// The answer of the agent to question `n` (`Outgoing::n`), in its turn or in the queue. The
+    /// number is unique in the process, so a rename of the thread does not change the work.
+    Answer(usize),
 }
 
 /// How long the exit waits for the last write.
@@ -71,12 +75,15 @@ impl Times {
 /// The function that writes the text to the file.
 type Write = Box<dyn FnMut(&Path, &str) -> std::io::Result<()> + Send>;
 
-/// The thread that writes the file, and the answers that it sends after each write.
+/// The thread that writes the file, and the answers that it sends after each write: true when the
+/// write worked.
 struct Writer {
     texts: mpsc::Sender<String>,
-    done: mpsc::Receiver<()>,
+    done: mpsc::Receiver<bool>,
     /// The writes that the thread has not answered yet.
     open: usize,
+    /// The last answered write failed.
+    lost: bool,
 }
 
 impl Writer {
@@ -86,11 +93,10 @@ impl Writer {
         std::thread::spawn(move || {
             for text in rx {
                 // RESP-7: a write that fails says nothing; the next write has all the runs.
-                let _ = write(&file, &text);
-                let _ = done_tx.send(());
+                let _ = done_tx.send(write(&file, &text).is_ok());
             }
         });
-        Writer { texts, done, open: 0 }
+        Writer { texts, done, open: 0, lost: false }
     }
 
     fn send(&mut self, text: String) {
@@ -99,20 +105,15 @@ impl Writer {
         }
     }
 
-    /// Wait for the open writes, at most until `until`.
-    fn settle(&mut self, until: Instant) {
-        while self.open > 0 && self.done.recv_timeout(until.saturating_duration_since(Instant::now())).is_ok() {
-            self.open -= 1;
+    /// Take the answers of the open writes, and wait for them at most until `until`. True when the
+    /// last write failed and no other write is open: the runs must go again (RESP-7).
+    fn answers(&mut self, until: Instant) -> bool {
+        while self.open > 0 {
+            let Ok(ok) = self.done.recv_timeout(until.saturating_duration_since(Instant::now())) else { break };
+            (self.open, self.lost) = (self.open - 1, !ok);
         }
+        self.open == 0 && std::mem::take(&mut self.lost)
     }
-}
-
-/// Replace the file whole, through a temporary file and a rename.
-fn write_file(file: &Path, text: &str) -> std::io::Result<()> {
-    let tmp = file.with_extension("toml.tmp");
-    file.parent().map_or(Ok(()), std::fs::create_dir_all)?;
-    std::fs::write(&tmp, text)?;
-    std::fs::rename(&tmp, file)
 }
 
 /// An action that waits for the end of the work that it started.
@@ -132,12 +133,12 @@ pub struct Responsiveness {
     started: DateTime<Utc>,
     /// The read of the input event that the next actions answer.
     input: Option<Instant>,
-    /// The actions since that input, which wait for the draw.
+    /// The actions of that input.
     waiting: Vec<(Pane, &'static str, Instant)>,
-    /// The actions that wait for the end of the work that they started.
+    /// The actions of earlier inputs, which wait for the draw and for the end of their work.
     held: Vec<Held>,
-    /// The work that ran at the last draw, before the input of the next actions.
-    before: BTreeSet<Work>,
+    /// The work that ran when that input came or at the last draw.
+    seen: BTreeSet<Work>,
     changed: bool,
     written: Instant,
 }
@@ -145,7 +146,7 @@ pub struct Responsiveness {
 impl Default for Responsiveness {
     /// Off: an app measures only when its start turns the measurements on.
     fn default() -> Self {
-        Responsiveness { times: BTreeMap::new(), file: None, writer: None, started: Utc::now(), input: None, waiting: Vec::new(), held: Vec::new(), before: BTreeSet::new(), changed: false, written: Instant::now() }
+        Responsiveness { times: BTreeMap::new(), file: None, writer: None, started: Utc::now(), input: None, waiting: Vec::new(), held: Vec::new(), seen: BTreeSet::new(), changed: false, written: Instant::now() }
     }
 }
 
@@ -153,13 +154,12 @@ impl Responsiveness {
     /// The measurements of process `pid`, for `responsiveness/<date of the start>-<pid>.toml` in
     /// the data folder `dir`.
     pub fn start(dir: &Path, pid: u32) -> Responsiveness {
-        Responsiveness::writing(dir, pid, write_file)
+        Responsiveness::writing(dir, pid, crate::stats::write)
     }
 
     /// As `start`, with the function that writes the file.
     pub fn writing(dir: &Path, pid: u32, write: impl FnMut(&Path, &str) -> std::io::Result<()> + Send + 'static) -> Responsiveness {
-        let name = format!("{}-{pid}.toml", chrono::Local::now().format("%Y-%m-%d"));
-        let file = dir.join("responsiveness").join(name);
+        let file = crate::stats::file(dir, "responsiveness", pid);
         Responsiveness { writer: Some(Writer::spawn(file.clone(), Box::new(write))), file: Some(file), ..Responsiveness::default() }
     }
 
@@ -173,9 +173,21 @@ impl Responsiveness {
         self.file.as_deref()
     }
 
-    /// The loop read an input event at `at`.
-    pub fn input(&mut self, at: Instant) {
-        self.input = Some(at);
+    /// The input thread read an input event at `at`; the work `now` runs before the loop handles
+    /// it. The actions of the input before wait for the work that started since it.
+    pub fn input(&mut self, at: Instant, now: &BTreeSet<Work>) {
+        if self.file.is_some() {
+            self.close(now);
+            self.input = Some(at);
+        }
+    }
+
+    /// The actions of the last input wait for the work that started since that input (RESP-1).
+    fn close(&mut self, now: &BTreeSet<Work>) {
+        let started: BTreeSet<Work> = now.difference(&self.seen).cloned().collect();
+        let mine = std::mem::take(&mut self.waiting).into_iter().map(|(pane, name, from)| Held { pane, name, from, works: started.clone() });
+        self.held.extend(mine);
+        self.seen = now.clone();
     }
 
     /// The action `name` of `pane` ran for the last input. Only an action of the keymap counts
@@ -187,19 +199,20 @@ impl Responsiveness {
     }
 
     /// The draw of the screen ended at `at`, while the work `now` runs in the background. An action
-    /// of the last input waits for the work that started with it; an action gets its time when its
-    /// work ended, or when it waited longer than the last bucket (RESP-1).
+    /// gets its time at the first draw after the end of its work, or when it waited longer than
+    /// the last bucket (RESP-1). An action whose result has not come at the exit gets no time.
     pub fn drawn(&mut self, at: Instant, now: &BTreeSet<Work>) {
+        if self.file.is_none() {
+            return;
+        }
+        self.close(now);
         self.input = None;
-        let started: BTreeSet<Work> = now.difference(&self.before).cloned().collect();
-        let fresh = std::mem::take(&mut self.waiting).into_iter().map(|(pane, name, from)| Held { pane, name, from, works: started.clone() });
-        let all: Vec<Held> = std::mem::take(&mut self.held).into_iter().chain(fresh).collect();
-        let (done, held): (Vec<Held>, Vec<Held>) = all.into_iter().partition(|h| h.works.is_disjoint(now) || at.saturating_duration_since(h.from) > LONGEST);
+        let (done, held): (Vec<Held>, Vec<Held>) = std::mem::take(&mut self.held).into_iter().partition(|h| h.works.is_disjoint(now) || at.saturating_duration_since(h.from) > LONGEST);
         for h in done {
             self.times.entry((h.pane, h.name)).or_default().add(at.saturating_duration_since(h.from));
             self.changed = true;
         }
-        (self.held, self.before) = (held, now.clone());
+        self.held = held;
     }
 
     pub fn times(&self, pane: Pane, name: &str) -> Option<Times> {
@@ -208,18 +221,22 @@ impl Responsiveness {
 
     /// Send the measurements to the writer when they changed and the last write is 15 seconds old.
     pub fn tick(&mut self, now: Instant) {
+        self.changed |= self.writer.as_mut().is_some_and(|w| w.answers(Instant::now()));
         if self.changed && now.saturating_duration_since(self.written) >= EVERY {
             self.send(now);
         }
     }
 
-    /// At the exit: send the measurements when they changed, and wait a short time for the writes.
+    /// At the exit: send the measurements when they changed or when the last write failed, and
+    /// wait a short time for the writes.
     pub fn finish(&mut self) {
+        let until = Instant::now() + LAST_WRITE;
+        self.changed |= self.writer.as_mut().is_some_and(|w| w.answers(until));
         if self.changed {
             self.send(Instant::now());
         }
         if let Some(w) = &mut self.writer {
-            w.settle(Instant::now() + LAST_WRITE);
+            w.answers(until);
         }
     }
 
@@ -234,8 +251,7 @@ impl Responsiveness {
 
     /// The file: the head, then a table of times for each pane (RESP-5, RESP-6).
     pub fn text(&self, written: DateTime<Utc>) -> String {
-        let time = |t: DateTime<Utc>| t.to_rfc3339_opts(SecondsFormat::Secs, true);
-        let head = format!("zendo = \"{}\"\nos = \"{}\"\nstarted = \"{}\"\nwritten = \"{}\"\n", env!("CARGO_PKG_VERSION"), std::env::consts::OS, time(self.started), time(written));
+        let head = crate::stats::head(self.started, written);
         let table = |pane: Pane| {
             let rows: String = self.times.iter().filter(|((p, _), _)| *p == pane).map(|((_, name), t)| format!("{name} = {}\n", t.toml())).collect();
             Some(rows).filter(|r| !r.is_empty()).map(|r| format!("\n[{}]\n{r}", pane.name()))
