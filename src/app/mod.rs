@@ -63,7 +63,7 @@ mod writer;
 pub mod version;
 
 pub use at::{AT_ROWS, AtKey, AtPick};
-pub use composer::Composer;
+pub use composer::{Composer, Question};
 pub use composer::chips;
 pub(crate) use composer::{at, slash};
 pub use attention::Attention;

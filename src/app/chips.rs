@@ -12,7 +12,7 @@ pub const PASTE_CHIP_CHARS: usize = 200;
 
 /// A text chip says the first 15 chars of the text and, always, the number of its lines (CLAUDE-20, CLAUDE-41).
 pub fn text_label(text: &str) -> String {
-    let flat = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    let flat = unescape(text).split_whitespace().collect::<Vec<_>>().join(" ");
     let head: String = flat.chars().take(15).collect();
     let head = if flat.chars().count() > 15 { format!("{head}…") } else { head };
     match text.trim().lines().count().max(1) {
@@ -38,15 +38,106 @@ pub fn file_label(path: &Path) -> String {
     format!("{tail}/{name}")
 }
 
-/// The chip spans of a line: `(start, end)` in chars, end after the close mark.
+/// The chip spans of a text: `(start, end)` in chars, end after the close mark. A mark after an
+/// odd run of `\\` is text (CLAUDE-61).
 pub fn chip_ranges(line: &str) -> Vec<(usize, usize)> {
     let chars: Vec<char> = line.chars().collect();
-    chars
-        .iter()
-        .enumerate()
-        .filter(|(_, c)| **c == OPEN)
-        .filter_map(|(i, _)| chars[i..].iter().position(|c| *c == CLOSE).map(|j| (i, i + j + 1)))
-        .collect()
+    let real = |i: &usize| chars[..*i].iter().rev().take_while(|c| **c == '\\').count() % 2 == 0;
+    let close_after = |i: usize| (i + 1..chars.len()).filter(real).find(|j| chars[*j] == CLOSE).map(|j| (i, j + 1));
+    let mut from = 0;
+    std::iter::from_fn(|| {
+        let r = (from..chars.len()).filter(real).filter(|i| chars[*i] == OPEN).find_map(close_after)?;
+        from = r.1;
+        Some(r)
+    })
+    .collect()
+}
+
+/// Escape the marks of a text that goes into a chip: a mark gets a `\\`, and a run of `\\` right
+/// before a mark or at the end doubles (CLAUDE-61).
+pub fn escape(text: &str) -> String {
+    escape_with(text, true)
+}
+
+/// The same for a text that goes into the chat input: a run at the end stays.
+pub fn escape_marks(text: &str) -> String {
+    escape_with(text, false)
+}
+
+fn escape_with(text: &str, end: bool) -> String {
+    let (mut out, run) = text.chars().fold((String::new(), 0), |(mut out, run), c| {
+        if c == '\\' {
+            return (out, run + 1);
+        }
+        let n = if c == OPEN || c == CLOSE { 2 * run + 1 } else { run };
+        out.extend(std::iter::repeat_n('\\', n));
+        out.push(c);
+        (out, 0)
+    });
+    out.extend(std::iter::repeat_n('\\', if end { 2 * run } else { run }));
+    out
+}
+
+/// The text of a chip as it was before `escape`.
+pub fn unescape(text: &str) -> String {
+    let (mut out, run) = text.chars().fold((String::new(), 0), |(mut out, run), c| {
+        if c == '\\' {
+            return (out, run + 1);
+        }
+        out.extend(std::iter::repeat_n('\\', if c == OPEN || c == CLOSE { run / 2 } else { run }));
+        out.push(c);
+        (out, 0)
+    });
+    out.extend(std::iter::repeat_n('\\', run / 2));
+    out
+}
+
+/// In a question that the transcript keeps, the label of a chip comes before its text and this
+/// char, so the transcript shows the label of the chat input (CLAUDE-62). It does not go to the
+/// agent.
+pub const LABEL_END: char = '\u{2063}';
+
+/// The text of a chip without the label that the transcript keeps before it.
+pub fn body_of(content: &str) -> &str {
+    content.split_once(LABEL_END).map_or(content, |(_, b)| b)
+}
+
+/// The label of a chip from the text in its marks: the label that the transcript keeps, else
+/// (CLAUDE-64) a file for `@path`, the quoted lines with `↩` for text from the chat, or the first
+/// 15 chars.
+pub fn label_of(content: &str) -> String {
+    if let Some((label, _)) = content.split_once(LABEL_END) {
+        return label.to_string();
+    }
+    let text = unescape(content);
+    if let Some(p) = text.strip_prefix('@').filter(|p| !p.contains('\n')) {
+        return file_label(Path::new(p));
+    }
+    let quoted: Vec<&str> = text.lines().filter_map(|l| l.strip_prefix("> ").or((l == ">").then_some(""))).collect();
+    if quoted.is_empty() {
+        let head: String = text.chars().take(15).collect();
+        return if text.chars().count() > 15 { format!("{head}…") } else { head };
+    }
+    let label = text_label(&quoted.join("\n"));
+    if text.starts_with("Text from this chat") { format!("{CHAT_MARK} {label}") } else { label }
+}
+
+/// A chip whose text is only a short label: zendo does not know what it brought (CLAUDE-65).
+pub fn unknown(content: &str) -> bool {
+    !content.contains(LABEL_END) && !content.contains('\n') && !content.starts_with('@') && content.chars().count() <= 15
+}
+
+/// The text with each chip as `chip` makes it; the chip of a range is the one with its label.
+pub fn inline(text: &str, chips: &[Chip], chip: impl Fn(&Chip) -> String) -> String {
+    let chars: Vec<char> = text.chars().collect();
+    let (mut out, at) = chip_ranges(text).into_iter().fold((String::new(), 0), |(mut out, at), (a, b)| {
+        let label: String = chars[a..b].iter().collect();
+        out.extend(&chars[at..a]);
+        out.push_str(&chips.iter().find(|c| c.label == label).map_or(label, &chip));
+        (out, b)
+    });
+    out.extend(&chars[at..]);
+    out
 }
 
 /// The text without its chips.
@@ -71,22 +162,42 @@ impl Composer {
             self.input.type_str(" ");
         }
         self.input.type_str(&format!("{label} "));
-        self.chips.push(Chip { label: label.clone(), context, attach });
+        // The marks in a text of a chip are escaped (CLAUDE-61).
+        self.chips.push(Chip { label: label.clone(), context: context.map(|c| escape(c.trim_end_matches('\n'))), attach });
         label
     }
 
-    /// A pasted text as a chip at the cursor that starts with the text; the text goes as context (CLAUDE-42).
-    pub fn paste_chip(&mut self, text: &str) -> String {
-        let label = self.add_chip(text_label(text), None, None, false);
-        let quoted: String = text.trim_matches('\n').lines().map(|l| format!("> {l}\n")).collect();
-        if let Some(c) = self.chips.last_mut() {
-            c.context = Some(format!("The user pasted this text as {label}:\n{quoted}"));
+    /// Questions that go back into the input, before what it holds: each chip in them is a chip
+    /// again (CLAUDE-34, CLAUDE-62).
+    pub fn put_back(&mut self, shown: &str) {
+        let rest = self.input.take();
+        let chars: Vec<char> = shown.chars().collect();
+        let at = chip_ranges(shown).into_iter().fold(0, |at, (a, b)| {
+            self.input.type_str(&chars[at..a].iter().collect::<String>());
+            let content: String = chars[a + 1..b - 1].iter().collect();
+            let body = unescape(body_of(&content));
+            let file = body.strip_prefix('@').filter(|p| !p.contains('\n')).map(|p| Attachment::of(PathBuf::from(p)));
+            let context = file.is_none().then_some(body);
+            self.add_chip(label_of(&content), context, file, false);
+            b
+        });
+        self.input.type_str(&chars[at..].iter().collect::<String>());
+        if !rest.is_empty() {
+            self.input.type_str(&format!("\n{rest}"));
         }
-        label
+    }
+
+    /// A pasted text as a chip at the cursor that starts with the text; the text goes as context
+    /// (CLAUDE-42). Its source line names no label: a label has marks (CLAUDE-61).
+    pub fn paste_chip(&mut self, text: &str) -> String {
+        let quoted: Vec<String> = text.trim_matches('\n').lines().map(|l| format!("> {l}")).collect();
+        self.add_chip(text_label(text), Some(format!("Text that the user pasted:\n{}", quoted.join("\n"))), None, false)
     }
 
     /// `⟦base⟧`, or `⟦base 2⟧`, `⟦base 3⟧`… when a chip in the input has it.
     fn free_label(&self, base: &str) -> String {
+        // A label has no marks of its own: they would end the chip (CLAUDE-61).
+        let base = base.replace(OPEN, "[").replace(CLOSE, "]");
         let taken = |l: &str| self.chips.iter().any(|c| c.label == l);
         (1..).map(|n| if n == 1 { format!("{OPEN}{base}{CLOSE}") } else { format!("{OPEN}{base} {n}{CLOSE}") }).find(|l| !taken(l)).expect("a free label")
     }

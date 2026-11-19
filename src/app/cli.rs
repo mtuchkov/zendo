@@ -120,27 +120,20 @@ impl App {
     }
 
     /// `enter` in the chat of an agent session whose Claude Code session runs: the question goes to
-    /// Claude Code as typed, and Claude Code queues it while it works (SESSIONS-4). A file chip goes
-    /// as `@path`, a selection chip as its text after the question.
+    /// Claude Code as typed, and Claude Code queues it while it works (SESSIONS-4). Each chip goes
+    /// at its place: a text as `⟦` its text `⟧`, a file as `@path`, the file of a red chip as its
+    /// label (CLAUDE-57, CLAUDE-59, CLAUDE-60).
     pub(crate) fn send_to_cli(&mut self) {
         let n = self.active();
         let (q, chips) = self.composer_mut().take_message();
-        let mut text = q.clone();
-        let mut after = Vec::new();
-        for c in &chips {
-            let with = match (&c.attach, &c.context) {
-                (Some(a), _) if a.path().exists() => format!("@{}", a.path().strip_prefix(&self.cfg.root).unwrap_or(a.path()).display()),
-                // The file of a red chip is gone: its label goes (CLAUDE-57).
-                (Some(_), _) => c.label.clone(),
-                (None, Some(ctx)) => {
-                    after.push(ctx.clone());
-                    String::new()
-                }
-                _ => String::new(),
-            };
-            text = text.replacen(&c.label, &with, 1);
-        }
-        let text = std::iter::once(text.trim().to_string()).chain(after).filter(|s| !s.is_empty()).collect::<Vec<_>>().join("\n\n");
+        let root = self.cfg.root.clone();
+        let cli_chip = |c: &Chip| match (&c.context, &c.attach) {
+            (Some(ctx), _) => format!("{}{ctx}{}", chips::OPEN, chips::CLOSE),
+            (None, Some(a)) if a.path().exists() => format!("@{}", a.path().strip_prefix(&root).unwrap_or(a.path()).display()),
+            _ => c.label.clone(),
+        };
+        let text = chips::inline(&q, &chips, cli_chip).trim().to_string();
+        let shown = chips::inline(&q, &chips, crate::app::composer::shown_chip);
         if text.is_empty() {
             return;
         }
@@ -153,7 +146,7 @@ impl App {
         let key = self.key();
         let t = self.thread(&key);
         t.sent_to_cli.push(sent);
-        t.push(Item::User(q));
+        t.push(Item::User(shown));
         t.push(Item::Info("sent to Claude Code; it queues the message while it works".into()));
         self.threads.to_end();
         self.save_drafts();

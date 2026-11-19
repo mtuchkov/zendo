@@ -17,21 +17,30 @@ pub(crate) fn kind_verb(kind: &str) -> &str {
 
 /// The shell blocks of a thread: their first row, the row after them, their command.
 pub(crate) type Blocks = Vec<(usize, usize, String)>;
+/// The chips of the messages of the user: the row, the first column, the width, and the text in
+/// the marks of the chip (CLAUDE-63).
+pub(crate) type MessageChips = Vec<(usize, u16, u16, String)>;
 
-pub(crate) fn panel_lines(app: &App, t: &Theme, w: usize) -> (Vec<Line<'static>>, Blocks, super::steps::Steps) {
+pub(crate) fn panel_lines(app: &App, t: &Theme, w: usize) -> (Vec<Line<'static>>, Blocks, super::steps::Steps, MessageChips) {
     let key = app.key();
     let dim = Style::new().fg(t.dim);
     let Some(th) = app.threads.get(&key).filter(|th| !th.items.is_empty() || th.busy.is_some()) else {
         let mut out = empty_thread(app, &app.scope(), dim, w);
         out.extend(cli_line(app, t));
-        return (out, Vec::new(), Vec::new());
+        return (out, Vec::new(), Vec::new(), Vec::new());
     };
     let mut out: Vec<Line<'static>> = Vec::new();
     let mut blocks = Blocks::new();
     let mut steps = super::steps::Steps::new();
+    let mut chips = MessageChips::new();
     for (i, it) in th.items.iter().enumerate() {
         match it {
-            Item::User(s) => out.extend(user_lines(question_of(s), t, w)),
+            Item::User(s) => {
+                let (lines, places) = user_lines_chips(question_of(s), t, w);
+                let base = out.len();
+                chips.extend(places.into_iter().map(|(r, x, w, c)| (r + base, x, w, c)));
+                out.extend(lines);
+            }
             Item::Agent(s) => {
                 let (lines, b) = agent_blocks(s, t, w);
                 let base = out.len();
@@ -54,10 +63,10 @@ pub(crate) fn panel_lines(app: &App, t: &Theme, w: usize) -> (Vec<Line<'static>>
         out.push(Line::styled(super::steps::status_line(th, start), dim));
     }
     for q in &th.queue {
-        out.extend(markdown::wrap(vec![Span::styled(format!("queued › {}", question_of(&q.question)), dim)], w, "", "         "));
+        out.extend(markdown::wrap(vec![Span::styled(format!("queued › {}", with_labels(question_of(&q.question))), dim)], w, "", "         "));
     }
     out.extend(cli_line(app, t));
-    (out, blocks, steps)
+    (out, blocks, steps, chips)
 }
 
 /// The play button of a shell block: green, at the right end of its first row (TERM-8).
@@ -117,12 +126,76 @@ pub fn question_of(s: &str) -> &str {
 
 /// A message of the user: a block of the selection color, with `›` in the accent color.
 pub fn user_lines(s: &str, t: &Theme, w: usize) -> Vec<Line<'static>> {
-    let spans = chip_spans(s, Style::new().fg(t.fg), chip_styles(t));
+    user_lines_chips(s, t, w).0
+}
+
+/// The same, and the places of its chips: each `⟦…⟧` shows as a chip with a label from its text
+/// (CLAUDE-62, CLAUDE-64).
+pub(crate) fn user_lines_chips(s: &str, t: &Theme, w: usize) -> (Vec<Line<'static>>, MessageChips) {
+    let (spans, contents) = message_spans(s, Style::new().fg(t.fg), chip_styles(t));
     let mut lines = markdown::wrap(spans, w.saturating_sub(1), " › ", "   ");
     if let Some(first) = lines.first_mut().and_then(|l| l.spans.first_mut()) {
         first.style = Style::new().fg(t.acc).add_modifier(Modifier::BOLD);
     }
-    lines.into_iter().map(|l| tint_keep(l, t.sel, w)).collect()
+    let lines: Vec<Line<'static>> = lines.into_iter().map(|l| tint_keep(l, t.sel, w)).collect();
+    let places = chip_places(&lines, t, &contents);
+    (lines, places)
+}
+
+/// The spans of a message with its chips, and the text in the marks of each chip. A label keeps
+/// its words together, so that the wrap does not cut a chip between words.
+fn message_spans(text: &str, base: Style, chip: [Style; 3]) -> (Vec<Span<'static>>, Vec<String>) {
+    let chars: Vec<char> = text.chars().collect();
+    let (mut out, mut contents, mut at) = (Vec::new(), Vec::new(), 0);
+    for (a, b) in crate::app::chips::chip_ranges(text) {
+        if a > at {
+            out.push(Span::styled(chars[at..a].iter().collect::<String>(), base));
+        }
+        let content: String = chars[a + 1..b - 1].iter().collect();
+        let label = crate::app::chips::label_of(&content);
+        let style = if label.starts_with(crate::app::CHAT_MARK) { chip[1] } else { chip[0] };
+        out.push(Span::styled(format!(" {} ", label.replace(' ', "\u{a0}")), style));
+        contents.push(content);
+        at = b;
+    }
+    if at < chars.len() {
+        out.push(Span::styled(chars[at..].iter().collect::<String>(), base));
+    }
+    (out, contents)
+}
+
+/// The places of the chips in the wrapped lines of a message: a chip starts with its span of one
+/// space, and each of its spans is a place of it.
+fn chip_places(lines: &[Line<'static>], t: &Theme, contents: &[String]) -> MessageChips {
+    let is_chip = |s: &Span| s.style.fg == Some(t.bg) && (s.style.bg == Some(t.acc2) || s.style.bg == Some(t.add));
+    let mut k: Option<usize> = None;
+    let mut out = MessageChips::new();
+    for (row, l) in lines.iter().enumerate() {
+        let mut x = 0u16;
+        for s in &l.spans {
+            let w = s.content.width() as u16;
+            if is_chip(s) {
+                if s.content == " " {
+                    k = Some(k.map_or(0, |k| k + 1));
+                }
+                out.extend(k.and_then(|k| contents.get(k)).map(|c| (row, x, w, c.clone())));
+            }
+            x += w;
+        }
+    }
+    out
+}
+
+/// A question with each chip as its label in marks, for one line of text.
+fn with_labels(text: &str) -> String {
+    let chars: Vec<char> = text.chars().collect();
+    let (mut out, at) = crate::app::chips::chip_ranges(text).into_iter().fold((String::new(), 0), |(mut out, at), (a, b)| {
+        out.extend(&chars[at..a]);
+        out.push_str(&format!("[{}]", crate::app::chips::label_of(&chars[a + 1..b - 1].iter().collect::<String>())));
+        (out, b)
+    });
+    out.extend(&chars[at..]);
+    out
 }
 
 /// A message of the agent: markdown on the panel. Inline code and code blocks take the color of

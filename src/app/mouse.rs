@@ -137,6 +137,9 @@ impl App {
         if let Some(label) = self.frame.chip_rects().iter().find(|(r, _)| hit(r)).map(|(_, l)| l.clone()) {
             return self.click_chip(label);
         }
+        if let Some(content) = self.frame.transcript_chips().iter().find(|(r, _)| hit(r)).map(|(_, c)| c.clone()) {
+            return self.click_message_chip(content);
+        }
         if self.frame.doc_line().is_some_and(|r| hit(&r)) {
             return self.toggle_doc();
         }

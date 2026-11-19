@@ -183,7 +183,8 @@ async fn say_here_is_a_chip_with_the_line_and_sends_a_default_question() {
     key(&mut a, KeyCode::Enter);
     until(&mut a, |a| a.threads.get(CHAT_KEY).is_some_and(|t| !t.items.is_empty())).await;
     let asked = a.threads[CHAT_KEY].items.iter().find_map(|i| if let Item::User(s) = i { Some(s.clone()) } else { None }).unwrap();
-    assert_eq!(asked, format!("⟦write here :3⟧ {}", zendo::app::SAY_HERE));
+    // The transcript keeps the label of the chip and its text (CLAUDE-62).
+    assert!(asked.starts_with("⟦write here :3\u{2063}") && asked.ends_with(&format!("⟧ {}", zendo::app::SAY_HERE)), "{asked}");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -359,5 +360,55 @@ async fn a_pasted_image_gets_its_name_from_the_name_model() {
     a.attach_pasted_image(png);
     assert!(a.link.no_image_waits(), "no question without images");
     assert!(a.composer().input().text().ends_with("⟦Image #1⟧ "), "{}", a.composer().input().text());
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// CLAUDE-59, CLAUDE-61: a text chip goes at its place in the question, as `⟦` and its text with
+// the line of its source; the marks in the pasted text are escaped.
+#[tokio::test]
+async fn a_text_chip_goes_at_its_place_in_brackets() {
+    let root = repo("chat-chip-inline", &files());
+    let mut a = app(&root);
+    a.open_panel();
+    a.focus = Focus::Claude;
+    typ(&mut a, "before ");
+    a.on_paste("one ⟦x⟧\ntwo\n".into());
+    let answer = ask(&mut a, "after").await;
+    assert!(answer.contains("before ⟦Text that the user pasted:\n> one \\⟦x\\⟧\n> two⟧ after"), "{answer}");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// CLAUDE-60: a chip that brings only a file goes as its label, with the file attached.
+#[tokio::test]
+async fn a_file_chip_goes_as_its_label_with_the_file() {
+    let root = repo("chat-chip-file", &files());
+    let mut a = app(&root);
+    a.open_panel();
+    a.focus = Focus::Claude;
+    a.on_paste(root.join(B).display().to_string());
+    let answer = ask(&mut a, "what is in it").await;
+    assert!(answer.contains("⟦otes/2026-11-12⟧ what is in it") && answer.contains("file link") && answer.contains("2026-11-12-b.md"), "{answer}");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+// CLAUDE-61: the marks in a pasted text, and in a text that the user adds to the chat, are
+// escaped; an escaped mark is text, not a chip.
+#[tokio::test]
+async fn marks_in_a_pasted_or_added_text_are_escaped() {
+    let root = repo("chat-escapes", &[(A, "# A\n\nThe ⟦y⟧ mark\n")]);
+    let mut a = app(&root);
+    a.open_file(root.join(A));
+    a.open_panel();
+    a.focus = Focus::Claude;
+    a.on_paste("a ⟦b⟧".into());
+    assert_eq!(a.composer().input().text(), "a \\⟦b\\⟧");
+    assert!(a.composer().chips().is_empty() && zendo::app::chips::chip_ranges(&a.composer().input().text()).is_empty(), "an escaped mark is no chip");
+    a.focus = Focus::Note;
+    draw(&mut a, 120, 30);
+    a.reader.to_row(a.frame.read_text().iter().position(|r| r.starts_with("The ")).unwrap());
+    a.on_key(KeyEvent::new(KeyCode::Char('a'), KeyModifiers::ALT));
+    let chip = a.composer().chips().last().cloned().expect("a chip of the line");
+    assert!(chip.context.as_deref().is_some_and(|c| c.contains("> The \\⟦y\\⟧ mark")), "{chip:?}");
+    assert!(!chip.label.contains('⟦') || chip.label.matches('⟦').count() == 1, "the label has no mark of its own: {}", chip.label);
     let _ = std::fs::remove_dir_all(&root);
 }

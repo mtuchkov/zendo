@@ -68,7 +68,12 @@ impl App {
     /// Ask in the one chat thread. `scope` is what the question is about: a file key, the new
     /// note, or all notes.
     pub fn ask(&mut self, question: String, scope: String) {
-        let question = question.trim().to_string();
+        self.ask_question(Question { shown: question.clone(), text: question }, scope);
+    }
+
+    /// A question as the transcript shows it and as it goes to the agent (CLAUDE-59, CLAUDE-62).
+    pub(crate) fn ask_question(&mut self, q: Question, scope: String) {
+        let (shown, question) = (q.shown.trim().to_string(), q.text.trim().to_string());
         if question.is_empty() || self.cli_blocks() {
             return;
         }
@@ -89,7 +94,7 @@ impl App {
             attach.push(Attachment::File(p.clone()));
         }
         let sent = file.as_ref().map(|p| self.rel(p));
-        let out = Outgoing { question, text, attach, sent, command };
+        let out = Outgoing { question: shown, text, attach, sent, command };
         self.threads.to_end();
         match self.threads.get_mut(&key).filter(|t| t.busy.is_some()) {
             Some(t) => t.queue.push(out),
@@ -197,7 +202,8 @@ impl App {
             None if chips::paste_is_chip(s) => {
                 self.composer_mut().paste_chip(s);
             }
-            None => self.composer_mut().input_mut().type_str(s),
+            // The marks in a pasted text are text, not chips (CLAUDE-61).
+            None => self.composer_mut().input_mut().type_str(&chips::escape_marks(s)),
         }
     }
 
@@ -240,7 +246,7 @@ impl App {
             self.flash(format!("{} takes no images here: they go as file links", self.agent_label()));
         }
         let scope = self.scope();
-        self.ask(q, scope);
+        self.ask_question(q, scope);
         self.save_drafts();
     }
 
