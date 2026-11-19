@@ -1,7 +1,7 @@
 //! What the user can do on the steps of a turn (docs/zendo/interactivity.md): open a step, open
 //! its file, add its result to the question; and the output of a command (docs/zendo/activity.md).
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use std::time::Instant;

@@ -100,6 +100,10 @@ Rules:
 - Each test shall be able to run in parallel with every other test. A test shall not change state
   that tests share: the environment variables of the process, the current directory, or a path
   that another test uses. A test shall keep its files in a folder of its own.
+- The integration tests are one binary: each file of `tests/` is a module of `tests/main.rs`.
+  WHEN the agent adds a file to `tests/`, the agent shall add `mod <file>;` to `tests/main.rs`, and
+  the file shall use `use crate::common;`, not `mod common;`. The test `each_test_file_is_built`
+  fails for a file that cargo does not build. `cargo test --test integration <file>::` runs one file.
 - The agent shall verify each change with `cargo clippy --all-targets -- -D warnings && cargo nextest run && cargo test --doc`.
 - IF a test cannot run in parallel, THEN the agent shall mark it with `#[serial]` of the crate
   `serial_test`, so that it runs sequentially, and shall state the reason in a comment at the test.
@@ -118,7 +122,7 @@ Rules:
     check, a browser check and a test with real Claude are not checked.
   - WHEN a test names a requirement of a specification with the status `draft`, the check shall
     list the specification as "waits for the review of the user".
-    `cargo test --test traceability -- --nocapture` shows the list.
+    `cargo test --test integration traceability:: -- --nocapture` shows the list.
   - The number of gaps of each kind shall be equal to its number in
     `tests/traceability-baseline.toml`. WHEN the agent closes a gap, the agent shall lower the
     number in the same commit.

@@ -1,7 +1,7 @@
 //! Undo and redo in every input, with the loglets of documents in `.zendo/db.log.json`
 //! (UNDO-1 to UNDO-15).
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use zendo::app::{App, Focus, Mode};

@@ -1,7 +1,7 @@
 //! The tips (docs/zendo/tips.md): the tip menu at start, after the music question at the first
 //! start, its option, and a tip in the status bar.
 
-mod common;
+use crate::common;
 use common::rekey::{find, frame, screen};
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};

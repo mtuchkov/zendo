@@ -2,7 +2,7 @@
 //! bar or of the help makes it a button, a click on the button opens the key float, and the next
 //! key goes to the keymap file.
 
-mod common;
+use crate::common;
 use common::rekey::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use zendo::keys::{Key, Pane};

@@ -1,7 +1,7 @@
 //! The suggestions of the light model in the key float (docs/zendo/panes/key-hints.md, ADR 0013):
 //! `haiku` with low effort through a mock `claude -p`, without a wait for the user.
 
-mod common;
+use crate::common;
 use common::claude::{MockClaude, mock_claude, mock_claude_with};
 use common::rekey::*;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};

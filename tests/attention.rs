@@ -1,7 +1,7 @@
 //! The attention of the user (docs/zendo/attention.md): the bell and the blinking button when the turn
 //! of an agent session or the command of a terminal ends, and the sound button.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;

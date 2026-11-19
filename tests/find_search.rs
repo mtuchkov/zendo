@@ -1,7 +1,7 @@
 //! The search of the find panel: `#` for tags and requirement IDs (find-ids.md), the search off the
 //! UI thread (find-background.md), and the regex button (find-regex.md).
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use std::path::Path;

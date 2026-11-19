@@ -1,7 +1,7 @@
 //! The view of the file tree at the start (FILES-66): the structure view, whatever view the user
 //! left at the last quit.
 
-mod common;
+use crate::common;
 use common::{app, key, repo};
 use ratatui::crossterm::event::KeyCode;
 use zendo::docs::tree::View;

@@ -1,7 +1,7 @@
 //! Key hints and messages take their keys from the keymap in effect (docs/zendo/panes/keymap.md: PANES-28,
 //! PANES-29): with other keys in the config, no hint shows a default key.
 
-mod common;
+use crate::common;
 use common::*;
 use std::time::Instant;
 use zendo::app::{App, Focus, session_key};

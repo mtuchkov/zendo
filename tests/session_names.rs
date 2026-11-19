@@ -2,7 +2,7 @@
 //! which names each conversation `mock`, `stub` or `fake`, and the mock command line
 //! `zendo-mock-cli`.
 
-mod common;
+use crate::common;
 use common::claude::{mock_claude, mock_claude_with};
 use common::*;
 use ratatui::Terminal;

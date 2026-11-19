@@ -1,7 +1,7 @@
 //! The history of the messages of the user: per zendo session, the common history after `ctrl-n`,
 //! and `up` and `down` in the chat input (docs/zendo/chat-history.md).
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::KeyCode;
 use zendo::app::{App, Focus};

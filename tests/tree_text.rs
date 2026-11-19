@@ -1,6 +1,6 @@
 //! The text view of the file tree, and a code file in the note pane.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;

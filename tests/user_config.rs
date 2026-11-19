@@ -1,7 +1,7 @@
 //! The config file of the user that the app reads and writes: the file that `Config` names, not
 //! the `~/.zendo/config.toml` of the user who runs the tests (AGENTS.md, Tests).
 
-mod common;
+use crate::common;
 use common::*;
 use zendo::app::{App, Config};
 

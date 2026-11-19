@@ -1,7 +1,7 @@
 //! Find modes (docs/zendo/find-modes.md): Notes, Docs, Code and All; `tab` and `shift-tab`; the mode
 //! row; the global `/`.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;

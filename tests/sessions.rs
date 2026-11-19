@@ -1,7 +1,7 @@
 //! Claude Code sessions in terminals that zendo owns (docs/zendo/sessions.md), with the mock command
 //! line `zendo-mock-cli` in the place of `claude`.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::time::{Duration, Instant};

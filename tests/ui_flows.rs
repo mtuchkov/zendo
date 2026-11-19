@@ -1,6 +1,6 @@
 //! Flows of the file tree, the chat and the note pane, through keys and a test terminal.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use zendo::agent::Event;

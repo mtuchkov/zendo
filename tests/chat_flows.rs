@@ -1,7 +1,7 @@
 //! Flows of the chat: one thread for every file, the file that goes with a question, slash
 //! commands, and the keys of the chat input.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use zendo::app::{App, CHAT_KEY, Focus, Item};

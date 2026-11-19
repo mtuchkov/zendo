@@ -1,7 +1,7 @@
 //! A click in a pane moves the focus and the keys there, as `tab` does (PANES-46); a click off a
 //! panel that stands over the screen closes it, as `esc` does (PANES-47).
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::layout::Rect;

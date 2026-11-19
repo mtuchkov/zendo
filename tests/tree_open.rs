@@ -1,6 +1,6 @@
 //! A file that the user opens from the file tree works like a note: read, write, and Claude.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::KeyCode;
 use std::path::Path;

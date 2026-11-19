@@ -1,7 +1,7 @@
 //! The update suggestion (docs/zendo/cli/upgrade.md): a newer zendo shows as a message and an
 //! upgrade button in the top line, not as a key.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use zendo::app::App;

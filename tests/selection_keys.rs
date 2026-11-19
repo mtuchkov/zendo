@@ -1,7 +1,7 @@
 //! The keys of `[selection]`: while text is selected where the user writes, `c` copies and `x`
 //! cuts (PANES-37, PANES-38, PANES-39).
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use zendo::app::{Focus, Mode};

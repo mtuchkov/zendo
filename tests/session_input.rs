@@ -1,7 +1,7 @@
 //! The chat input of each agent session (ADR 0011): its own text and chips, kept across a switch
 //! and a restart; a chip whose file is gone is red and goes without its file.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;

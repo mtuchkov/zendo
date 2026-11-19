@@ -1,7 +1,7 @@
 //! The branch of the context in the top line and in the float (FILES-59 to FILES-65), in a real git
 //! repository on `main` with a worktree on the branch `agent` for agent session 1.
 
-mod common;
+use crate::common;
 use common::{app, draw, key};
 use ratatui::crossterm::event::KeyCode;
 use std::path::{Path, PathBuf};

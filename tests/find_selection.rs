@@ -1,7 +1,7 @@
 //! Find with the selection (docs/zendo/find.md, FIND-19, FIND-20): `/` in read mode and `alt-/` put
 //! the selected text in the query, each line break as `⏎`, and the query finds the text across lines.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::path::{Path, PathBuf};

@@ -2,7 +2,7 @@
 //! recent files, with a query the files by path and then by text; the preview shows the selection.
 //! The search in the text runs on a worker: `settle_find` waits for it.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::path::{Path, PathBuf};

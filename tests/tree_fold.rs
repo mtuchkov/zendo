@@ -1,7 +1,7 @@
 //! The folders of the file tree: closed at the start, `[+]` and `[-]` in its head, and the open
 //! document that the tree follows.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use zendo::app::{App, Focus};

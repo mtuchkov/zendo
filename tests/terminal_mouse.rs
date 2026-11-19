@@ -1,7 +1,7 @@
 //! The mouse in a terminal (docs/zendo/terminal/terminal-mouse.md): the wheel and the selection, in the chat
 //! pane and on the full screen, with `/bin/sh` as the shell.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use std::time::{Duration, Instant};

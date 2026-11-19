@@ -1,7 +1,7 @@
 //! `ctrl-o` while the chat answers (docs/zendo/handoff.md): the waiting session view, the stop, and
 //! the start of Claude Code, with the mock agent and the mock command line `zendo-mock-cli`.
 
-mod common;
+use crate::common;
 use common::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::time::{Duration, Instant};

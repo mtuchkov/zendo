@@ -1,7 +1,7 @@
 //! The activity of the agent in the chat (docs/zendo/activity.md): the status line with the step
 //! that runs, the time since the last news, and the failed steps.
 
-mod common;
+use crate::common;
 use common::*;
 use std::time::{Duration, Instant};
 use zendo::agent::{Event, ToolInfo, ToolState};
