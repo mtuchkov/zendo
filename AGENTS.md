@@ -100,8 +100,12 @@ Rules:
 - Each test shall be able to run in parallel with every other test. A test shall not change state
   that tests share: the environment variables of the process, the current directory, or a path
   that another test uses. A test shall keep its files in a folder of its own.
+- The agent shall verify each change with `cargo clippy --all-targets -- -D warnings && cargo nextest run && cargo test --doc`.
 - IF a test cannot run in parallel, THEN the agent shall mark it with `#[serial]` of the crate
   `serial_test`, so that it runs sequentially, and shall state the reason in a comment at the test.
+  IF it shares state outside its process (a file, a port, the processes of the system), THEN the
+  agent shall use `#[file_serial]` (feature `file_locks`): nextest runs each test in a process of
+  its own, where `#[serial]` has no effect.
 - Each test that writes files or changes shared state, parallel or sequential, shall start with a
   setup step that removes what an interrupted earlier run of the test left behind.
 - `tests/traceability.rs` checks the links between the specifications in `docs/zendo` and the tests,
