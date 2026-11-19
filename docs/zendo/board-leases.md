@@ -36,7 +36,9 @@ the last renewal shows that gap.
 on it: the owner is dead, and the post goes to the history with the tombstone and the session that
 set it. While the lease is live, `tombstone` is refused. A tombstone is final: when the holder lives
 again, as after a restart, zendo does not renew that post, and the next question of the author tells
-it that its post was tombstoned and by whom. The author posts again if it still holds the resource.
+it that its post was tombstoned and by whom. The author posts again if it still holds the resource. The session that sets a tombstone decides
+alone how old the expired lease must be, and a post has no end time of its own: its lease is the
+only clock.
 
 ## Architecturally significant requirements
 
@@ -86,10 +88,3 @@ folder of the test.
 Tests of the detailed requirements: `a_post_without_a_known_process_renews` (BOARD-18) in
 `tests/board.rs`; a unit test of the journal for a renewal and a tombstone at the same time
 (BOARD-34). BOARD-30 and BOARD-35 have their tests above.
-
-## Open points
-
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| Can the author give a post an end time, such as "until 18:00", after which the lease expires? | BOARD-31 | User |
-| Does a tombstone need a minimum age of the expired lease, or does the session that sets it decide alone? | BOARD-33 | User |

@@ -64,9 +64,3 @@ folder of the test.
 Tests of the detailed requirements: `release_moves_a_post_to_the_history` (BOARD-15) and
 `two_posts_on_one_resource_both_show` (BOARD-16) in `tests/board.rs`; unit tests of the tool
 `posts` in `src/mcp/` (BOARD-19). BOARD-17 has its test above.
-
-## Open points
-
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| How long does the history keep a post? | BOARD-15, BOARD-19 | User |

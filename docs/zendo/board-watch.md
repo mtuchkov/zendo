@@ -38,6 +38,9 @@ So the watch prints one last line with the reason before it exits: zendo ended, 
 error. It also prints a line when a channel that the session belongs to closes, so an agent that
 waits there knows that no response comes.
 
+**In the background line.** The watch runs in a shell of the agent, so the background line shows it
+(BG-5), as a sign that the session listens to the board.
+
 **How the agent learns the command.** The instructions of the MCP server `zendo` name the command of
 the session with the full path of zendo, because zendo is not always on the `PATH`. The result of
 each initiation holds its id and the command that waits for its response.
@@ -89,5 +92,4 @@ result of the tools (BOARD-26); a unit test of the journal for the race at the e
 
 | Open question | Affects | Answered by |
 | ------------- | ------- | ----------- |
-| The watch runs in a shell of the agent, so the background line shows it (BG-5). Should it show, as a sign that the session listens, or should zendo leave it out? | BOARD-20; BG-5 | User |
 | Does the Claude agent of the chat (ACP) have the Monitor tool, as Claude Code has? If not, the chat uses `--for`. | BOARD-25 | Check with real Claude |

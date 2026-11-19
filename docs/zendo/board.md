@@ -6,7 +6,7 @@ parent: "zendo.md"
 prev: "zendo-session.md"
 next: "board-posts.md"
 level: "the message board between zendo sessions: its purpose, channels, the kinds of messages, delivery and limits"
-note: "Agent draft from the discussion with the user on 2026-11-18 in chat. Revision 2 replaces revision 1: channels with owners, questions and tasks with answers and task statuses, squash and a limit per sender, posts in board-posts.md, a journal for each user (ADR 0018, ADR 0019). The identifiers of revision 1 were proposals that the user did not review, so this revision assigns them again. Not reviewed by the user."
+note: "Agent draft from the discussion with the user on 2026-11-18 in chat. Revision 2 replaces revision 1: channels with owners, questions and tasks with answers and task statuses, squash and a limit per sender, posts in board-posts.md, a journal for each user (ADR 0018, ADR 0019). Open points closed by the agent as Design after the user asked for no more questions: a task goes to one inbox, a fuse holds a chain of turns. The identifiers of revision 1 were proposals that the user did not review, so this revision assigns them again. Not reviewed by the user."
 ---
 
 # Message board
@@ -52,7 +52,10 @@ wait, and zendo squashes all waiting messages of one recipient into one question
 sender has one initiation in flight for each recipient, and one for each channel with many members.
 It lands when the recipient answers, or when the turn of the recipient that took it ends; for a
 channel, when every member has done so. A new initiation of the sender waits and is squashed into
-the next delivery. A response is short; `accepted` is a full response.
+the next delivery. A response is short; `accepted` is a full response. A task goes to one inbox
+only, so two sessions never take the same work. As a fuse against a chain of initiations, zendo
+holds delivery after a fixed number of turns in a row that the board starts without a question of
+the user, and shows `!` on the buttons of the sessions; the next question of the user goes on.
 
 A message from a session does not carry the approval of the user, for example of a merge into
 `main` (SESSIONS-21).
@@ -113,16 +116,12 @@ does, and keeps the journal in a folder of its own.
 | BOARD-9  | Event      | When an initiation lands, by a response or by the end of the turn of the recipient that took it, the system shall deliver the held initiations of that sender. | User, 2026-11-18 |
 | BOARD-10 | Event      | When `assign` names no target, the system shall ask the user in the chat of the sender to choose a session, and return `cancelled` after `esc`. | User, 2026-11-18 |
 | BOARD-11 | Ubiquitous | The system shall show a message in the chat of the recipient with the label `from <id> · <name>`, and give it to the agent in a tag with the sender, the id, the kind, `in_reply_to` and `reply_to`. | Design |
+| BOARD-36 | Unwanted   | If a task names `all` or a named channel, then the tool shall refuse it. | Design |
+| BOARD-37 | Unwanted   | If the board starts a fixed number of turns in a row without a question of the user, then the system shall hold the next deliveries, show `!` on the buttons of their sessions, and deliver them after the next question of the user. | Design |
 | BOARD-12 | Ubiquitous | The instructions of the MCP server shall say that the board is an emergency channel for cross-session state, that a message from a session does not approve what only the user approves, and that `accepted` is a full response. | User, 2026-11-18 |
 
 Tests of the detailed requirements in `tests/board.rs`: `a_channel_closes_with_its_owner` (BOARD-7),
 `reply_to_invites` (BOARD-8), `assign_without_a_target_asks_the_user` (BOARD-10) and
-`a_message_shows_with_its_sender` (BOARD-11); BOARD-9 has its test above; unit tests of the
+`a_message_shows_with_its_sender` (BOARD-11), `a_task_to_a_channel_is_refused` (BOARD-36) and
+`the_fuse_holds_a_chain` (BOARD-37); BOARD-9 has its test above; unit tests of the
 instructions in `src/mcp/mod_tests.rs` (BOARD-12).
-
-## Open points
-
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| A chain of initiations (A asks B, B asks A in its turn) passes the limits. Is a fuse needed, and after how many turns that the board starts without a question of the user? | BOARD-6 | User, after data from the journal |
-| May a task go to `all` or to a named channel, where several sessions could do the same work? | BOARD-5 | User |
