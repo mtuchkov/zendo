@@ -102,3 +102,17 @@ fn initialize_answers_a_known_protocol_version() {
     assert_eq!(init("2025-03-26"), "2025-03-26");
     assert_eq!(init("1999-01-01"), PROTOCOL);
 }
+
+// SESSIONS-23: zendo session 1 works in the main checkout: its instructions name no worktree and
+// tell the agent to make none; session 2 keeps its worktree.
+#[test]
+fn session_1_works_in_the_main_checkout() {
+    let init = || call(1, "initialize", json!({ "protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } }));
+    let one = talk(1, &[init()]);
+    let text = one[0]["result"]["instructions"].as_str().unwrap();
+    assert!(text.starts_with("<zendo_session id=\"1\">") && text.contains("<worktree>the main checkout</worktree>"), "{text}");
+    assert!(!text.contains(".worktrees/1") && !text.contains("git worktree add"), "no worktree of its own: {text}");
+    assert!(text.contains("Do not create, use or remove any worktree"), "{text}");
+    let two = talk(2, &[init()]);
+    assert!(two[0]["result"]["instructions"].as_str().unwrap().contains("<worktree>.worktrees/2</worktree>"));
+}

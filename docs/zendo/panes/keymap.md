@@ -6,7 +6,7 @@ parent: "panes.md"
 prev: "selection.md"
 next: "text-input/text-input.md"
 level: "where the keys of zendo come from, and how the status bar and the help show them"
-note: "Agent draft, split from panes.md on 2026-11-14; no requirement changed. On 2026-11-17 the user changed PANES-18: a key for each frequently used action, not for every action; on 2026-11-18, frequent by the usage counts from real use, and every key in the keymap except `esc` (PANES-48); the user approved PANES-18 and PANES-48 on 2026-11-18; PANES-49 from the request of the user on 2026-11-18, not reviewed. The other requirements are not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Agent draft, split from panes.md on 2026-11-14; no requirement changed. On 2026-11-17 the user changed PANES-18: a key for each frequently used action, not for every action; on 2026-11-18, frequent by the usage counts from real use, and every key in the keymap except `esc` (PANES-48); the user approved PANES-18 and PANES-48 on 2026-11-18; PANES-49 from the request of the user on 2026-11-18, changed by the user on the same day: the status bar is one line in the root layout, not reviewed. The other requirements are not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Keys, hints and help
@@ -21,7 +21,8 @@ prints the default file, so that the user can start a keymap of their own from i
 user what it does not understand in a keymap, and keeps the default keys.
 
 **Hints.** The status bar shows the key of the help first, then the key hints of the pane or mode,
-and its right side whole. On a small screen, a message goes to a line below the status bar. Each hint, message and help text shows the key of the keymap in effect.
+and its right side whole. The status bar is one line of the root layout: its height is the same in
+every pane and mode, and the question of a file takes its line while it is open. Each hint, message and help text shows the key of the keymap in effect.
 An action without a key gets no hint.
 
 **Help.** `alt-?` (or `f1`, and `?` in read mode) shows the keys of the pane in focus, or of the
@@ -46,7 +47,7 @@ tree are in the keymap too. Only `esc` is fixed: it leaves a mode, a float or a 
 | PANES-29 | Unwanted   | If an action has no key in the keymap in effect, then the system shall show no hint for that action. | User, 2026-11-13 |
 | PANES-26 | Ubiquitous | The system shall show the key of the help first in the status bar, in every pane and mode.                                          | User, 2026-11-12 |
 | PANES-27 | Ubiquitous | The system shall show the right side of the status bar whole: the last key hints give way to it, and the key of the help stays.     | User, 2026-11-12 |
-| PANES-49 | Unwanted   | If the key hints and a message do not fit together in the status bar, then the system shall show the message in a line below the status bar, and the key hints shall keep the status bar. | User, 2026-11-18 |
+| PANES-49 | Ubiquitous | The system shall show the status bar in one line of the root layout, the last row of the screen, with the same height in every pane and mode; a message, the tip and the question of a file shall not add a line. | User, 2026-11-18 |
 | PANES-33 | State      | While the chat pane has the focus, the system shall name it `CHAT` in the badge of the status bar, and `SHELL` while a shell terminal shows in the chat pane. | User, 2026-11-13 |
 | PANES-16 | Event      | When the user presses `alt-?` or `f1` in any pane or mode, the system shall show the keys of the pane in focus, or of the mode, and the global keys. | User, 2026-11-12 |
 | PANES-30 | Ubiquitous | The system shall show the actions of each pane in groups, in the help and in the default keymap file: navigation, text selection, editing, features, sessions and terminals, panes and view, zendo. | User, 2026-11-13 |
@@ -56,7 +57,8 @@ tree are in the keymap too. Only `esc` is fixed: it leaves a mode, a float or a 
 Tests that verify detailed requirements: `the_default_keymap_file_names_every_action` (PANES-17),
 `a_user_keymap_file_then_the_config_change_keys`, `zendo_keymap_prints_the_default_keymap` (PANES-17,
 PANES-23), `a_key_of_two_actions_is_a_problem` (PANES-24), `without_the_kitty_protocol_ctrl_hjkl_select`
-(PANES-25), `the_status_bar_asks_for_zendo_init_without_a_structure_file` (PANES-27), the tests of
+(PANES-25), `the_status_bar_asks_for_zendo_init_without_a_structure_file` (PANES-27),
+`the_status_bar_is_one_line_in_every_pane` (PANES-49), the tests of
 `tests/keymap_hints.rs` (PANES-28, PANES-29),
 `the_keymap_file_groups_the_actions_as_the_help_does` and `each_group_of_a_pane_has_one_place`
 (PANES-30), `the_help_shows_groups_the_keymap_file_and_the_version` (PANES-30, PANES-31),

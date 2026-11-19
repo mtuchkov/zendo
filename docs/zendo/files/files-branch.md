@@ -13,8 +13,8 @@ note: "Agent draft from the request of the user on 2026-11-17: the branch name i
 Parent: [File tree](files.md). Before: [The last document of a session](files-session-doc.md).
 
 The top line shows the name of a git branch (ATTN-7). zendo has more than one checkout: the main
-checkout, the worktree of each agent session, `.worktrees/<id>` (SESSIONS-21 in
-[Sessions](../sessions.md)), and a notes repo outside the repository (NOTESREP-1). One name for the
+checkout, which agent session 1 uses (SESSIONS-23), the worktree of each later agent session,
+`.worktrees/<id>` (SESSIONS-21 in [Sessions](../sessions.md)), and a notes repo outside the repository (NOTESREP-1). One name for the
 whole app does not say which checkout the user looks at. So the branch follows the context:
 
 - **The session.** By default, the top line names the branch of the checkout of the active agent

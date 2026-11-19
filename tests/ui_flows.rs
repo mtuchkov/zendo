@@ -28,7 +28,7 @@ fn in_tree(root: &std::path::Path, rel: &str) -> zendo::app::App {
     a
 }
 
-// FILES-14, FILES-16: `m` asks for a folder on a line under the status bar, and moves the file.
+// FILES-14, FILES-16: `m` asks for a folder in the line of the status bar, and moves the file.
 #[test]
 fn m_moves_a_file_to_a_folder() {
     let root = repo("flow-move", &files());

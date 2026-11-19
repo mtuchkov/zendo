@@ -42,6 +42,10 @@ fn draw_tree_body(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, inner
             View::Text => "No text files.".to_string(),
             View::Docs => format!("No .md files under a docs folder.{}", app.keys.key(crate::keys::Pane::Tree, "view").map(|k| format!(" Press {k} to show all.")).unwrap_or_default()),
             View::Structure => "No main materials. Mark entries with main = true in project-structure.toml.".to_string(),
+            // SESSIONS-23: agent session 1 works in the main checkout.
+            View::Worktree | View::WorktreeChanged if app.files.tree().worktree.is_none() && app.state.session == 0 => {
+                "Agent session 1 works in the main checkout: it has no worktree.".to_string()
+            }
             // FILES-31: the agent makes its worktree when it changes code the first time.
             View::Worktree | View::WorktreeChanged if app.files.tree().worktree.is_none() => {
                 format!("Agent session {} has no worktree yet: .worktrees/{} comes when its agent changes code.", app.state.session + 1, app.state.session + 1)
