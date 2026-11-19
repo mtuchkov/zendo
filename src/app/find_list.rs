@@ -100,7 +100,7 @@ impl App {
         let open = self.files.current();
         let row = |path: PathBuf, i: usize, at| Row { path, key: (0, i, Reverse(0)), at, snippets: Vec::new() };
         let recent = self.state.recent.iter().enumerate().map(|(i, o)| (self.cfg.root.join(&o.path), i, o.at));
-        let recent = recent.filter(|(p, _, _)| Some(p) != open && p.exists()).map(|(p, i, at)| {
+        let recent = recent.filter(|(p, _, _)| Some(p) != open && self.facts.exists(p)).map(|(p, i, at)| {
             let kind = self.find_kind(&p);
             let modes = if kind == FindMode::Notes { vec![FindMode::All] } else { vec![kind, FindMode::All] };
             (modes, row(p, i, Some(at)))

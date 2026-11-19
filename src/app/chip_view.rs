@@ -134,7 +134,7 @@ impl App {
     fn open_source(&mut self, name: String, attach: Option<Attachment>, context: Option<String>) {
         let style = usize::from(name.starts_with(CHAT_MARK));
         let lines = match (&attach, &context) {
-            (Some(a), _) if !a.path().exists() => return self.chip_error(name, format!("{} is gone", a.path().display())),
+            (Some(a), _) if !self.facts.exists(a.path()) => return self.chip_error(name, format!("{} is gone", a.path().display())),
             (Some(Attachment::Image(p)), _) => return self.open_outside(name, p),
             (Some(a), _) => match text_of(a.path()) {
                 Ok(Some(t)) => t.lines().map(|l| (l.to_string(), false)).collect(),

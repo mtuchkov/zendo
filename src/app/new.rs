@@ -40,17 +40,7 @@ impl App {
         for config in [&mut app.attention.config, &mut app.music.config, &mut app.tips.config, &mut app.rekey.config] {
             config.clone_from(&app.cfg.user_config);
         }
-        // `.zendo` and its `.gitignore` before the first frame (IO-7): the writer then writes there.
-        let zendo_dir = crate::setup::state::dir(&app.cfg.root);
-        if std::fs::create_dir_all(&zendo_dir).is_ok() {
-            crate::setup::state::ignore(&zendo_dir);
-        }
-        // The worktrees of the sessions, before the first frame (IO-7); then a worker keeps them.
-        for n in 1..SESSIONS {
-            let git = app.cfg.root.join(crate::docs::tree::worktree::rel(n)).join(".git");
-            let there = git.exists();
-            app.facts.exists.put(git, there);
-        }
+        app.seed_facts();
         app.link.start_api(api);
         app.rekey.api = hints.map(|a| crate::agent::api::Api { effort: Some("low".into()), ..a });
         // The chat input of each session, as the user left it (CLAUDE-45).
@@ -68,5 +58,28 @@ impl App {
             }
         }
         Ok(app)
+    }
+
+    /// Before the first frame (IO-7): `.zendo` and its `.gitignore`, the prompt of the user, and
+    /// the checkouts that the memos then keep fresh.
+    fn seed_facts(&mut self) {
+        // `.zendo` and its `.gitignore` before the first frame (IO-7): the writer then writes there.
+        let zendo_dir = crate::setup::state::dir(&self.cfg.root);
+        if std::fs::create_dir_all(&zendo_dir).is_ok() {
+            crate::setup::state::ignore(&zendo_dir);
+        }
+        // The prompt of the user and whether the root is a repository, before the first frame (IO-7).
+        let prompt = zendo_dir.join("prompt.md");
+        let text = std::fs::read_to_string(&prompt).ok();
+        self.facts.text.put(prompt, text);
+        let git = self.cfg.root.join(".git");
+        let there = git.exists();
+        self.facts.exists.put(git, there);
+        // The worktrees of the sessions, before the first frame (IO-7); then a worker keeps them.
+        for n in 1..SESSIONS {
+            let git = self.cfg.root.join(crate::docs::tree::worktree::rel(n)).join(".git");
+            let there = git.exists();
+            self.facts.exists.put(git, there);
+        }
     }
 }

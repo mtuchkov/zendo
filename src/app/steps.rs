@@ -42,7 +42,7 @@ impl App {
             return;
         };
         let path = self.cfg.root.join(&place);
-        if !path.is_file() {
+        if self.files.tree().is_file.get(&path) == Some(false) {
             return self.flash(format!("{place} is not a file here"));
         }
         self.open_file(path);

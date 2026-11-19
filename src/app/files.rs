@@ -61,6 +61,11 @@ impl App {
     pub fn tick(&mut self) {
         let mut c = crate::worker::Clock::start("tick");
         c.time("poll_tasks", || self.poll_tasks());
+        // The memos keep the prompt and the recent files fresh while they are asked (IO-1).
+        let _ = self.prompt();
+        for o in &self.state.recent {
+            let _ = self.facts.exists(&self.cfg.root.join(&o.path));
+        }
         c.time("poll_find", || self.poll_find());
         c.time("music_tick", || self.music_tick());
         c.time("tips_tick", || self.tips_tick());

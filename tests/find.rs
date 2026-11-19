@@ -156,6 +156,9 @@ async fn a_deleted_file_is_not_recent() {
     open(&mut a, &root, B);
     open(&mut a, &root, C);
     std::fs::remove_file(root.join(A)).unwrap();
+    // A tick asks for the recent files; the memo learns that A is gone (IO-1).
+    a.tick();
+    a.settle_facts();
     alt(&mut a, '/');
     assert_eq!(listed(&a, &root), vec![B]);
     let _ = std::fs::remove_dir_all(&root);

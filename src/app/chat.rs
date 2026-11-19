@@ -130,7 +130,7 @@ impl App {
     fn prompt_text(&mut self, question: &str, scope: &str, key: &str) -> (String, Option<PathBuf>) {
         let mut text = String::new();
         if !self.threads.get(key).is_some_and(|t| t.primed) {
-            text.push_str(&state::prompt(&self.cfg.root));
+            text.push_str(&self.prompt());
             text.push_str("\n\n");
         }
         let mut file = None;
@@ -138,7 +138,7 @@ impl App {
             text.push_str(&format!("Notes folder: {}\nSearch across all notes in that folder.\n", self.cfg.notes_dir.display()));
         } else if self.doc_line() == Some(false) {
             // The user unselected the open document: nothing of it goes (CLAUDE-55).
-        } else if self.files.current().is_some_and(|p| !p.exists()) {
+        } else if self.files.current().is_some_and(|p| !self.facts.exists(p)) {
             // No version of the document in this session: no note file (FILES-40).
         } else if let Some(p) = self.files.current().map(|p| self.session_path(p)).filter(|_| scope != NEW_KEY) {
             let rel = self.rel(&p);
@@ -274,7 +274,8 @@ impl App {
 
     /// Send the chat input: the chips in it bring their text as context.
     pub(crate) fn send_input(&mut self) {
-        let q = self.composer_mut().take_question();
+        let facts = &self.facts;
+        let q = self.chat.composer_mut(self.state.session).take_question_with(|p| facts.exists(p));
         if !self.link.images() && self.composer().sends_image() {
             self.flash(format!("{} takes no images here: they go as file links", self.agent_label()));
         }

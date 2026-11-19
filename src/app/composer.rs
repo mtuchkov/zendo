@@ -215,9 +215,14 @@ impl Composer {
     /// to the attachments. Only chips, or nothing, with a context: the default question goes after
     /// the chips.
     pub fn take_question(&mut self) -> Question {
+        self.take_question_with(std::path::Path::exists)
+    }
+
+    /// `take_question` where `exists` says which files are there: the app asks a memo (IO-1).
+    pub fn take_question_with(&mut self, exists: impl Fn(&std::path::Path) -> bool) -> Question {
         let (q, chips) = self.take_message();
         // The file of a red chip is gone: the label goes without it (CLAUDE-57).
-        self.attach = chips.iter().filter_map(|c| c.attach.clone()).filter(|a| a.path().exists()).collect();
+        self.attach = chips.iter().filter_map(|c| c.attach.clone()).filter(|a| exists(a.path())).collect();
         let (mut shown, mut text) = (chips::inline(&q, &chips, shown_chip), chips::inline(&q, &chips, sent_chip));
         let bare = chips::chip_ranges(&q).into_iter().rev().fold(q.clone(), |t, (a, b)| t.chars().take(a).chain(t.chars().skip(b)).collect());
         if bare.trim().is_empty() && (self.context.is_some() || chips.iter().any(|c| c.context.is_some())) {

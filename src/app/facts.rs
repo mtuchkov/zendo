@@ -18,6 +18,8 @@ pub struct Facts {
     pub exists: Memo<PathBuf, bool>,
     /// A stamp of a file that changes when the file changes; None when it is not there.
     pub stamp: Memo<PathBuf, Option<u64>>,
+    /// The text of a small file of zendo, such as `.zendo/prompt.md`; None when it is not there.
+    pub text: Memo<PathBuf, Option<String>>,
 }
 
 impl Default for Facts {
@@ -34,6 +36,7 @@ impl Facts {
             branch: Memo::new(|p: &PathBuf| crate::docs::notes::git_branch(p), Duration::from_secs(1)),
             exists: Memo::new(|p: &PathBuf| p.exists(), Duration::from_secs(1)),
             stamp: Memo::new(|p: &PathBuf| p.exists().then(|| crate::app::composer::chip_view::stamp_of(p)), Duration::from_secs(1)),
+            text: Memo::new(|p: &PathBuf| std::fs::read_to_string(p).ok(), Duration::from_secs(1)),
         }
     }
 
@@ -44,12 +47,13 @@ impl Facts {
         self.branch.set_every(d);
         self.exists.set_every(d);
         self.stamp.set_every(d);
+        self.text.set_every(d);
     }
 
     /// For tests: wait at most 2 s until each worker ended two more rounds, so that each value
     /// that a frame asked for is known and fresh.
     pub fn settle(&self) {
-        let rounds = || [self.head.rounds(), self.branch.rounds(), self.exists.rounds(), self.stamp.rounds()];
+        let rounds = || [self.head.rounds(), self.branch.rounds(), self.exists.rounds(), self.stamp.rounds(), self.text.rounds()];
         let start = rounds();
         let end = std::time::Instant::now() + Duration::from_secs(2);
         while rounds().iter().zip(start).any(|(now, then)| *now < then + 2) && std::time::Instant::now() < end {
@@ -99,6 +103,13 @@ impl App {
         while self.files.tree().is_file.rounds() < tree + 2 && std::time::Instant::now() < end {
             std::thread::sleep(Duration::from_millis(1));
         }
+    }
+
+    /// The prompt of the questions: `.zendo/prompt.md`, else the default (IO-1). The start reads it
+    /// (IO-7), and each tick asks for it, so that the memo keeps it fresh.
+    pub fn prompt(&self) -> String {
+        let path = crate::setup::state::dir(&self.cfg.root).join("prompt.md");
+        self.facts.text.get(&path).flatten().unwrap_or_else(|| crate::setup::state::DEFAULT_PROMPT.to_string())
     }
 
     /// The worktree of agent session `n`, from the memo that the start seeded (SESSIONS-23, IO-1).

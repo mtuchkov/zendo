@@ -131,9 +131,10 @@ impl App {
         let n = self.active();
         let (q, chips) = self.composer_mut().take_message();
         let root = self.cfg.root.clone();
+        let facts = &self.facts;
         let cli_chip = |c: &Chip| match (&c.context, &c.attach) {
             (Some(ctx), _) => format!("{}{ctx}{}", chips::OPEN, chips::CLOSE),
-            (None, Some(a)) if a.path().exists() => format!("@{}", a.path().strip_prefix(&root).unwrap_or(a.path()).display()),
+            (None, Some(a)) if facts.exists(a.path()) => format!("@{}", a.path().strip_prefix(&root).unwrap_or(a.path()).display()),
             _ => c.label.clone(),
         };
         let text = chips::inline(&q, &chips, cli_chip).trim().to_string();

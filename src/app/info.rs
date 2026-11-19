@@ -4,7 +4,7 @@ use super::*;
 impl App {
     /// Fill the file tree. In a repo: the repo. Outside a repo (the home folder): only the notes.
     pub fn scan_tree(&mut self) {
-        if self.cfg.root.join(".git").exists() {
+        if self.facts.exists.get(&self.cfg.root.join(".git")) == Some(true) {
             // FILES-25: the notes of the notes repo live outside the repository.
             let notes = self.repo_notes_outside();
             // FILES-32: the worktree views show the worktree of the active agent session.

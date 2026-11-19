@@ -78,6 +78,8 @@ async fn a_red_chip_goes_without_its_file() {
     a.focus = Focus::Claude;
     a.on_paste(root.join(B).display().to_string());
     std::fs::remove_file(root.join(B)).unwrap();
+    // A frame asks for the file of the chip; the memo learns that it is gone (IO-1).
+    draw_buf(&mut a, 160, 30);
     typ(&mut a, "what is in it");
     key(&mut a, KeyCode::Enter);
     until(&mut a, |a| a.threads.get(CHAT_KEY).is_some_and(|t| t.busy.is_none() && !t.items.is_empty())).await;

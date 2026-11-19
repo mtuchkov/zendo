@@ -107,14 +107,14 @@ impl App {
     fn session_doc(&self) -> Option<(PathBuf, LastDoc)> {
         let last = self.state.session_docs.get(&self.state.session)?;
         let p = self.session_path(&self.cfg.root.join(&last.path));
-        p.exists().then(|| (p, last.clone()))
+        self.facts.exists(&p).then(|| (p, last.clone()))
     }
 
     /// A file on the screen is the last document of the active session, and in read mode the place
     /// in it too. The state file changes with a new document; the place goes to it with the next
     /// save (FILES-50, FILES-52, FILES-54).
     pub(crate) fn track_session_doc(&mut self, p: &Path) {
-        if !p.exists() {
+        if !self.facts.exists(p) {
             return;
         }
         let (doc, read) = (self.doc_key(p), self.mode == Mode::Read);
