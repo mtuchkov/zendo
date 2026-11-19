@@ -67,6 +67,10 @@ Proposal: a `PermissionRequest` hook that waits for the user, with the ACP answe
 - When the hook has answered, zendo shall drop the held ACP request.
 - If the hook ends without an answer, or the agent is not Claude, zendo shall answer the ACP
   request as ADR 0019 says.
+- For Claude Code in a terminal, the hook of CLIACT-10 shall answer a shell command the same way:
+  `Run in terminal` runs it as a watched command and answers *allow* with `zendo await <id>`
+  (ASK-16). There is no ACP request to fall back to: after the time limit of the hook, Claude Code
+  asks in its own screen.
 
 ## Consequences
 

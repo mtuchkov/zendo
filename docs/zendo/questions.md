@@ -6,22 +6,20 @@ parent: "zendo.md"
 prev: "claude.md"
 next: "threads.md"
 level: "the questions of the agent before a tool call: which ones zendo answers, the quick action in the chat, its keys, a shell command in a terminal of zendo"
-note: "Agent draft from the requests of the user on 2026-11-17. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Replaces CLAUDE-3 and CLAUDE-33. See ADR 0019. ASK-14 (a mark on a command that ran without a question) is withdrawn: the user does not want it (2026-11-17); the ID is not reused."
+note: "Agent draft from the requests of the user on 2026-11-17. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Replaces CLAUDE-3 and CLAUDE-33. See ADR 0019. ASK-14 (a mark on a command that ran without a question) is withdrawn: the user does not want it (2026-11-17); the ID is not reused. The answers of the user on 2026-11-18: `up` goes to the options first (ASK-5), and `Run in terminal` also for Claude Code (ASK-16)."
 ---
 
 # Questions of the agent
 
-Before a tool call, the agent checks its own rules. Claude Code and Codex allow reads and searches
-themselves, and ask the user before a shell command, a web request, or work outside the workspace.
-Through ACP the question comes to zendo ([Claude](claude.md)). zendo answers only edits itself, as
-the mode `acceptEdits` of Claude Code does, and gives each other question to the user. See
-[ADR 0019](../architecture/decisions/0019-questions-of-the-agent.md).
+Claude Code and Codex allow reads and searches themselves, and ask before a shell command, a web
+request, or work outside the workspace. Through ACP the question comes to zendo
+([Claude](claude.md)). zendo answers only edits itself, as `acceptEdits` does, and gives each
+other question to the user ([ADR 0019](../architecture/decisions/0019-questions-of-the-agent.md)).
 
 **What zendo allows itself.** An edit of a file within the limits of the task (STRUCT-3,
-NOTESREP-4), and a call of a tool of the MCP server `zendo`. The chat shows it as one line with the
-tool and the file, as today. zendo adds no rules of its own: each other question of the agent goes
-to the user, for example a shell command, `Monitor`, a web fetch, a read outside the workspace, a
-tool of another MCP server, and a tool that zendo does not know.
+NOTESREP-4), and a tool of the MCP server `zendo`, shown as one tool line. Each other question goes
+to the user: a shell command, `Monitor`, a web fetch, a read outside the workspace, a tool of
+another MCP server, a tool that zendo does not know.
 
 **The quick action.** zendo shows the question at the end of the transcript of the thread: the
 tool, and what it will do: the full command, or the input of the tool. The options stand under it
@@ -36,26 +34,26 @@ status line shows `waits for your answer` (ACT-5).
 options. `left` and `right` choose, `enter` answers, `esc` or `down` go back to the input, which
 keeps its text. A click on an option answers too. Questions come one at a time, in their order.
 
-**The mode of the agent.** zendo keeps the permission mode of the agent, also `auto`. In `auto` the
-classifier of Claude Code allows some commands itself, and an `allow` rule of the user, for example
-after "Yes, and don't ask again", allows others. They run in Claude Code, and the chat shows them as
-a usual tool line, with no mark.
+**The mode of the agent.** zendo keeps the permission mode, also `auto`. A command that the
+classifier of `auto` or an `allow` rule of the user allows runs in Claude Code, as a usual tool
+line.
 
-**A shell command runs in a terminal of zendo.** The adapter of Claude cannot run its shell tool in
-a terminal of the client. So on `Run in terminal`, zendo runs the command itself in a free terminal
-of the session, as `▶▶` does
-([Watched commands](terminal/terminal-watch.md), TERM-73).
-The user sees it run. With Claude, a hook of zendo replaces the command of the agent with a wait for
-the result, so the agent gets the output as a normal shell result. With another agent, the agent
-gets *no*, and then the output by push and by `command_result`. See ADR 0019 and
-[ADR 0020](../architecture/decisions/0020-answers-to-claude-through-a-hook.md).
+**A shell command runs in a terminal of zendo.** On `Run in terminal`, zendo runs the command in a
+terminal of the session, as `▶▶` does ([Watched commands](terminal/terminal-watch.md), TERM-73).
+With Claude, a hook of zendo replaces the command of the agent with a wait for the result, so the
+agent gets the output as a normal shell result
+([ADR 0020](../architecture/decisions/0020-answers-to-claude-through-a-hook.md)). Another agent
+gets *no*, then the output by push and `command_result`.
 
 **No, or something else.** Both answer *no*. `Say what to do instead` also puts the cursor into the
 chat input.
 
 **Without a user.** zendo answers *no* to the questions of a recap and other work of zendo
-([Work](work.md)). A Claude Code session asks in its chat through the hook of its permission
-request (CLIACT-10 in [Activity of a Claude Code session](cli-activity.md)).
+([Work](work.md)).
+
+**A Claude Code session.** Claude Code asks in its chat through the hook of its permission request
+(CLIACT-10 in [Activity of a Claude Code session](cli-activity.md)). A shell command there gets
+`Run in terminal` too, and the hook gives Claude Code the wait for the result.
 
 ## Architecturally significant requirements
 
@@ -65,7 +63,7 @@ request (CLIACT-10 in [Activity of a Claude Code session](cli-activity.md)).
 | ASK-2 | Unwanted   | If the agent of a thread asks for any other tool call, also of a kind that zendo does not know, then the system shall show the question in the chat of that thread with the options of the agent, and answer it only with the choice of the user. | User, 2026-11-17 |
 | ASK-3 | Ubiquitous | The system shall show in each question the full command or the full input of the tool, not only its title. | Design |
 | ASK-4 | Event      | When the user answers `Run in terminal` to a shell command, the system shall run the command in a terminal of zendo and watch it for that session, as TERM-55 does, and give its output to the agent as the result of its shell command where the agent allows it. | User, 2026-11-17 |
-| ASK-5 | State      | While a question waits, the system shall move to its options when the user presses `up` on the first line of the chat input. | User, 2026-11-17 |
+| ASK-5 | State      | While a question waits, the system shall move to its options when the user presses `up` on the first line of the chat input, before `up` brings a waiting question back (HISTORY-5, INTER-14). | User, 2026-11-17; User, 2026-11-18 |
 | ASK-6 | Event      | When the user answers `Say what to do instead`, the system shall answer *no* to the agent and move the cursor into the chat input. | User, 2026-11-17 |
 | ASK-7 | Unwanted   | If a question comes from work of zendo without a user, then the system shall answer *no* to each call that ASK-1 does not allow. | Design |
 
@@ -123,10 +121,5 @@ The tests are in `tests/questions.rs`. They use the mock agent, and `bash` as th
 | ASK-12 | Event      | When the user stops the answer while a question waits, the system shall remove the question and cancel the request. | Design; CLAUDE-11 |
 | ASK-13 | Ubiquitous | The system shall take a shell command that the agent wants to run in the background as any other shell command. | Design |
 | ASK-15 | Ubiquitous | The system shall not change the permission mode of the agent. | User, 2026-11-17 |
+| ASK-16 | Event      | When Claude Code in a terminal asks for a shell command through the hook of its permission request (CLIACT-10), the system shall offer `Run in terminal` too, and answer it as ASK-4 does. | User, 2026-11-18 |
 
-## Open points
-
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| `up` in the chat input also brings a waiting question back (HISTORY-5, INTER-14). While a permission question waits, should `up` go to its options first? | ASK-5 | User |
-| Should `Run in terminal` also be a choice for a shell command of a Claude Code session (CLIACT-10)? | ASK-4 | User |
