@@ -17,8 +17,14 @@ const KNOWN: [&str; 3] = ["2024-11-05", "2025-03-26", PROTOCOL];
 /// The rules of a zendo session, in XML tags; `{{ID}}` stands for its id.
 const INSTRUCTIONS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/mcp-instructions.md"));
 
+/// The rules of zendo session 1, which works in the main checkout (SESSIONS-23).
+const MAIN_INSTRUCTIONS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/mcp-instructions-main.md"));
+
 /// The instructions of the server of zendo session `session`.
 fn instructions(session: usize) -> String {
+    if session == 1 {
+        return MAIN_INSTRUCTIONS.to_string();
+    }
     INSTRUCTIONS.replace("{{ID}}", &session.to_string())
 }
 

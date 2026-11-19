@@ -13,8 +13,12 @@ pub fn rel(n: usize) -> PathBuf {
     Path::new(".worktrees").join((n + 1).to_string())
 }
 
-/// The worktree of agent session `n`, when git made it: it has a `.git` file.
+/// The worktree of agent session `n`, when git made it: it has a `.git` file. Agent session 1 (`n`
+/// 0) works in the main checkout and has none (SESSIONS-23).
 pub fn of(root: &Path, n: usize) -> Option<PathBuf> {
+    if n == 0 {
+        return None;
+    }
     let rel = rel(n);
     root.join(&rel).join(".git").exists().then_some(rel)
 }
