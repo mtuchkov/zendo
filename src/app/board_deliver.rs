@@ -15,7 +15,7 @@ impl App {
         for r in 0..SESSIONS {
             let key = session_key(r);
             let busy = self.threads.get(&key).is_some_and(|t| t.busy.is_some() || t.asking().is_some());
-            if busy && !self.cli.running(r) {
+            if busy && !self.cli.running(r) || self.board.claiming(r) {
                 continue;
             }
             let running = |n: usize| self.board_running(n);
@@ -23,14 +23,9 @@ impl App {
             if ids.is_empty() || self.board_fused(r) {
                 continue;
             }
-            let Some(j) = self.board.journal.clone() else { return };
-            let won: Vec<String> = ids.into_iter().filter(|id| j.claim(id, r, How::Delivered)).collect();
-            self.board.append(&[]);
-            let won: Vec<Msg> = won.iter().filter_map(|id| self.board.state.msg(id).cloned()).collect();
-            if !won.is_empty() {
-                self.board.turns += 1;
-                self.board_send(r, &won);
-            }
+            // The thread claims; `board_answers` delivers what this session won (IO-1).
+            self.board.claim(ids, r);
+            self.board.poll();
         }
     }
 
@@ -51,7 +46,7 @@ impl App {
 
     /// Send `msgs` to session `r` as one question: to Claude Code while it runs, else to the
     /// current thread of the chat, which opens if no agent runs (BOARD-2, BOARD-8, BOARD-9).
-    fn board_send(&mut self, r: usize, msgs: &[Msg]) {
+    pub(crate) fn board_send(&mut self, r: usize, msgs: &[Msg]) {
         let shown = msgs.iter().map(|m| label(m, &self.session_name(m.from).unwrap_or_default())).collect::<Vec<_>>().join("\n");
         let tags = msgs.iter().map(tagged).collect::<Vec<_>>().join("\n\n");
         let key = session_key(r);

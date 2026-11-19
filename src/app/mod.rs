@@ -5,6 +5,7 @@ mod attention;
 mod background;
 mod board;
 mod board_deliver;
+mod board_worker;
 mod questions;
 mod steps;
 mod branch;

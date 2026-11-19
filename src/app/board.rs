@@ -1,8 +1,9 @@
 //! The message board in the zendo process (BOARD, ADR 0021): it reads the journal, delivers the
 //! messages to the sessions, lands them at the end of a turn, beats, and keeps the leases of the
 //! posts.
+use super::board_worker::{Answer, BoardWorker, Op};
 use super::*;
-use crate::board::{Beat, Event, Journal, SessionInfo, State, now_ms, proc_alive};
+use crate::board::{Beat, Event, Journal, SessionInfo, State, now_ms};
 use std::collections::{HashMap, HashSet};
 
 /// The request ids of the questions of the board in a chat: above those of the agent.
@@ -30,34 +31,80 @@ pub struct BoardLink {
     threads: Vec<Option<String>>,
     /// For each session, the posts that it saw, and whether it saw them expired (BOARD-17).
     pub(crate) seen: HashMap<usize, HashMap<String, bool>>,
+    /// The thread that reads and writes the journal (IO-1).
+    worker: Option<BoardWorker>,
+    /// A poll waits for its answer.
+    polling: bool,
+    /// The sessions whose claim waits for its answer.
+    claiming: HashSet<usize>,
+    /// The newest heartbeat of this repository, from the last poll (BOARD-17).
+    last_beat: Option<u64>,
 }
 
 impl BoardLink {
     /// The board in the folder `dir`, for the repository at `root`.
     pub fn open(dir: impl Into<std::path::PathBuf>, root: &Path) -> BoardLink {
-        BoardLink { journal: Some(Journal::at(dir)), repo: crate::board::repo_of(root), threads: vec![None; SESSIONS], ..Default::default() }
+        let journal = Journal::at(dir);
+        let worker = Some(BoardWorker::start(journal.clone()));
+        BoardLink { journal: Some(journal), worker, repo: crate::board::repo_of(root), threads: vec![None; SESSIONS], ..Default::default() }
     }
 
     /// Fold the new lines of the journal into the state. After a compaction, the state folds the
     /// new file from its start (ADR 0021).
-    fn poll(&mut self) {
-        let Some(j) = &self.journal else { return };
-        let (file, len) = j.stamp();
-        if file != self.file || len < self.offset {
-            self.file = file;
-            self.offset = 0;
-            self.state = State::default();
-        }
-        let (lines, offset) = j.read_from(self.offset);
-        self.offset = offset;
-        lines.into_iter().for_each(|l| self.state.apply(l));
+    /// The thread reads them; `take` folds the answer (IO-1).
+    pub(crate) fn poll(&mut self) {
+        let Some(w) = self.worker.as_ref().filter(|_| !self.polling) else { return };
+        w.send(Op::Poll { file: self.file, offset: self.offset, repo: self.repo.clone() });
+        self.polling = true;
     }
 
+    /// Append `ev` on the thread, then read the journal again.
     pub(crate) fn append(&mut self, ev: &[Event]) {
-        if let Some(j) = &self.journal {
-            let _ = j.append(ev);
+        if let Some(w) = self.worker.as_ref().filter(|_| !ev.is_empty()) {
+            w.send(Op::Append(ev.to_vec()));
         }
         self.poll();
+    }
+
+    /// Hand `op` to the thread.
+    pub(crate) fn send(&self, op: Op) {
+        if let Some(w) = &self.worker {
+            w.send(op);
+        }
+    }
+
+    /// A claim of session `r` waits for its answer.
+    pub(crate) fn claiming(&self, r: usize) -> bool {
+        self.claiming.contains(&r)
+    }
+
+    /// Claim `ids` for session `r` on the thread (BOARD-1).
+    pub(crate) fn claim(&mut self, ids: Vec<String>, r: usize) {
+        self.send(Op::Claim { ids, to: r });
+        self.claiming.insert(r);
+    }
+
+    /// Fold the polls that came; the claims that came, for the app to deliver.
+    fn take(&mut self) -> Vec<(usize, Vec<String>)> {
+        let answers = self.worker.as_ref().map(BoardWorker::answers).unwrap_or_default();
+        let mut won = Vec::new();
+        for a in answers {
+            match a {
+                Answer::Polled { file, offset, reset, lines, beat } => {
+                    self.polling = false;
+                    if reset {
+                        self.state = State::default();
+                    }
+                    (self.file, self.offset, self.last_beat) = (file, offset, beat);
+                    lines.into_iter().for_each(|l| self.state.apply(l));
+                }
+                Answer::Claimed { to, won: ids } => {
+                    self.claiming.remove(&to);
+                    won.push((to, ids));
+                }
+            }
+        }
+        won
     }
 }
 
@@ -74,6 +121,7 @@ impl App {
             return;
         }
         self.board.polled = Some(Instant::now());
+        self.board_answers();
         self.board.poll();
         self.board_deliver();
         self.board_watched();
@@ -85,6 +133,17 @@ impl App {
         self.board_beat();
         self.board_threads();
         self.board_leases();
+    }
+
+    /// Fold the answers of the journal; deliver what the claims won (BOARD-1, BOARD-2).
+    pub(crate) fn board_answers(&mut self) {
+        for (r, ids) in self.board.take() {
+            let won: Vec<crate::board::Msg> = ids.iter().filter_map(|id| self.board.state.msg(id).cloned()).collect();
+            if !won.is_empty() {
+                self.board.turns += 1;
+                self.board_send(r, &won);
+            }
+        }
     }
 
     /// The heartbeat with the state of each session (BOARD-10, BOARD-22).
@@ -136,34 +195,20 @@ impl App {
 
     /// The lease of a post ends with its process, and goes on when the process runs again after a
     /// restart (BOARD-30, BOARD-31).
+    /// The thread looks at the processes in `/proc` and appends the changes (IO-1).
     fn board_leases(&mut self) {
         let repo = self.board.repo.clone();
-        let ev: Vec<Event> = self
-            .board
-            .state
-            .live_posts()
-            .filter(|p| p.post.repo == repo)
-            .filter_map(|p| {
-                let alive = proc_alive(p.post.pid?, p.post.start);
-                let id = p.post.id.clone();
-                match (alive, p.expired()) {
-                    (false, false) => Some(Event::Expired { post: id }),
-                    (true, true) => Some(Event::Renewed { post: id }),
-                    _ => None,
-                }
-            })
-            .collect();
-        if !ev.is_empty() {
-            self.board.append(&ev);
+        let posts: Vec<(String, u32, Option<u64>, bool)> = self.board.state.live_posts().filter(|p| p.post.repo == repo).filter_map(|p| Some((p.post.id.clone(), p.post.pid?, p.post.start, p.expired()))).collect();
+        if !posts.is_empty() {
+            self.board.send(Op::Leases(posts));
+            self.board.poll();
         }
     }
 
     /// The turn of session `n` ended: the initiations that it took land (BOARD-9).
     pub(crate) fn board_turn_ended(&mut self, n: usize) {
         let ids = self.board.state.taken(&self.board.repo, n);
-        if let Some(j) = &self.board.journal {
-            j.land(&ids, n);
-        }
+        self.board.send(Op::Land { ids, to: n });
         self.board.poll();
     }
 
@@ -177,7 +222,7 @@ impl App {
     /// them, as context of its next question (BOARD-17).
     pub fn board_posts_context(&mut self, n: usize) -> String {
         let now = now_ms();
-        let beat = self.board.journal.as_ref().and_then(|j| j.last_beat(&self.board.repo)).or(Some(now));
+        let beat = self.board.last_beat.or(Some(now));
         let seen = self.board.seen.entry(n).or_default();
         let mut lines = Vec::new();
         for p in self.board.state.live_posts() {
