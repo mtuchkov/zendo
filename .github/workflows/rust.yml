@@ -20,5 +20,11 @@ jobs:
       run: cargo build --verbose
     - name: Lint (clippy, with the limits of AGENTS.md)
       run: cargo clippy --all-targets -- -D warnings
-    - name: Run tests (with the file and function limits of tests/code_size.rs)
-      run: cargo test --verbose
+    - name: Install cargo-nextest
+      uses: taiki-e/install-action@v2
+      with:
+        tool: nextest
+    - name: Run tests, each in a process of its own (with the file and function limits of tests/code_size.rs)
+      run: cargo nextest run --no-fail-fast
+    - name: Run doctests (cargo-nextest does not run them)
+      run: cargo test --doc
