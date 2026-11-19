@@ -24,8 +24,10 @@ pub fn repo(name: &str, files: &[(&str, &str)]) -> PathBuf {
     d
 }
 
+/// The app of a test. Its clipboard is empty and in memory: a test does not touch the clipboard of
+/// the system, which other programs share.
 pub fn app(root: &Path) -> App {
-    App::new(Config {
+    let mut a = App::new(Config {
         root: root.to_path_buf(),
         notes_dir: root.join("docs/notes"),
         agent: env!("CARGO_BIN_EXE_zendo-mock-agent").to_string(),
@@ -34,7 +36,9 @@ pub fn app(root: &Path) -> App {
         notes_repo: None,
         user_config: root.join("zendo-config.toml"),
     })
-    .unwrap()
+    .unwrap();
+    a.clipboard = zendo::app::Clipboard::with(|| zendo::text::clipboard::Clip::Empty, |_| {});
+    a
 }
 
 /// Draw one frame on a test terminal; the screen as text, one line for each row.

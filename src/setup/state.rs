@@ -165,7 +165,7 @@ pub fn dir(root: &Path) -> PathBuf {
 }
 
 /// The files of `.zendo` that git does not see: the state, the loglets (UNDO-4) and the log.
-const IGNORED: &str = "db.json\ndb.json.tmp\ndb.log.json\ndb.log.json.tmp\nstate.json\nagent.log\n";
+const IGNORED: &str = "db.json\ndb.json.tmp\ndb.log.json\ndb.log.json.tmp\nstate.json\nagent.log\nslow-ticks.log\n";
 
 /// `.zendo/.gitignore` gets the files of IGNORED that it does not have; its other lines stay.
 pub(crate) fn ignore(d: &Path) {

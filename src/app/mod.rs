@@ -13,6 +13,7 @@ mod chat_keys;
 mod chat_pane;
 mod count;
 mod cli;
+mod clip;
 mod terminal;
 mod terminal_mouse;
 pub mod cursor_map;
@@ -70,6 +71,7 @@ pub use composer::chips;
 pub(crate) use composer::{at, slash};
 pub use attention::Attention;
 pub use board::BoardLink;
+pub use clip::{Clipboard, PasteTo};
 pub use background::{Background, Bg, ran};
 pub use questions::Ask;
 pub use effect::Effect;
@@ -190,6 +192,13 @@ pub struct App {
     pub width_default: u16,
 
     pub flash: Option<(String, Instant)>,
+    /// The writer of files, on a thread of its own: the UI thread only hands it the content (IO-1,
+    /// ADR 0024). A test puts one here whose disk waits.
+    pub disk: crate::worker::Writer,
+    /// The system clipboard, read on a worker (IO-1, IO-5); a test puts one here in memory.
+    pub clipboard: Clipboard,
+    /// The files whose write failed: each shows once (FAIL-1).
+    pub disk_failed: std::collections::HashSet<PathBuf>,
     /// The counts of the actions of the user; off until the start turns them on (USAGE-1).
     pub usage: crate::usage::Usage,
     pub quit: bool,

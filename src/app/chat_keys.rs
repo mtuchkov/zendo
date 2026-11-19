@@ -89,14 +89,9 @@ impl App {
             "newline" => self.composer_mut().input_mut().enter(true),
             // The clear can be undone; the chips stay for their labels (UNDO-1).
             "clear" => self.composer_mut().input_mut().clear_text(),
-            "paste" => {
-                // An image on the clipboard is an attachment; text may be dropped files.
-                if let Some(p) = crate::text::select::paste_image() {
-                    self.attach_pasted_image(p);
-                } else if let Some(t) = crate::text::select::paste().or_else(|| self.pointer.last_copy()) {
-                    self.paste_into_chat(&t);
-                }
-            }
+            // An image on the clipboard is an attachment; text may be dropped files. The clipboard is
+            // read on a worker (IO-1).
+            "paste" => self.paste_from_clipboard(PasteTo::Chat),
             "templates" => self.pick_template(),
             "select_up" => self.composer_mut().input_mut().select_with(|e| e.vertical(-1, w)),
             "select_down" => self.composer_mut().input_mut().select_with(|e| e.vertical(1, w)),

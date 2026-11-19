@@ -39,7 +39,7 @@ fn take_pointer(app: &mut App) -> bool {
         return true;
     }
     let Some(text) = app.pointer.take_clip() else { return false };
-    crate::text::select::copy(&text);
+    app.clipboard.copy(&text);
     app.pointer.copied(text.clone());
     let n = text.chars().count();
     app.flash(format!("copied {n} character{}", if n == 1 { "" } else { "s" }));
@@ -59,11 +59,13 @@ pub async fn run(
     let printed = app.cli.notify.clone();
     // The worker of the find panel sent results (ADR 0017).
     let found = app.files.find().wake.clone();
+    // A read of the clipboard answered (IO-1).
+    let clip = app.clipboard.wake();
     // The lofi music opens its output here, not in App::new, so tests play nothing (LOFI-11).
     app.start_music(crate::music::Output::System);
     app.start_tips();
     loop {
-        term.draw(|f| app.draw(f))?;
+        draw(term, app)?;
         cursor_shape(app);
         if std::mem::take(&mut app.attention.bells) > 0 {
             sound::ring();
@@ -72,11 +74,13 @@ pub async fn run(
             continue;
         }
         if app.quit && app.settle_quit() {
+            // After the last frame: the writes that wait get a moment to end (IO-7).
+            app.disk.flush(Duration::from_secs(2));
             return Ok(());
         }
         tokio::select! {
             Some(e) = keys.recv() => {
-                on_input(app, e);
+                timed_input(app, e);
                 // A trackpad sends a burst of scroll events: take all that are here, then draw once.
                 let until = std::time::Instant::now() + Duration::from_millis(12);
                 while !app.quit && app.pointer.clip().is_none() && std::time::Instant::now() < until {
@@ -104,10 +108,26 @@ pub async fn run(
             // A Claude Code session printed: draw its screen.
             _ = printed.notified() => {},
             _ = found.notified() => app.poll_find(),
+            _ = clip.notified() => app.poll_clipboard(),
             _ = tick.tick() => app.tick(),
             _ = pulse.tick(), if app.attention.blinking() => {},
         }
     }
+}
+
+/// A frame, on the clock of the slow-tick log (IO-8).
+fn draw(term: &mut ratatui::DefaultTerminal, app: &mut App) -> Result<()> {
+    let mut c = crate::worker::Clock::start("draw");
+    c.time("draw", || term.draw(|f| app.draw(f)))?;
+    app.note_slow(&c);
+    Ok(())
+}
+
+/// An input event, on the clock of the slow-tick log (IO-8).
+fn timed_input(app: &mut App, e: Event) {
+    let mut c = crate::worker::Clock::start("key");
+    c.time("on_input", || on_input(app, e));
+    app.note_slow(&c);
 }
 
 fn on_input(app: &mut App, e: Event) {

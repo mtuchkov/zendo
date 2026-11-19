@@ -1,4 +1,5 @@
-//! The clipboard: copy with OSC 52 and the system tool, paste, dropped files, a pasted image.
+//! The clipboard: copy with OSC 52 and arboard, the read of the clipboard, dropped files, a pasted
+//! image (ADR 0024).
 
 const B64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -18,51 +19,60 @@ pub fn base64(data: &[u8]) -> String {
     out
 }
 
-/// Copy with OSC 52 (most terminals, also over SSH) and with the system tool if there is one.
+/// What the system clipboard holds.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Clip {
+    /// An image, saved as a PNG file in the data folder.
+    Image(std::path::PathBuf),
+    Text(String),
+    Empty,
+    /// The clipboard cannot be read: no display (SSH), or an error of the system.
+    Failed(String),
+}
+
+/// Copy with OSC 52 (most terminals, also over SSH) and to the system clipboard through arboard, on
+/// a thread of its own (ADR 0024). On Linux the thread holds the copy until another program copies.
 pub fn copy(text: &str) {
     use std::io::Write;
     let mut out = std::io::stdout();
     let _ = write!(out, "\x1b]52;c;{}\x07", base64(text.as_bytes()));
     let _ = out.flush();
     let text = text.to_string();
-    std::thread::spawn(move || {
-        let tools: [(&str, &[&str]); 4] = [
-            ("pbcopy", &[]),
-            ("wl-copy", &[]),
-            ("xclip", &["-selection", "clipboard"]),
-            ("xsel", &["--clipboard", "--input"]),
-        ];
-        for (cmd, args) in tools {
-            let child = std::process::Command::new(cmd)
-                .args(args)
-                .stdin(std::process::Stdio::piped())
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .spawn();
-            if let Ok(mut child) = child {
-                if let Some(mut stdin) = child.stdin.take() {
-                    let _ = stdin.write_all(text.as_bytes());
-                }
-                if child.wait().is_ok_and(|s| s.success()) {
-                    return;
-                }
-            }
-        }
+    let _ = std::thread::Builder::new().name("zendo-copy".into()).spawn(move || {
+        let Ok(mut clipboard) = arboard::Clipboard::new() else { return };
+        #[cfg(target_os = "linux")]
+        let _ = arboard::SetExtLinux::wait(clipboard.set()).text(text);
+        #[cfg(not(target_os = "linux"))]
+        let _ = clipboard.set_text(text);
     });
 }
 
-/// Read the system clipboard with the system tool. None over SSH or without a tool.
-pub fn paste() -> Option<String> {
-    let tools: [(&str, &[&str]); 4] = [("pbpaste", &[]), ("wl-paste", &["--no-newline"]), ("xclip", &["-o", "-selection", "clipboard"]), ("xsel", &["--clipboard", "--output"])];
-    for (cmd, args) in tools {
-        let out = std::process::Command::new(cmd).args(args).stdin(std::process::Stdio::null()).stderr(std::process::Stdio::null()).output();
-        if let Ok(o) = out
-            && o.status.success()
-        {
-            return Some(String::from_utf8_lossy(&o.stdout).into_owned());
-        }
+/// Read the system clipboard through arboard: an image first, then the text. It can wait for the
+/// program that owns the clipboard, so it runs on a worker (IO-1, ADR 0024).
+pub fn read() -> Clip {
+    let mut clipboard = match arboard::Clipboard::new() {
+        Ok(c) => c,
+        Err(e) => return Clip::Failed(e.to_string()),
+    };
+    if let Ok(image) = clipboard.get_image() {
+        return save_png(image).map_or_else(Clip::Failed, Clip::Image);
     }
-    None
+    match clipboard.get_text() {
+        Ok(t) if !t.is_empty() => Clip::Text(t),
+        Ok(_) | Err(arboard::Error::ContentNotAvailable) => Clip::Empty,
+        Err(e) => Clip::Failed(e.to_string()),
+    }
+}
+
+/// A pasted image as a PNG file in the data folder.
+fn save_png(image: arboard::ImageData) -> Result<std::path::PathBuf, String> {
+    let dir = crate::setup::config::data_dir().join("pastes");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let file = dir.join(format!("paste-{}.png", chrono::Local::now().format("%Y%m%d-%H%M%S-%3f")));
+    let (w, h) = (u32::try_from(image.width).map_err(|e| e.to_string())?, u32::try_from(image.height).map_err(|e| e.to_string())?);
+    let rgba = image::RgbaImage::from_raw(w, h, image.bytes.into_owned()).ok_or("the image of the clipboard has a wrong size")?;
+    rgba.save_with_format(&file, image::ImageFormat::Png).map_err(|e| e.to_string())?;
+    Ok(file)
 }
 
 /// The files of a paste, when the paste is nothing but absolute paths: what a terminal pastes when
@@ -117,31 +127,6 @@ pub fn dropped_files(s: &str) -> Option<Vec<std::path::PathBuf>> {
     }
     let paths: Vec<PathBuf> = words.iter().map(|w| clean(w)).collect();
     (!paths.is_empty() && paths.iter().all(ok)).then_some(paths)
-}
-
-/// An image on the system clipboard, saved as a PNG file. None when there is none, or no tool.
-pub fn paste_image() -> Option<std::path::PathBuf> {
-    use std::process::{Command, Stdio};
-    let dir = crate::setup::config::data_dir().join("pastes");
-    std::fs::create_dir_all(&dir).ok()?;
-    let file = dir.join(format!("paste-{}.png", chrono::Local::now().format("%Y%m%d-%H%M%S-%3f")));
-    let run = |cmd: &str, args: &[&str]| Command::new(cmd).args(args).stdin(Stdio::null()).stderr(Stdio::null()).output().ok().filter(|o| o.status.success()).map(|o| o.stdout);
-    let saved = |bytes: Vec<u8>| (!bytes.is_empty() && std::fs::write(&file, bytes).is_ok()).then(|| file.clone());
-    if cfg!(target_os = "macos") {
-        let f = file.display().to_string();
-        let script = format!("set png to (the clipboard as «class PNGf»)\nset fh to open for access POSIX file \"{f}\" with write permission\nwrite png to fh\nclose access fh");
-        if run("osascript", &["-e", &script]).is_some() && std::fs::metadata(&file).is_ok_and(|m| m.len() > 0) {
-            return Some(file);
-        }
-        return None;
-    }
-    if run("wl-paste", &["--list-types"]).is_some_and(|t| String::from_utf8_lossy(&t).lines().any(|l| l == "image/png")) {
-        return run("wl-paste", &["--type", "image/png"]).and_then(saved);
-    }
-    if run("xclip", &["-selection", "clipboard", "-t", "TARGETS", "-o"]).is_some_and(|t| String::from_utf8_lossy(&t).lines().any(|l| l == "image/png")) {
-        return run("xclip", &["-selection", "clipboard", "-t", "image/png", "-o"]).and_then(saved);
-    }
-    None
 }
 
 /// Open a file in the program of the system for its kind: `open` on macOS, `xdg-open` elsewhere

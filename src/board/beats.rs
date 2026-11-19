@@ -22,7 +22,7 @@ pub struct Beat {
 }
 
 impl Journal {
-    fn beat_path(&self, pid: u32) -> std::path::PathBuf {
+    pub fn beat_path(&self, pid: u32) -> std::path::PathBuf {
         self.dir().join(format!("zendo-{pid}.json"))
     }
 

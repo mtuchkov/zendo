@@ -84,19 +84,42 @@ impl App {
         }
     }
 
+    /// The work of each tick; each phase on the clock of the slow-tick log (IO-8).
     pub fn tick(&mut self) {
-        self.poll_find();
-        self.music_tick();
-        self.tips_tick();
-        self.hints_tick();
-        self.peek_tick();
+        let mut c = crate::worker::Clock::start("tick");
+        c.time("poll_clipboard", || self.poll_clipboard());
+        c.time("poll_find", || self.poll_find());
+        c.time("music_tick", || self.music_tick());
+        c.time("tips_tick", || self.tips_tick());
+        c.time("hints_tick", || self.hints_tick());
+        c.time("peek_tick", || self.peek_tick());
         // CMD-11: the message names no commit and no key; the top line has the button.
-        if self.update.poll().is_some() {
+        if c.time("update", || self.update.poll().is_some()) {
             self.flash("a new version of zendo is available".to_string());
         }
-        self.usage.tick(Instant::now());
-        self.background_tick();
-        self.check_disk();
+        c.time("usage", || self.usage.tick(Instant::now()));
+        c.time("background_tick", || self.background_tick());
+        c.time("check_disk", || self.check_disk());
+        c.time("tree", || self.tree_tick());
+        c.time("sync_visit", || self.sync_visit());
+        c.time("track_recent", || self.track_recent());
+        c.time("worktree_recap_tick", || self.worktree_recap_tick());
+        c.time("api_tick", || self.api_tick());
+        c.time("recap_tick", || self.recap_tick());
+        c.time("cli_tick", || self.cli_tick());
+        c.time("board_tick", || self.board_tick());
+        c.time("hold_tick", || self.hold_tick());
+        c.time("attention_tick", || self.attention_tick());
+        c.time("doc_tick", || self.doc_tick());
+        c.time("saves", || self.save_tick());
+        self.disk_failures();
+        if self.flash.as_ref().is_some_and(|(_, t)| t.elapsed() > Duration::from_secs(4)) {
+            self.flash = None;
+        }
+        self.note_slow(&c);
+    }
+
+    fn tree_tick(&mut self) {
         if self.state.tree && self.files.tree_stale() {
             self.scan_tree();
             self.mark_tree();
@@ -104,24 +127,35 @@ impl App {
         if self.files.poll_tree() {
             self.mark_tree();
         }
-        self.sync_visit();
-        self.track_recent();
-        self.worktree_recap_tick();
-        self.api_tick();
-        self.recap_tick();
-        self.cli_tick();
-        self.board_tick();
-        self.hold_tick();
-        self.attention_tick();
-        self.doc_tick();
+    }
+
+    /// The drafts of the chat and the open document, when they are due.
+    fn save_tick(&mut self) {
         if self.chat.due(Instant::now()) {
             self.save_drafts();
         }
         if self.mode == Mode::Write && self.writer.editor().dirty && self.writer.idle() > Duration::from_millis(1500) {
             self.save();
         }
-        if self.flash.as_ref().is_some_and(|(_, t)| t.elapsed() > Duration::from_secs(4)) {
-            self.flash = None;
+    }
+
+    /// The writes that failed, each file once (FAIL-1).
+    fn disk_failures(&mut self) {
+        for (path, e) in self.disk.failures() {
+            if self.disk_failed.insert(path.clone()) {
+                let rel = self.rel(&path);
+                self.flash(format!("cannot write {rel}: {e}"));
+            }
+        }
+    }
+
+    /// In a debug build, a tick, a key or a frame over 100 ms goes to `.zendo/slow-ticks.log`, with
+    /// its slowest phase (IO-8).
+    pub fn note_slow(&self, c: &crate::worker::Clock) {
+        if cfg!(debug_assertions)
+            && let Some(line) = c.report()
+        {
+            self.disk.append(&self.cfg.root.join(".zendo").join("slow-ticks.log"), line.into_bytes());
         }
     }
 

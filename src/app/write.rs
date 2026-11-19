@@ -40,13 +40,11 @@ impl App {
     /// The actions that change the text, then the moves.
     fn write_edit(&mut self, a: &str) -> Option<bool> {
         match a {
-            "paste" => match crate::text::select::paste().or_else(|| self.pointer.last_copy()) {
-                Some(t) => self.writer.editor_mut().type_str(&t),
-                None => {
-                    self.flash("the clipboard is empty, or zendo cannot read it here");
-                    return None;
-                }
-            },
+            // The clipboard is read on a worker; the text comes in `poll_clipboard` (IO-1).
+            "paste" => {
+                self.paste_from_clipboard(PasteTo::Write);
+                return None;
+            }
             "indent" => self.writer.editor_mut().type_str("  "),
             "undo" => return self.write_undo(),
             "redo" => return self.write_redo(),

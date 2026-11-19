@@ -36,13 +36,10 @@ impl App {
                 self.pointer.copy(t);
                 Some(true)
             }
+            // The clipboard is read on a worker; the text comes in `poll_clipboard` (IO-1).
             Typed::Paste => {
-                let Some(t) = crate::text::select::paste().or_else(|| self.pointer.last_copy()) else {
-                    self.flash("the clipboard is empty, or zendo cannot read it here");
-                    return Some(false);
-                };
-                field(self)?.paste(&t);
-                Some(true)
+                self.paste_from_clipboard(PasteTo::Field);
+                Some(false)
             }
         }
     }

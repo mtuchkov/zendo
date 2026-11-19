@@ -91,8 +91,9 @@ impl App {
     fn board_beat(&mut self) {
         let sessions = (0..SESSIONS).map(|n| SessionInfo { id: n, name: self.session_name(n).unwrap_or_default(), state: self.board_state(n).into() }).collect();
         let beat = Beat { pid: std::process::id(), repo: self.board.repo.clone(), at: now_ms(), sessions };
+        // On the writer, without the sync: a heartbeat lives for seconds (IO-1, IO-3).
         if let Some(j) = &self.board.journal {
-            let _ = j.beat(&beat);
+            self.disk.write(&j.beat_path(beat.pid), serde_json::to_vec(&beat).unwrap_or_default(), crate::worker::Sync::Own);
         }
     }
 

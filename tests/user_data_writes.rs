@@ -16,7 +16,7 @@ const OWN: [(&str, &str); 13] = [
     ("src/setup/doctor/upgrade.rs", "the cache of the update check"),
     ("src/setup/fonts/mod.rs", "the list of the recommended fonts that zendo named"),
     ("src/setup/fonts/install.rs", "the font files, with a temporary file and a rename"),
-    ("src/text/clipboard.rs", "a pasted image in the data folder"),
+    ("src/worker/writer.rs", "the writer of the TUI: user data through zendo::atomic, the own files of zendo without the sync (IO-3)"),
     ("src/board/journal.rs", "the journal of the message board: appends under a lock, compaction through zendo::atomic (ADR 0021)"),
     ("src/bin/", "the mock programs of the tests"),
 ];
