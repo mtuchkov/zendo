@@ -22,7 +22,9 @@ pub struct Bg {
 #[derive(Default)]
 pub struct Background {
     pub list: Vec<Bg>,
-    scans: Option<Receiver<Vec<Proc>>>,
+    scans: Option<Receiver<Scan>>,
+    /// The groups of the list: the scanner looks whether they still run (BG-10, IO-1).
+    watched: Arc<std::sync::Mutex<Vec<u32>>>,
     /// The scanner reads the tree only while this is on (ADR 0023).
     wanted: Arc<AtomicBool>,
     /// The quit asked about the background processes at this time (BG-4).
@@ -50,19 +52,28 @@ const SLACK: Duration = Duration::from_secs(2);
 /// (BG-1, ADR 0023).
 const SCAN_AFTER: Duration = Duration::from_secs(10);
 
+/// A scan: the process tree, and the groups of the list that still run.
+type Scan = (Vec<Proc>, Vec<u32>);
+
 /// The scans of the process tree, off the UI thread, once a second while `wanted` is on (ADR 0009,
-/// ADR 0016, ADR 0023).
-fn scanner(wanted: Arc<AtomicBool>) -> Receiver<Vec<Proc>> {
+/// ADR 0016, ADR 0023); with each, the groups of `watched` that still run (BG-10, IO-1).
+fn scanner(wanted: Arc<AtomicBool>, watched: Arc<std::sync::Mutex<Vec<u32>>>) -> Receiver<Scan> {
     let (tx, rx) = channel();
     std::thread::spawn(move || {
         loop {
-            if wanted.load(Ordering::Relaxed) && tx.send(procs::list()).is_err() {
+            if wanted.load(Ordering::Relaxed) && tx.send(scan(&watched)).is_err() {
                 return;
             }
             std::thread::sleep(Duration::from_secs(1));
         }
     });
     rx
+}
+
+/// The process tree, and the groups of `watched` that still run.
+fn scan(watched: &std::sync::Mutex<Vec<u32>>) -> Scan {
+    let groups = watched.lock().map(|w| w.clone()).unwrap_or_default();
+    (procs::list(), groups.into_iter().filter(|g| procs::group_exists(*g)).collect())
 }
 
 /// True while zendo shall read its process tree: a command step of `threads` runs or started less
@@ -102,19 +113,27 @@ impl App {
     pub(crate) fn background_tick(&mut self) {
         let want = scan_wanted(self.threads.values(), self.bg.list.is_empty(), Instant::now());
         self.bg.wanted.store(want, Ordering::Relaxed);
-        let wanted = self.bg.wanted.clone();
-        let rx = self.bg.scans.get_or_insert_with(|| scanner(wanted));
-        if let Some(p) = rx.try_iter().last() {
-            self.on_procs(&p);
+        if let Ok(mut w) = self.bg.watched.lock() {
+            *w = self.bg.list.iter().map(|b| b.pgid).collect();
+        }
+        let (wanted, watched) = (self.bg.wanted.clone(), self.bg.watched.clone());
+        let rx = self.bg.scans.get_or_insert_with(|| scanner(wanted, watched));
+        if let Some((p, running)) = rx.try_iter().last() {
+            self.on_procs(&p, &running);
         }
     }
 
-    /// Scan the process tree now, on this thread.
+    /// Scan the process tree now, on this thread: for tests.
     pub fn scan_background_now(&mut self) {
-        self.on_procs(&procs::list());
+        if let Ok(mut w) = self.bg.watched.lock() {
+            *w = self.bg.list.iter().map(|b| b.pgid).collect();
+        }
+        let (p, running) = scan(&self.bg.watched);
+        self.on_procs(&p, &running);
     }
 
-    fn on_procs(&mut self, procs: &[Proc]) {
+    /// `running`: the groups of the list that the scanner saw running outside the tree.
+    fn on_procs(&mut self, procs: &[Proc], running: &[u32]) {
         let terminals: Vec<u32> = (SESSIONS..SESSIONS + crate::session::TERMINALS).filter_map(|n| self.cli.pid(n)).collect();
         let now = Instant::now();
         for g in procs::groups(procs, std::process::id(), &terminals) {
@@ -127,7 +146,7 @@ impl App {
                 self.bg.list.push(Bg { pgid: g.pgid, label: g.label, started, key, stopping: None });
             }
         }
-        let (alive, ended): (Vec<Bg>, Vec<Bg>) = std::mem::take(&mut self.bg.list).into_iter().partition(|b| procs::alive(procs, b.pgid) || procs::group_exists(b.pgid));
+        let (alive, ended): (Vec<Bg>, Vec<Bg>) = std::mem::take(&mut self.bg.list).into_iter().partition(|b| procs::alive(procs, b.pgid) || running.contains(&b.pgid));
         self.bg.list = alive;
         for b in ended {
             self.thread(&b.key).push(Item::Info(format!("{} ended · {}", b.label, ran(b.started.elapsed()))));

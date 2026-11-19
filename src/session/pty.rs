@@ -1,12 +1,12 @@
 //! One Claude Code process in a pseudo terminal, with its screen in a terminal emulator.
 
 use super::output::Recorder;
-use super::messages::{Inbox, Message};
+use super::messages::Message;
 use super::{Command, Resume, State, hooks};
 use portable_pty::{Child, CommandBuilder, MasterPty, PtySize};
 use std::io::{Read, Write};
 use std::num::NonZeroU16;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -45,7 +45,6 @@ pub struct Cli {
     writer: Writer,
     screen: Screen,
     last_output: Arc<Mutex<Instant>>,
-    state_file: PathBuf,
     reported: Option<State>,
     /// A shell of a terminal, not Claude Code: no hooks, busy while a command runs.
     shell: bool,
@@ -53,7 +52,9 @@ pub struct Cli {
     /// A hook reported *works*, or the shell ran a command, since the last end (ATTN-1, ATTN-6).
     worked: bool,
     /// The messages from the hooks of Claude Code (CLIMSG-2); none for a shell.
-    inbox: Option<Inbox>,
+    watch: Option<super::watch::Watch>,
+    /// The messages that the watch gave and `messages` did not take yet.
+    pending: Vec<Message>,
 }
 
 fn pty_size((rows, cols): (u16, u16)) -> PtySize {
@@ -92,14 +93,15 @@ impl Cli {
         let _ = std::fs::remove_file(&messages);
         b.env("ZENDO_MESSAGES", &messages);
         b.env("TERM", "xterm-256color");
-        let mut cli = Cli::start(b, size, notify, state_file, false)?;
-        cli.inbox = Some(Inbox::new(messages));
+        let mut cli = Cli::start(b, size, notify, false)?;
+        cli.watch = Some(super::watch::Watch::start(state_file, messages));
         Ok(cli)
     }
 
     /// The prompts and answers that the hooks reported since the last call (CLIMSG-1).
     pub fn messages(&mut self) -> Vec<Message> {
-        self.inbox.as_mut().map(Inbox::take).unwrap_or_default()
+        self.read_state();
+        std::mem::take(&mut self.pending)
     }
 
     /// Start the shell `program` of a terminal in `cwd`, with `home` as the home directory if it is
@@ -108,10 +110,10 @@ impl Cli {
     pub fn spawn_shell(program: &str, cwd: &Path, home: Option<&Path>, size: (u16, u16), notify: Arc<tokio::sync::Notify>) -> std::io::Result<Cli> {
         let mut b = CommandBuilder::new(program);
         for_terminal(&mut b, cwd, home);
-        Cli::start(b, size, notify, PathBuf::new(), true)
+        Cli::start(b, size, notify, true)
     }
 
-    fn start(b: CommandBuilder, size: (u16, u16), notify: Arc<tokio::sync::Notify>, state_file: PathBuf, shell: bool) -> std::io::Result<Cli> {
+    fn start(b: CommandBuilder, size: (u16, u16), notify: Arc<tokio::sync::Notify>, shell: bool) -> std::io::Result<Cli> {
         let err = |e: anyhow::Error| std::io::Error::other(e.to_string());
         let pair = portable_pty::native_pty_system().openpty(pty_size(size)).map_err(err)?;
         let child = pair.slave.spawn_command(b).map_err(err)?;
@@ -122,7 +124,7 @@ impl Cli {
         let started = Instant::now();
         let last_output = Arc::new(Mutex::new(started));
         read_loop(reader, screen.clone(), writer.clone(), last_output.clone(), notify);
-        Ok(Cli { child, master: pair.master, writer, screen, last_output, state_file, reported: None, shell, started, worked: false, inbox: None })
+        Ok(Cli { child, master: pair.master, writer, screen, last_output, reported: None, shell, started, worked: false, watch: None, pending: Vec::new() })
     }
 
     /// A shell runs a command: the foreground process group of the terminal is not the shell.
@@ -180,13 +182,14 @@ impl Cli {
         !matches!(self.child.try_wait(), Ok(None))
     }
 
+    /// The state and the messages that the watch of the hooks read (IO-1).
     pub fn read_state(&mut self) {
-        if self.shell {
-            return;
-        }
-        if let Some(s) = hooks::read(&self.state_file) {
+        let Some(w) = &self.watch else { return };
+        let seen = w.take();
+        if let Some(s) = seen.state {
             self.reported = Some(s);
         }
+        self.pending.extend(seen.messages);
     }
 
     /// The state that a hook reported; without one, *works* while the session prints (SESSIONS-17).
@@ -219,12 +222,10 @@ impl Cli {
         end
     }
 
+    /// Stop the program; the watch removes the state file when it goes.
     pub fn stop(mut self) {
         let _ = self.child.kill();
         let _ = self.child.wait();
-        if !self.shell {
-            let _ = std::fs::remove_file(&self.state_file);
-        }
     }
 }
 
