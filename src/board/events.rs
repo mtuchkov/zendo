@@ -126,6 +126,12 @@ pub enum Event {
     Expired { post: String },
     Renewed { post: String },
     Tombstone { post: String, repo: String, session: usize },
+    /// A compaction: the members of an open named channel (ADR 0018).
+    Channel { repo: String, channel: String, members: Vec<usize> },
+    /// A compaction: a channel that is closed.
+    Close { repo: String, channel: String },
+    /// A compaction: why and when a post in the history ended.
+    Ended { post: String, end: crate::board::End },
 }
 
 /// One line of the journal: the time and the event.

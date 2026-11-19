@@ -166,9 +166,10 @@ async fn a_message_reaches_claude_code() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
-// BOARD-17: the next question of a session carries the posts that it did not see, one time.
+// BOARD-13, BOARD-14, BOARD-17: a post of another repository starts no turn, and the next question
+// of a session carries it, one time.
 #[tokio::test]
-async fn a_question_carries_unseen_posts_once() {
+async fn a_post_reaches_another_repository() {
     let root = repo("board-posts", &[("README.txt", "x\n")]);
     let dir = board_dir("posts");
     let mut a = app_on(&root, &dir);
@@ -176,6 +177,7 @@ async fn a_question_carries_unseen_posts_once() {
     other.repo = "/another/repo".into();
     tool(&other, "post", json!({ "resource": "port:5220", "text": "dev server" }));
     drive(&mut [&mut a], 5, |x| x[0].board.state.live_posts().count() == 1).await;
+    assert!(a.threads.values().all(|t| t.busy.is_none()), "no turn starts for a post");
     let first = a.board_posts_context(1);
     assert!(first.contains("port:5220") && first.contains("/another/repo"), "{first}");
     assert_eq!(a.board_posts_context(1), "", "one time");
@@ -183,9 +185,10 @@ async fn a_question_carries_unseen_posts_once() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
-// BOARD-31, BOARD-30: the lease of a post with a process expires when the process ends.
+// BOARD-31, BOARD-32: the lease of a post with a process expires when the process ends; another
+// session sees its age, and its next question carries the post one time.
 #[tokio::test]
-async fn a_lease_ends_with_its_process() {
+async fn an_expired_lease_shows_its_age() {
     let root = repo("board-lease", &[("README.txt", "x\n")]);
     let dir = board_dir("lease");
     let mut a = app_on(&root, &dir);
@@ -197,6 +200,11 @@ async fn a_lease_ends_with_its_process() {
     child.kill().unwrap();
     child.wait().unwrap();
     drive(&mut [&mut a], 5, |x| x[0].board.state.live_posts().all(|p| p.expired())).await;
+    let v = tool(&server(&a, 4), "posts", json!({}));
+    assert_eq!(v["posts"][0]["lease_live"], false);
+    assert!(v["posts"][0]["expired_for_seconds"].is_u64());
+    assert!(a.board_posts_context(4).contains("lease expired"));
+    assert_eq!(a.board_posts_context(4), "", "one time");
     let _ = std::fs::remove_dir_all(&root);
     let _ = std::fs::remove_dir_all(&dir);
 }
@@ -253,6 +261,51 @@ async fn the_author_hears_of_a_tombstone_once() {
     let text = a.board_posts_context(2);
     assert!(text.contains("tombstoned by session 1 of /other"), "{text}");
     assert_eq!(a.board_posts_context(2), "");
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+// ADR 0018, BOARD-1: after a compaction of the journal, the app reads the new file from its start,
+// delivers the next message, and does not deliver an old one again.
+#[tokio::test]
+async fn delivery_goes_on_after_a_compaction() {
+    let root = repo("board-compact", &[("README.txt", "x\n")]);
+    let dir = board_dir("compact");
+    let mut a = app_on(&root, &dir);
+    a.thread(&session_key(2)).session = Some("s2".into());
+    let s3 = server(&a, 3);
+    tool(&s3, "assign", json!({ "to": "session:2", "text": "first" }));
+    drive(&mut [&mut a], 20, |x| from_board(x[0], 2).len() == 1 && x[0].threads[&session_key(2)].busy.is_none()).await;
+    s3.journal.compact(zendo::board::now_ms()).unwrap();
+    tool(&s3, "ask", json!({ "to": "session:2", "text": "second" }));
+    drive(&mut [&mut a], 20, |x| from_board(x[0], 2).len() == 2).await;
+    assert_eq!(from_board(&a, 2), ["from 3 · task: first", "from 3 · question: second"]);
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+// BOARD-29, BOARD-30: posts survive a restart of zendo; the post of a process that still runs
+// renews, and expires when the process ends.
+#[tokio::test]
+async fn a_post_survives_a_restart() {
+    let root = repo("board-restart", &[("README.txt", "x\n")]);
+    let dir = board_dir("restart");
+    let mut child = std::process::Command::new("sleep").arg("30").spawn().unwrap();
+    {
+        let mut a = app_on(&root, &dir);
+        tool(&server(&a, 2), "post", json!({ "resource": "docker:foo", "text": "kind" }));
+        tool(&server(&a, 2), "post", json!({ "resource": "port:7001", "text": "server", "pid": child.id() }));
+        drive(&mut [&mut a], 5, |x| x[0].board.state.live_posts().count() == 2).await;
+        a.board_quit();
+    }
+    let mut b = app_on(&root, &dir);
+    let t0 = Instant::now();
+    drive(&mut [&mut b], 5, |_| t0.elapsed() > Duration::from_millis(1500)).await;
+    assert_eq!(b.board.state.live_posts().count(), 2);
+    assert!(b.board.state.live_posts().all(|p| !p.expired()), "both leases go on");
+    child.kill().unwrap();
+    child.wait().unwrap();
+    drive(&mut [&mut b], 5, |x| x[0].board.state.live_posts().filter(|p| p.expired()).count() == 1).await;
     let _ = std::fs::remove_dir_all(&root);
     let _ = std::fs::remove_dir_all(&dir);
 }

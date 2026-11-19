@@ -3,8 +3,12 @@
 
 use super::{Event, HEARTBEAT_MS, Post, State};
 
+/// How long the history keeps a post after its end (BOARD-15, BOARD-19).
+pub const HISTORY_MS: u64 = 7 * 24 * 3600 * 1000;
+
 /// Why a post went to the history.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "why", rename_all = "snake_case")]
 pub enum End {
     Released,
     ThreadEnded,
@@ -17,9 +21,11 @@ pub struct PostState {
     pub post: Post,
     pub at: u64,
     pub end: Option<End>,
+    /// When the post went to the history.
+    pub ended_at: Option<u64>,
     /// The time and the line of the last expiry and the last renewal.
-    expired: Option<(u64, usize)>,
-    renewed: Option<(u64, usize)>,
+    pub(super) expired: Option<(u64, usize)>,
+    pub(super) renewed: Option<(u64, usize)>,
 }
 
 /// The lease of a post: live, and the time of its last renewal or of its expiry.
@@ -56,13 +62,14 @@ impl State {
         match ev {
             Event::Post(post) => {
                 self.post_ix.insert(post.id.clone(), self.posts.len());
-                self.posts.push(PostState { post, at, end: None, expired: None, renewed: None });
+                self.posts.push(PostState { post, at, end: None, ended_at: None, expired: None, renewed: None });
             }
-            Event::Release { post } => self.end_post(&post, End::Released),
+            Event::Release { post } => self.end_post(&post, End::Released, at),
+            Event::Ended { post, end } => self.end_post(&post, end, at),
             Event::Expired { post } => self.live_post(&post).into_iter().for_each(|p| p.expired = Some((at, seq))),
             Event::Renewed { post } => self.live_post(&post).into_iter().for_each(|p| p.renewed = Some((at, seq))),
             Event::Tombstone { post, repo, session } if self.live_post(&post).is_some_and(|p| p.expired()) => {
-                self.end_post(&post, End::Tombstone { repo, session });
+                self.end_post(&post, End::Tombstone { repo, session }, at);
             }
             _ => {}
         }
@@ -73,15 +80,17 @@ impl State {
         self.posts.get_mut(i).filter(|p| p.end.is_none())
     }
 
-    fn end_post(&mut self, id: &str, end: End) {
+    fn end_post(&mut self, id: &str, end: End, at: u64) {
         if let Some(p) = self.live_post(id) {
             p.end = Some(end);
+            p.ended_at = Some(at);
         }
     }
 
-    pub(super) fn end_posts_of(&mut self, repo: &str, session: usize) {
+    pub(super) fn end_posts_of(&mut self, repo: &str, session: usize, at: u64) {
         for p in self.posts.iter_mut().filter(|p| p.end.is_none() && p.post.repo == repo && p.post.session == session) {
             p.end = Some(End::ThreadEnded);
+            p.ended_at = Some(at);
         }
     }
 
@@ -94,9 +103,11 @@ impl State {
         self.posts.iter().filter(|p| p.end.is_none())
     }
 
-    /// The posts in the history, oldest first.
+    /// The posts in the history, oldest first: those that ended within HISTORY_MS of the last
+    /// line.
     pub fn history(&self) -> impl Iterator<Item = &PostState> {
-        self.posts.iter().filter(|p| p.end.is_some())
+        let since = self.last.saturating_sub(HISTORY_MS);
+        self.posts.iter().filter(move |p| p.ended_at.is_some_and(|t| t >= since))
     }
 
     /// The live post of session `s` about `resource`.

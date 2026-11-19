@@ -38,7 +38,9 @@ daemon.
 
 - **The journal is the contract.** `~/.zendo/board/journal.jsonl` holds one JSON event on each
   line: a message, a post, a release, an invite, a leave, a close, a choice of the user, and the
-  claims `delivered` and `watched`. Each writer appends a line in one write under a file lock.
+  claims `delivered` and `watched`. Each writer appends its lines in one write under the lock of
+  `journal.lock`, a file of its own: a compaction replaces the journal, and a writer that waits for
+  the lock holds no handle of the old file.
 - **Scope.** A repository is named by the path of its main checkout, so its worktrees share it.
   Inboxes, `all` and named channels belong to a repository; posts belong to the machine.
 - **Channels.** A named channel is stored as `<repository>/<owner id>/<name>`. The server answers
@@ -61,9 +63,13 @@ daemon.
   the unseen and the newly expired posts to the context of the next question.
 - **Life.** Each zendo process writes a heartbeat to `~/.zendo/board/zendo-<pid>.json` each second;
   the watch exits with a reason when the heartbeat of its repository stops.
-- **Compaction.** When the file is large, the process that holds the lock writes a new file with the
-  undelivered messages, the open channels, the live posts and the history within its time, and
-  renames it over the old one.
+- **Compaction.** When a write leaves the file over 1 MiB, the writer, under the lock, writes a new
+  file through `zendo::atomic` and renames it over the old one. The new file keeps the messages of
+  the last 24 hours, each message to an inbox that its session did not take, each initiation in
+  flight, the responses to those, the live posts, and the posts that left the board in the last 7
+  days. Snapshot lines (`channel`, `close`, `ended`, and the last `expired` or `renewed` of a post)
+  replace the lines of the channels, the leases and the ends. A reader that sees a new file folds
+  it from its start.
 - zendo reads the journal off the UI thread (ADR 0009).
 
 ## Consequences

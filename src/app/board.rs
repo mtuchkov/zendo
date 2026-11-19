@@ -13,6 +13,8 @@ pub struct BoardLink {
     pub journal: Option<Journal>,
     pub repo: String,
     offset: u64,
+    /// The id of the journal file that `offset` is in: a compaction makes a new one.
+    file: u64,
     pub state: State,
     polled: Option<Instant>,
     beat: Option<Instant>,
@@ -36,9 +38,16 @@ impl BoardLink {
         BoardLink { journal: Some(Journal::at(dir)), repo: crate::board::repo_of(root), threads: vec![None; SESSIONS], ..Default::default() }
     }
 
-    /// Fold the new lines of the journal into the state.
+    /// Fold the new lines of the journal into the state. After a compaction, the state folds the
+    /// new file from its start (ADR 0018).
     fn poll(&mut self) {
         let Some(j) = &self.journal else { return };
+        let (file, len) = j.stamp();
+        if file != self.file || len < self.offset {
+            self.file = file;
+            self.offset = 0;
+            self.state = State::default();
+        }
         let (lines, offset) = j.read_from(self.offset);
         self.offset = offset;
         lines.into_iter().for_each(|l| self.state.apply(l));

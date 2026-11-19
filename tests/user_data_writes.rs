@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 
 /// The files of `src` that write files of zendo itself, with what they write.
-const OWN: [(&str, &str); 12] = [
+const OWN: [(&str, &str); 13] = [
     ("src/atomic.rs", "the atomic write itself"),
     ("src/app/background.rs", "the log of the background mode"),
     ("src/agent/acp.rs", "the log of the agent"),
@@ -17,6 +17,7 @@ const OWN: [(&str, &str); 12] = [
     ("src/setup/fonts/mod.rs", "the list of the recommended fonts that zendo named"),
     ("src/setup/fonts/install.rs", "the font files, with a temporary file and a rename"),
     ("src/text/clipboard.rs", "a pasted image in the data folder"),
+    ("src/board/journal.rs", "the journal of the message board: appends under a lock, compaction through zendo::atomic (ADR 0018)"),
     ("src/bin/", "the mock programs of the tests"),
 ];
 

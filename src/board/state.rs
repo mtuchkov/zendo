@@ -18,6 +18,8 @@ pub struct State {
     pub(super) post_ix: HashMap<String, usize>,
     /// The number of the line that comes next.
     pub(super) seq: usize,
+    /// The time of the last line.
+    pub(super) last: u64,
 }
 
 impl State {
@@ -30,6 +32,7 @@ impl State {
     /// Fold one more line into the state.
     pub fn apply(&mut self, line: Line) {
         self.seq += 1;
+        self.last = self.last.max(line.at);
         match line.ev {
             Event::Msg(m) => self.add_msg(line.at, m),
             Event::Claim { msg, to, how } => {
@@ -44,7 +47,9 @@ impl State {
                 }
             }
             Event::Leave { repo, channel, session } => self.leave(repo, channel, session),
-            Event::ThreadEnd { repo, session } => self.thread_end(repo, session),
+            Event::ThreadEnd { repo, session } => self.thread_end(repo, session, line.at),
+            Event::Channel { repo, channel, members } => drop(self.channels.insert((repo, channel), members.into_iter().collect())),
+            Event::Close { repo, channel } => drop(self.channels.remove(&(repo, channel))),
             Event::Choice { msg, to } => {
                 self.choices.entry(msg).or_insert(to);
             }
@@ -71,9 +76,14 @@ impl State {
         }
     }
 
-    fn thread_end(&mut self, repo: String, session: usize) {
+    fn thread_end(&mut self, repo: String, session: usize, at: u64) {
         self.channels.retain(|(r, ch), _| !(*r == repo && owner_of(ch) == Some(session)));
-        self.end_posts_of(&repo, session);
+        self.end_posts_of(&repo, session, at);
+    }
+
+    /// The open named channels with their members, for a compaction.
+    pub(super) fn channels(&self) -> impl Iterator<Item = (&(String, String), &BTreeSet<usize>)> {
+        self.channels.iter()
     }
 
     pub fn msg(&self, id: &str) -> Option<&Msg> {
@@ -169,7 +179,7 @@ impl State {
 
     /// Some recipient took the initiation `e`, and neither answered it nor ended the turn that
     /// took it.
-    fn in_flight(&self, e: &Msg) -> bool {
+    pub(super) fn in_flight(&self, e: &Msg) -> bool {
         self.claims.keys().filter(|(id, _)| *id == e.id).any(|(_, r)| !self.landed(&e.id, *r) && !self.responded(e, *r))
     }
 

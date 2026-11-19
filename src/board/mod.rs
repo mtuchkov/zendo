@@ -2,6 +2,7 @@
 //! servers, the watches and the zendo processes append to, and the state that it folds into.
 
 mod beats;
+mod compact;
 mod deliver;
 mod events;
 mod journal;
@@ -17,7 +18,9 @@ pub use deliver::{label, tagged};
 pub use events::*;
 pub use journal::Journal;
 pub use state::State;
-pub use state_posts::{End, Lease, PostState};
+pub use compact::MSG_RETAIN_MS;
+pub use journal::COMPACT_BYTES;
+pub use state_posts::{End, HISTORY_MS, Lease, PostState};
 pub use tools_posts::post_json;
 
 use std::path::{Path, PathBuf};

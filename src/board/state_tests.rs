@@ -12,7 +12,7 @@ fn posts(c: &super::super::tools::Ctx) -> serde_json::Value {
 // BOARD-13, BOARD-29: a post shows to a session of another repository, also after a restart: the
 // journal holds it.
 #[test]
-fn a_post_shows_in_another_repository_and_survives_a_restart() {
+fn a_post_shows_in_another_repository() {
     let a = fresh("post-repos", 2);
     beat(&a);
     call(&a, "post", &json!({ "resource": "port:5220", "text": "dev server" })).unwrap().unwrap();
@@ -68,7 +68,7 @@ fn a_lease_without_a_heartbeat_is_expired_with_its_age() {
 // BOARD-33, BOARD-34, BOARD-35: a live lease refuses a tombstone; an expired one takes it, and a
 // later renewal does not bring the post back.
 #[test]
-fn a_dead_post_can_be_tombstoned_and_stays_so() {
+fn a_dead_post_can_be_tombstoned() {
     let a = fresh("post-tomb", 2);
     beat(&a);
     let p = call(&a, "post", &json!({ "resource": "port:3", "text": "x" })).unwrap().unwrap()["id"].as_str().unwrap().to_string();

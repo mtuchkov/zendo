@@ -16,24 +16,36 @@ fn run(w: Watch) -> std::thread::JoinHandle<(Vec<Value>, i32)> {
     })
 }
 
-// BOARD-20, BOARD-21, BOARD-22: the watch prints the waiting message first, then a new one, one
-// JSON line each, claims them as watched, and ends with a reason.
+// BOARD-20, BOARD-21: the watch prints the waiting message first, then a new one, one JSON line
+// each, and claims them as watched, so zendo does not deliver them again.
 #[test]
-fn a_watch_prints_messages_and_ends_with_a_reason() {
+fn a_watch_prints_a_message_during_the_turn() {
     let c3 = fresh("watch", 3);
     beat(&c3);
     call(&c3, "ask", &json!({ "to": "session:2", "text": "one" })).unwrap().unwrap();
-    call(&c3, "ask", &json!({ "to": "all", "text": "two" })).unwrap().unwrap();
     let h = run(watch(&other(&c3, 2), None, 1));
-    let (lines, code) = h.join().unwrap();
+    std::thread::sleep(Duration::from_millis(200));
+    call(&c3, "ask", &json!({ "to": "all", "text": "two" })).unwrap().unwrap();
+    let (lines, _) = h.join().unwrap();
     let texts: Vec<_> = lines.iter().filter(|l| l["event"] == "message").map(|l| l["text"].clone()).collect();
     assert_eq!(texts, [json!("one"), json!("two")]);
-    assert_eq!(lines.last().unwrap()["event"], "end");
-    assert_eq!(lines.last().unwrap()["reason"], "timeout");
-    assert_eq!(code, 1);
     let st = c3.journal.state();
     assert!(st.msgs.iter().all(|(_, m)| st.claimed(&m.id, 2) == Some(How::Watched)), "zendo does not deliver them again");
     let _ = std::fs::remove_dir_all(c3.journal.dir());
+}
+
+// BOARD-22: when zendo ends, the last line of the watch names the reason, and the watch exits.
+#[test]
+fn a_watch_ends_with_a_reason() {
+    let c = fresh("watch-end", 2);
+    beat(&c);
+    let h = run(watch(&c, None, 5));
+    std::thread::sleep(Duration::from_millis(200));
+    c.journal.unbeat(std::process::id());
+    let (lines, code) = h.join().unwrap();
+    assert_eq!(lines.last().unwrap(), &json!({ "event": "end", "reason": "zendo is not running for this repository" }));
+    assert_eq!(code, 1);
+    let _ = std::fs::remove_dir_all(c.journal.dir());
 }
 
 // BOARD-22: without a zendo of the repository, the watch ends at once and says why.

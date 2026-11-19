@@ -101,7 +101,7 @@ fn a_task_status_follows_its_order() {
 // BOARD-6, BOARD-9: the waiting questions of a sender go together; while they are in flight, the
 // next one waits, and it goes when they land.
 #[test]
-fn initiations_wait_while_one_is_in_flight() {
+fn initiations_wait_and_squash() {
     let c3 = fresh("held", 3);
     let one = id(run(&c3, "ask", json!({ "to": "session:2", "text": "one" })));
     let two = id(run(&c3, "ask", json!({ "to": "session:2", "text": "two" })));

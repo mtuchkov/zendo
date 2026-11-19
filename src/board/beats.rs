@@ -26,12 +26,10 @@ impl Journal {
         self.dir().join(format!("zendo-{pid}.json"))
     }
 
-    /// Write the heartbeat of this process: a new file, then a rename.
+    /// Write the heartbeat of this process, whole or not at all (FAIL-2).
     pub fn beat(&self, beat: &Beat) -> std::io::Result<()> {
         std::fs::create_dir_all(self.dir())?;
-        let tmp = self.dir().join(format!(".zendo-{}.tmp", beat.pid));
-        std::fs::write(&tmp, serde_json::to_vec(beat).unwrap_or_default())?;
-        std::fs::rename(tmp, self.beat_path(beat.pid))
+        crate::atomic::write(&self.beat_path(beat.pid), serde_json::to_vec(beat).unwrap_or_default())
     }
 
     /// Remove the heartbeat of this process: zendo quits.
