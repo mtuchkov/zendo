@@ -162,9 +162,12 @@ impl App {
         self.cli.view = None;
         self.open_file(item.path);
         (self.mode, self.focus) = (Mode::Read, Focus::Note);
+        // The jump needs the text of the file: it waits for the worker that reads it (IO-6).
         if let Some(line) = item.snippets.first().map(|s| s.line) {
-            let rows = crate::ui::source_rows(self, self.column_width() as usize);
-            self.reader.jump(rows.get(line).copied().unwrap_or(0));
+            self.when_loaded(move |a| {
+                let rows = crate::ui::source_rows(a, a.column_width() as usize);
+                a.reader.jump(rows.get(line).copied().unwrap_or(0));
+            });
         }
         self.track_recent();
     }

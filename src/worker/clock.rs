@@ -4,6 +4,15 @@ use std::time::{Duration, Instant};
 
 /// A key and a frame take at most this long (IO-2).
 pub const LIMIT: Duration = Duration::from_millis(100);
+/// After this long without an answer, zendo says that it reads (IO-6).
+pub const READING_AFTER: Duration = Duration::from_millis(350);
+
+/// "reading" with dots that move each 250 ms, after `READING_AFTER`; None before (IO-6).
+pub fn reading(waited: Duration) -> Option<String> {
+    let after = waited.checked_sub(READING_AFTER)?;
+    let dots = (after.as_millis() / 250 % 3) as usize + 1;
+    Some(format!("reading{:<3}", ".".repeat(dots)))
+}
 
 pub struct Clock {
     what: &'static str,

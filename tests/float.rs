@@ -113,6 +113,8 @@ async fn esc_saves_the_float_and_restores_the_screen() {
     assert!(screen.contains(&today), "the date under the title:\n{screen}");
     key(&mut a, KeyCode::Esc);
     assert!(a.writer.float().is_none(), "esc closes the float");
+    // A worker reads the notes again (IO-6).
+    a.settle_tasks();
     let saved: Vec<String> = notes(&root).into_iter().filter(|n| n.ends_with("-tea.md")).collect();
     assert_eq!(saved.len(), 1, "{:?}", notes(&root));
     let text = std::fs::read_to_string(root.join("docs/notes").join(&saved[0])).unwrap();

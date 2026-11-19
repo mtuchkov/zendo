@@ -108,7 +108,7 @@ pub async fn run(
             _ = found.notified() => app.poll_find(),
             _ = woken.notified() => app.poll_tasks(),
             _ = tick.tick() => app.tick(),
-            _ = pulse.tick(), if app.attention.blinking() => {},
+            _ = pulse.tick(), if app.attention.blinking() || app.reading().is_some() => {},
         }
     }
 }

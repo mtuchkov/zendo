@@ -168,13 +168,33 @@ impl App {
     /// change: the editor keeps the empty lines at the end and the cursor (NOTE-3). A change in
     /// write mode is one external operation of the loglet, merged with the text that is not saved
     /// yet (UNDO-6, UNDO-13).
+    /// A worker reads the notes and the file of the editor; `poll_reload` merges it (IO-1).
     pub fn reload_after_agent(&mut self) {
-        self.reload();
-        if self.mode == Mode::Write
-            && let Some(p) = self.writer.path()
-            && let Ok(body) = std::fs::read_to_string(p)
+        let open = self.writer.path().filter(|_| self.mode == Mode::Write).cloned();
+        self.files.reload_reading(open);
+    }
+
+    /// The notes came again; the text of the file of the editor merges into the editor, and what
+    /// waited for the notes runs.
+    pub(crate) fn poll_reload(&mut self) {
+        let Some(open) = self.files.poll_reload() else { return };
+        if let Some((p, body)) = open
+            && self.mode == Mode::Write
+            && self.writer.path() == Some(&p)
         {
             self.writer.editor_mut().external(body.trim_end_matches('\n'));
+        }
+        if !self.files.reloading() {
+            std::mem::take(&mut self.after_reload).into_iter().for_each(|f| f(self));
+        }
+    }
+
+    /// Run `f` when the notes that a worker reads now came, or at once when none are read (IO-6).
+    pub(crate) fn when_loaded(&mut self, f: impl FnOnce(&mut App) + 'static) {
+        if self.files.reloading() {
+            self.after_reload.push(Box::new(f));
+        } else {
+            f(self);
         }
     }
 

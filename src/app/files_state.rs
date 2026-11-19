@@ -40,6 +40,11 @@ pub struct Files {
     syncer: Option<Syncer>,
     /// The open document that the tree showed last (FILES-58); none: the tree shows it again.
     followed: Option<PathBuf>,
+    /// The notes that a worker reads again, and a reload asked for while it ran (IO-1).
+    reloading: crate::worker::Task<reload::Loaded>,
+    reload_again: Option<Option<PathBuf>>,
+    /// The look at the disk each second, on a worker (IO-1).
+    looking: crate::worker::Task<reload::Look>,
 }
 
 impl Files {
@@ -150,23 +155,6 @@ impl Files {
         self.notes.iter().position(|n| &n.path == p)
     }
 
-    /// Read the notes again, and the files opened outside the notes folder that still exist.
-    pub fn reload(&mut self) {
-        if let Ok(mut n) = self.store.load_all() {
-            // The open document stays, also while it has no version in the session (FILES-40).
-            let cur = self.current.clone();
-            self.extra.retain(|p| p.exists() || cur.as_ref() == Some(p));
-            let more: Vec<Note> = self.extra.iter().filter(|p| !n.iter().any(|x| &x.path == *p)).filter_map(|p| notes::load(p).ok()).collect();
-            n.extend(more);
-            n.sort_by_key(|b| std::cmp::Reverse(b.modified));
-            self.notes = n;
-            self.fill_notes_view();
-        }
-        if self.current.as_ref().is_some_and(|p| !p.exists() && !self.extra.contains(p)) {
-            self.current = self.notes.first().map(|n| n.path.clone());
-        }
-    }
-
     /// Note `i` of the list is the open document.
     pub fn show_note(&mut self, i: usize) {
         self.current = Some(self.notes[i].path.clone());
@@ -202,6 +190,8 @@ impl Files {
 mod tree;
 #[path = "files_disk.rs"]
 mod disk;
+#[path = "files_reload.rs"]
+pub(crate) mod reload;
 #[path = "files_new.rs"]
 mod new;
 #[path = "files_ops.rs"]

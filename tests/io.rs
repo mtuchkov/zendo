@@ -18,8 +18,8 @@ fn slow_head(_: &(PathBuf, String)) -> Option<String> {
     Some("# A\n".into())
 }
 
-// IO-1, IO-2, IO-6: while git does not answer, a frame with the delta pane takes at most 100 ms and
-// says that it reads the file at HEAD.
+// IO-1, IO-2, IO-6: while git does not answer, a frame with the delta pane takes at most 100 ms;
+// after 350 ms it says that it reads the file at HEAD.
 #[test]
 fn a_frame_answers_while_git_does_not() {
     let root = repo("io-delta-git", &[("docs/notes/2026-11-19-a.md", "# A\n\n- new line\n")]);
@@ -30,8 +30,10 @@ fn a_frame_answers_while_git_does_not() {
     a.toggle_delta();
     let mut screen = Vec::new();
     within_limit("a frame", || screen = draw_now(&mut a, 160, 30));
+    assert!(!screen.join("\n").contains("readin"), "a short wait shows nothing:\n{}", screen.join("\n"));
+    std::thread::sleep(Duration::from_millis(400));
+    within_limit("a later frame", || screen = draw_now(&mut a, 160, 30));
     assert!(screen.join("\n").contains("readin"), "the delta says that it reads:\n{}", screen.join("\n"));
-    within_limit("a second frame", || drop(draw_now(&mut a, 160, 30)));
     let _ = std::fs::remove_dir_all(&root);
 }
 

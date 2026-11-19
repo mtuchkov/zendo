@@ -40,6 +40,15 @@ fn select(f: &mut Files, root: &Path, rel: &str) {
     assert_eq!(f.tree_file().as_deref(), Some(Path::new(rel)), "the row of {rel}");
 }
 
+/// Wait at most 5 s for the worker that reads the notes, and take its answer (IO-6).
+fn settled(f: &mut Files) {
+    let end = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while f.reloading() && std::time::Instant::now() < end {
+        std::thread::sleep(std::time::Duration::from_millis(2));
+        f.poll_reload();
+    }
+}
+
 // ADR 0008: the files start with the notes of the store and an open document; a file outside the
 // notes is read when it opens, and goes when it is gone from the disk.
 #[test]
@@ -48,11 +57,13 @@ fn a_file_outside_the_notes_is_read_when_it_opens() {
     assert_eq!(f.notes().len(), 2);
     assert!(f.current().is_some() && f.note().is_some());
     f.open(root.join("code.rs"));
+    settled(&mut f);
     assert_eq!((f.notes().len(), f.rel(f.current().unwrap())), (3, "code.rs".to_string()));
     assert_eq!(f.note().map(|n| n.body.as_str()), Some("fn main() {}\n"));
     std::fs::remove_file(root.join("code.rs")).unwrap();
     f.open(root.join("docs/a.md"));
     f.reload();
+    settled(&mut f);
     assert_eq!(f.notes().len(), 2);
     f.show_note(1);
     assert_eq!(f.note_index(), Some(1));
@@ -91,6 +102,7 @@ fn a_delete_removes_the_file_and_returns_its_key() {
     f.ask(FilePrompt::Delete("docs/a.md".into()));
     assert_eq!(f.key_prompt(key(KeyCode::Char('y')), action_of(Pane::Question, key(KeyCode::Char('y'))), &root), Some(Effect::Deleted("docs/a.md".into())));
     assert!(!root.join("docs/a.md").exists());
+    settled(&mut f);
     assert_eq!((f.notes().len(), f.current()), (1, None), "no document is open");
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -104,6 +116,7 @@ fn a_new_file_and_a_new_folder_come_back_as_effects() {
     assert_eq!(f.prompt(), Some(&FilePrompt::NewFile("docs/".into())), "the folder of the selection");
     assert_eq!(typ(&mut f, &root, "audit-log"), Some(Effect::MadeFile(root.join("docs/audit-log.md"))));
     assert_eq!(std::fs::read_to_string(root.join("docs/audit-log.md")).unwrap(), "# Audit log\n\n");
+    settled(&mut f);
     assert_eq!(f.notes().len(), 3);
     f.ask(FilePrompt::NewFile("../x".into()));
     assert_eq!(f.key_prompt(key(KeyCode::Enter), action_of(Pane::Question, key(KeyCode::Enter)), &root), Effect::flash("give a path inside the repository"));
@@ -154,17 +167,34 @@ fn a_file_action_waits_for_the_popup_while_the_agent_works() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-// ADR 0008: the files look at the disk at most once a second, and tell a change after the first look.
+/// The structure that a look read again, and whether the notes changed.
+type Seen = (Option<super::reload::StructureRead>, bool);
+
+/// Look at the disk now, on the worker, and wait for the answer (IO-1).
+fn look(f: &mut Files, root: &Path) -> Seen {
+    f.look_again();
+    f.look_at_disk(root);
+    let end = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    loop {
+        if let Some(seen) = f.poll_look() {
+            return seen;
+        }
+        assert!(std::time::Instant::now() < end, "no answer of the look");
+        std::thread::sleep(std::time::Duration::from_millis(2));
+    }
+}
+
+// ADR 0008, IO-1: the files look at the disk at most once a second, on a worker, and tell a change
+// after the first look.
 #[test]
 fn a_change_on_disk_shows_after_the_first_look() {
     let (root, mut f) = repo("disk");
-    assert_eq!(f.disk_due(&root), None, "the first second has no look");
-    f.look_again();
-    assert_eq!(f.disk_due(&root), Some(false));
-    assert!(!f.disk_changed(), "the first look only takes the state of the folder");
-    assert!(!f.disk_changed());
+    f.look_at_disk(&root);
+    assert!(!f.disk_busy(), "the first second has no look");
+    assert!(!look(&mut f, &root).1, "the first look only takes the state of the folder");
+    assert!(!look(&mut f, &root).1);
     std::fs::write(root.join("docs/new.md"), "# New\n").unwrap();
-    assert!(f.disk_changed());
+    assert!(look(&mut f, &root).1);
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -177,11 +207,10 @@ fn a_structure_that_does_not_parse_leaves_its_reason() {
     assert!(f.structure().is_none() && f.structure_error().is_none());
     assert!(f.tree().view == View::Docs);
     std::fs::write(root.join(structure::FILE), "[[entry\n").unwrap();
-    f.look_again();
-    assert_eq!(f.disk_due(&root), Some(true), "the file changed");
-    assert!(matches!(f.load_structure(&root, "", false), Some(Effect::Flash(t)) if t.contains("does not parse")));
+    let (loaded, issues) = look(&mut f, &root).0.expect("the file changed");
+    assert!(matches!(f.apply_structure(loaded, issues, "", false), Some(Effect::Flash(t)) if t.contains("does not parse")));
     assert!(f.structure_error().is_some());
-    assert_eq!(f.disk_due(&root), None);
+    assert!(look(&mut f, &root).0.is_none(), "no change since");
     let _ = std::fs::remove_dir_all(&root);
 }
 

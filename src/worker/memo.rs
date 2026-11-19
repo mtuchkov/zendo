@@ -13,6 +13,8 @@ const FORGET: Duration = Duration::from_secs(10);
 struct Entry<V> {
     value: Option<V>,
     asked: Instant,
+    /// When the key came.
+    since: Instant,
 }
 
 struct Inner<K, V> {
@@ -61,9 +63,14 @@ where
         self.inner.rounds.load(Ordering::Relaxed)
     }
 
+    /// How long `key` waits for its first value; None when it has one or was not asked.
+    pub fn waited(&self, key: &K) -> Option<std::time::Duration> {
+        self.inner.lock().get(key).filter(|e| e.value.is_none()).map(|e| e.since.elapsed())
+    }
+
     /// Seed `key` with a value read before the first frame (IO-7); the worker keeps it fresh.
     pub fn put(&self, key: K, value: V) {
-        self.inner.lock().insert(key, Entry { value: Some(value), asked: Instant::now() });
+        self.inner.lock().insert(key, Entry { value: Some(value), asked: Instant::now(), since: Instant::now() });
     }
 
     /// The last value of `key`, from memory; None until the worker computed it.
@@ -75,7 +82,7 @@ where
                 e.value.clone()
             }
             None => {
-                map.insert(key.clone(), Entry { value: None, asked: Instant::now() });
+                map.insert(key.clone(), Entry { value: None, asked: Instant::now(), since: Instant::now() });
                 self.inner.new.notify_one();
                 None
             }

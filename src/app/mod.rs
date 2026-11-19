@@ -151,6 +151,9 @@ pub struct Config {
     pub user_config: PathBuf,
 }
 
+/// An action that waits for the notes that a worker reads (IO-6).
+pub(crate) type AfterReload = Box<dyn FnOnce(&mut App)>;
+
 #[derive(smart_default::SmartDefault)]
 pub struct App {
     pub cfg: Config,
@@ -210,6 +213,8 @@ pub struct App {
     pub recap_looked: Option<Instant>,
     /// The diff of the worktree for its recap, from a worker (FILES-29, IO-1).
     pub worktree_diff: crate::worker::Task<(PathBuf, String)>,
+    /// What waits for the notes that a worker reads: a jump to a match, a cursor (IO-6).
+    pub(crate) after_reload: Vec<AfterReload>,
     /// The marks of the files that changed since their last visit, from a worker (IO-1).
     pub marks: crate::worker::Task<Vec<PathBuf>>,
     /// The files whose write failed: each shows once (FAIL-1).

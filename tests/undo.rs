@@ -82,6 +82,8 @@ async fn undo_works_after_a_restart() {
     typ(&mut a, "added");
     key(&mut a, KeyCode::Esc);
     assert!(std::fs::read_to_string(root.join(NOTE)).unwrap().contains("added"));
+    // The writer writes the loglets; zendo waits for it at the end, as main does (IO-7).
+    assert!(a.disk.flush(std::time::Duration::from_secs(5)));
     let log = std::fs::read_to_string(log_file(&root)).expect("db.log.json");
     assert!(log.contains(NOTE), "{log}");
     drop(a);
@@ -128,6 +130,8 @@ fn agent_wrote(name: &str) -> (std::path::PathBuf, App) {
     let disk = std::fs::read_to_string(root.join(NOTE)).unwrap();
     std::fs::write(root.join(NOTE), format!("theirs\n\n{disk}")).unwrap();
     a.reload_after_agent();
+    // A worker reads the file; its answer merges it (IO-6).
+    a.settle_tasks();
     assert!(text(&a).starts_with("theirs") && text(&a).ends_with("mine"), "{}", text(&a));
     (root, a)
 }
@@ -189,6 +193,7 @@ async fn a_change_while_the_note_was_closed() {
     let disk = std::fs::read_to_string(root.join(NOTE)).unwrap();
     std::fs::write(root.join(NOTE), format!("theirs\n\n{disk}")).unwrap();
     a.reload_after_agent();
+    a.settle_tasks();
     key(&mut a, KeyCode::Char('i'));
     assert_eq!(a.mode, Mode::Write);
     ctrl(&mut a, 'z');
@@ -243,6 +248,7 @@ async fn the_focus_brings_the_external_change() {
     std::fs::write(root.join(NOTE), format!("theirs\n\n{disk}")).unwrap();
     a.on_focus(false);
     a.on_focus(true);
+    a.settle_tasks();
     assert!(text(&a).starts_with("theirs") && a.writer.editor().external_next(), "{}", text(&a));
     let _ = std::fs::remove_dir_all(&root);
 }

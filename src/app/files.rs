@@ -72,13 +72,22 @@ impl App {
     }
 
     /// Pick up changes made outside zendo: Claude Code, git pull, another editor.
+    /// Changes made outside zendo: Claude Code, git pull, another editor. A worker looks at the
+    /// disk each second; its answer reads the structure again or the notes (IO-1).
     pub(crate) fn check_disk(&mut self) {
-        let Some(structure) = self.files.disk_due(&self.cfg.root) else { return };
-        if structure {
-            self.load_structure();
+        self.disk_answer();
+        self.files.look_at_disk(&self.cfg.root);
+    }
+
+    /// The look at the disk answered: read the structure or the notes again.
+    pub(crate) fn disk_answer(&mut self) {
+        let Some((structure, changed)) = self.files.poll_look() else { return };
+        if let Some((loaded, issues)) = structure {
+            let said = self.files.apply_structure(loaded, issues, &self.state.tree_view, self.state.tree_all);
+            self.apply(said);
             self.files.scan_again();
         }
-        if self.files.disk_changed() {
+        if changed {
             self.reload_after_agent();
             self.mark_tree();
         }

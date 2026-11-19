@@ -29,7 +29,7 @@ IO (input and output) is each operation whose time depends on something outside 
 A computation on data in memory is not IO.
 
 **Where IO runs.** The UI thread gives each IO operation to a worker thread and takes the answer on
-a later tick, until then the screen shows the last known state or says that zendo reads. A failure
+a later tick; until then the screen shows the last known state, and after 350 ms "reading". A failure
 follows the [failure default](failures.md). ADR
 [0024](../architecture/decisions/0024-io-on-worker-threads.md) holds the mechanism for all IO,
 after [0009](../architecture/decisions/0009-git-and-agent-sessions-without-ui-stalls.md) and
@@ -86,7 +86,7 @@ newest content waits.
 | IO-3 | Ubiquitous | The system shall sync to the disk only the writes of user data.                                                                   | Design; FAIL-2   |
 | IO-4 | Event      | When the system has newer content for a file whose write did not end, the system shall write only the newest content after that write. | Design   |
 | IO-5 | Unwanted   | If a read of the clipboard or a program that the system starts does not end within its time limit, then the system shall stop waiting for it and show the failure once. | Design; FAIL-1, FAIL-6 |
-| IO-6 | State      | While the answer of an IO operation has not come, the system shall show the last known state of what it reads, or say that it reads. | Design; ADR 0009 |
+| IO-6 | State      | While the answer of an IO operation has not come, the system shall show the last known state of what it reads, and after 350 ms "reading" with an animation. | User, 2026-11-19; ADR 0009 |
 | IO-7 | Event      | When the system starts, the system shall read its config and its state on the UI thread before it draws the first frame. | User, 2026-11-19 |
 | IO-8 | Optional   | Where the system is a debug build, the system shall log each tick longer than 100 ms with the phase of the tick that took the time. | User, 2026-11-19 |
 

@@ -166,6 +166,9 @@ fn mouse_selection(t: &Theme) -> (&'static str, Color, Hints) {
 /// The right side: a flash, the sync, the agent, or the words of the note.
 /// The right side without a message: the sync, the agent, or the words of the note.
 fn status_right(app: &App, fr: &Cache, claude: bool) -> String {
+    if let Some(s) = app.reading().and_then(crate::worker::reading) {
+        return s;
+    }
     if let Some(s) = app.sync_label() {
         return s;
     }

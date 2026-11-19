@@ -45,7 +45,7 @@ impl Note {
     }
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Store {
     pub root: PathBuf,
     pub dir: PathBuf,

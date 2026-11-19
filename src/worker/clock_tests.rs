@@ -21,3 +21,11 @@ fn a_fast_tick_is_not_logged() {
     assert_eq!(n, 4, "the phase gives its value back");
     assert_eq!(c.report(), None);
 }
+
+// IO-6: a wait under 350 ms shows nothing; after it, "reading" with dots that move.
+#[test]
+fn reading_shows_only_after_350_ms_with_moving_dots() {
+    assert_eq!(reading(Duration::from_millis(300)), None, "a short wait shows nothing");
+    let frames: Vec<String> = [400, 650, 900, 1150].iter().filter_map(|ms| reading(Duration::from_millis(*ms))).collect();
+    assert_eq!(frames, ["reading.  ", "reading.. ", "reading...", "reading.  "]);
+}

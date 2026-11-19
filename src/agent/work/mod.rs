@@ -132,7 +132,11 @@ impl App {
         match self.git_head(&rel) {
             Some(Some(t)) => (label.into(), t),
             Some(None) => (format!("{label} · new file"), String::new()),
-            None => (format!("{label} · reading git HEAD…"), self.note_text().unwrap_or_default()),
+            None => {
+                let waited = self.facts.head.waited(&self.in_checkout(&rel)).unwrap_or_default();
+                let label = crate::worker::reading(waited).map_or_else(|| label.to_string(), |r| format!("{} · {label}", r.trim_end()));
+                (label, self.note_text().unwrap_or_default())
+            }
         }
     }
 

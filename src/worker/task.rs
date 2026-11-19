@@ -56,6 +56,11 @@ impl<T: Send + 'static> Task<T> {
         self.answer.is_some()
     }
 
+    /// How long zendo waits for the answer, while it waits.
+    pub fn waited(&self) -> Option<Duration> {
+        self.started.filter(|_| self.running()).map(|t| t.elapsed())
+    }
+
     /// True once when the operation ran over its limit: zendo stops waiting for it, and its late
     /// answer is dropped (IO-5).
     pub fn overdue(&mut self) -> bool {

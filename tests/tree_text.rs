@@ -22,6 +22,8 @@ fn the_text_view_opens_a_code_file_with_its_colors() {
     a.files.reveal(std::path::Path::new("src/main.rs"));
     key(&mut a, KeyCode::Enter);
     assert!(a.files.current().is_some_and(|p| p.ends_with("src/main.rs")), "{:?}", a.files.current());
+    // A worker reads the file (IO-6).
+    a.settle_tasks();
     let mut term = Terminal::new(TestBackend::new(140, 30)).unwrap();
     term.draw(|f| a.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();

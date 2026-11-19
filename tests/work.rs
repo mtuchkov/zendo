@@ -67,6 +67,8 @@ async fn brief_open_does_not_count_but_work_does() {
     // A change after the visit shows in the delta since the last visit.
     std::fs::write(root.join(REL), "# Event log\n\n- a\n- b\n").unwrap();
     a.reload();
+    // A worker reads the notes again (IO-6).
+    a.settle_tasks();
     a.mode = Mode::Read;
     let (label, old) = a.delta_base();
     assert!(label.starts_with("since your last visit"), "{label}");
