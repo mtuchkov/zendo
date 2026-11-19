@@ -101,8 +101,9 @@ impl App {
     /// For tests: wait at most 5 s for the saves, the jobs and the reload of the notes after them.
     pub fn settle_saves(&mut self) {
         let end = Instant::now() + Duration::from_secs(5);
-        while (self.saving.is_some() || self.files.reloading() || self.serial.busy() || self.files.completes() || self.composer().at_waits() || self.chip_reads.running()) && Instant::now() < end {
+        while (self.saving.is_some() || self.files.reloading() || self.serial.busy() || self.files.completes() || self.composer().at_waits() || self.chip_reads.running() || self.cli.starting_any()) && Instant::now() < end {
             std::thread::sleep(Duration::from_millis(2));
+            self.cli.poll_starts();
             self.poll_chip();
             if self.composer().at_waits() && self.facts.files.get(&self.cfg.root).is_some() {
                 self.update_at();

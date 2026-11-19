@@ -14,6 +14,7 @@ pub mod keys;
 pub mod mouse;
 mod pty;
 mod shells;
+mod start;
 
 pub use messages::{Message, plain};
 pub use pty::Cli;
@@ -93,13 +94,15 @@ pub struct Sessions {
     sizes: Vec<(u16, u16)>,
     /// For the spinners.
     born: Instant,
+    /// The programs that start on tasks (IO-1).
+    starts: start::Starts,
 }
 
 impl Default for Sessions {
     fn default() -> Self {
         let all = SESSIONS + TERMINALS;
         let size = (23, 80);
-        Sessions { command: None, view: None, pane: None, pressed: None, quit_asked: None, notify: Arc::default(), shell: None, home: None, viewed: Vec::new(), slots: (0..all).map(|_| None).collect(), pending: vec![None; all], size, pane_size: size, sizes: vec![size; all], born: Instant::now() }
+        Sessions { command: None, view: None, pane: None, pressed: None, quit_asked: None, notify: Arc::default(), shell: None, home: None, viewed: Vec::new(), slots: (0..all).map(|_| None).collect(), pending: vec![None; all], size, pane_size: size, sizes: vec![size; all], born: Instant::now(), starts: start::Starts::default() }
     }
 }
 
@@ -113,8 +116,9 @@ impl Sessions {
         self.born.elapsed()
     }
 
+    /// Session `n` runs, or its program starts (IO-6).
     pub fn running(&self, n: usize) -> bool {
-        self.cli(n).is_some()
+        self.cli(n).is_some() || self.starting(n)
     }
 
     /// A Claude Code session runs, or a terminal runs a command: quit asks first (SESSIONS-6, TERM-18).
@@ -145,18 +149,6 @@ impl Sessions {
         self.cli(n).map(|c| c.with_screen(f))
     }
 
-    /// Start the Claude Code session of agent session `n` with its session ID, if it does not run.
-    pub fn open(&mut self, n: usize, cmd: &Command, resume: Resume, root: &Path) -> std::io::Result<()> {
-        if self.running(n) {
-            return Ok(());
-        }
-        let dir = root.join(".zendo").join("sessions");
-        let cli = Cli::spawn(cmd, resume, root, &dir, n, self.size, self.notify.clone())?;
-        self.slots[n] = Some(cli);
-        self.sizes[n] = self.size;
-        Ok(())
-    }
-
     /// Input for session `n`: keys, paste. `enter` in a shell starts a command (TERM-27).
     pub fn write(&self, n: usize, bytes: &[u8]) {
         if let Some(c) = self.cli(n) {
@@ -165,6 +157,8 @@ impl Sessions {
                 c.with_recorder(|r| r.enter(&line));
             }
             c.write(bytes);
+        } else if self.starting(n) {
+            self.write_early(n, bytes);
         }
     }
 
@@ -208,6 +202,7 @@ impl Sessions {
 
     /// Read the states, and take the sessions that ended: their numbers.
     pub fn tick(&mut self) -> Vec<usize> {
+        self.poll_starts();
         let ended: Vec<usize> = self.slots.iter_mut().enumerate().filter_map(|(n, s)| s.as_mut().is_some_and(Cli::ended).then_some(n)).collect();
         for n in &ended {
             self.slots[*n] = None;
@@ -216,6 +211,7 @@ impl Sessions {
         self.slots.iter_mut().flatten().for_each(Cli::read_state);
         self.free_shells();
         self.write_pending();
+        // A view of a program that starts stays open (IO-6).
         if self.view.is_some_and(|n| !self.running(n)) {
             self.view = None;
         }

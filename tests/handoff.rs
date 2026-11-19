@@ -122,6 +122,8 @@ async fn claude_code_starts_if_the_turn_does_not_stop() {
     let end = Instant::now() + Duration::from_secs(5);
     while args(&a).is_empty() && Instant::now() < end {
         std::thread::sleep(Duration::from_millis(50));
+        // Claude Code starts on a task (IO-1).
+        a.cli.poll_starts();
     }
     assert!(args(&a).contains("Continue it."), "the prompt to continue: {}", args(&a));
     done(&root, &mut a);

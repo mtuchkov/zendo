@@ -23,17 +23,6 @@ impl Sessions {
         (0..TERMINALS).filter(|i| *i == 0 || running(*i)).find(|i| !self.busy(*i)).or_else(|| (1..TERMINALS).find(|i| !running(*i)))
     }
 
-    /// Start terminal `i` in `root`, if its shell does not run (TERM-12).
-    pub fn open_shell(&mut self, i: usize, root: &Path) -> std::io::Result<()> {
-        if self.running(shell(i)) {
-            return Ok(());
-        }
-        let program = self.shell.clone().or_else(|| std::env::var("SHELL").ok().filter(|s| !s.is_empty())).unwrap_or_else(|| "/bin/sh".into());
-        self.slots[shell(i)] = Some(Cli::spawn_shell(&program, root, self.home.as_deref(), self.pane_size, self.notify.clone())?);
-        self.sizes[shell(i)] = self.pane_size;
-        Ok(())
-    }
-
     /// Put `command` into the shell of terminal `i` when its prompt is ready; `run`: and press
     /// `enter` (TERM-1, TERM-21).
     pub fn put(&mut self, i: usize, command: &str, run: bool) {

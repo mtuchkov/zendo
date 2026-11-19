@@ -82,7 +82,13 @@ impl App {
     /// so the chat shows what happened in Claude Code (SESSIONS-12, SESSIONS-13).
     pub(crate) fn cli_tick(&mut self) {
         self.cli_messages();
-        for n in self.cli.tick().into_iter().filter(|n| *n < SESSIONS) {
+        let ended = self.cli.tick();
+        // A program that did not start says why, once (FAIL-1).
+        for (n, e) in self.cli.failed() {
+            let what = if n < SESSIONS { self.handoff_cli().map_or_else(|| "the command line".to_string(), |c| c.program) } else { "the shell".to_string() };
+            self.flash(format!("could not start {what}: {e}"));
+        }
+        for n in ended.into_iter().filter(|n| *n < SESSIONS) {
             let key = session_key(n);
             self.link.send(Cmd::Forget { key: key.clone() });
             self.threads.remove(&key);
