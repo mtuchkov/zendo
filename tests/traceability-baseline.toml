@@ -1,0 +1,7 @@
+# The gaps that tests/traceability.rs allows (AGENTS.md, Tests). A number goes down, never up.
+
+# Architecturally significant requirements of implemented specifications without a test.
+asr_without_test = 3
+
+# Acceptance tests of implemented specifications that are not test functions.
+acceptance_tests_missing = 0
