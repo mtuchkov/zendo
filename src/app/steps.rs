@@ -73,7 +73,8 @@ impl App {
         ctx.extend(u.info.input.iter().map(|i| format!("Input: {i}\n")));
         ctx.extend(u.info.exit.iter().map(|c| format!("Exit code: {c}\n")));
         ctx.extend(u.info.output.iter().map(|l| format!("> {l}\n")));
-        let label = self.composer.add_chip(format!("{CHAT_MARK} {}", chips::text_label(&u.title)), Some(ctx), None, true);
+        let base = format!("{CHAT_MARK} {}", chips::text_label(&u.title));
+        let label = self.composer_mut().add_chip(base, Some(ctx), None, true);
         self.flash(format!("{} is in the chat", label.trim_matches([chips::OPEN, chips::CLOSE])));
         true
     }

@@ -357,8 +357,8 @@ async fn a_pasted_image_gets_its_name_from_the_api() {
     let png = root.join("paste.png");
     std::fs::write(&png, [0x89, b'P', b'N', b'G']).unwrap();
     a.attach_pasted_image(png);
-    until(&mut a, |a| a.composer.input().text().contains("login form")).await;
-    assert_eq!(a.composer.input().text(), "⟦Image: login form⟧ ");
+    until(&mut a, |a| a.composer().input().text().contains("login form")).await;
+    assert_eq!(a.composer().input().text(), "⟦Image: login form⟧ ");
     let reqs = server.requests.lock().unwrap().clone();
     let source = &reqs[0].body["messages"][0]["content"][0]["source"];
     assert_eq!((source["media_type"].as_str(), source["data"].as_str()), (Some("image/png"), Some("iVBORw==")));

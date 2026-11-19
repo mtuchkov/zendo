@@ -58,6 +58,36 @@ pub struct State {
     /// The messages of the user: of each zendo session, and the common history (HISTORY-3).
     #[serde(default, skip_serializing_if = "History::is_empty")]
     pub history: History,
+    /// The chat input of each agent session, kept across a restart (CLAUDE-45, ADR 0011).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub drafts: BTreeMap<usize, InputDraft>,
+}
+
+/// The chat input of an agent session: its text, its chips, and the context of the next question.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct InputDraft {
+    #[serde(default)]
+    pub text: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub chips: Vec<DraftChip>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<String>,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub about: String,
+}
+
+/// A chip of a draft: its label, its text, and its file or image.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct DraftChip {
+    pub label: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub file: Option<std::path::PathBuf>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub image: bool,
 }
 
 /// A file that the user opened in the note pane, and when.

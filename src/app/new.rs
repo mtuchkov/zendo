@@ -39,6 +39,9 @@ impl App {
         };
         app.link.start_api(api);
         app.rekey.api = hints.map(|a| crate::agent::api::Api { effort: Some("low".into()), ..a });
+        // The chat input of each session, as the user left it (CLAUDE-45).
+        let drafts = app.state.drafts.clone();
+        app.chat.load(&drafts);
         // The last document of the active session, where the user left it (FILES-55).
         app.open_session_doc();
         app.files.find.seen = app.files.current().cloned();

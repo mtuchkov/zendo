@@ -112,6 +112,9 @@ impl App {
         self.cli_tick();
         self.hold_tick();
         self.attention_tick();
+        if self.chat.due(Instant::now()) {
+            self.save_drafts();
+        }
         if self.mode == Mode::Write && self.writer.editor().dirty && self.writer.idle() > Duration::from_millis(1500) {
             self.save();
         }

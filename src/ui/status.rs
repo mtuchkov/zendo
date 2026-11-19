@@ -107,7 +107,7 @@ fn status_keys(app: &App, fr: &Cache, t: &Theme, claude: bool) -> (&'static str,
     // Text is selected where the user writes: the keys of `[selection]` first (PANES-37).
     let selected = |e: &crate::text::editor::Editor| if e.selection().is_some() { hints(Pane::Selected, &[("copy", "copy"), ("cut", "cut")]) } else { Vec::new() };
     if claude {
-        let mut v = selected(app.composer.input());
+        let mut v = selected(app.composer().input());
         v.extend(hints(Pane::Chat, &[("send", "send"), ("newline", "new line"), ("new_thread", "new thread"), ("handoff", "Claude Code"), ("back", "back")]));
         v.push(one(Pane::Global, "next_session", "next session"));
         return ("CHAT", t.acc, with_next(v));

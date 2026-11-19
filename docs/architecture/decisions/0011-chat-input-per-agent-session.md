@@ -46,7 +46,10 @@ The second option is chosen.
   stays in the container.
 - An `AgentSession` shall hold the `Composer` of the session. The composer shall keep its fields:
   the text, the chips, the files and images, the context, the default question, the `alt-o` pick,
-  and, from chat-chips.md, the chip window and the choice of the open document.
+  and, from chat-chips.md, the chip window and the choice of the open document. From
+  chat-history.md and undo.md, the composer also keeps the place in the history (HISTORY-5,
+  HISTORY-6) and the loglet of the input (UNDO-5): each session goes through the history of its
+  zendo session, and undoes its own input. The history itself stays in `state.history`.
 - The active session shall stay `state.session`, the one value that zendo saves. `App::composer`
   and `App::composer_mut` shall give the composer of the active session; the call sites shall use
   them.
@@ -79,15 +82,17 @@ The second option is chosen.
 
 ## Verification
 
-- `tests/chat_flows.rs`: a text and a chip typed in session 1 stay there when the user goes to
-  session 2 and back; session 2 starts empty (CLAUDE-43, CLAUDE-44).
-- `tests/chat_flows.rs`: a draft comes back after a new `App` on the same repository; a chip of a
-  gone file shows in red (CLAUDE-45, CLAUDE-46).
-- `tests/chat_flows.rs`: the name of an image pasted in session 1 labels its chip while session 2
-  is active (CLAUDE-47); `esc` puts the queue of session 1 into the input of session 1.
-- `src/app/chat_pane_tests.rs`: the save and the load of the drafts.
+- `tests/session_input.rs`: a text and a chip typed in session 0 stay there when the user goes to
+  session 1 and back; session 1 starts empty (CLAUDE-43, CLAUDE-44).
+- `tests/session_input.rs`: a draft comes back after a new `App` on the same repository; a chip of
+  a gone file shows in red (CLAUDE-45, CLAUDE-46).
+- `src/app/chat_pane_tests.rs`: the save and the load of the drafts; the drafts are due 2 s after
+  the last change; the name of an image pasted in session 0 labels its chip, and the queue of
+  session 0 goes into its input, while session 1 is active (CLAUDE-47).
 
 ## Decision record
 
 Proposed by the agent on 2026-11-17 from the requests of the user in the chat. The user chose to
 keep the drafts across a restart, and a red chip for a gone file, and approved the record on 2026-11-17.
+On 2026-11-18 the agent brought it in line with chat-history.md and undo.md (the place in the
+history and the loglet of the input) and with the sessions from 0; not reviewed yet.

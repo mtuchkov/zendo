@@ -45,7 +45,7 @@ fn chatting(name: &str) -> (std::path::PathBuf, App) {
 }
 
 fn input(a: &App) -> String {
-    a.composer.input().text()
+    a.composer().input().text()
 }
 
 // TEXT-4: ctrl-x cuts the selection in the chat input.
@@ -102,7 +102,7 @@ async fn the_chat_goes_on_with_lists() {
 async fn the_chat_closes_a_fence_and_enter_stays_in_the_block() {
     let (root, mut a) = chatting("text-chat-fence");
     typ(&mut a, "see ```rust");
-    assert!(!a.composer.in_code(), "a fence is at the start of a line");
+    assert!(!a.composer().in_code(), "a fence is at the start of a line");
     ctrl(&mut a, 'u');
     typ(&mut a, "```rust");
     key(&mut a, KeyCode::Enter);
@@ -283,6 +283,6 @@ async fn enter_in_the_chat_date_selector_does_not_send() {
     key(&mut a, KeyCode::Up);
     key(&mut a, KeyCode::Enter);
     assert_ne!(input(&a), "", "not sent");
-    assert!(a.composer.input().date.is_none());
+    assert!(a.composer().input().date.is_none());
     let _ = std::fs::remove_dir_all(&root);
 }

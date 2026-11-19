@@ -39,7 +39,7 @@ impl App {
         self.tab_run.key();
         // Only `alt-o` right after `alt-o` takes the next terminal (TERM-28).
         if self.keys.local(crate::keys::Pane::Chat, k) != Some("insert_output") {
-            self.composer.drop_pick();
+            self.composer_mut().drop_pick();
         }
         // Any key ends a mouse selection; the text is already copied.
         self.pointer.clear();
@@ -107,10 +107,10 @@ impl App {
                 _ => {}
             };
         }
-        if self.composer.at().is_some() && self.key_pane() == Pane::Chat && self.key_at(k) {
+        if self.composer().at().is_some() && self.key_pane() == Pane::Chat && self.key_at(k) {
             return;
         }
-        if self.composer.slash().open && self.key_pane() == Pane::Chat && self.composer.key_slash(k) {
+        if self.composer().slash().open && self.key_pane() == Pane::Chat && self.composer_mut().key_slash(k) {
             return;
         }
         if self.files.filtering() && self.key_pane() == Pane::Tree {

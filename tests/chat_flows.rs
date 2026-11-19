@@ -79,11 +79,11 @@ async fn ctrl_j_is_a_new_line_and_the_status_bar_says_so() {
     typ(&mut a, "one");
     a.on_key(KeyEvent::new(KeyCode::Char('j'), KeyModifiers::CONTROL));
     typ(&mut a, "two");
-    assert_eq!(a.composer.input().text(), "one\ntwo");
+    assert_eq!(a.composer().input().text(), "one\ntwo");
     key(&mut a, KeyCode::Left);
     key(&mut a, KeyCode::Left);
     typ(&mut a, "x");
-    assert_eq!(a.composer.input().text(), "one\ntxwo", "left moves back one char");
+    assert_eq!(a.composer().input().text(), "one\ntxwo", "left moves back one char");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -95,15 +95,15 @@ async fn slash_commands_come_from_the_agent_and_go_to_it_as_typed() {
     let mut a = app(&root);
     a.open_file(root.join(A));
     a.open_panel();
-    until(&mut a, |a| !a.composer.slash().commands.is_empty()).await;
+    until(&mut a, |a| !a.composer().slash().commands.is_empty()).await;
     a.focus = Focus::Claude;
     typ(&mut a, "/rev");
-    assert!(a.composer.slash().open, "`/` and a part of a name show the commands");
+    assert!(a.composer().slash().open, "`/` and a part of a name show the commands");
     let screen = draw(&mut a, 160, 30);
     assert!(screen.iter().any(|r| r.contains("/review") && r.contains("review the note")), "{screen:#?}");
     key(&mut a, KeyCode::Tab);
-    assert_eq!(a.composer.input().text(), "/review ");
-    assert!(!a.composer.slash().open);
+    assert_eq!(a.composer().input().text(), "/review ");
+    assert!(!a.composer().slash().open);
     typ(&mut a, "the risks");
     key(&mut a, KeyCode::Enter);
     until(&mut a, |a| a.threads[CHAT_KEY].busy.is_none() && last_answer(a).contains("ran the command")).await;
@@ -157,8 +157,8 @@ async fn tab_goes_to_the_transcript_to_select_copy_and_add() {
     key(&mut a, KeyCode::Char('h'));
     key(&mut a, KeyCode::Char('h'));
     key(&mut a, KeyCode::Char('a'));
-    assert!(a.composer.input().text().contains("⟦↩ what · 1 line⟧"), "a chip of the chat (CLAUDE-41): {}", a.composer.input().text());
-    assert!(a.composer.chips().iter().any(|c| c.context.as_deref().is_some_and(|x| x.contains("> what"))));
+    assert!(a.composer().input().text().contains("⟦↩ what · 1 line⟧"), "a chip of the chat (CLAUDE-41): {}", a.composer().input().text());
+    assert!(a.composer().chips().iter().any(|c| c.context.as_deref().is_some_and(|x| x.contains("> what"))));
     let mut term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(160, 30)).unwrap();
     term.draw(|f| a.draw(f)).unwrap();
     let buf = term.backend().buffer().clone();
@@ -179,7 +179,7 @@ async fn say_here_is_a_chip_with_the_line_and_sends_a_default_question() {
     draw(&mut a, 140, 30);
     a.reader.to_row(a.frame.read_text().iter().position(|r| r.contains("one")).unwrap());
     a.on_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::ALT));
-    assert_eq!(a.composer.input().text(), "⟦write here :3⟧ ");
+    assert_eq!(a.composer().input().text(), "⟦write here :3⟧ ");
     key(&mut a, KeyCode::Enter);
     until(&mut a, |a| a.threads.get(CHAT_KEY).is_some_and(|t| !t.items.is_empty())).await;
     let asked = a.threads[CHAT_KEY].items.iter().find_map(|i| if let Item::User(s) = i { Some(s.clone()) } else { None }).unwrap();
@@ -326,13 +326,13 @@ async fn pasted_images_are_numbered_chips() {
     let png = |n: &str| root.join(format!("docs/{n}.png"));
     a.attach_pasted_image(png("paste-1"));
     a.attach_pasted_image(png("paste-2"));
-    assert_eq!(a.composer.input().text(), "⟦Image #1⟧ ⟦Image #2⟧ ");
+    assert_eq!(a.composer().input().text(), "⟦Image #1⟧ ⟦Image #2⟧ ");
     // Delete the first chip with the key, as the user does.
-    a.composer.input_mut().home();
-    assert!(a.composer.chip_key(KeyCode::Delete));
-    a.composer.input_mut().move_to_end();
+    a.composer_mut().input_mut().home();
+    assert!(a.composer_mut().chip_key(KeyCode::Delete));
+    a.composer_mut().input_mut().move_to_end();
     a.attach_pasted_image(png("paste-3"));
-    assert!(a.composer.input().text().ends_with("⟦Image #1⟧ "), "the free number: {}", a.composer.input().text());
+    assert!(a.composer().input().text().ends_with("⟦Image #1⟧ "), "the free number: {}", a.composer().input().text());
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -349,15 +349,15 @@ async fn a_pasted_image_gets_its_name_from_the_name_model() {
     let png = root.join("docs/paste.png");
     std::fs::write(&png, [0x89, b'P', b'N', b'G']).unwrap();
     a.attach_pasted_image(png.clone());
-    assert_eq!(a.composer.input().text(), "⟦Image #1⟧ ", "the number until the name comes");
+    assert_eq!(a.composer().input().text(), "⟦Image #1⟧ ", "the number until the name comes");
     typ(&mut a, "what is it");
-    until(&mut a, |a| a.composer.input().text().contains("red button")).await;
-    assert_eq!(a.composer.input().text(), "⟦Image: red button⟧ what is it");
-    assert_eq!(a.composer.chips().iter().map(|c| c.label.as_str()).collect::<Vec<_>>(), ["⟦Image: red button⟧"]);
+    until(&mut a, |a| a.composer().input().text().contains("red button")).await;
+    assert_eq!(a.composer().input().text(), "⟦Image: red button⟧ what is it");
+    assert_eq!(a.composer().chips().iter().map(|c| c.label.as_str()).collect::<Vec<_>>(), ["⟦Image: red button⟧"]);
     assert!(a.threads.values().all(|t| t.items.is_empty()), "no message in a thread");
     a.link.set_images(false);
     a.attach_pasted_image(png);
     assert!(a.link.no_image_waits(), "no question without images");
-    assert!(a.composer.input().text().ends_with("⟦Image #1⟧ "), "{}", a.composer.input().text());
+    assert!(a.composer().input().text().ends_with("⟦Image #1⟧ "), "{}", a.composer().input().text());
     let _ = std::fs::remove_dir_all(&root);
 }

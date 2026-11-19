@@ -63,8 +63,7 @@ impl App {
             }
             Event::Exited { text } => self.on_exited(text),
             Event::Commands { list } => {
-                self.composer.set_commands(list);
-                self.composer.update_slash();
+                self.chat.set_commands(list);
             }
         }
     }

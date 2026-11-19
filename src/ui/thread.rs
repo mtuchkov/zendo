@@ -152,17 +152,19 @@ fn empty_thread(app: &App, key: &str, dim: Style, w: usize) -> Vec<Line<'static>
 }
 
 /// Text with its chips shown as chips: `⟦label⟧` shows as ` label ` on the chip color.
-pub fn chip_spans(text: &str, base: Style, chip: [Style; 2]) -> Vec<Span<'static>> {
-    chip_spans_at(text, 0, base, chip, None)
+pub fn chip_spans(text: &str, base: Style, chip: [Style; 3]) -> Vec<Span<'static>> {
+    chip_spans_at(text, 0, base, chip, None, &[])
 }
 
-/// The styles of a chip: a selection or a file, and text from the chat.
-pub fn chip_styles(t: &Theme) -> [Style; 2] {
-    [Style::new().fg(t.bg).bg(t.acc2), Style::new().fg(t.bg).bg(t.add)]
+/// The styles of a chip: a selection or a file, text from the chat, and a chip whose file is gone
+/// (CLAUDE-46).
+pub fn chip_styles(t: &Theme) -> [Style; 3] {
+    [Style::new().fg(t.bg).bg(t.acc2), Style::new().fg(t.bg).bg(t.add), Style::new().fg(t.bg).bg(t.del)]
 }
 
-/// The same for a piece of a line that starts at char `offset`; the chip at `hot` gets the accent.
-pub fn chip_spans_at(text: &str, offset: usize, base: Style, chip: [Style; 2], hot: Option<(usize, usize, Style)>) -> Vec<Span<'static>> {
+/// The same for a piece of a line that starts at char `offset`; the chip at `hot` gets the accent,
+/// and the chips with a label in `gone` are red.
+pub fn chip_spans_at(text: &str, offset: usize, base: Style, chip: [Style; 3], hot: Option<(usize, usize, Style)>, gone: &[String]) -> Vec<Span<'static>> {
     let chars: Vec<char> = text.chars().collect();
     let mut out = Vec::new();
     let mut at = 0;
@@ -173,6 +175,7 @@ pub fn chip_spans_at(text: &str, offset: usize, base: Style, chip: [Style; 2], h
         let label: String = chars[a + 1..b - 1].iter().collect();
         let style = match hot {
             Some((ha, hb, s)) if ha == a + offset && hb == b + offset => s,
+            _ if gone.iter().any(|g| *g == format!("{}{label}{}", crate::app::chips::OPEN, crate::app::chips::CLOSE)) => chip[2],
             _ if label.starts_with(crate::app::CHAT_MARK) => chip[1],
             _ => chip[0],
         };

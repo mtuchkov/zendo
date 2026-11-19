@@ -27,9 +27,15 @@ fn a_chip_has_a_free_label_and_is_one_unit() {
 // attachments; a chip that the user deleted from the text gives nothing.
 #[test]
 fn the_question_takes_the_context_and_the_files_of_its_chips() {
+    // A file that is there: the file of a red chip does not go (CLAUDE-57).
+    let dir = std::env::temp_dir().join(format!("zendo-composer-question-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let png = dir.join("a.png");
+    std::fs::write(&png, b"png").unwrap();
     let mut c = Composer::default();
     c.add_chip("sel".into(), Some("selected text".into()), None, false);
-    c.add_chip("img".into(), None, Some(Attachment::Image("/tmp/a.png".into())), false);
+    c.add_chip("img".into(), None, Some(Attachment::Image(png)), false);
     c.add_chip("gone".into(), Some("not sent".into()), None, false);
     let kept = c.input().text().replace("⟦gone⟧ ", "");
     c.input_mut().take();
@@ -39,6 +45,7 @@ fn the_question_takes_the_context_and_the_files_of_its_chips() {
     assert_eq!(c.take_attach().len(), 1);
     assert_eq!(c.take_context().as_deref(), Some("selected text"));
     assert!(c.input().is_empty() && c.chips().is_empty() && !c.has_context());
+    let _ = std::fs::remove_dir_all(&dir);
 }
 
 // ADR 0008: with a context and no words of the user, the default question goes.

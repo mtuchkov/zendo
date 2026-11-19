@@ -82,8 +82,8 @@ async fn a_in_the_tree_adds_the_file_to_the_chat() {
     let mut a = in_tree(&root, "zendo/zendo.md");
     key(&mut a, KeyCode::Char('a'));
     assert_eq!(a.focus, Focus::Tree);
-    assert!(a.composer.chips().last().is_some_and(|c| c.attach.is_some()));
-    assert!(a.composer.input().text().contains("endo/zendo.md"), "{}", a.composer.input().text());
+    assert!(a.composer().chips().last().is_some_and(|c| c.attach.is_some()));
+    assert!(a.composer().input().text().contains("endo/zendo.md"), "{}", a.composer().input().text());
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -125,17 +125,17 @@ async fn at_adds_a_file_chip_that_moves_and_goes_as_one() {
     a.open_panel();
     a.focus = Focus::Claude;
     typ(&mut a, "see @zend");
-    assert!(a.composer.at().as_ref().is_some_and(|p| p.hits[0].ends_with("zendo/zendo.md")), "{:?}", a.composer.at());
+    assert!(a.composer().at().as_ref().is_some_and(|p| p.hits[0].ends_with("zendo/zendo.md")), "{:?}", a.composer().at());
     key(&mut a, KeyCode::Tab);
-    let text = a.composer.input().text();
+    let text = a.composer().input().text();
     assert!(text.starts_with("see ⟦endo/zendo.md⟧ "), "{text}");
     key(&mut a, KeyCode::Left);
     key(&mut a, KeyCode::Left);
-    assert_eq!(a.composer.input().col, 4, "one left over the space, one over the whole chip");
+    assert_eq!(a.composer().input().col, 4, "one left over the space, one over the whole chip");
     key(&mut a, KeyCode::Right);
     key(&mut a, KeyCode::Backspace);
-    assert_eq!(a.composer.input().text(), "see  ");
-    assert!(a.composer.chips().is_empty());
+    assert_eq!(a.composer().input().text(), "see  ");
+    assert!(a.composer().chips().is_empty());
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -149,14 +149,14 @@ async fn a_pasted_text_is_a_chip_that_starts_with_its_text() {
     a.focus = Focus::Claude;
     typ(&mut a, "why");
     a.on_paste("fn main() {\n    panic!(\"no\");\n}\n".into());
-    assert_eq!(a.composer.input().text(), "why ⟦fn main() { pan… · 3 lines⟧ ");
-    let ctx = a.composer.chips()[0].context.clone().unwrap_or_default();
+    assert_eq!(a.composer().input().text(), "why ⟦fn main() { pan… · 3 lines⟧ ");
+    let ctx = a.composer().chips()[0].context.clone().unwrap_or_default();
     assert!(ctx.contains("⟦fn main() { pan… · 3 lines⟧") && ctx.contains("    panic!(\"no\");"), "{ctx}");
     key(&mut a, KeyCode::Backspace);
     key(&mut a, KeyCode::Backspace);
-    assert!(a.composer.chips().is_empty(), "backspace removes the chip as one unit");
+    assert!(a.composer().chips().is_empty(), "backspace removes the chip as one unit");
     a.on_paste("short".into());
-    assert_eq!(a.composer.input().text(), "why short");
+    assert_eq!(a.composer().input().text(), "why short");
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -168,8 +168,8 @@ async fn say_marks_the_place_until_the_answer_ends() {
     draw(&mut a, 120, 30);
     a.reader.to_row(a.frame.read_text().iter().position(|r| r.starts_with("The first")).unwrap());
     ctrl_shift(&mut a, 's');
-    assert_eq!(a.composer.input().text(), "⟦write here :3⟧ ", "a chip with the line of the mark");
-    assert!(a.composer.chips()[0].context.as_deref().is_some_and(|c| c.contains("line 3")));
+    assert_eq!(a.composer().input().text(), "⟦write here :3⟧ ", "a chip with the line of the mark");
+    assert!(a.composer().chips()[0].context.as_deref().is_some_and(|c| c.contains("line 3")));
     a.focus = Focus::Note;
     let screen = draw(&mut a, 120, 30);
     let row = screen.iter().find(|r| r.contains("The first paragraph")).unwrap();
@@ -272,16 +272,16 @@ async fn say_and_add_to_chat_work_in_write_mode() {
     key(&mut a, KeyCode::Char('i'));
     draw(&mut a, 120, 30);
     ctrl_shift(&mut a, 's');
-    assert!(a.composer.input().text().starts_with("⟦write here :3⟧"), "{}", a.composer.input().text());
+    assert!(a.composer().input().text().starts_with("⟦write here :3⟧"), "{}", a.composer().input().text());
     a.focus = Focus::Note;
     let screen = draw(&mut a, 120, 30);
     let row = screen.iter().find(|r| r.contains("The first paragraph")).unwrap();
     assert!(row.find('→').unwrap() < row.find("The first").unwrap(), "the arrow in write mode: {row}");
     a.writer.end_say();
-    a.composer.input_mut().take();
-    a.composer.clear_chips();
+    a.composer_mut().input_mut().take();
+    a.composer_mut().clear_chips();
     ctrl_shift(&mut a, 'a');
-    let chip = a.composer.chips().last().expect("the line as a chip");
+    let chip = a.composer().chips().last().expect("the line as a chip");
     assert!(chip.label.contains("The first parag"), "{}", chip.label);
     assert!(chip.context.as_deref().unwrap_or_default().contains("> The first paragraph of the idea."));
     let _ = std::fs::remove_dir_all(&root);
@@ -329,7 +329,7 @@ async fn alt_shift_selects_words_in_read_mode_and_the_chat() {
     a.focus = Focus::Claude;
     typ(&mut a, "one two");
     a.on_key(KeyEvent::new(KeyCode::Char('H'), alt_shift));
-    assert_eq!(a.composer.input().selected_text().as_deref(), Some("two"));
+    assert_eq!(a.composer().input().selected_text().as_deref(), Some("two"));
     let _ = std::fs::remove_dir_all(&root);
 }
 

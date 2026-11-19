@@ -85,7 +85,7 @@ async fn the_question_about_a_selection_names_the_send_key() {
     let (root, mut a) = with_notes("hints-ask");
     a.open_panel();
     a.focus = Focus::Claude;
-    a.composer.set_context("Text.".into());
+    a.composer_mut().set_context("Text.".into());
     let s = screen(&mut a);
     assert!(s.contains("or press ^s"), "{s}");
     assert!(!s.contains("press enter"), "{s}");

@@ -54,7 +54,7 @@ impl App {
     /// A key of the chat input while a question waits. True when the key went to the question.
     pub(crate) fn question_key(&mut self, k: &KeyEvent, act: Option<&str>) -> bool {
         let key = self.key();
-        let empty = self.composer.input().is_empty();
+        let empty = self.composer().input().is_empty();
         let Some(a) = self.thread(&key).asking_mut() else { return false };
         let n = a.current().map_or(0, |q| q.choices.len()).max(1);
         match (k.code, act) {
@@ -70,7 +70,7 @@ impl App {
     /// `enter`: the own text of the input, or the choice under the cursor, answers the question;
     /// after the last one, the picks go to the agent.
     fn answer_question(&mut self, key: String) -> bool {
-        let own = self.composer.input_mut().take().trim().to_string();
+        let own = self.composer_mut().input_mut().take().trim().to_string();
         let Some(a) = self.thread(&key).asking_mut() else { return false };
         let Some(q) = a.current().cloned() else { return false };
         let pick = &mut a.picks[a.at];

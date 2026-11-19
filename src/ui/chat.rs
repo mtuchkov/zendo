@@ -24,10 +24,10 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
     // The input grows with its text, up to a quarter of the panel; then it scrolls.
     let in_w = (inner.width as usize).saturating_sub(4).max(10);
     fr.input_width = in_w;
-    let in_rows = app.composer.input().segments(in_w).len().max(1);
+    let in_rows = app.composer().input().segments(in_w).len().max(1);
     let in_h = in_rows.min((inner.height as usize / 4).max(1)) as u16;
-    let slash_h = if app.composer.slash().open { app.composer.slash().hits.len().clamp(1, crate::app::AT_ROWS) } else { 0 };
-    let at_h = app.composer.at().map_or(slash_h, |p| p.hits.len().clamp(1, crate::app::AT_ROWS)) as u16;
+    let slash_h = if app.composer().slash().open { app.composer().slash().hits.len().clamp(1, crate::app::AT_ROWS) } else { 0 };
+    let at_h = app.composer().at().map_or(slash_h, |p| p.hits.len().clamp(1, crate::app::AT_ROWS)) as u16;
     let bg_h = super::background::height(app);
     let [head, _, body, bg, _, input, picks] = Layout::vertical([
         Constraint::Length(1),
@@ -39,10 +39,10 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
         Constraint::Length(at_h),
     ])
     .areas(inner);
-    if let Some(p) = app.composer.at() {
+    if let Some(p) = app.composer().at() {
         draw_at(f, t, picks, p);
-    } else if app.composer.slash().open {
-        draw_slash(f, t, picks, app.composer.slash());
+    } else if app.composer().slash().open {
+        draw_slash(f, t, picks, app.composer().slash());
     }
 
     let dim = Style::new().fg(t.dim);
@@ -75,7 +75,7 @@ fn draw_input(f: &mut Frame, app: &App, t: &Theme, input: Rect, in_h: u16, in_w:
     let focused = app.focus == Focus::Claude && !app.threads.transcript().on();
     let mark = Span::styled("› ", Style::new().fg(if focused { t.acc } else { t.dim }));
     let text_area = Rect { x: box_in.x + 2, width: box_in.width.saturating_sub(2), ..box_in };
-    if app.composer.input().is_empty() {
+    if app.composer().input().is_empty() {
         let hint = input_hint(app, &key);
         let room = text_area.width as usize;
         let hint = if hint.width() <= room { hint } else { hint.chars().take(room.saturating_sub(1)).collect::<String>() + "…" };
@@ -85,19 +85,20 @@ fn draw_input(f: &mut Frame, app: &App, t: &Theme, input: Rect, in_h: u16, in_w:
         }
         return;
     }
-    let segs = app.composer.input().segments(in_w);
-    let (vrow, vx) = app.composer.input().cursor_visual(&segs, in_w);
+    let segs = app.composer().input().segments(in_w);
+    let (vrow, vx) = app.composer().input().cursor_visual(&segs, in_w);
     let top = vrow.saturating_sub(in_h as usize - 1);
     let chip = chip_styles(t);
-    let hot = app.composer.chip_in_focus();
+    let hot = app.composer().chip_in_focus();
+    let gone = app.composer().gone();
     let lines: Vec<Line> = segs
         .iter()
         .skip(top)
         .take(in_h as usize)
         .map(|sg| {
-            let text: String = app.composer.input().lines[sg.line].chars().skip(sg.start).take(sg.end - sg.start).collect();
+            let text: String = app.composer().input().lines[sg.line].chars().skip(sg.start).take(sg.end - sg.start).collect();
             let hot = hot.filter(|(row, ..)| *row == sg.line).map(|(_, a, b)| (a, b, Style::new().fg(t.bg).bg(t.acc).add_modifier(Modifier::BOLD)));
-            Line::from(chip_spans_at(&text, sg.start, Style::new().fg(t.fg), chip, hot))
+            Line::from(chip_spans_at(&text, sg.start, Style::new().fg(t.fg), chip, hot, &gone))
         })
         .collect();
     f.render_widget(Paragraph::new(Line::from(mark)), Rect { height: 1, width: 2, ..box_in });
@@ -115,8 +116,8 @@ fn input_hint(app: &App, key: &str) -> String {
         let send = app.keys.key(crate::keys::Pane::Chat, "send").map(|k| format!("{k} queues the next question"));
         let stop = app.keys.key(crate::keys::Pane::Chat, "back").map(|k| format!("{k} stops"));
         send.into_iter().chain(stop).collect::<Vec<_>>().join(" · ")
-    } else if app.composer.has_context() {
-        let about = if app.composer.about().is_empty() { "it" } else { app.composer.about() };
+    } else if app.composer().has_context() {
+        let about = if app.composer().about().is_empty() { "it" } else { app.composer().about() };
         format!("ask about {about}{}", app.keys.key(crate::keys::Pane::Chat, "send").map(|k| format!(", or press {k}")).unwrap_or_default())
     } else if app.scope() == ALL_KEY {
         "ask about all notes".to_string()

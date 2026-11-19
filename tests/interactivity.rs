@@ -100,7 +100,7 @@ async fn a_step_goes_to_the_question() {
     key(&mut a, KeyCode::Char('o'));
     cursor_on(&mut a, "▾ cargo test");
     key(&mut a, KeyCode::Char('a'));
-    let ctx = a.composer.chips().iter().filter_map(|c| c.context.clone()).collect::<Vec<_>>().join("\n");
+    let ctx = a.composer().chips().iter().filter_map(|c| c.context.clone()).collect::<Vec<_>>().join("\n");
     assert!(ctx.contains("cargo test") && ctx.contains("Exit code: 0") && ctx.contains("> test result: ok"), "{ctx}");
     let _ = std::fs::remove_dir_all(&root);
 }

@@ -124,12 +124,14 @@ impl App {
     /// as `@path`, a selection chip as its text after the question.
     pub(crate) fn send_to_cli(&mut self) {
         let n = self.active();
-        let (q, chips) = self.composer.take_message();
+        let (q, chips) = self.composer_mut().take_message();
         let mut text = q.clone();
         let mut after = Vec::new();
         for c in &chips {
             let with = match (&c.attach, &c.context) {
-                (Some(a), _) => format!("@{}", a.path().strip_prefix(&self.cfg.root).unwrap_or(a.path()).display()),
+                (Some(a), _) if a.path().exists() => format!("@{}", a.path().strip_prefix(&self.cfg.root).unwrap_or(a.path()).display()),
+                // The file of a red chip is gone: its label goes (CLAUDE-57).
+                (Some(_), _) => c.label.clone(),
                 (None, Some(ctx)) => {
                     after.push(ctx.clone());
                     String::new()
@@ -154,6 +156,7 @@ impl App {
         t.push(Item::User(q));
         t.push(Item::Info("sent to Claude Code; it queues the message while it works".into()));
         self.threads.to_end();
+        self.save_drafts();
     }
 
     /// Other questions of the chat of an agent session whose Claude Code session runs, such as a
@@ -171,7 +174,7 @@ impl App {
     /// zendo quits: the state keeps the place in the last document of the session (FILES-54).
     fn quit_now(&mut self) -> bool {
         self.track_recent();
-        self.state.save(&self.cfg.root);
+        self.save_drafts();
         true
     }
 
