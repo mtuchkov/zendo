@@ -6,7 +6,6 @@
 //! screen, and the state.
 
 mod hooks;
-mod marks;
 mod messages;
 mod transcript;
 pub mod output;

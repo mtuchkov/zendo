@@ -1,5 +1,5 @@
 //! The result of the last command of a terminal (docs/zendo/terminal/terminal-output.md): `alt-o` in the input
-//! of a chat, the OSC 133 marks of bash, and `/bin/sh` without marks.
+//! of a chat, the OSC 133 marks that the shell of the user sends, and a shell without marks.
 
 mod common;
 use common::*;
@@ -58,11 +58,19 @@ fn done(root: &Path, a: &mut App) {
     let _ = std::fs::remove_dir_all(root);
 }
 
+/// A `.bashrc` that sends the OSC 133 marks itself, as a shell integration of the user does.
+const BASHRC_WITH_MARKS: &str = r#"PS1='PROMPT> '
+__marks_end() { local s=$?; printf '\033]133;D;%s\007' "$s"; return $s; }
+PROMPT_COMMAND=__marks_end
+PS1="\[\033]133;A\007\]${PS1}\[\033]133;B\007\]"
+PS0=$'\033]133;C\007'
+"#;
+
 // TERM-23, TERM-24, TERM-25, TERM-26: alt-o puts the command, the exit code and the output into the
-// input, without the prompt, and does not send it.
+// input, without the prompt, and does not send it. The marks come from the `.bashrc` of the user.
 #[tokio::test(flavor = "multi_thread")]
 async fn alt_o_puts_the_result_into_the_input_and_does_not_send_it() {
-    let (root, mut a) = app_with("out-alt-o", "bash", "PS1='PROMPT> '\n");
+    let (root, mut a) = app_with("out-alt-o", "bash", BASHRC_WITH_MARKS);
     key(&mut a, KeyCode::F(5));
     run(&mut a, 0, "echo zendo-out; false");
     to_input(&mut a);
@@ -79,30 +87,12 @@ async fn alt_o_puts_the_result_into_the_input_and_does_not_send_it() {
 #[tokio::test(flavor = "multi_thread")]
 async fn a_shell_without_marks_gives_the_output_and_no_exit_code() {
     let (root, mut a) = app_with("out-sh", "/bin/sh", "");
-    // A shell that zendo does not know gets no marks: `/bin/sh` under another name.
-    let plain = root.join("plainsh");
-    std::os::unix::fs::symlink("/bin/sh", &plain).unwrap();
-    a.cli.shell = Some(plain.display().to_string());
     key(&mut a, KeyCode::F(5));
     run(&mut a, 0, "echo plain-out");
     to_input(&mut a);
     alt(&mut a, 'o');
     let text = input(&a);
     assert!(text.contains("plain-out") && text.contains("exit code unknown"), "{text}");
-    done(&root, &mut a);
-}
-
-// TERM-26, TERM-34, TERM-35: `/bin/sh` gets the marks: the exit code, and a loop of the shell
-// that prints nothing for a long time ends only at its end. No marks show on the screen.
-#[tokio::test(flavor = "multi_thread")]
-async fn sh_marks_give_the_exit_code_and_wait_for_a_quiet_command() {
-    let (root, mut a) = app_with("out-sh-marks", "/bin/sh", "");
-    key(&mut a, KeyCode::F(5));
-    run(&mut a, 0, "i=0; while [ $i -lt 600000 ]; do i=$((i+1)); done; echo first; false");
-    let o = a.cli.result(shell(0)).unwrap();
-    assert_eq!((o.text.as_str(), o.exit), ("first", Some(1)));
-    let screen = a.cli.text(shell(0));
-    assert!(!screen.contains("133") && !screen.contains('\u{7}'), "no marks on the screen:\n{screen}");
     done(&root, &mut a);
 }
 
@@ -188,9 +178,10 @@ async fn a_long_output_keeps_the_last_500_lines() {
     done(&root, &mut a);
 }
 
-/// TERM-34, TERM-35: `program` reads `rc` at `file` in the home of the user, the marks do not show
-/// on the screen, also not in a prompt of the user, and the file stays the same.
-fn marks_keep_the_files_of_the_user(name: &str, program: &str, file: &str, rc: &str) {
+/// TERM-55: zendo starts `program` as it is: the shell reads `rc` at `file` in the home of the user,
+/// shows the prompt of the user, and gets no startup file, no `ZDOTDIR` and no `ENV` from zendo.
+/// zendo writes no file of a shell, and the file of the user stays the same.
+fn the_shell_starts_as_it_is(name: &str, program: &str, file: &str, rc: &str) {
     if std::process::Command::new(program).arg("-c").arg("true").status().is_err() {
         return eprintln!("{program} is not installed: skipped");
     }
@@ -199,31 +190,31 @@ fn marks_keep_the_files_of_the_user(name: &str, program: &str, file: &str, rc: &
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(&path, rc).unwrap();
     key(&mut a, KeyCode::F(5));
-    run(&mut a, 0, "echo rc=$ZENDO_RC");
+    run(&mut a, 0, "echo \"rc=$ZENDO_RC z=$ZDOTDIR e=$ENV\"");
     let o = a.cli.result(shell(0)).unwrap();
-    assert_eq!((o.text.as_str(), o.exit), ("rc=from-rc", Some(0)), "{program}: the file of the user, and the marks");
+    assert_eq!(o.text.as_str(), "rc=from-rc z= e=", "{program}: only the files of the user");
     let screen = a.cli.text(shell(0));
-    assert!(!screen.contains("133") && !screen.contains("\\e") && !screen.contains('\u{7}'), "{program}: no marks on the screen:\n{screen}");
     assert!(screen.contains("PROMPT>"), "{program}: the prompt of the user:\n{screen}");
+    assert!(!root.join(".zendo/shell").exists(), "{program}: zendo wrote no file of a shell");
     assert_eq!(std::fs::read_to_string(&path).unwrap(), rc);
     done(&root, &mut a);
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn the_marks_do_not_change_the_files_of_the_user() {
-    marks_keep_the_files_of_the_user("out-rc", "bash", ".bashrc", "export ZENDO_RC=from-rc\nPS1='PROMPT> '\n");
+async fn bash_starts_as_it_is() {
+    the_shell_starts_as_it_is("out-rc", "bash", ".bashrc", "export ZENDO_RC=from-rc\nPS1='PROMPT> '\n");
 }
 
-// TERM-34, TERM-35: the same for zsh, with a prompt as oh-my-zsh sets it.
+// TERM-55: the same for zsh, with a prompt as oh-my-zsh sets it.
 #[tokio::test(flavor = "multi_thread")]
-async fn zsh_marks_do_not_show_and_keep_the_files_of_the_user() {
+async fn zsh_starts_as_it_is() {
     let rc = "export ZENDO_RC=from-rc\nsetopt prompt_subst\nPROMPT='%F{cyan}PROMPT>%f '\n";
-    marks_keep_the_files_of_the_user("out-zsh", "zsh", ".zshrc", rc);
+    the_shell_starts_as_it_is("out-zsh", "zsh", ".zshrc", rc);
 }
 
-// TERM-34, TERM-35: the same for fish.
+// TERM-55: the same for fish.
 #[tokio::test(flavor = "multi_thread")]
-async fn fish_marks_do_not_show_and_keep_the_files_of_the_user() {
+async fn fish_starts_as_it_is() {
     let rc = "set -gx ZENDO_RC from-rc\nfunction fish_prompt; echo -n 'PROMPT> '; end\n";
-    marks_keep_the_files_of_the_user("out-fish", "fish", ".config/fish/config.fish", rc);
+    the_shell_starts_as_it_is("out-fish", "fish", ".config/fish/config.fish", rc);
 }

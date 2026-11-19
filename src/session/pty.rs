@@ -2,7 +2,7 @@
 
 use super::output::Recorder;
 use super::messages::{Inbox, Message};
-use super::{Command, Resume, State, hooks, marks};
+use super::{Command, Resume, State, hooks};
 use portable_pty::{Child, CommandBuilder, MasterPty, PtySize};
 use std::io::{Read, Write};
 use std::num::NonZeroU16;
@@ -100,14 +100,14 @@ impl Cli {
         self.inbox.as_mut().map(Inbox::take).unwrap_or_default()
     }
 
-    /// Start the shell `program` of a terminal in `cwd`, with the script of the marks in `dir`, and
-    /// `home` as the home directory if it is given (TERM-12, TERM-34).
-    pub fn spawn_shell(program: &str, cwd: &Path, dir: &Path, home: Option<&Path>, size: (u16, u16), notify: Arc<tokio::sync::Notify>) -> std::io::Result<Cli> {
+    /// Start the shell `program` of a terminal in `cwd`, with `home` as the home directory if it is
+    /// given (TERM-12). The shell starts as it is: zendo gives it no startup file and no variable for
+    /// its startup files (TERM-55).
+    pub fn spawn_shell(program: &str, cwd: &Path, home: Option<&Path>, size: (u16, u16), notify: Arc<tokio::sync::Notify>) -> std::io::Result<Cli> {
         let mut b = CommandBuilder::new(program);
         if let Some(home) = home {
             b.env("HOME", home);
         }
-        marks::prepare(&mut b, program, dir)?;
         b.cwd(cwd);
         b.env("TERM", "xterm-256color");
         Cli::start(b, size, notify, PathBuf::new(), true)

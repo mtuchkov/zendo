@@ -169,3 +169,17 @@ fn a_long_output_keeps_the_last_lines() {
 fn plain_text() {
     assert_eq!(plain(b"\x1b[1;32mok\x1b[0m\x1b]0;title\x07 done\r\n10%\r50%\r\nab\x08c"), "ok done\n50%\nac");
 }
+
+// TERM-27: fish without marks redraws its line and ends its prompt with a carriage return; the
+// output stays, and only the prompt goes.
+#[test]
+fn fish_without_marks_keeps_the_output() {
+    let mut r = Recorder::default();
+    r.feed(b"PROMPT> ");
+    r.run("echo rc=$HOME");
+    r.feed(b"\x1b[K\r\x1b[39C\r\n\x1b[30m\x1b(B\x1b[m\x1b[?2004l\x1b]0;echo rc=$HOME /h/c/zendo\x07\x1b[30m\x1b(B\x1b[m\rrc=/tmp/fh\r\n");
+    r.feed("\x1b[2m\u{23ce}\x1b(B\x1b[m      \r\u{23ce} \r\x1b[K\x1b[?2004h\x1b]0;/h/c/zendo\x07\x1b[30m\x1b(B\x1b[mPROMPT> \x1b[K\r\x1b[8C".as_bytes());
+    r.free();
+    let o = r.result().unwrap();
+    assert_eq!((o.text.as_str(), o.exit), ("rc=/tmp/fh", None));
+}
