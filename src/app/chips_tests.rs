@@ -59,3 +59,23 @@ fn a_chip_of_a_question_gets_a_label_from_its_text() {
     assert_eq!(label_of("@/r/docs/notes/b.md"), "otes/b.md");
     assert_eq!(label_of("Template: docs/t.md. Write it"), "Template: docs/…");
 }
+
+// SPEC-10: a text with a chip goes before the draft; the chip keeps its text, with new lines and
+// marks, and the text goes with the question only while the chip is in the input.
+#[test]
+fn a_text_with_a_chip_goes_before_the_draft() {
+    let mut c = Composer::default();
+    c.input_mut().type_str("draft");
+    let rules = format!("Rule one.\n@not a file\nA mark {OPEN}in{CLOSE} the text.");
+    c.put_first("/new The task.", "note to spec", &rules);
+    let text = c.input().text();
+    assert!(text.starts_with("/new The task. ") && text.ends_with("\ndraft"), "{text:?}");
+    assert_eq!(c.chips().len(), 1);
+    assert!(text.contains(&c.chips()[0].label) && c.chips()[0].attach.is_none(), "a text chip in the input: {:?}", c.chips());
+    let q = c.take_question();
+    assert!(q.text.starts_with("/new The task. ") && q.text.contains("Rule one.\n@not a file\nA mark"), "the text of the chip goes: {:?}", q.text);
+    c.put_first("/new The task.", "note to spec", &rules);
+    c.input_mut().clear_text();
+    c.input_mut().type_str("another question");
+    assert_eq!(c.take_question().text, "another question", "a chip that is not in the input does not go");
+}

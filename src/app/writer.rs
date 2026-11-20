@@ -61,8 +61,16 @@ pub struct Writer {
     meta_queue: VecDeque<String>,
     /// The notes of closed floats that wait for a title from the name model (FLOAT-19).
     titles: VecDeque<TitleJob>,
-    /// The closed floats, by the time they opened, and the files of their notes.
-    closed: VecDeque<(DateTime<Local>, PathBuf)>,
+    /// The closed floats, for titles that come late.
+    closed: VecDeque<Closed>,
+}
+
+/// A closed float: the time it opened, and the file of its note.
+struct Closed {
+    opened: DateTime<Local>,
+    path: PathBuf,
+    /// The note went to spec: the task names this file, so a title does not rename it (SPEC-7).
+    keeps_name: bool,
 }
 
 /// The closed floats that the writer remembers, for titles that come late.
@@ -197,8 +205,8 @@ impl Writer {
 
     /// The float that opened at `opened` closed, and its note is in `path`.
     pub fn float_closed(&mut self, opened: DateTime<Local>, path: PathBuf) {
-        self.closed.retain(|(o, _)| *o != opened);
-        self.closed.push_back((opened, path));
+        self.closed.retain(|c| c.opened != opened);
+        self.closed.push_back(Closed { opened, path, keeps_name: false });
         while self.closed.len() > CLOSED {
             self.closed.pop_front();
         }
@@ -206,13 +214,24 @@ impl Writer {
 
     /// The file of the note of the closed float that opened at `opened`.
     pub fn closed_note(&self, opened: DateTime<Local>) -> Option<&PathBuf> {
-        self.closed.iter().find(|(o, _)| *o == opened).map(|(_, p)| p)
+        self.closed.iter().find(|c| c.opened == opened).map(|c| &c.path)
+    }
+
+    /// The note in `path` went to spec: when it is the note of a closed float, it keeps the name
+    /// of its file (SPEC-7).
+    pub fn keep_name_of(&mut self, path: &Path) {
+        self.closed.iter_mut().filter(|c| c.path == path).for_each(|c| c.keeps_name = true);
+    }
+
+    /// A title does not rename the note of the closed float that opened at `opened` (SPEC-7).
+    pub fn keeps_name(&self, opened: DateTime<Local>) -> bool {
+        self.closed.iter().any(|c| c.opened == opened && c.keeps_name)
     }
 
     /// The note of a closed float moved to `path`.
     pub fn closed_moved(&mut self, opened: DateTime<Local>, path: PathBuf) {
-        if let Some(c) = self.closed.iter_mut().find(|(o, _)| *o == opened) {
-            c.1 = path;
+        if let Some(c) = self.closed.iter_mut().find(|c| c.opened == opened) {
+            c.path = path;
         }
     }
 

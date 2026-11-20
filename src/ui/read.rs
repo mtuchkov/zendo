@@ -170,11 +170,14 @@ pub(crate) const HEAD_ROWS: usize = 12;
 /// `[ → spec ]` at the right end of the line of the date of a note, in read mode and write mode,
 /// when it fits there (SPEC-1, SPEC-3). `rows`: the text of the first rows of the note.
 pub(crate) fn draw_spec_button(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, col: Rect, note: &Note, rows: &[String]) {
-    if !app.is_note(&note.path) {
-        return;
+    if app.is_note(&note.path) {
+        spec_button_on(f, app, fr, t, col, &date_label(note), rows);
     }
-    let date = date_label(note);
-    let Some(row) = rows.iter().position(|r| r.starts_with(&date)) else { return };
+}
+
+/// `[ → spec ]` at the right end of the row of `rows` that starts with `date`, when it fits there.
+pub(crate) fn spec_button_on(f: &mut Frame, app: &App, fr: &mut Cache, t: &Theme, col: Rect, date: &str, rows: &[String]) {
+    let Some(row) = rows.iter().position(|r| r.starts_with(date)) else { return };
     let Some(y) = row.checked_sub(app.reader.scroll()).filter(|y| *y < col.height as usize) else { return };
     let used = rows[row].trim_end().width();
     let w = crate::app::SPEC_BUTTON.width();

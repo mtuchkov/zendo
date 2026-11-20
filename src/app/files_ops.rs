@@ -115,6 +115,10 @@ impl Files {
         if self.current.as_deref() == Some(old) {
             self.current = Some(target.to_path_buf());
         }
+        // The note of a spec task shows as it is under its new name too (SPEC-11).
+        if self.as_is.as_deref() == Some(old) {
+            self.as_is = Some(target.to_path_buf());
+        }
         self.reload();
         Ok(())
     }

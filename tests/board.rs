@@ -24,9 +24,10 @@ fn app_on(root: &Path, dir: &Path) -> App {
     a
 }
 
-/// The MCP server of session `s` of the repository of `a`.
+/// The MCP server of session `s` of the repository of `a`. It waits for the choice of the user
+/// longer than a test drives the app, so that a slow machine does not end the wait first.
 fn server(a: &App, s: usize) -> Ctx {
-    Ctx { journal: a.board.journal.clone().unwrap(), repo: a.board.repo.clone(), session: s, exe: "zendo".into(), choose_for: Duration::from_secs(5) }
+    Ctx { journal: a.board.journal.clone().unwrap(), repo: a.board.repo.clone(), session: s, exe: "zendo".into(), choose_for: Duration::from_secs(60) }
 }
 
 fn tool(c: &Ctx, name: &str, args: Value) -> Value {

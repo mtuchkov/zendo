@@ -67,7 +67,7 @@ impl App {
         text.push_str(&self.board_posts_context(r));
         text.push_str(&tags);
         let n = self.threads.number();
-        self.dispatch(key, Outgoing { question: shown, text, attach: Vec::new(), sent: None, command: false, n });
+        self.dispatch(key, Outgoing { question: shown, text, attach: Vec::new(), sent: None, command: false, n, fresh: false });
         if !self.sees(r) {
             self.attention.start(r);
         }
