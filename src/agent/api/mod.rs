@@ -23,6 +23,8 @@ pub struct Api {
     pub model: String,
     /// The effort of the model, as `low`: the key hints ask with low effort (REKEY-6).
     pub effort: Option<String>,
+    /// The variables of the agents over the environment of zendo (ENV-1).
+    pub env: std::collections::BTreeMap<String, String>,
 }
 
 /// An image for the question, in base64.
@@ -39,12 +41,12 @@ impl Api {
         if kind != Kind::Claude {
             return None;
         }
-        Some(Self { path: which("claude")?, model: api_model(&model?), effort: None })
+        Some(Self { path: which("claude")?, model: api_model(&model?), effort: None, env: Default::default() })
     }
 
     /// True when `claude auth status` reports a login (NAMES-21).
     pub fn usable(&self) -> bool {
-        cli::logged_in(&self.path)
+        cli::logged_in(&self.path, &self.env)
     }
 }
 

@@ -15,8 +15,10 @@ impl App {
         let (keys, key_problems) = user.keymap();
         let kind = crate::setup::config::kind_of(&cfg.agent);
         let name_model = user.name_model(kind);
-        let api = crate::agent::api::Api::find(kind, name_model.clone(), &crate::agent::api::on_path);
-        let hints = crate::agent::api::Api::find(kind, user.hint_model(kind), &crate::agent::api::on_path);
+        // The light model gets the variables of the agents (ENV-1).
+        let with_env = |a: crate::agent::api::Api| crate::agent::api::Api { env: cfg.agent_env.vars.clone(), ..a };
+        let api = crate::agent::api::Api::find(kind, name_model.clone(), &crate::agent::api::on_path).map(with_env);
+        let hints = crate::agent::api::Api::find(kind, user.hint_model(kind), &crate::agent::api::on_path).map(with_env);
         crate::text::highlight::init(user.highlight.as_ref());
         let logs = crate::setup::logs::Logs::load(&cfg.root);
         let mut app = Self {
@@ -40,6 +42,7 @@ impl App {
         for config in [&mut app.attention.config, &mut app.music.config, &mut app.tips.config, &mut app.rekey.config] {
             config.clone_from(&app.cfg.user_config);
         }
+        app.cli.env = app.cfg.agent_env.vars.clone();
         app.link.start_api(api);
         app.rekey.api = hints.map(|a| crate::agent::api::Api { effort: Some("low".into()), ..a });
         // The chat input of each session, as the user left it (CLAUDE-45).

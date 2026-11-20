@@ -73,7 +73,7 @@ pub async fn preflight(cmd: &str, env: &BTreeMap<String, String>, root: &Path, l
 /// The login of the agent: `Err` only when it is sure that there is none.
 async fn logged_in(kind: config::Kind, env: &BTreeMap<String, String>) -> Result<(), ()> {
     if kind == config::Kind::Codex {
-        return if codex_logged_in() { Ok(()) } else { Err(()) };
+        return if codex_logged_in(env) { Ok(()) } else { Err(()) };
     }
     if kind != config::Kind::Claude || std::env::var("ANTHROPIC_API_KEY").is_ok() {
         return Ok(());

@@ -1,5 +1,5 @@
 ---
-status: "approved"
+status: "implemented"
 approved: "2026-11-20"
 revision: "1"
 date: "2026-11-19"

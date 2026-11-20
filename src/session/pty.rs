@@ -63,15 +63,17 @@ fn nz(n: u16) -> NonZeroU16 {
 }
 
 impl Cli {
-    /// Start `cmd`, then `id`, in `cwd`, on a screen of `size`. Only Claude Code gets the hooks; a
-    /// tool without them has its state from the activity of its terminal (CODEXCLI-2, CODEXCLI-3).
-    pub fn spawn(cmd: &Command, resume: Resume, cwd: &Path, dir: &Path, n: usize, size: (u16, u16), notify: Arc<tokio::sync::Notify>) -> std::io::Result<Cli> {
+    /// Start `cmd`, then `id`, in `cwd`, on a screen of `size`, with the variables of the agents
+    /// `env` (ENV-1). Only Claude Code gets the hooks; a tool without them has its state from the
+    /// activity of its terminal (CODEXCLI-2, CODEXCLI-3).
+    pub fn spawn((cmd, env): (&Command, &std::collections::BTreeMap<String, String>), resume: Resume, cwd: &Path, dir: &Path, n: usize, size: (u16, u16), notify: Arc<tokio::sync::Notify>) -> std::io::Result<Cli> {
         std::fs::create_dir_all(dir)?;
         let state_file = dir.join(format!("{}.state", n + 1));
         let _ = std::fs::remove_file(&state_file);
         let messages = dir.join(format!("{}.messages", n + 1));
         let _ = std::fs::remove_file(&messages);
         let mut b = CommandBuilder::new(&cmd.program);
+        env.iter().for_each(|(k, v)| b.env(k, v));
         if cmd.claude {
             claude_options(&mut b, dir, n, &state_file, &messages)?;
         }

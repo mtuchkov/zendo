@@ -22,7 +22,7 @@ pub use setup::*;
 pub use upgrade::*;
 
 use crate::agent::{self, Cmd, Event};
-use crate::setup::config::{self, Source, UserConfig};
+use crate::setup::config::{self, SYSTEM_CA, Source, UserConfig};
 use std::collections::BTreeMap;
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
@@ -35,6 +35,13 @@ pub struct Paths {
     pub notes_dir: PathBuf,
     /// The notes folder in the repo (`docs/notes`), also when the notes repo is on.
     pub repo_notes: PathBuf,
+    /// The agent environment of this run, with its profile (ENV-1, PROFILE-7).
+    pub env: config::AgentEnv,
+}
+
+/// The variable `name` of the agents: from the agent environment `env`, else from zendo (ENV-2).
+pub(super) fn agent_var(env: &BTreeMap<String, String>, name: &str) -> Option<std::ffi::OsString> {
+    env.get(name).map(Into::into).or_else(|| std::env::var_os(name)).filter(|v| !v.is_empty())
 }
 
 struct Out {
@@ -109,11 +116,11 @@ fn first_line(s: &str) -> &str {
 const CODEX_LOGIN: &str = "Run `codex login` (the Codex CLI: npm install -g @openai/codex), or set OPENAI_API_KEY, then start zendo again.";
 
 /// Whether Codex has a login: an API key, or the auth file that `codex login` writes.
-pub fn codex_logged_in() -> bool {
-    if std::env::var("OPENAI_API_KEY").is_ok() || std::env::var("CODEX_API_KEY").is_ok() {
+pub fn codex_logged_in(env: &BTreeMap<String, String>) -> bool {
+    if agent_var(env, "OPENAI_API_KEY").is_some() || agent_var(env, "CODEX_API_KEY").is_some() {
         return true;
     }
-    let home = std::env::var_os("CODEX_HOME").map(PathBuf::from).unwrap_or_else(|| PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".codex"));
+    let home = agent_var(env, "CODEX_HOME").map(PathBuf::from).unwrap_or_else(|| PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".codex"));
     home.join("auth.json").exists()
 }
 
@@ -138,8 +145,6 @@ fn npm_errors(s: &str) -> String {
     }
     if keep.is_empty() { "(npm printed nothing)".into() } else { keep.join("\n") }
 }
-
-const SYSTEM_CA: &str = "--use-system-ca";
 
 fn with_system_ca(env: &BTreeMap<String, String>) -> BTreeMap<String, String> {
     let mut e = env.clone();

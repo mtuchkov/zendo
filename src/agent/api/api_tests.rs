@@ -70,7 +70,7 @@ fn the_media_type_comes_from_the_extension() {
 #[test]
 fn the_asker_keeps_the_open_questions_until_their_answers() {
     let mut asker = Asker::default();
-    let api = Api { path: "/no/such/claude".into(), model: "m".into(), effort: None };
+    let api = Api { path: "/no/such/claude".into(), model: "m".into(), effort: None, env: Default::default() };
     let q = Question::Image("/tmp/a.png".into());
     asker.ask(&api, q.clone(), "name it".into(), None);
     assert_eq!(asker.open(), std::slice::from_ref(&q));

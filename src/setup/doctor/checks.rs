@@ -22,7 +22,7 @@ pub async fn doctor(paths: &Paths, agent_flag: Option<String>, flags: DoctorFlag
     let ok = checks(paths, agent_flag, flags.live, flags.fix, &mut o).await && repaired;
     // The font recipe of this terminal: a broken one names the repair, and is no failure of doctor.
     fonts::with_session(|s| fonts::recipe_doctor(&o, s, flags.fix && flags.agent, &fonts::find_program));
-    let pending: Vec<Change> = user_changes(&user_files()).into_iter().chain(project_changes(&paths.root, &agent)).collect();
+    let pending: Vec<Change> = user_changes(&user_files(&paths.env.vars)).into_iter().chain(project_changes(&paths.root, &agent)).collect();
     for c in &pending {
         o.warn(c.label, format!("not up to date: {}", c.what));
     }
@@ -45,8 +45,8 @@ pub async fn doctor(paths: &Paths, agent_flag: Option<String>, flags: DoctorFlag
 /// repository (CMD-15); with `claude`, the rest of the structure file goes to Claude.
 async fn repair(paths: &Paths, agent_flag: Option<String>, agent: &str, claude: bool, o: &mut Out) -> bool {
     // An agent command of the user is not the pinned adapter: zendo installs nothing for it.
-    let adapter = agent_flag.is_some() || fix_adapter(o).await;
-    apply(user_changes(&user_files()), o);
+    let adapter = agent_flag.is_some() || fix_adapter(paths, o).await;
+    apply(user_changes(&user_files(&paths.env.vars)), o);
     apply(project_changes(&paths.root, agent), o);
     let structure = match structure_problem(&paths.root) {
         Some(problem) => fix_structure(paths, agent_flag, problem, claude, o).await || !claude,
@@ -57,8 +57,9 @@ async fn repair(paths: &Paths, agent_flag: Option<String>, agent: &str, claude: 
 
 pub(super) async fn checks(paths: &Paths, agent_flag: Option<String>, live: bool, quiet_outside_repo: bool, o: &mut Out) -> bool {
     let cfg = UserConfig::load();
-    let env = config::agent_env(&cfg);
+    let env = paths.env.vars.clone();
     check_repo(paths, &cfg, quiet_outside_repo, o);
+    check_agent_env(&paths.env, o);
     check_settings(&cfg, o);
     check_music(&cfg, o);
     check_structure(paths, o);
@@ -66,7 +67,7 @@ pub(super) async fn checks(paths: &Paths, agent_flag: Option<String>, live: bool
     check_network(o);
     check_node(&cmd, source, &env, o).await;
     let handoff = handoff_key(&cfg);
-    let kind = check_adapter(&cmd, source, &handoff, o);
+    let kind = check_adapter(&cmd, source, &env, &handoff, o);
     check_claude(kind, &env, &handoff, o).await;
     if let Some((h, mut rx)) = handshake(paths, &cmd, source, &env, o).await {
         if live {
@@ -171,8 +172,8 @@ fn check_config(cfg: &UserConfig, agent_flag: Option<String>, o: &mut Out) -> (S
     if !problems.is_empty() {
         o.hint("zendo reads every other setting. Fix these lines by hand.");
     } else if cpath.exists() {
-        let keys: Vec<String> = cfg.env.iter().map(|(k, v)| format!("{k}={v}")).collect();
-        o.ok("config", format!("{}{}", cpath.display(), if keys.is_empty() { String::new() } else { format!(" · {}", keys.join(" ")) }));
+        let names: Vec<&str> = cfg.profiles.keys().map(String::as_str).collect();
+        o.ok("config", format!("{}{}", cpath.display(), if names.is_empty() { String::new() } else { format!(" · profiles: {}", names.join(", ")) }));
     } else {
         o.warn("config", format!("{} not found (run `zendo setup`)", cpath.display()));
     }
@@ -215,4 +216,16 @@ pub(super) fn explain_log(o: &Out, log: &Path) {
         o.hint("The agent command was not found. Run `zendo setup`, or check --agent.");
     }
     o.more(format!("full log: {}", log.display()));
+}
+
+/// The profile of this run and the lines of `.envrc` that zendo skipped (PROFILE-7, ENV-7).
+fn check_agent_env(env: &config::AgentEnv, o: &mut Out) {
+    match &env.profile {
+        Some(p) => o.ok("profile", format!("{p}: {}", env.vars.keys().cloned().collect::<Vec<_>>().join(" "))),
+        None if env.vars.is_empty() => {}
+        None => o.ok("agent env", env.vars.keys().cloned().collect::<Vec<_>>().join(" ")),
+    }
+    for p in &env.problems {
+        o.warn("agent env", p);
+    }
 }

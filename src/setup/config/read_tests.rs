@@ -24,8 +24,8 @@ fn a_syntax_error_costs_only_its_line() {
     let (cfg, problems) = read_text("agent = \"my-agent\"\nsound = tru\nmusic = false\n");
     assert_eq!((cfg.agent.as_deref(), cfg.sound, cfg.music), (Some("my-agent"), None, Some(false)));
     assert_eq!(lines_of(&problems), [2], "{problems:?}");
-    let (cfg, problems) = read_text("[env]\nA = \"1\"\nB = no quotes\nC = \"3\"\n");
-    assert_eq!(cfg.env.keys().map(String::as_str).collect::<Vec<_>>(), ["A", "C"]);
+    let (cfg, problems) = read_text("[profile_dirs]\nA = \"1\"\nB = no quotes\nC = \"3\"\n");
+    assert_eq!(cfg.profile_dirs.keys().map(String::as_str).collect::<Vec<_>>(), ["A", "C"]);
     assert_eq!(lines_of(&problems), [3], "{problems:?}");
 }
 

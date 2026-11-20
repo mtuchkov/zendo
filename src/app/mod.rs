@@ -136,7 +136,8 @@ pub struct Config {
     pub root: PathBuf,
     pub notes_dir: PathBuf,
     pub agent: String,
-    pub agent_env: std::collections::BTreeMap<String, String>,
+    /// The variables of the agents and their profile (ENV-1, PROFILE-1).
+    pub agent_env: crate::setup::config::AgentEnv,
     /// Started with --offline: no Claude in this run.
     pub offline: bool,
     /// The private notes repo, when it is on and `--notes` did not override it.
@@ -144,6 +145,17 @@ pub struct Config {
     /// The config file of the user that the app reads and writes: `~/.zendo/config.toml`, a file
     /// of its own in a test.
     pub user_config: PathBuf,
+}
+
+impl Config {
+    /// The key of the threads in `.zendo/db.json`: the agent command, with the profile when there is
+    /// one, so that each profile has threads of its own (PROFILE-4, PROFILE-6).
+    pub fn threads_key(&self) -> String {
+        match &self.agent_env.profile {
+            Some(p) => format!("{} --profile {p}", self.agent),
+            None => self.agent.clone(),
+        }
+    }
 }
 
 #[derive(smart_default::SmartDefault)]

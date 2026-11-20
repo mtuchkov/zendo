@@ -103,9 +103,9 @@ fn gitignore_change(root: &Path) -> Option<Change> {
 }
 
 /// The files of instructions of the user: `CLAUDE.md` of Claude Code and `AGENTS.md` of Codex.
-pub(super) fn user_files() -> [PathBuf; 2] {
+pub(super) fn user_files(env: &BTreeMap<String, String>) -> [PathBuf; 2] {
     let home = PathBuf::from(std::env::var_os("HOME").unwrap_or_default());
-    let dir = |var: &str, name: &str| std::env::var_os(var).filter(|v| !v.is_empty()).map(PathBuf::from).unwrap_or_else(|| home.join(name));
+    let dir = |var: &str, name: &str| agent_var(env, var).map(PathBuf::from).unwrap_or_else(|| home.join(name));
     [dir("CLAUDE_CONFIG_DIR", ".claude").join("CLAUDE.md"), dir("CODEX_HOME", ".codex").join("AGENTS.md")]
 }
 

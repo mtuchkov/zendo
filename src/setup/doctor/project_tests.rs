@@ -44,7 +44,7 @@ fn the_zendo_section_is_replaced_and_the_rest_stays() {
 fn doctor_sets_up_the_repository_once() {
     let root = repo("setup", &["docs/notes"], &["README.md"]);
     std::fs::write(root.join(".gitignore"), "/target\n").unwrap();
-    let paths = Paths { root: root.clone(), notes_dir: root.join("docs/notes"), repo_notes: root.join("docs/notes") };
+    let paths = Paths { root: root.clone(), notes_dir: root.join("docs/notes"), repo_notes: root.join("docs/notes"), env: Default::default() };
     let mut o = Out::new();
     apply(project_changes(&paths.root, "npx @agentclientprotocol/claude-agent-acp"), &mut o);
     assert!(root.join(FILE).exists());

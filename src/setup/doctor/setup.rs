@@ -11,7 +11,7 @@ pub async fn setup(paths: &Paths, agent_flag: Option<String>, notes_repo: Option
     let Some(turned_on) = set_notes_repo(&mut cfg, notes_repo.as_deref(), &mut o) else { return false };
 
     // 1. Node and npm.
-    let env = config::agent_env(&cfg);
+    let env = paths.env.vars.clone();
     match run("node", &["--version"], &env, 20).await {
         Some((true, v)) => o.ok("node", v),
         _ => {
@@ -45,7 +45,7 @@ pub async fn setup(paths: &Paths, agent_flag: Option<String>, notes_repo: Option
     }
 
     // The zendo section in the instructions of the user (SESSIONS-22).
-    apply(user_changes(&user_files()), &mut o);
+    apply(user_changes(&user_files(&env)), &mut o);
 
     // 4. Check the whole path.
     let ok = checks(paths, None, false, true, &mut o).await;
@@ -66,13 +66,13 @@ pub async fn setup(paths: &Paths, agent_flag: Option<String>, notes_repo: Option
 
 /// `zendo doctor --fix`: install the pinned adapter of the agent of the user when it is not there
 /// (CMD-15). The config changes only when the install does.
-pub(super) async fn fix_adapter(o: &mut Out) -> bool {
+pub(super) async fn fix_adapter(paths: &Paths, o: &mut Out) -> bool {
     // The save changes only the lines of the adapter (CMD-19).
     let mut cfg = UserConfig::load();
     let before = cfg.copy();
     // A command of the user in the config is not a profile: zendo installs nothing for it.
     let Some(profile) = cfg.agent.as_deref().map_or(Some(&config::CLAUDE), config::Profile::by_id) else { return true };
-    let env = config::agent_env(&cfg);
+    let env = paths.env.vars.clone();
     // Without Node.js the checks report it, with the fix.
     if profile.installed() || !matches!(run("node", &["--version"], &env, 20).await, Some((true, _))) {
         return true;
@@ -129,7 +129,7 @@ async fn install_adapter(profile: &config::Profile, env: &BTreeMap<String, Strin
     {
         let again = install(with_system_ca(env)).await;
         if matches!(again, Some((true, _))) {
-            cfg.env.insert("NODE_OPTIONS".into(), SYSTEM_CA.into());
+            cfg.system_ca = Some(true);
             if o.color {
                 print!("\r\x1b[2K");
             }

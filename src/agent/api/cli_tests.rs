@@ -23,7 +23,7 @@ fn mock_claude(name: &str, status: &str, answer: &str) -> PathBuf {
 }
 
 fn api(path: &std::path::Path) -> Api {
-    Api { path: path.into(), model: "claude-haiku-5-5".into(), effort: None }
+    Api { path: path.into(), model: "claude-haiku-5-5".into(), effort: None, env: Default::default() }
 }
 
 // NAMES-21: `claude -p` gets one user message with the prompt and the image, and no tools, no

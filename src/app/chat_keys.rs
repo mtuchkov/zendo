@@ -72,7 +72,7 @@ impl App {
     fn new_thread(&mut self, key: String) {
         self.link.send(Cmd::Forget { key: key.clone() });
         // A new thread is a new Claude session: the name of the old one goes (NAMES-4).
-        if let Some(id) = self.state.take_session(&self.cfg.agent, &key) {
+        if let Some(id) = self.state.take_session(&self.cfg.threads_key(), &key) {
             self.state.names.remove(&id);
         }
         // The messages of the old thread go into the common history (HISTORY-2).

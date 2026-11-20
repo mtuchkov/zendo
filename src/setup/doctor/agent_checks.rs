@@ -35,7 +35,7 @@ pub(super) async fn check_node(cmd: &str, source: Source, env: &BTreeMap<String,
 }
 
 /// The installed adapter and, for Codex, its login. The kind of agent the command is.
-pub(super) fn check_adapter(cmd: &str, source: Source, handoff: &str, o: &mut Out) -> config::Kind {
+pub(super) fn check_adapter(cmd: &str, source: Source, env: &BTreeMap<String, String>, handoff: &str, o: &mut Out) -> config::Kind {
     let kind = config::kind_of(cmd);
     if source == Source::Installed
         && let Some(p) = config::Profile::by_kind(kind)
@@ -50,7 +50,7 @@ pub(super) fn check_adapter(cmd: &str, source: Source, handoff: &str, o: &mut Ou
         }
     }
     if kind == config::Kind::Codex {
-        if codex_logged_in() {
+        if codex_logged_in(env) {
             o.ok("login", "Codex has a login or an API key");
         } else {
             o.fail("login", "Codex is not logged in");

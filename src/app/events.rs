@@ -105,8 +105,8 @@ impl App {
     /// Keep the session ID of the thread `key` in the repository (CLAUDE-5).
     pub(crate) fn keep_session(&mut self, key: &str) {
         let Some(id) = self.threads.get(key).and_then(|t| t.session.clone()) else { return };
-        if self.state.session(&self.cfg.agent, key).as_ref() != Some(&id) {
-            self.state.set_session(&self.cfg.agent, key, id);
+        if self.state.session(&self.cfg.threads_key(), key).as_ref() != Some(&id) {
+            self.state.set_session(&self.cfg.threads_key(), key, id);
             self.state.save(&self.cfg.root);
         }
     }

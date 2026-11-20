@@ -75,7 +75,7 @@ pub(super) async fn move_notes(paths: &Paths, agent_flag: Option<String>, n: &co
     o.ok("move", format!("{} notes from {} to {}", files.len(), paths.repo_notes.display(), to.display()));
     let prompt = MOVE_PROMPT.replace("{{TO}}", &to.display().to_string()).replace("{{ROOT}}", &paths.root.display().to_string()).replace("{{MACHINE}}", &n.machine).replace("{{FILES}}", &list(&files));
     let allowed = |p: &Path| inside(p, &to) || files.iter().any(|f| same_file(p, f));
-    let Some(answer) = claude_task(&paths.root, agent_flag, "notes-move", prompt, &allowed, ("only the target folder and the listed notes may change", "is moving the notes…"), o).await else {
+    let Some(answer) = claude_task(paths, agent_flag, "notes-move", prompt, &allowed, ("only the target folder and the listed notes may change", "is moving the notes…"), o).await else {
         return false;
     };
     report_answer(&answer, o);
@@ -135,7 +135,7 @@ pub(super) async fn consolidate(paths: &Paths, agent_flag: Option<String>, n: &c
         .replace("{{MACHINE}}", &n.machine)
         .replace("{{SOURCES}}", &text);
     let allowed = |p: &Path| inside(p, &to) || files.iter().any(|f| same_file(p, f));
-    let Some(answer) = claude_task(&paths.root, agent_flag, "notes-consolidate", prompt, &allowed, ("only the target folder and the listed notes may change", "is consolidating the notes…"), o).await else {
+    let Some(answer) = claude_task(paths, agent_flag, "notes-consolidate", prompt, &allowed, ("only the target folder and the listed notes may change", "is consolidating the notes…"), o).await else {
         return false;
     };
     report_answer(&answer, o);

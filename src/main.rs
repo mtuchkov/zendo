@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, bail};
+use anyhow::{Result, bail};
 use zendo::app::{App, Config};
 use zendo::setup::config::{self, UserConfig};
 use zendo::setup::doctor;
@@ -6,7 +6,9 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tokio::sync::mpsc;
 
-const HELP: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/help.txt"));
+#[path = "main_args.rs"]
+mod args;
+use args::{HELP, read_args};
 
 enum Run {
     Tui(Config),
@@ -33,81 +35,6 @@ fn repo_root(start: &Path, home: Option<&Path>) -> PathBuf {
     }
 }
 
-/// The command line.
-#[derive(Default)]
-struct Args {
-    sub: &'static str,
-    notes: String,
-    notes_set: bool,
-    agent: Option<String>,
-    live: bool,
-    fix: bool,
-    with_agent: bool,
-    offline: bool,
-    notes_repo: Option<String>,
-    action: String,
-    fonts: bool,
-}
-
-fn read_args() -> Result<Args> {
-    let mut o = Args { notes: std::env::var("ZENDO_NOTES").unwrap_or_else(|_| "docs/notes".into()), notes_set: std::env::var("ZENDO_NOTES").is_ok(), ..Default::default() };
-    let mut args = std::env::args().skip(1).peekable();
-    if let Some(first) = args.peek() {
-        o.sub = match first.as_str() {
-            "setup" => "setup",
-            "init" => "init",
-            "doctor" => "doctor",
-            "upgrade" => "upgrade",
-            "keymap" => "keymap",
-            "notes" => "notes",
-            _ => "",
-        };
-        if !o.sub.is_empty() {
-            args.next();
-        }
-    }
-    let sub = o.sub;
-    while let Some(a) = args.next() {
-        match a.as_str() {
-            "--live" if sub == "doctor" => o.live = true,
-            "--fix" if sub == "doctor" => o.fix = true,
-            "--agent" if sub == "doctor" => o.with_agent = true,
-            "--force" if sub == "upgrade" => o.live = true,
-            "--offline" if sub.is_empty() => o.offline = true,
-            "-V" | "--version" | "version" => {
-                println!("{}", doctor::version_line());
-                std::process::exit(0);
-            }
-            "-h" | "--help" => {
-                println!("{HELP}");
-                std::process::exit(0);
-            }
-            "--notes" => {
-                o.notes = args.next().context("--notes needs a folder")?;
-                o.notes_set = true;
-            }
-            "fonts" if sub == "setup" && !o.fonts => o.fonts = true,
-            "--notes-repo" if sub == "setup" => o.notes_repo = Some(args.next().context("--notes-repo needs a folder or a git URL")?),
-            "move" | "consolidate" if sub == "notes" && o.action.is_empty() => o.action = a.clone(),
-            "--agent-cmd" => o.agent = Some(args.next().context("--agent-cmd needs a command")?),
-            "--agent" => bail!("`--agent CMD` is now `--agent-cmd CMD`\n\n{HELP}"),
-            "--mock" => o.agent = Some(mock_agent()?),
-            other => bail!("unknown argument: {other}\n\n{HELP}"),
-        }
-    }
-    Ok(o)
-}
-
-/// The mock agent next to this binary.
-fn mock_agent() -> Result<String> {
-    let exe = std::env::current_exe()?;
-    let mock = exe.with_file_name(format!("zendo-mock-agent{}", std::env::consts::EXE_SUFFIX));
-    if !mock.exists() {
-        bail!("mock agent not found next to zendo: {}", mock.display());
-    }
-    Ok(config::quote(&mock))
-}
-
 fn parse() -> Result<Run> {
     let cwd = std::env::current_dir()?;
     let home = std::env::var_os("HOME").filter(|h| !h.is_empty()).map(PathBuf::from);
@@ -123,7 +50,12 @@ fn parse() -> Result<Run> {
         Some(n) => n.location(&root),
         None => repo_notes.clone(),
     };
-    let paths = doctor::Paths { root: root.clone(), notes_dir: notes_dir.clone(), repo_notes };
+    // One agent environment for the whole run; a profile that is not there stops zendo (PROFILE-3).
+    let env = match a.sub {
+        "upgrade" | "keymap" => config::AgentEnv::default(),
+        _ => config::agent_env(&user, &root, a.profile.as_deref()).map_err(anyhow::Error::msg)?,
+    };
+    let paths = doctor::Paths { root: root.clone(), notes_dir: notes_dir.clone(), repo_notes, env: env.clone() };
     Ok(match a.sub {
         "setup" if a.fonts => Run::Fonts,
         "setup" => Run::Setup(paths, a.agent, a.notes_repo),
@@ -139,7 +71,7 @@ fn parse() -> Result<Run> {
         }
         _ => {
             let (agent, _) = config::resolve_agent(a.agent, &user);
-            Run::Tui(Config { root, notes_dir, agent, agent_env: config::agent_env(&user), offline: a.offline, notes_repo: notes_cfg, user_config: config::config_path() })
+            Run::Tui(Config { root, notes_dir, agent, agent_env: env, offline: a.offline, notes_repo: notes_cfg, user_config: config::config_path() })
         }
     })
 }
@@ -235,7 +167,7 @@ async fn open_app(cfg: Config) -> Result<App> {
     } else {
         let log = zendo::setup::state::dir(&cfg.root);
         let _ = std::fs::create_dir_all(&log);
-        match doctor::preflight(&cfg.agent, &cfg.agent_env, &cfg.root, log.join("agent.log")).await {
+        match doctor::preflight(&cfg.agent, &cfg.agent_env.vars, &cfg.root, log.join("agent.log")).await {
             Some(l) => Some(l),
             None => std::process::exit(1),
         }
@@ -262,6 +194,10 @@ async fn open_app(cfg: Config) -> Result<App> {
     app.keys.legacy = !zendo::tui::kitty();
     if !app.key_help.problems().is_empty() {
         app.flash(format!("[keys] {} problem(s) · zendo doctor", app.key_help.problems().len()));
+    }
+    // The lines of `.envrc` that zendo skipped, once at the start (ENV-7).
+    if !app.cfg.agent_env.problems.is_empty() {
+        app.flash(app.cfg.agent_env.problems.join(" · "));
     }
     if old_notes > 0 {
         app.flash(format!("{old_notes} note(s) in docs/notes are not in your notes repo · zendo notes move"));
