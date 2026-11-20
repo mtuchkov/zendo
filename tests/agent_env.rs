@@ -148,3 +148,25 @@ async fn a_terminal_shell_gets_the_agent_env() {
         std::thread::sleep(Duration::from_millis(20));
     }
 }
+
+// PROFILE-8: the name of the profile stands at the left end of the top line, before the path, as a
+// badge in the blue of the theme, as the name of the pane in the status bar; without a profile the
+// top line has no badge.
+#[test]
+fn the_profile_shows_at_the_top() {
+    let root = repo("agent-env-top", &[("docs/notes/a.md", "# A\n")]);
+    let mut a = app_in(&root, AgentEnv { profile: Some("work".into()), ..Default::default() });
+    let buf = rekey::frame(&mut a);
+    let (blue, ink) = (a.theme().ext.doc, a.theme().bg);
+    let (x, _) = rekey::find(&buf, " work ", Some(0)).expect("the profile in the top line");
+    let path = rekey::find(&buf, "docs/notes", Some(0)).expect("the path in the top line").0;
+    assert!(x == 2 && x < path, "the badge is first: {x}, the path at {path}");
+    for dx in 0..6 {
+        let cell = &buf[(x + dx, 0)];
+        assert_eq!((cell.bg, cell.fg), (blue, ink), "cell {dx} of the badge");
+    }
+    let mut plain = app_in(&root, AgentEnv::default());
+    let buf = rekey::frame(&mut plain);
+    assert!((0..buf.area.width).all(|x| buf[(x, 0)].bg != blue), "no badge without a profile");
+    assert_eq!(rekey::find(&buf, "docs/notes", Some(0)).map(|p| p.0), Some(2), "the path stays at the left end");
+}

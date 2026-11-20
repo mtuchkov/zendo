@@ -1,13 +1,13 @@
 ---
 status: "implemented"
 approved: "2026-11-20"
-revision: "2"
+revision: "3"
 date: "2026-11-20"
 parent: "zendo.md"
 prev: "agent-env.md"
 next: "questions.md"
 level: "the profiles of the agent environment: their tables, their selection by flag or by folder, and the threads that they own"
-note: "Agent draft from the decisions of the user on 2026-11-19 in chat. Approved by the user on 2026-11-20. Revision 2: each profile keeps threads of its own in place of the refusal of PROFILE-4 (the user, 2026-11-20)."
+note: "Agent draft from the decisions of the user on 2026-11-19 in chat. Approved by the user on 2026-11-20. Revision 2: each profile keeps threads of its own in place of the refusal of PROFILE-4 (the user, 2026-11-20). Revision 3: PROFILE-8, the name of the profile in the top line (the user, 2026-11-20)."
 ---
 
 # Agent profiles
@@ -37,6 +37,10 @@ repository.
 
 The config holds variables for the agents only in profiles. `--agent` selects the kind of the agent
 (Claude or Codex); the profile selects the variables, and the two are independent.
+
+**On the screen.** The name of the profile stands at the left end of the top line, before the
+branch and the path: a badge in the blue of the theme, as the name of the pane in the status bar.
+Without a profile, the top line has no badge.
 
 **Threads.** The sessions of an agent are stored under its config folder, so a thread made with
 one profile cannot be resumed with another. Each profile has threads of its own in each agent
@@ -81,9 +85,4 @@ session: after a return to `work`, the thread of `work` goes on.
 | PROFILE-5 | Ubiquitous | `~/.zendo/config.toml` shall hold environment variables for the agents only in profiles. | User, 2026-11-19 |
 | PROFILE-6 | Ubiquitous | A thread that zendo recorded without a profile shall count as a thread without a profile. | PROFILE-4 |
 | PROFILE-7 | Event      | When the user runs `zendo doctor` or `zendo setup` with `--profile <name>`, the command shall check the agents with that profile. | ENV-1 |
-
-## Open points
-
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| Shall zendo show the current profile on the screen, for example in the status line? | PROFILE-1, PROFILE-2 | User |
+| PROFILE-8 | State      | While a profile is selected, the system shall show its name at the left end of the top line, before the branch, as a badge in the blue of the theme. | User, 2026-11-20 |
