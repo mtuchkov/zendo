@@ -84,6 +84,8 @@ pub struct Sessions {
     pub home: Option<std::path::PathBuf>,
     /// The variables of the agents over the environment of zendo (ENV-1).
     pub env: std::collections::BTreeMap<String, String>,
+    /// The same for the shell of a terminal: without the system CA of the agents (ENV-5).
+    pub shell_env: std::collections::BTreeMap<String, String>,
     /// The terminals that the user viewed, the last one first (TERM-24).
     viewed: Vec<usize>,
     slots: Vec<Option<Cli>>,
@@ -103,7 +105,7 @@ impl Default for Sessions {
     fn default() -> Self {
         let all = SESSIONS + TERMINALS;
         let size = (23, 80);
-        Sessions { command: None, view: None, pane: None, pressed: None, quit_asked: None, notify: Arc::default(), shell: None, home: None, env: Default::default(), viewed: Vec::new(), slots: (0..all).map(|_| None).collect(), pending: vec![None; all], size, pane_size: size, sizes: vec![size; all], born: Instant::now() }
+        Sessions { command: None, view: None, pane: None, pressed: None, quit_asked: None, notify: Arc::default(), shell: None, home: None, env: Default::default(), shell_env: Default::default(), viewed: Vec::new(), slots: (0..all).map(|_| None).collect(), pending: vec![None; all], size, pane_size: size, sizes: vec![size; all], born: Instant::now() }
     }
 }
 

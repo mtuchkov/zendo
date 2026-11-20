@@ -206,6 +206,8 @@ pub struct App {
     pub width_default: u16,
 
     pub flash: Option<(String, Instant)>,
+    /// The messages that wait for the flash on the screen to end (ENV-7).
+    pub said_later: std::collections::VecDeque<String>,
     /// The counts of the actions of the user; off until the start turns them on (USAGE-1).
     pub telemetry: crate::telemetry::Telemetry,
     /// The time of each action of the user; off until the start turns it on (RESP-1).

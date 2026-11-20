@@ -64,3 +64,35 @@ fn a_good_file_has_no_problems() {
     assert_eq!((cfg.sound, cfg.name_models.get("claude").map(String::as_str)), (Some(false), Some("sonnet")));
     assert!(read_text("").1.is_empty());
 }
+
+// PROFILE-9: a variable of a profile is a text, a number, `true` or `false`. A value of another
+// kind costs only its own variable: the profile and the other profiles stay.
+#[test]
+fn a_bad_value_of_a_profile_costs_only_its_variable() {
+    let text = "[profiles.work]\nMAX_THINKING_TOKENS = 8000\nRATE = 0.5\nON = true\nBAD = [1]\nA = \"1\"\n\n[profiles.home]\nB = \"2\"\n";
+    let (cfg, problems) = read_text(text);
+    let work = &cfg.profiles["work"];
+    let get = |k: &str| work.get(k).map(String::as_str);
+    assert_eq!((get("MAX_THINKING_TOKENS"), get("RATE"), get("ON"), get("A"), get("BAD")), (Some("8000"), Some("0.5"), Some("true"), Some("1"), None));
+    assert_eq!(cfg.profiles["home"]["B"], "2");
+    assert_eq!(problems.len(), 1, "{problems:?}");
+    assert!(problems[0].error.contains("profiles.work.BAD"), "{problems:?}");
+}
+
+// PROFILE-5: the table `[env]` of an older zendo holds variables outside a profile. zendo does not
+// use it, and says so at its line.
+#[test]
+fn the_old_env_table_is_a_problem() {
+    let (cfg, problems) = read_text("sound = true\n\n[env]\nNODE_OPTIONS = \"--use-system-ca\"\n");
+    assert_eq!(cfg.sound, Some(true));
+    assert_eq!(lines_of(&problems), [3]);
+    assert!(problems[0].error.contains("[env]") && problems[0].error.contains("[profiles."), "{problems:?}");
+}
+
+// PROFILE-9: a profile that is no table costs only itself: the other profiles stay.
+#[test]
+fn a_profile_that_is_no_table_costs_only_itself() {
+    let (cfg, problems) = read_text("[profiles]\nwork = 5\n\n[profiles.home]\nA = \"1\"\n");
+    assert_eq!(cfg.profiles.keys().map(String::as_str).collect::<Vec<_>>(), ["home"]);
+    assert!(problems.len() == 1 && problems[0].error.contains("profiles.work"), "{problems:?}");
+}

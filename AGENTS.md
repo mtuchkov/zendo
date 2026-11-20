@@ -91,7 +91,8 @@ Rules:
   itself, not through a program.
 - The agent shall not make zendo start a program that zendo does not start already, unless the
   user approves that program directly. `tests/external_programs.rs` checks it in `cargo test`: a
-  file of `src` that starts a program is in its list `KNOWN`, with the programs and the reason.
+  file of `src` that starts a program is in its list `KNOWN`, with the programs that it names and
+  the reason.
 - CI checks the GitHub workflows with `actionlint`. The agent shall run `actionlint` before it
   commits a change of `.github/workflows/`.
 

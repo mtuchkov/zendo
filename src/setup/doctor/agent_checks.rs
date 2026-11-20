@@ -83,7 +83,7 @@ pub(super) async fn check_claude(kind: config::Kind, env: &BTreeMap<String, Stri
             match run("claude", &["auth", "status"], env, 30).await {
                 Some((_, out)) => match serde_json::from_str::<serde_json::Value>(&out) {
                     Ok(j) if j["loggedIn"] == true => o.ok("login", format!("logged in ({})", j["authMethod"].as_str().unwrap_or("?"))),
-                    Ok(_) if std::env::var("ANTHROPIC_API_KEY").is_ok() => o.ok("login", "ANTHROPIC_API_KEY is set"),
+                    Ok(_) if has_api_key(env) => o.ok("login", "ANTHROPIC_API_KEY is set"),
                     Ok(_) => {
                         o.fail("login", "Claude Code is not logged in");
                         o.hint("Run `claude auth login` (or `claude` and /login), then `zendo doctor` again.");
@@ -104,7 +104,9 @@ pub(super) async fn handshake(paths: &Paths, cmd: &str, source: Source, env: &BT
     let _ = std::fs::create_dir_all(config::data_dir());
     let _ = std::fs::remove_file(&log);
     let started = Instant::now();
-    let (h, mut rx) = agent::spawn(cmd.to_string(), env.clone(), paths.root.clone(), Some(log.clone()));
+    // TRUST-1: no agent starts in a repository that is not trusted.
+    let cwd = if paths.env.untrusted.is_some() { config::data_dir() } else { paths.root.clone() };
+    let (h, mut rx) = agent::spawn(cmd.to_string(), env.clone(), cwd, Some(log.clone()));
     let wait = Duration::from_secs(if source == Source::Npx { 180 } else { 60 });
     let first = tokio::time::timeout(wait, rx.recv()).await;
     let ready = match first {

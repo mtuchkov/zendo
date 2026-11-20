@@ -14,7 +14,7 @@ enum Run {
     Tui(Config),
     Setup(doctor::Paths, Option<String>, Option<String>),
     /// `zendo setup fonts` (FONT-7).
-    Fonts,
+    Fonts(config::AgentEnv),
     Notes(doctor::Paths, Option<String>, String),
     Init(doctor::Paths, Option<String>),
     Doctor(doctor::Paths, Option<String>, doctor::DoctorFlags),
@@ -50,19 +50,33 @@ fn parse() -> Result<Run> {
         Some(n) => n.location(&root),
         None => repo_notes.clone(),
     };
-    // One agent environment for the whole run; a profile that is not there stops zendo (PROFILE-3).
+    // One agent environment for the whole run, after the question about the trust (TRUST-2); a
+    // profile that is not there stops zendo (PROFILE-3).
+    match a.sub {
+        "notes" if a.action.is_empty() => bail!("zendo notes needs move or consolidate\n\n{HELP}"),
+        "doctor" if a.with_agent && !a.fix => bail!("--agent needs --fix\n\n{HELP}"),
+        _ => {}
+    }
+    // `zendo init` reads no `.envrc` and starts no agent, so it needs no agent environment.
     let env = match a.sub {
-        "upgrade" | "keymap" => config::AgentEnv::default(),
-        _ => config::agent_env(&user, &root, a.profile.as_deref()).map_err(anyhow::Error::msg)?,
+        "upgrade" | "keymap" | "init" => config::AgentEnv::default(),
+        sub => {
+            let cmd = config::trust::Command { checks: matches!(sub, "doctor" | "setup"), saves: sub != "doctor" || a.fix };
+            run_env(&user, &cwd, home.as_deref(), a.profile.as_deref(), cmd)?
+        }
     };
+    // TRUST-6: without the trust, no program of the checks starts in the folder: an agent, npm and
+    // npx take settings and programs from the folder where they start.
+    if env.untrusted.is_some() {
+        let dir = config::data_dir();
+        std::fs::create_dir_all(&dir).and_then(|()| std::env::set_current_dir(&dir)).map_err(|e| anyhow::anyhow!("cannot work in {}: {e}", dir.display()))?;
+    }
     let paths = doctor::Paths { root: root.clone(), notes_dir: notes_dir.clone(), repo_notes, env: env.clone() };
     Ok(match a.sub {
-        "setup" if a.fonts => Run::Fonts,
+        "setup" if a.fonts => Run::Fonts(env),
         "setup" => Run::Setup(paths, a.agent, a.notes_repo),
-        "notes" if a.action.is_empty() => bail!("zendo notes needs move or consolidate\n\n{HELP}"),
         "notes" => Run::Notes(paths, a.agent, a.action),
         "init" => Run::Init(paths, a.agent),
-        "doctor" if a.with_agent && !a.fix => bail!("--agent needs --fix\n\n{HELP}"),
         "doctor" => Run::Doctor(paths, a.agent, doctor::DoctorFlags { live: a.live, fix: a.fix, agent: a.with_agent }),
         "upgrade" => Run::Upgrade(a.live),
         "keymap" => {
@@ -74,6 +88,16 @@ fn parse() -> Result<Run> {
             Run::Tui(Config { root, notes_dir, agent, agent_env: env, offline: a.offline, notes_repo: notes_cfg, user_config: config::config_path() })
         }
     })
+}
+
+/// The agent environment of this run of the command `cmd`. zendo asks about the trust only in a
+/// terminal (TRUST-2).
+fn run_env(user: &UserConfig, dir: &Path, home: Option<&Path>, profile: Option<&str>, cmd: config::trust::Command) -> Result<config::AgentEnv> {
+    use std::io::IsTerminal;
+    let (stdin, mut err) = (std::io::stdin(), std::io::stderr());
+    let mut input = stdin.lock();
+    let terminal = (stdin.is_terminal() && err.is_terminal()).then_some(config::trust::Terminal { input: &mut input, out: &mut err });
+    config::trust::run_env(user, (&config::config_path(), home), dir, profile, cmd, terminal).map_err(anyhow::Error::msg)
 }
 
 /// `zendo board watch --session N [--for ID] [--timeout S]`: the watch of the board (BOARD-20).
@@ -114,7 +138,7 @@ async fn main() -> Result<()> {
     let cfg = match parse()? {
         Run::Tui(cfg) => cfg,
         Run::Setup(paths, agent, notes_repo) => std::process::exit(if doctor::setup(&paths, agent, notes_repo).await { 0 } else { 1 }),
-        Run::Fonts => std::process::exit(if doctor::setup_fonts() { 0 } else { 1 }),
+        Run::Fonts(env) => std::process::exit(if doctor::setup_fonts(&env) { 0 } else { 1 }),
         Run::Notes(paths, agent, action) => std::process::exit(if doctor::notes(&paths, agent, &action).await { 0 } else { 1 }),
         Run::Init(paths, agent) => std::process::exit(if doctor::init(&paths, agent) { 0 } else { 1 }),
         Run::Doctor(paths, agent, flags) => std::process::exit(if doctor::doctor(&paths, agent, flags).await { 0 } else { 1 }),
@@ -193,22 +217,22 @@ async fn open_app(cfg: Config) -> Result<App> {
     let stats = zendo::setup::config::UserConfig::load().stats();
     (app.telemetry, app.responsiveness) = (zendo::telemetry::Telemetry::for_process(stats), zendo::responsiveness::Responsiveness::for_process(stats));
     app.keys.legacy = !zendo::tui::kitty();
-    if !app.key_help.problems().is_empty() {
-        app.flash(format!("[keys] {} problem(s) · zendo doctor", app.key_help.problems().len()));
-    }
-    // The lines of `.envrc` that zendo skipped, once at the start (ENV-7).
-    if !app.cfg.agent_env.problems.is_empty() {
-        app.flash(app.cfg.agent_env.problems.join(" · "));
-    }
-    if old_notes > 0 {
-        app.flash(format!("{old_notes} note(s) in docs/notes are not in your notes repo · zendo notes move"));
-    }
+    let said = start_notices(app.key_help.problems().len(), &app.cfg.agent_env.problems, old_notes);
+    app.flash_each(said);
     app.update.watch(update_rx);
     if let Some(l) = live {
         app.link.connect(l.handle, l.events);
         app.link.set_name(l.name);
     }
     Ok(app)
+}
+
+/// What zendo says once at the start, a message for each problem: of the keys, of the agent
+/// environment, and the notes outside the notes repo. zendo shows them one after another (ENV-7).
+fn start_notices(keys: usize, env: &[String], old_notes: usize) -> Vec<String> {
+    let keys = (keys > 0).then(|| format!("[keys] {keys} problem(s) · zendo doctor"));
+    let notes = (old_notes > 0).then(|| format!("{old_notes} note(s) in docs/notes are not in your notes repo · zendo notes move"));
+    keys.into_iter().chain(env.iter().cloned()).chain(notes).collect()
 }
 
 /// `U` in the app: upgrade, then start the new zendo in place of this one, with the same arguments.

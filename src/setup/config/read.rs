@@ -170,8 +170,15 @@ impl Reader {
 
     /// Each setting on its own: a value of the wrong type costs only its setting.
     fn finish(mut self) -> (UserConfig, Vec<Problem>) {
+        self.profile_values();
         let mut good = toml::Table::new();
         for (k, v) in std::mem::take(&mut self.all) {
+            if k == "env" {
+                // PROFILE-5: an older zendo kept variables outside a profile.
+                let line = self.at.get(&k).copied().unwrap_or(0);
+                self.problem(line, "[env] is not used: put the variables of the agents into a profile, [profiles.<name>]; for the CA certificates of the system, set system_ca = true");
+                continue;
+            }
             let one = toml::Table::from_iter([(k.clone(), v.clone())]);
             match toml::Value::Table(one).try_into::<UserConfig>() {
                 Ok(_) => drop(good.insert(k, v)),
@@ -183,6 +190,38 @@ impl Reader {
         }
         self.problems.sort_by_key(|p| p.line);
         (toml::Value::Table(good).try_into().unwrap_or_default(), self.problems)
+    }
+}
+
+impl Reader {
+    /// PROFILE-9: a number, `true` or `false` in a profile is its text; a value of another kind
+    /// costs only its own variable.
+    fn profile_values(&mut self) {
+        let line = self.at.get("profiles").copied().unwrap_or(0);
+        let Some(toml::Value::Table(profiles)) = self.all.get_mut("profiles") else { return };
+        let mut bad = Vec::new();
+        profiles.retain(|name, v| {
+            if !v.is_table() {
+                bad.push(format!("profiles.{name}: a profile is a table, [profiles.{name}], so zendo skips it"));
+            }
+            v.is_table()
+        });
+        for (name, vars) in profiles.iter_mut().filter_map(|(n, v)| v.as_table_mut().map(|t| (n, t))) {
+            vars.retain(|k, v| {
+                let text = matches!(v, toml::Value::Integer(_) | toml::Value::Float(_) | toml::Value::Boolean(_)).then(|| v.to_string());
+                let keep = text.is_some() || v.is_str();
+                if let Some(t) = text {
+                    *v = toml::Value::String(t);
+                }
+                if !keep {
+                    bad.push(format!("profiles.{name}.{k}: a variable of a profile is a text, a number, true or false"));
+                }
+                keep
+            });
+        }
+        for b in bad {
+            self.problem(line, b);
+        }
     }
 }
 

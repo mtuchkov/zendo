@@ -146,12 +146,21 @@ fn npm_errors(s: &str) -> String {
     if keep.is_empty() { "(npm printed nothing)".into() } else { keep.join("\n") }
 }
 
+/// The variables of the agents for a start now: the agent environment, with the system CA when the
+/// config has it by now. `zendo setup` saves it in the run that finds it (ENV-5).
+pub(super) fn agent_vars(cfg: &UserConfig, paths: &Paths) -> BTreeMap<String, String> {
+    if cfg.system_ca == Some(true) { with_system_ca(&paths.env.vars) } else { paths.env.vars.clone() }
+}
+
+/// The API key of Anthropic is in the agent environment (ENV-1).
+pub(super) fn has_api_key(env: &BTreeMap<String, String>) -> bool {
+    agent_var(env, "ANTHROPIC_API_KEY").is_some()
+}
+
+/// `env` with the option of the system CA of Node.js (ENV-5).
 fn with_system_ca(env: &BTreeMap<String, String>) -> BTreeMap<String, String> {
     let mut e = env.clone();
-    let now = e.get("NODE_OPTIONS").cloned().or_else(|| std::env::var("NODE_OPTIONS").ok()).unwrap_or_default();
-    if !now.contains(SYSTEM_CA) {
-        e.insert("NODE_OPTIONS".into(), format!("{now} {SYSTEM_CA}").trim().to_string());
-    }
+    config::add_system_ca(&mut e, std::env::var("NODE_OPTIONS").ok());
     e
 }
 

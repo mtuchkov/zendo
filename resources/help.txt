@@ -37,4 +37,8 @@ zendo uses the repo root (the nearest folder with .git) as the working folder.
 Outside a repo, zendo uses your home folder as a scratchpad.
 Each agent and each terminal of zendo gets the environment of zendo, the NAME=value
 lines of the .envrc of the main checkout over it (zendo runs nothing from the file),
-and the profile over both.
+and the profile over both. Outside a repo, zendo reads the .envrc of the folder where
+it starts.
+In a new folder, zendo asks whether you trust it, before it reads its .envrc and
+starts an agent there. trusted_dirs of ~/.zendo/config.toml holds the trusted folders,
+each with the folders in it.

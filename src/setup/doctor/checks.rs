@@ -21,7 +21,8 @@ pub async fn doctor(paths: &Paths, agent_flag: Option<String>, flags: DoctorFlag
     // After an upgrade, `--fix` runs anywhere: outside a repository its checks are no failures.
     let ok = checks(paths, agent_flag, flags.live, flags.fix, &mut o).await && repaired;
     // The font recipe of this terminal: a broken one names the repair, and is no failure of doctor.
-    fonts::with_session(|s| fonts::recipe_doctor(&o, s, flags.fix && flags.agent, &fonts::find_program));
+    let env = agent_vars(&UserConfig::load(), paths);
+    fonts::with_session(&env, |s| fonts::recipe_doctor(&o, s, flags.fix && flags.agent, &|name| fonts::find_program(&env, name)));
     let pending: Vec<Change> = user_changes(&user_files(&paths.env.vars)).into_iter().chain(project_changes(&paths.root, &agent)).collect();
     for c in &pending {
         o.warn(c.label, format!("not up to date: {}", c.what));
@@ -57,14 +58,14 @@ async fn repair(paths: &Paths, agent_flag: Option<String>, agent: &str, claude: 
 
 pub(super) async fn checks(paths: &Paths, agent_flag: Option<String>, live: bool, quiet_outside_repo: bool, o: &mut Out) -> bool {
     let cfg = UserConfig::load();
-    let env = paths.env.vars.clone();
+    let env = agent_vars(&cfg, paths);
     check_repo(paths, &cfg, quiet_outside_repo, o);
     check_agent_env(&paths.env, o);
     check_settings(&cfg, o);
     check_music(&cfg, o);
     check_structure(paths, o);
     let (cmd, source) = check_config(&cfg, agent_flag, o);
-    check_network(o);
+    check_network(&env, o);
     check_node(&cmd, source, &env, o).await;
     let handoff = handoff_key(&cfg);
     let kind = check_adapter(&cmd, source, &env, &handoff, o);
@@ -184,11 +185,11 @@ fn check_config(cfg: &UserConfig, agent_flag: Option<String>, o: &mut Out) -> (S
     (cmd, source)
 }
 
-fn check_network(o: &mut Out) {
-    // Environment that changes how Node and npm connect.
+pub(super) fn check_network(env: &BTreeMap<String, String>, o: &mut Out) {
+    // The variables of the agents that change how Node and npm connect (ENV-1).
     let mut net = Vec::new();
     for k in ["HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "NO_PROXY", "NODE_OPTIONS", "NODE_EXTRA_CA_CERTS"] {
-        if let Ok(v) = std::env::var(k) {
+        if let Some(v) = agent_var(env, k).map(|v| v.to_string_lossy().into_owned()) {
             let shown = if k.contains("PROXY") || k.contains("proxy") { "set".to_string() } else { v.clone() };
             net.push(format!("{k}={shown}"));
             if k == "NODE_EXTRA_CA_CERTS" && !Path::new(&v).exists() {
@@ -224,6 +225,15 @@ fn check_agent_env(env: &config::AgentEnv, o: &mut Out) {
         Some(p) => o.ok("profile", format!("{p}: {}", env.vars.keys().cloned().collect::<Vec<_>>().join(" "))),
         None if env.vars.is_empty() => {}
         None => o.ok("agent env", env.vars.keys().cloned().collect::<Vec<_>>().join(" ")),
+    }
+    agent_env_warnings(env, o);
+}
+
+/// What zendo says about the agent environment: the folder that is not trusted (TRUST-6), the
+/// skipped lines of `.envrc` (ENV-7), the profile that is not there (PROFILE-3).
+pub(super) fn agent_env_warnings(env: &config::AgentEnv, o: &mut Out) {
+    if let Some(said) = &env.untrusted {
+        o.warn("trust", said);
     }
     for p in &env.problems {
         o.warn("agent env", p);

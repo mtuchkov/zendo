@@ -20,7 +20,9 @@ children:
   - "work.md"
   - "claude.md"
   - "agent-env.md"
+  - "envrc.md"
   - "agent-profiles.md"
+  - "trust.md"
   - "questions.md"
   - "threads.md"
   - "sessions.md"
@@ -90,7 +92,9 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Work, delta and recaps](work.md)            | Visits that count, the delta pane, recaps                     |
 | [Claude](claude.md)                          | The connection to Claude, edits                               |
 | [Agent environment](agent-env.md)            | The environment of the agents: its sources, `.envrc`, worktrees |
+| [The `.envrc` file](envrc.md)                | The lines of `.envrc` that zendo takes, without a run           |
 | [Agent profiles](agent-profiles.md)          | `--profile`, `[profile_dirs]`, the profile of a thread         |
+| [Trusted folders](trust.md)                  | The question before zendo uses a repository, `trusted_dirs`     |
 | [Questions of the agent](questions.md)       | Which tool calls zendo allows, the quick action in the chat, a command in a terminal |
 | [Threads](threads.md)                        | The five agent sessions, their keys and buttons, session IDs and resume |
 | [Sessions](sessions.md)                      | Claude Code sessions in the background, more than one at a time |

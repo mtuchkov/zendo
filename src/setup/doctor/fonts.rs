@@ -6,9 +6,10 @@ use crate::setup::fonts::{self, Outcome, recipe};
 /// Download and install the recommended fonts in the font folder of the user (FONT-7); then, in a
 /// terminal without a working recipe, offer the session of the agent (FONT-22). False when a font
 /// failed (FONT-10).
-pub fn setup_fonts() -> bool {
+pub fn setup_fonts(env: &config::AgentEnv) -> bool {
     let mut o = Out::new();
     o.head("zendo setup fonts");
+    checks::agent_env_warnings(env, &mut o);
     let dir = fonts::user_dir();
     println!("  {:<13}{}", "", o.paint("2", &format!("downloading into {}…", dir.display())));
     let mut installed = 0;
@@ -25,7 +26,7 @@ pub fn setup_fonts() -> bool {
         refresh_cache(&dir, &o);
     }
     use std::io::IsTerminal;
-    with_session(|s| recipe_step(&o, &mut std::io::stdin().lock(), std::io::stdin().is_terminal(), s, &find_program));
+    with_session(&env.vars, |s| recipe_step(&o, &mut std::io::stdin().lock(), std::io::stdin().is_terminal(), s, &|name| find_program(&env.vars, name)));
     println!();
     println!("  {}", fonts::tip(theme_key().as_deref()));
     !o.failed
@@ -62,6 +63,8 @@ pub struct Session<'a> {
     pub recipes: &'a Path,
     pub terminal: &'a str,
     pub cwd: &'a Path,
+    /// The agent environment: the agent of the recipe uses the account of the profile (ENV-1).
+    pub env: &'a BTreeMap<String, String>,
 }
 
 /// What the recipe step of `zendo setup fonts` did.
@@ -102,7 +105,7 @@ impl Session<'_> {
             return Err(Step::NoAgent);
         };
         o.ok(self.program, "starts: end the session when the recipe is ready");
-        let run = std::process::Command::new(program).arg(self.first_message()).current_dir(self.cwd).status();
+        let run = std::process::Command::new(program).envs(self.env).arg(self.first_message()).current_dir(self.cwd).status();
         run.map(drop).map_err(|e| Step::Broken(format!("{}: {e}", self.program)))
     }
 
@@ -165,16 +168,16 @@ pub(super) fn recipe_doctor(o: &Out, s: &Session, repair: bool, find: &dyn Fn(&s
 }
 
 /// The session of this machine: the agent of the config, the recipe file, the current terminal.
-pub(super) fn with_session<T>(f: impl FnOnce(&Session) -> T) -> T {
+pub(super) fn with_session<T>(env: &BTreeMap<String, String>, f: impl FnOnce(&Session) -> T) -> T {
     let kind = config::kind_of(&config::resolve_agent(None, &UserConfig::load()).0);
     let (recipes, terminal, cwd) = (recipe::path(), recipe::current_terminal(), config::config_dir());
     let _ = std::fs::create_dir_all(&cwd);
-    f(&Session { program: agent_program(kind), recipes: &recipes, terminal: &terminal, cwd: &cwd })
+    f(&Session { program: agent_program(kind), recipes: &recipes, terminal: &terminal, cwd: &cwd, env })
 }
 
-/// A program on the `PATH`.
-pub(super) fn find_program(name: &str) -> Option<PathBuf> {
-    std::env::var_os("PATH").and_then(|p| std::env::split_paths(&p).map(|d| d.join(name)).find(|f| f.is_file()))
+/// A program on the `PATH` of the agent environment `env` (ENV-1).
+pub(super) fn find_program(env: &BTreeMap<String, String>, name: &str) -> Option<PathBuf> {
+    agent_var(env, "PATH").and_then(|p| std::env::split_paths(&p).map(|d| d.join(name)).find(|f| f.is_file()))
 }
 
 #[cfg(test)]

@@ -65,12 +65,16 @@ async fn agent_env_reaches_every_agent() {
     git(&main, &["commit", "-q", "-m", "init"]);
     git(&main, &["worktree", "add", "-q", "-b", "wt", "../wt"]);
     std::fs::write(main.join(".envrc"), "export CLAUDE_CONFIG_DIR=A\nFROM_ENVRC=1\n").unwrap();
-    let (cfg, _) = UserConfig::read_from(&write(&base.join("config.toml"), "[profiles.work]\nCLAUDE_CONFIG_DIR = \"B\"\n"));
+    let config_file = write(&base.join("config.toml"), &format!("trusted_dirs = [\"{}\"]\n\n[profiles.work]\nCLAUDE_CONFIG_DIR = \"B\"\n", base.display()));
+    let (cfg, _) = UserConfig::read_from(&config_file);
     let wt = base.join("wt");
     let home = std::env::var("HOME").unwrap_or_default();
     let want = |dir: &str| format!("probe={dir}:1:{home}");
-    assert!(config::agent_env(&cfg, &wt, None).unwrap().vars.get("CLAUDE_CONFIG_DIR").is_some_and(|v| v == "A"), "without a profile, .envrc");
-    let env = config::agent_env(&cfg, &wt, Some("work")).unwrap();
+    // As `main` builds it: in a trusted folder, without a terminal.
+    let run = config::trust::Command { checks: false, saves: true };
+    let env_of = |flag| config::trust::run_env(&cfg, (&config_file, Some(Path::new(&home))), &wt, flag, run, None).unwrap();
+    assert!(env_of(None).vars.get("CLAUDE_CONFIG_DIR").is_some_and(|v| v == "A"), "without a profile, .envrc");
+    let env = env_of(Some("work"));
 
     // A Claude Code session in a terminal of zendo, in the worktree.
     let mut a = app_in(&wt, env.clone());
@@ -128,19 +132,21 @@ fn threads_are_kept_per_profile() {
     assert_eq!(work.state.session(&work.cfg.threads_key(), &key).as_deref(), Some("of-work"));
 }
 
-// ENV-1, TERM-55: the shell of a terminal of zendo gets the agent environment, so a `claude` that
-// the user starts there uses the same account; the variables that select the startup files of the
-// shell stay as they are.
+// ENV-1, ENV-5, TERM-55: the shell of a terminal of zendo gets the agent environment, so a
+// `claude` that the user starts there uses the same account. The variables that select the startup
+// files of the shell stay as they are, and the shell does not get the system CA that zendo adds
+// for the agents.
 #[tokio::test(flavor = "multi_thread")]
 async fn a_terminal_shell_gets_the_agent_env() {
     let root = repo("agent-env-shell", &[("docs/notes/a.md", "# A\n")]);
-    let vars = [("FROM_ENVRC", "1"), ("ZDOTDIR", "/zendo-no-such"), ("BASH_ENV", "/zendo-no-such")];
-    let mut a = app_in(&root, AgentEnv { vars: vars.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect(), ..Default::default() });
+    let vars = [("FROM_ENVRC", "1"), ("ZDOTDIR", "/zendo-no-such"), ("BASH_ENV", "/zendo-no-such"), ("NODE_OPTIONS", "--trace --use-system-ca")];
+    let env = AgentEnv { vars: vars.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect(), node_before_ca: Some(Some("--trace".into())), ..Default::default() };
+    let mut a = app_in(&root, env);
     a.cli.shell = Some("/bin/sh".into());
     a.cli.open_shell(0, &root).unwrap();
     let n = zendo::session::shell(0);
-    a.cli.write(n, b"echo got=$FROM_ENVRC:$ZDOTDIR:$BASH_ENV=\r");
-    let want = format!("got=1:{}:{}=", std::env::var("ZDOTDIR").unwrap_or_default(), std::env::var("BASH_ENV").unwrap_or_default());
+    a.cli.write(n, b"echo got=$FROM_ENVRC:$ZDOTDIR:$BASH_ENV:$NODE_OPTIONS=\r");
+    let want = format!("got=1:{}:{}:--trace=", std::env::var("ZDOTDIR").unwrap_or_default(), std::env::var("BASH_ENV").unwrap_or_default());
     let end = Instant::now() + Duration::from_secs(10);
     while !a.cli.text(n).contains(&want) {
         assert!(Instant::now() < end, "the shell got other variables than {want}: {}", a.cli.text(n));
@@ -169,4 +175,71 @@ fn the_profile_shows_at_the_top() {
     let buf = rekey::frame(&mut plain);
     assert!((0..buf.area.width).all(|x| buf[(x, 0)].bg != blue), "no badge without a profile");
     assert_eq!(rekey::find(&buf, "docs/notes", Some(0)).map(|p| p.0), Some(2), "the path stays at the left end");
+}
+
+/// Run `zendo doctor` with the agent command `agent` in `root`, with `home` as the home folder and
+/// no terminal. Returns the output.
+fn doctor(root: &Path, home: &Path, agent: &Path) -> String {
+    let out = std::process::Command::new(env!("CARGO_BIN_EXE_zendo"))
+        .args(["doctor", "--agent-cmd", &agent.display().to_string()])
+        .current_dir(root)
+        .env("HOME", home)
+        .env("ZENDO_NO_UPDATE_CHECK", "1")
+        .env_remove("XDG_CONFIG_HOME")
+        .env_remove("XDG_DATA_HOME")
+        .env_remove("CLAUDE_CONFIG_DIR")
+        .env_remove("CODEX_HOME")
+        .env_remove("FROM_ENVRC")
+        .stdin(std::process::Stdio::null())
+        .output()
+        .unwrap();
+    format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr))
+}
+
+// TRUST-1, TRUST-3, TRUST-6: `an untrusted repository gives nothing to the agents`: without a
+// terminal, `zendo doctor` in a repository that is not trusted names the folder, reads no `.envrc`
+// and starts its agent outside the repository. After the user trusts a folder above, the agent
+// starts in the repository with the variables of `.envrc`.
+#[test]
+fn an_untrusted_repository_gives_nothing_to_the_agents() {
+    let base = fresh("trust");
+    let (root, home) = (base.join("src/app"), base.join("home"));
+    std::fs::create_dir_all(root.join(".git")).unwrap();
+    std::fs::create_dir_all(home.join(".zendo")).unwrap();
+    std::fs::write(root.join(".envrc"), "export FROM_ENVRC=1\n").unwrap();
+    // An agent that writes where it started and what it got, and ends.
+    let agent = base.join("agent");
+    let seen = base.join("seen");
+    std::fs::write(&agent, format!("#!/bin/sh\nprintf '%s|%s' \"$PWD\" \"$FROM_ENVRC\" > '{}'\n", seen.display())).unwrap();
+    let mut p = std::fs::metadata(&agent).unwrap().permissions();
+    std::os::unix::fs::PermissionsExt::set_mode(&mut p, 0o755);
+    std::fs::set_permissions(&agent, p).unwrap();
+
+    let out = doctor(&root, &home, &agent);
+    assert!(out.contains("is not trusted") && out.contains(&root.display().to_string()) && out.contains("trusted_dirs"), "{out}");
+    let (cwd, var) = std::fs::read_to_string(&seen).unwrap().split_once('|').map(|(a, b)| (PathBuf::from(a), b.to_string())).unwrap();
+    assert!(!cwd.starts_with(&root) && var.is_empty(), "the agent started in {} with FROM_ENVRC={var}", cwd.display());
+
+    std::fs::write(home.join(".zendo/config.toml"), format!("trusted_dirs = [\"{}\"]\n", base.join("src").display())).unwrap();
+    let out = doctor(&root, &home, &agent);
+    assert!(!out.contains("is not trusted"), "{out}");
+    assert_eq!(std::fs::read_to_string(&seen).unwrap(), format!("{}|1", root.display()));
+}
+
+// ENV-7: the messages of the start show one after another, each for its time, so that no message
+// hides another and none is cut to make room.
+#[test]
+fn the_messages_of_the_start_show_one_after_another() {
+    let root = repo("agent-env-said", &[("docs/notes/a.md", "# A\n")]);
+    let mut a = app_in(&root, AgentEnv::default());
+    let ends = |a: &mut App| {
+        a.flash.as_mut().unwrap().1 -= Duration::from_secs(5);
+        a.tick();
+    };
+    a.flash_each(["[keys] 1 problem(s)".to_string(), ".envrc: zendo skipped line 5".to_string()]);
+    assert_eq!(a.flash.as_ref().map(|f| f.0.as_str()), Some("[keys] 1 problem(s)"));
+    ends(&mut a);
+    assert_eq!(a.flash.as_ref().map(|f| f.0.as_str()), Some(".envrc: zendo skipped line 5"));
+    ends(&mut a);
+    assert!(a.flash.is_none());
 }

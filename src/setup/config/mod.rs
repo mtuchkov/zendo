@@ -1,13 +1,16 @@
 //! User config in `~/.zendo/config.toml`, written by `zendo setup`; the user can edit it.
 
 mod agent_env;
+mod envrc;
 mod keys_write;
 mod paths;
 mod profile;
 mod read;
+pub mod trust;
 mod write;
 
-pub use agent_env::{AgentEnv, SYSTEM_CA, agent_env, read_envrc, select_profile};
+pub use agent_env::{AgentEnv, SYSTEM_CA, add_system_ca, main_checkout, select_profile};
+pub use envrc::read_envrc;
 pub use keys_write::write_keys;
 pub use paths::*;
 pub use profile::*;
@@ -33,6 +36,9 @@ pub struct UserConfig {
     /// The profile of the repositories in a folder: `"~/src/work" = "work"` (PROFILE-2).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub profile_dirs: BTreeMap<String, String>,
+    /// The folders that the user trusts, each with the folders in it (TRUST-3).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub trusted_dirs: Vec<String>,
     /// Node.js uses the CA certificates of the system: `zendo setup` saves it when the npm registry
     /// works only with them (ENV-5).
     #[serde(default, skip_serializing_if = "Option::is_none")]

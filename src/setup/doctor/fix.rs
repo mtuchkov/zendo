@@ -114,10 +114,15 @@ pub(super) async fn fix_structure(paths: &Paths, agent_flag: Option<String>, pro
 /// Run one prompt with Claude and wait for the answer. Claude may read files. It may edit only the
 /// paths that `allowed` accepts; zendo refuses every other edit and every command.
 pub(super) async fn claude_task(paths: &Paths, agent_flag: Option<String>, key: &str, prompt: String, allowed: &dyn Fn(&Path) -> bool, (rule, doing): (&str, &str), o: &mut Out) -> Option<String> {
+    // TRUST-1: no agent gets a task in a repository that is not trusted.
+    if paths.env.untrusted.is_some() {
+        o.fail("trust", "the folder is not trusted, so zendo gives no task in it to an agent");
+        return None;
+    }
     let cfg = UserConfig::load();
     let (cmd, _) = config::resolve_agent(agent_flag, &cfg);
     let root = &paths.root;
-    let (h, mut rx) = agent::spawn(cmd, paths.env.vars.clone(), root.to_path_buf(), Some(config::data_dir().join("doctor.log")));
+    let (h, mut rx) = agent::spawn(cmd, agent_vars(&cfg, paths), root.to_path_buf(), Some(config::data_dir().join("doctor.log")));
     match tokio::time::timeout(Duration::from_secs(60), rx.recv()).await {
         Ok(Some(Event::Ready { agent, .. })) => o.ok("claude", format!("{agent} {doing}")),
         _ => {

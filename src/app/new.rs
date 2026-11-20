@@ -43,6 +43,7 @@ impl App {
             config.clone_from(&app.cfg.user_config);
         }
         app.cli.env = app.cfg.agent_env.vars.clone();
+        app.cli.shell_env = app.cfg.agent_env.shell_vars();
         app.link.start_api(api);
         app.rekey.api = hints.map(|a| crate::agent::api::Api { effort: Some("low".into()), ..a });
         // The chat input of each session, as the user left it (CLAUDE-45).
