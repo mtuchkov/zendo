@@ -53,7 +53,7 @@ pub fn run_env(cfg: &UserConfig, files: (&Path, Option<&Path>), dir: &Path, flag
         None if cmd.checks => Some(how_to_trust(&missing)),
         None => return Err(how_to_trust(&missing)),
     };
-    let mut env = with_profile(cfg, profile, Some(at.as_path()).filter(|_| refused.is_none()), home, &|k| std::env::var(k).ok());
+    let mut env = with_profile(cfg, profile, refused.is_none().then_some(at.as_path()), home, &|k| std::env::var(k).ok());
     env.problems.extend(unknown);
     // TRUST-3: an entry that is no full path trusts nothing.
     let odd = cfg.trusted_dirs.iter().filter(|d| !expand(d, home).is_absolute());
