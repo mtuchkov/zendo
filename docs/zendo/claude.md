@@ -5,7 +5,7 @@ revision: "6"
 date: "2026-11-18"
 parent: "zendo.md"
 prev: "work.md"
-next: "questions.md"
+next: "agent-env.md"
 level: "the connection to Claude: what zendo sends, what Claude may do, the agents, failures"
 note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. Revision 4 moved the threads to threads.md. Revision 5: CLAUDE-26 names the choice of the open document (chat-chips.md), asked by the user on 2026-11-17; not reviewed yet. The flags: `--claude` of doctor is `--agent`, and `--agent CMD` is `--agent-cmd CMD`, on the request of the user on 2026-11-18 (approved by the user on 2026-11-18). Revision 6 (agent draft, not reviewed): the questions of the agent moved to questions.md; CLAUDE-3, CLAUDE-12 and CLAUDE-33 retired (the user, 2026-11-17)."
 ---
