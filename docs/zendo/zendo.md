@@ -213,5 +213,8 @@ requirement in this document and its children pass.
 
 ## Milestones
 
-No milestone document exists yet. zendo 0.9.3 implements this specification, except the behavior that
+One milestone document exists, a draft:
+[The UI on the Elm architecture](../milestones/ui-elm-architecture.md).
+
+zendo 0.9.3 implements this specification, except the behavior that
 the tests marked "not written yet" verify: that behavior exists, but no test checks it.

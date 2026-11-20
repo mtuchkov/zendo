@@ -1,7 +1,6 @@
 ---
 status: "draft"
 date: "2026-11-19"
-parent: "blueprints.md"
 prev: "state.md"
 next: "ui-layer.md"
 level: "where a conflict shows in zendo, the strategies that resolve it, what a change is based on, and how the rules are enforced"
@@ -10,7 +9,7 @@ note: "Initial design blueprint. Agent draft from the statements of the user in 
 
 # Conflicts
 
-Parent: [Blueprints of zendo](blueprints.md). Before: [State](state.md).
+Before: [State](state.md). Next: [The UI layer](ui-layer.md).
 
 A **conflict**: an event was made for a state that is not the state of its owner now. Conflicts
 will happen (User, 2026-11-19). The design does not prevent them; it gives each one a place and a
@@ -25,6 +24,9 @@ A conflict shows where an effect becomes visible. There are two kinds of place:
 
 An owner that takes one consistent stream has no such place for that stream: its sender resolved
 the order before ([State](state.md)).
+
+zendo takes no lock between processes for a save (User, 2026-11-20). An agent and git do not know
+a lock of zendo, so a lock protects only against a second zendo.
 
 ## The strategies
 
@@ -41,7 +43,11 @@ strategy is a change of this design.
 
 "The newest wins" is never the strategy for the text of the user.
 
-## What a change is based on (open)
+The entity with one strategy depends on what the window works with (User, 2026-11-20): for the
+note pane it is the document, whose text merges (ADR 0014); for the file tree it is the state of
+the tree; for the delta of a worktree it is the state of git.
+
+## What a change is based on
 
 To detect a conflict, a change must say what it was made for. Three forms, from the one with the
 fewest conflicts:
@@ -53,8 +59,8 @@ fewest conflicts:
 3. **A version** of the piece or of a larger entity. It is small to pass. A version of a large
    entity reports a conflict for each change of the entity, also one that does not matter.
 
-The user left the choice between a copy of the piece and a version of a smaller entity open on
-2026-11-19. What `reactive_graph` gives for it is to be looked at.
+The user chose on 2026-11-20: a write carries the content that it was made from, and a read
+carries a request number ([State](state.md)).
 
 ## How the rules are enforced
 
@@ -67,11 +73,3 @@ The user asked that a strategy at each such place is enforced, not a habit.
   each action of the user against each answer that waits, in both orders, and checks the rules
   that hold always ([State](state.md)).
 - A check in `cargo test`: no part of the state holds code that acts on the app later.
-
-## Open points
-
-| Open question | Affects |
-| ------------- | ------- |
-| A copy of the piece of state, or a version of a smaller entity? | What a change is based on |
-| Which is the smallest entity with one strategy: a document, a block of it, a field? | The strategies |
-| Does the check of a save need a lock between processes, for another zendo or an agent that writes between the check and the write? | Where a conflict shows |

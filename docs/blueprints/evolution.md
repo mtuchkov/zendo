@@ -1,15 +1,14 @@
 ---
 status: "draft"
 date: "2026-11-19"
-parent: "blueprints.md"
-prev: "ui-layer.md"
+prev: "candidate-requirements.md"
 level: "where zendo goes in the next years, what that asks of the design, and the path from the code of today"
 note: "Initial design blueprint. Agent draft from the vision of zendo (document of the user, 2026-11-19), ADR 0022 and the code review of pull request #51. Not reviewed by the user. Not a source of truth: the specifications in docs/zendo are."
 ---
 
 # Evolution
 
-Parent: [Blueprints of zendo](blueprints.md).
+Before: [Candidate requirements](candidate-requirements.md).
 
 ## Where zendo goes
 
@@ -53,8 +52,8 @@ A proposal of the agent. Each step can merge by itself.
 1. **Stop the freezes.** Split pull request #51: the parts that touch no flow of user data (the
    heartbeat, the clipboard, the input of the terminals, the state of zendo) merge after their own
    findings are fixed.
-2. **A spike on one window.** The note pane and its float with `reactive_graph` and `comemo`: what
-   it costs, and whether the tests stay deterministic.
+2. **One window first.** The note pane and its float on the model of [State](state.md), with
+   `comemo`: the time of a full frame, and whether the tests stay deterministic.
 3. **The specifications.** One of the state and one of the UI layer, from this blueprint, with the
    IDs of the requirements. From then on they are the source of truth.
 4. **Documents as owners.** One text of a document in memory, the disk as a copy, and all changes
@@ -76,19 +75,15 @@ candidate.
   for late answers go to the specification of the state.
 - [ADR 0024](../architecture/decisions/0024-io-on-worker-threads.md) keeps the writer thread, the
   limits, the slow-tick log and the check of the UI code. "Wait, then act" goes.
-- [ADR 0025](../architecture/decisions/0025-ui-as-a-view-of-a-core-with-commands-and-events.md) is
-  a draft of the agent. The user will revisit it when the design of the state is settled (User,
-  2026-11-19).
+- [ADR 0028](../architecture/decisions/0028-ui-follows-the-elm-architecture-with-components.md)
+  is the draft record of the decision on the model of the UI (User, 2026-11-20).
 - [ADR 0008](../architecture/decisions/0008-app-state-in-sub-states.md) stays: its sub-states with
   private fields become the owners.
 
 ## Risks
 
-- `reactive_graph` runs effects on the next turn of the runtime. The 100 ms and the tests must
-  count that turn.
-- Three caches can overlap: the memos of `reactive_graph`, `comemo` and later `salsa`. A rule is
-  needed: memos for small values of a window, `comemo` for pure functions that cost time, `salsa`
-  only for the graph over a repository.
+- Two caches can overlap: `comemo` and later `salsa`. A rule is needed: `comemo` for pure functions
+  that cost time, `salsa` only for the graph over a repository.
 - The step "documents as owners" changes the editor, the reader and the reload at the same time.
 - The cut of markdown into blocks can be wrong at fences, link definitions and lists.
-- The two libraries were chosen from their documentation. No code of zendo ran on them yet.
+- `comemo` was chosen from its documentation. No code of zendo ran on it yet.

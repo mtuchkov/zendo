@@ -1,89 +1,70 @@
 ---
 status: "draft"
-date: "2026-11-19"
-parent: "blueprints.md"
+date: "2026-11-20"
 next: "conflicts.md"
-level: "how the state of zendo changes: owners, events, the two ways to stay consistent, commands and queries"
-note: "Initial design blueprint. Agent draft from the statements of the user in chat on 2026-11-19. Not reviewed by the user. Not a source of truth: the specifications in docs/zendo are."
+level: "the state of zendo: three kinds of state by the place of their truth, and the rules for a change"
+note: "Initial design blueprint. Agent draft, written again on 2026-11-20 after the user rejected the content and the structure of the list of points: three kinds of state and five rules. A proposal of the agent, except where a line names the user. The user chose on 2026-11-20 to record it and to keep the open points open, and then chose a plain structure for the model, not signals of reactive_graph. Not reviewed by the user. Not a source of truth: the specifications in docs/zendo are."
 ---
 
-# State: owners and events
+# State
 
-Parent: [Blueprints of zendo](blueprints.md). Next: [Conflicts](conflicts.md).
+Next: [Conflicts](conflicts.md).
 
-## Terms
+zendo keeps its state in The Elm Architecture (TEA), as its own code on ratatui and without a
+framework (User, 2026-11-19). TEA says who changes the model. It does not say that a large part of
+the model is a copy of things outside zendo: the disk, git, the agents, the board. So zendo sorts
+its state by the place of the truth.
 
-- The **state** is what zendo knows in memory: the documents, the sessions, the chat threads, the
-  tree, the settings.
-- An **owner** is the one part of the code that can change one part of the state.
-- An **event** is news for an owner: a key, a tick of a timer, an answer of the disk or of a
-  program, a message of an agent, a line of the board, a change of a file from outside.
-- A **sender** is where an event comes from.
-- A **command** is work that changes state: a file, the state of zendo, a program. A **query** is
-  work whose result changes only a view.
+## Three kinds of state
 
-## The owner is a funnel
+| Kind | Where the truth is | Examples | What changes it |
+| ---- | ------------------ | -------- | --------------- |
+| Internal state | The memory of zendo | The text that is not saved, the undo history, the stack of windows, the focus, the commands that wait | Only `update` |
+| Copy of external state | Outside zendo | The text of a file on the disk, the file tree, the facts of git, the state of an agent session, the board, the size of the terminal | Only a message from outside |
+| Derived result | Nowhere: zendo computes it | The rows of a note, the layout, the mark "not saved" | Nothing: `comemo` keeps it |
 
-All events for a part of the state go to its owner. The owner handles one event to its end before
-it takes the next. So a part of the state never changes in two places at once, and no code sees a
-change that is half done. A timer is a sender like the others: the tick brings the time, and the
-owner does not read the clock while it handles an event.
+The model holds the first two kinds, in the fields of a plain structure (User, 2026-11-20): the
+code of `update` shows the way of each change. A copy that zendo did not read yet is "not known",
+not a default. The cursor, the scroll and the selection are not in the model: the component holds
+them ([The UI layer](ui-layer.md)).
 
-What leaves the owner (work for a thread, a program or another process) gets a copy of what it
-needs. What comes back is an event with values. Nothing that crosses holds a reference to the
-state, and no code waits in memory to act on "what is open" when an answer comes.
+## The rules
 
-## Two ways to stay consistent
+- **One writer.** Only `update` changes the model, and it does no IO (IO-1). An effect and a
+  message are values: no closure acts on the model when an answer comes, and both can cross a
+  socket to the daemon of ADR 0022 later.
+- **A message names its subject.** It carries the identifier of a document, a session or a request,
+  never "the open document".
+- **A copy does not guess.** `update` does not write an expected result into a copy. An action
+  that the outside did not confirm is internal state: a command that waits, and its window shows
+  it at once (IO-2). No code takes a change back.
+- **A write carries its base.** A command is an effect that changes a file or a program. It carries
+  the content that it was made from (User, 2026-11-20), and the worker changes nothing when the
+  outside differs at the moment of the write. The save does this today. The commands for one
+  subject run in the order of the user, one at a time, each to its end, also when its window is
+  closed.
+- **A query carries a number.** A query is an effect whose answer only one window needs. zendo
+  drops each answer that does not have the number of the newest query of its window, and each
+  answer for a closed window. Find does this today.
 
-An owner states one of the two for each kind of event that it takes (User, 2026-11-19).
+A source that gives its messages in order, such as the journal of the board, needs no base and no
+number. A time limit ends the wait, not the work: a query that passes its limit fails with a
+message. A write to the disk has no time limit; zendo may write an error to a regular error log
+file when a write waits too long (User, 2026-11-20).
 
-**More than one sender, with conflict detection.** Events of different senders can meet. The owner
-detects each conflict and resolves it with a strategy ([Conflicts](conflicts.md)). Example: a
-document. Its senders are the editor, the agent and git through the disk, the name model for its
-title, a click on a task box, and another zendo process.
+## The one conflict
 
-**One consistent stream.** The owner takes the events of one sender only, in the order of that
-sender, and applies them as they come. The sender is responsible for the order and for the
-consistency. Examples: the thread of a chat (its sender is the agent link), the screen of a
-terminal (the reader of its PTY), the state of the board (the reader of the journal).
+With these rules an answer cannot reach the wrong subject, and an old answer cannot replace a newer
+one. One conflict stays: the outside changed below internal state that is not saved, such as a
+file that an agent writes while the user edits it. It shows at two moments: a copy gets a new
+value, or a write finds another base. At both, the type of the internal state names the strategy,
+and code without one does not compile ([Conflicts](conflicts.md)).
 
-The second way is simpler, and is the choice where one sender is possible. An owner that gets a
-second sender changes to the first way.
+## How zendo checks it
 
-## Commands and queries
-
-- The owner of a command is the part of the state that it changes. The commands of one owner run
-  one at a time, in the order of the user. All changes of one file are commands of its document:
-  the save, the title, the front matter, a task box, a rename.
-- A command is in the state of its owner before its work starts. So the screen shows it at once,
-  later events see it, and it completes or fails with a message when the user is in another place.
-- The owner of a query is the view. When the view goes or asks again, the work stops and its
-  result is dropped. Only the newest result counts.
-- A fact that zendo did not read yet is "not known". It is not a default. An action that needs the
-  fact waits for it.
-- Each command and each query has a time limit, after which it fails with a message.
-
-## What zendo shows of an action
-
-zendo takes an action at once and completes it in its own time. An action has a state that the
-user can see: taken, in progress, done or failed. No rule gives a time for the end; the rule is for
-the first sign, within the 100 ms of IO-2. How the UI shows these states is in
-[The UI layer](ui-layer.md).
-
-## What holds always, and what holds in the end
-
-Eventual consistency is everywhere: memory, the screen, the disk, programs, other zendo processes
-and the members of a team hold copies that come to agree. So the rules are of two kinds.
-
-Always:
-
-- No text of the user is lost or goes into another file.
-- A change enters the state only through its owner, and a conflict only through its strategy.
-- zendo shows at once that it took an action.
-
-In the end, when no more events come:
-
-- Each action that zendo took is complete, or failed with a message.
-- Each window shows the present state of what it shows.
-- The disk has the text of each document.
-- Each derived result fits its sources.
+- **A reader can follow one key** (User, 2026-11-19). A component is one file, one `enum` lists
+  the messages, and `update` has one branch for each message. A debug build writes one line for
+  each key, such as `ctrl-s > NotePane > Msg::Save > Effect::Write(a.md) > Msg::Written(a.md)`.
+  The rules for the code of a component go to `src/AGENTS.md`.
+- **A test gives the answers in each order.** It checks that no text of the user is lost or goes
+  into another file, and that in the end each command is done or failed with a message.

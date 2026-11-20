@@ -112,7 +112,7 @@ about = "The file tree of zendo: files.md is the parent; its children are the vi
 [[entry]]
 path = "docs/blueprints"
 label = "Blueprints"
-about = "Initial design blueprints: the design of zendo and of its parts before their specifications exist; blueprints.md is the root. Not a source of truth: the specifications in docs/zendo are."
+about = "A blueprint is a first design of one part of zendo, written before the specification of that part exists. Not a source of truth: the specifications in docs/zendo are. The blueprints are a chain: state.md is the first, and each names the next."
 claude = """
 - A blueprint is a starting design, not the truth: where a blueprint and a specification differ, the specification is right.
 - A blueprint may state architecturally significant requirements as candidates, without IDs; a specification gives each its ID. Put no detailed requirements here.
