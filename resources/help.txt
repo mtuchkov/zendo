@@ -35,5 +35,6 @@ OPTIONS
 
 zendo uses the repo root (the nearest folder with .git) as the working folder.
 Outside a repo, zendo uses your home folder as a scratchpad.
-Each agent gets the environment of zendo, the NAME=value lines of the .envrc of the main
-checkout over it (zendo runs nothing from the file), and the profile over both.
+Each agent and each terminal of zendo gets the environment of zendo, the NAME=value
+lines of the .envrc of the main checkout over it (zendo runs nothing from the file),
+and the profile over both.

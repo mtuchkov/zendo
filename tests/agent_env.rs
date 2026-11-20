@@ -127,3 +127,24 @@ fn threads_are_kept_per_profile() {
     let work = with(Some("work"));
     assert_eq!(work.state.session(&work.cfg.threads_key(), &key).as_deref(), Some("of-work"));
 }
+
+// ENV-1, TERM-55: the shell of a terminal of zendo gets the agent environment, so a `claude` that
+// the user starts there uses the same account; the variables that select the startup files of the
+// shell stay as they are.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_terminal_shell_gets_the_agent_env() {
+    let root = repo("agent-env-shell", &[("docs/notes/a.md", "# A\n")]);
+    let vars = [("FROM_ENVRC", "1"), ("ZDOTDIR", "/zendo-no-such"), ("BASH_ENV", "/zendo-no-such")];
+    let mut a = app_in(&root, AgentEnv { vars: vars.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect(), ..Default::default() });
+    a.cli.shell = Some("/bin/sh".into());
+    a.cli.open_shell(0, &root).unwrap();
+    let n = zendo::session::shell(0);
+    a.cli.write(n, b"echo got=$FROM_ENVRC:$ZDOTDIR:$BASH_ENV=\r");
+    let want = format!("got=1:{}:{}=", std::env::var("ZDOTDIR").unwrap_or_default(), std::env::var("BASH_ENV").unwrap_or_default());
+    let end = Instant::now() + Duration::from_secs(10);
+    while !a.cli.text(n).contains(&want) {
+        assert!(Instant::now() < end, "the shell got other variables than {want}: {}", a.cli.text(n));
+        a.tick();
+        std::thread::sleep(Duration::from_millis(20));
+    }
+}

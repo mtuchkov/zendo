@@ -1,13 +1,13 @@
 ---
 status: "implemented"
 approved: "2026-11-20"
-revision: "1"
-date: "2026-11-19"
+revision: "2"
+date: "2026-11-20"
 parent: "zendo.md"
 prev: "claude.md"
 next: "agent-profiles.md"
 level: "the environment that zendo gives to the agents it starts: its sources, their order, `.envrc`, the worktrees"
-note: "Agent draft from the decisions of the user on 2026-11-19 in chat. Approved by the user on 2026-11-20."
+note: "Agent draft from the decisions of the user on 2026-11-19 in chat. Approved by the user on 2026-11-20. Revision 2: the shell of a terminal gets the agent environment too (the user, 2026-11-20)."
 ---
 
 # Agent environment
@@ -35,6 +35,10 @@ agent environment has three sources, from the lowest priority to the highest:
 
 A variable of a higher source replaces the same variable of a lower one.
 
+**Terminals.** The shell of each terminal of zendo ([Terminals](terminal/terminal.md)) gets the
+agent environment too, so an agent that the user starts there by hand uses the same account. The
+variables that select the startup files of the shell stay as they are (TERM-55).
+
 **Worktrees.** zendo reads `.envrc` only from the main checkout, not from the folder of the agent.
 A worktree often has no `.envrc`, because the file is usually ignored by git. The commands that the
 agent runs in a worktree get the variables because the agent process passes its environment on.
@@ -55,7 +59,7 @@ profile, so it applies with every profile and without one.
 
 | ID    | Pattern    | Requirement | Source |
 | ----- | ---------- | ----------- | ------ |
-| ENV-1 | Ubiquitous | The system shall start the agent of the chat, each agent session in a terminal, each call of the name model, and each agent check of `zendo doctor` and `zendo setup` with the agent environment. | User, 2026-11-19 |
+| ENV-1 | Ubiquitous | The system shall start the agent of the chat, each agent session in a terminal, each call of the name model, each agent check of `zendo doctor` and `zendo setup`, and the shell of each terminal with the agent environment. | User, 2026-11-19; User, 2026-11-20 |
 | ENV-2 | Ubiquitous | The agent environment shall be the environment of the zendo process, with the variables of the `.envrc` of the main checkout over it, and the variables of the selected profile over both. | User, 2026-11-19 |
 | ENV-3 | Ubiquitous | The system shall read `.envrc` from the root of the main checkout of the repository, also when the agent works in a worktree and when git ignores `.envrc`. | User, 2026-11-19 |
 | ENV-4 | Ubiquitous | The system shall take from `.envrc` only the lines `export NAME=value` and `NAME=value`, and shall not run the file or any other program to read it. | User, 2026-11-19 |
@@ -72,6 +76,12 @@ profile, so it applies with every profile and without one.
   call of the name model, and the login check.
 - Then each file has `CLAUDE_CONFIG_DIR=B`, `FROM_ENVRC=1` and `FROM_START=1`. Without a
   profile, each file has `CLAUDE_CONFIG_DIR=A`.
+
+**`a_terminal_shell_gets_the_agent_env`** (unit test; verifies ENV-1, TERM-55)
+
+- Given an agent environment with `FROM_ENVRC=1`, `ZDOTDIR` and `BASH_ENV`.
+- When the user opens a terminal of zendo and runs `echo $FROM_ENVRC:$ZDOTDIR:$BASH_ENV`.
+- Then the shell prints `1`, and `ZDOTDIR` and `BASH_ENV` as zendo itself has them.
 
 **`envrc_is_read_not_run`** (unit test; verifies ENV-4, ENV-7)
 
