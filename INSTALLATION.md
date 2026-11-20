@@ -334,7 +334,7 @@ zendo migrates old files itself. For example, 0.3 reads `.zendo/state.json` from
 | 0.116.0 | Scripts that pass `--agent CMD` pass `--agent-cmd CMD` now, also `zendo setup --agent-cmd codex`. `zendo doctor --fix --claude` is `zendo doctor --fix --agent`. Run `zendo setup fonts` once to get the font list of the theme picker. |
 | 0.12.0 | Nothing. New: the keymap (`[keys.*]`), code highlighting (`[highlight]`), Codex (`zendo setup --agent codex`). The top-bar buttons are gone: every action has a key. |
 | 0.11.1 | Nothing. The config moves from `~/.config/zendo/config.json` to `~/.zendo/config.toml` on the first run. |
-| 0.10.x | zendo was called dawn before 0.10. Run the install line (or `./install.sh` in your clone) once: `dawn upgrade` cannot build the new name. The installer removes the `dawn` command. On the first run, zendo moves `~/.config/dawn`, `~/.local/share/dawn`, `~/.cache/dawn` and `.dawn/` of the repository to the new names. Use `ZENDO_*` in place of `DAWN_*` variables. |
+| 0.10.x | zendo was called dawn before 0.10. Run the install line (or `./install.sh` in your clone) once: `dawn upgrade` cannot build the new name. The installer removes the `dawn` command. zendo does not move the folders of dawn: move `~/.config/dawn`, `~/.local/share/dawn`, `~/.cache/dawn` and `.dawn/` of the repository to the new names by hand, if you still have them. Use `ZENDO_*` in place of `DAWN_*` variables. |
 | 0.4.x | Nothing. From now on, use `zendo upgrade`. |
 | 0.3.x | Nothing. `.zendo/db.json` replaces `.zendo/state.json` on the first start. |
 | 0.2.x | Run `zendo setup` once. Before 0.2, zendo used `npx` at each start. |

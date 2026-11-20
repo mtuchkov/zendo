@@ -120,9 +120,6 @@ impl NotesRepo {
     }
 }
 
-/// The old name of zendo. Its folders move to the new names once, on the first run.
-const OLD_NAME: &str = "dawn";
-
 const CONFIG_HEAD: &str = "# zendo config. `zendo setup` writes it, and you can edit it.\n\n";
 
 impl UserConfig {

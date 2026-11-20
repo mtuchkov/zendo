@@ -39,7 +39,7 @@ fn parse() -> Result<Run> {
     let cwd = std::env::current_dir()?;
     let home = std::env::var_os("HOME").filter(|h| !h.is_empty()).map(PathBuf::from);
     let root = repo_root(&cwd, home.as_deref());
-    for (old, new) in config::move_old_folders(&root) {
+    if let Some((old, new)) = config::old_config_to_toml() {
         eprintln!("zendo: moved {} to {}", old.display(), new.display());
     }
     let a = read_args()?;

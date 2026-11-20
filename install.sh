@@ -111,7 +111,7 @@ case ":$PATH:" in
 esac
 
 new="$("$BIN/zendo" --version)"
-# zendo was called dawn before 0.10. Remove the old command; zendo moves its folders on the first run.
+# zendo was called dawn before 0.10. Remove the old command.
 if cargo install --list 2>/dev/null | grep -q '^dawn v'; then
 	cargo uninstall --quiet dawn && note "removed the old \`dawn\` command: it is \`zendo\` now."
 fi
