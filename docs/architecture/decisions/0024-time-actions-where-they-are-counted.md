@@ -1,7 +1,8 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-19"
 date: "2026-11-19"
-note: "Agent draft of the mechanism that the open point of docs/zendo/responsiveness.md asked an ADR for. The user approved the specification on 2026-11-19 and asked to implement it; this record is not reviewed by the user."
+note: "Agent draft of the mechanism that the open point of docs/zendo/responsiveness.md asked an ADR for, revised after the code review of 2026-11-19 and for the telemetry log. Approved by the user on 2026-11-19."
 sources:
   - "../../zendo/responsiveness.md (RESP-1, RESP-2, RESP-9)"
   - "../../zendo/telemetry.md (TELEM-1, TELEM-5)"
@@ -28,7 +29,7 @@ screen. Every action of the keymap already passes one hook: `App::did` and `App:
 
 ## Decision
 
-Proposal of the agent: time the actions in the hook of the usage counts.
+Time the actions in the hook of the usage counts.
 
 - The input thread puts the time of its read on each input event; the terminal loop gives that
   time to the app, and marks the end of each draw. The wait of an event in the queue is in the
@@ -79,4 +80,4 @@ tests check the queue of questions, two inputs before one draw, a new search, an
 
 ## Decision record
 
-Proposed by the agent on 2026-11-19. Waits for the review of the user.
+Proposed by the agent on 2026-11-19. Approved by the user on 2026-11-19.
