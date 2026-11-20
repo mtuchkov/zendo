@@ -31,9 +31,10 @@ impl Composer {
         self.chips.iter().filter(|c| c.attach.as_ref().is_some_and(|a| !a.path().exists())).map(|c| c.label.clone()).collect()
     }
 
-    /// Nothing in the input and no context.
+    /// Nothing in the input and no context. A chip that the input does not show any more goes
+    /// with no question, so it does not count.
     pub fn is_blank(&self) -> bool {
-        self.input.is_empty() && self.chips.is_empty() && self.context.is_none()
+        self.input.is_empty() && self.context.is_none()
     }
 }
 

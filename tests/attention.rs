@@ -179,6 +179,24 @@ async fn the_end_of_a_chat_answer_rings_and_blinks() {
     done(&root, &mut a);
 }
 
+// ATTN-5, HISTORY-9: `/new` alone in the queue sends nothing, so the end of the answer rings and
+// blinks as with an empty queue.
+#[tokio::test(flavor = "multi_thread")]
+async fn the_end_of_an_answer_rings_when_only_new_waits() {
+    let (root, mut a) = app_here("attn-new");
+    a.switch_session(2);
+    a.thread(&session_key(2)).busy = Some(std::time::Instant::now());
+    a.focus = Focus::Claude;
+    typ(&mut a, "/new");
+    key(&mut a, KeyCode::Enter);
+    assert_eq!(a.threads.get(&session_key(2)).map(|t| t.queue.len()), Some(1), "`/new` waits in the queue");
+    chat_on(&mut a, 0);
+    a.on_agent(Event::TurnEnd { key: session_key(2), stop: "end_turn".into() });
+    assert_eq!(a.attention.bells, 1, "the answer ended and no question follows");
+    assert!(a.blink(2).is_some(), "the F8 button blinks");
+    done(&root, &mut a);
+}
+
 // ATTN-3: the button changes its color smoothly from its normal color to the accent and back.
 #[tokio::test(flavor = "multi_thread")]
 async fn a_blinking_button_fades_to_the_accent_and_back() {

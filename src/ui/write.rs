@@ -57,6 +57,10 @@ pub(crate) fn draw_write(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
     if let Some(n) = app.note().filter(|n| app.writer.float().is_none() && app.writer.path() == Some(&n.path)).cloned() {
         draw_spec_button(f, app, fr, t, col, &n, &head_rows);
     }
+    // The button in the float, after the first save of a note (SPEC-6, SPEC-8).
+    if let Some(date) = app.writer.float().filter(|_| app.writer.path().is_some_and(|p| app.is_note(p))).map(|fl| float_date_label(fl.opened)) {
+        spec_button_on(f, app, fr, t, col, &date, &head_rows);
+    }
     if code {
         draw_gutter(f, t, gut, &rows, app.reader.scroll(), Some(vrow));
     }

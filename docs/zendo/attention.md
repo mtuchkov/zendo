@@ -1,13 +1,13 @@
 ---
 status: "approved"
-approved: "2026-11-14"
-revision: "4"
-date: "2026-11-18"
+approved: "2026-11-19"
+revision: "5"
+date: "2026-11-19"
 parent: "zendo.md"
 prev: "terminal/terminal.md"
 next: "project-structure.md"
 level: "how zendo calls the user back when a turn of an agent or a command of a terminal ends: the bell, the blinking button, the sound button"
-note: "From the requests of the user on 2026-11-12 and 2026-11-14. Approved by the user on 2026-11-14. On 2026-11-18 the user moved the branch left of the buttons (ATTN-7). It answers the open point on the bell in sessions.md."
+note: "From the requests of the user on 2026-11-12 and 2026-11-14. Approved by the user on 2026-11-14. On 2026-11-18 the user moved the branch left of the buttons (ATTN-7). It answers the open point on the bell in sessions.md. Revision 5, after the code review of 2026-11-19: `/new` with no text is no question (ATTN-5); approved by the user on 2026-11-19."
 ---
 
 # Attention
@@ -99,7 +99,7 @@ The tests are in `tests/attention.rs`, with the mock command line of [Sessions](
 | ID      | Pattern    | Requirement | Source |
 | ------- | ---------- | ----------- | ------ |
 | ATTN-4  | Event      | When the user sees a session whose button blinks, the system shall stop the blink within 0.5 s. | Design |
-| ATTN-5  | Unwanted   | If the user stopped the answer, or a question waits in the queue after it, then the system shall not ring and shall not blink. | Design |
+| ATTN-5  | Unwanted   | If the user stopped the answer, or a question waits in the queue after it, then the system shall not ring and shall not blink. `/new` with no text is no question (HISTORY-9). | Design |
 | ATTN-6  | Unwanted   | If no hook of Claude Code reported the change of the state, then the system shall not take it as the end of a turn. | Design |
 | ATTN-9  | Optional   | Where `~/.zendo/config.toml` has `sound = false`, the system shall start with the sound off; without the setting, with the sound on. | User, 2026-11-12 |
 | ATTN-10 | State      | While the session buttons are not on the screen, the system shall show each session that blinks in the top line, left of the sound button, and open it on a click. | Design |

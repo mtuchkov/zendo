@@ -52,9 +52,10 @@ impl App {
     }
 
     /// The version of a file in the checkout of the active agent session: its worktree, or the main
-    /// checkout while it has none (FILES-38, FILES-42). A file outside the repo stays as it is.
+    /// checkout while it has none (FILES-38, FILES-42). A file outside the repo stays as it is, and
+    /// so does the note of a spec task while it is the open document (SPEC-11).
     pub fn session_path(&self, p: &Path) -> PathBuf {
-        let Some(doc) = self.doc_rel(p) else { return p.to_path_buf() };
+        let Some(doc) = self.doc_rel(p).filter(|_| !self.files.as_is(p)) else { return p.to_path_buf() };
         match worktree::of(&self.cfg.root, self.state.session) {
             Some(wt) => self.cfg.root.join(wt).join(doc),
             None => self.cfg.root.join(doc),

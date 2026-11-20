@@ -37,6 +37,7 @@ mod input;
 mod modes;
 mod mouse;
 mod music;
+mod fresh;
 mod new;
 mod pointer;
 mod read;

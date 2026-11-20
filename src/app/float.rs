@@ -22,6 +22,8 @@ struct Behind {
     back: Mode,
     focus: Focus,
     current: Option<PathBuf>,
+    /// The mark of that document: it shows as it is in each session (SPEC-11).
+    as_is: Option<PathBuf>,
     pinned: Option<String>,
     view: Reader,
     write_rows: Vec<write_rows::RowSpan>,
@@ -40,6 +42,7 @@ impl Behind {
             back: Mode::Write,
             focus: Focus::Note,
             current: None,
+            as_is: None,
             pinned: None,
             view: Reader::default(),
             write_rows: Vec::new(),
@@ -53,7 +56,7 @@ impl Float {
         let b = &mut self.behind;
         swap_fields!(app, b, mode, back, focus);
         app.writer.swap_draft(&mut b.draft);
-        app.files.swap_current(&mut b.current);
+        app.files.swap_current(&mut b.current, &mut b.as_is);
         app.threads.swap_pinned(&mut b.pinned);
         app.reader.swap_view(&mut b.view);
     }

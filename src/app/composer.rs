@@ -46,7 +46,7 @@ impl Default for Composer {
             input: Editor::new(""),
             chips: Vec::new(),
             attach: Vec::new(),
-            slash: Slash::default(),
+            slash: Slash { commands: slash::with_own(Vec::new()), ..Slash::default() },
             at: None,
             at_files: None,
             at_templates: false,
@@ -225,7 +225,7 @@ impl Composer {
             shown = format!("{} {default}", shown.trim()).trim().to_string();
             text = format!("{} {default}", text.trim()).trim().to_string();
         }
-        Question { shown, text }
+        Question { shown, text, doc: None }
     }
 }
 
@@ -234,6 +234,8 @@ impl Composer {
 pub struct Question {
     pub shown: String,
     pub text: String,
+    /// The file that the question is about, in place of the open document (SPEC-1).
+    pub doc: Option<PathBuf>,
 }
 
 /// A chip as the transcript keeps it: its label, then its text, or `@` and its file (CLAUDE-62).

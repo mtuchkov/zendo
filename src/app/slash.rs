@@ -1,5 +1,6 @@
-//! `/` at the start of the chat input: the slash commands of the agent. zendo passes them through:
-//! the list comes from the agent, and the command goes to the agent as the user typed it.
+//! `/` at the start of the chat input: the slash commands of the agent and of zendo. zendo passes
+//! the commands of the agent through: the list comes from the agent, and the command goes to the
+//! agent as the user typed it. zendo does its own commands itself (CLAUDE-28, ADR 0027).
 use super::Composer;
 use super::super::*;
 use crate::agent::Command;
@@ -14,6 +15,16 @@ pub struct Slash {
     pub open: bool,
 }
 
+/// The commands of zendo: zendo does them itself and does not send them (ADR 0027).
+pub const OWN: &[(&str, &str, &str)] = &[("new", "a new thread; the text after it goes to the new thread", "text for the new thread")];
+
+/// The commands of zendo first, then the ones of the agent; a command of zendo wins over a command
+/// of the agent with the same name (CLAUDE-28, ADR 0027).
+pub fn with_own(agent: Vec<Command>) -> Vec<Command> {
+    let own = OWN.iter().map(|(name, about, hint)| Command { name: (*name).into(), description: (*about).into(), hint: Some((*hint).into()) });
+    own.chain(agent.into_iter().filter(|c| !OWN.iter().any(|(n, ..)| *n == c.name))).collect()
+}
+
 /// The commands whose name starts with `q`, then the ones whose name has it.
 pub fn matches(commands: &[Command], q: &str) -> Vec<Command> {
     let q = q.to_lowercase();
@@ -25,7 +36,7 @@ pub fn matches(commands: &[Command], q: &str) -> Vec<Command> {
 impl Composer {
     /// The commands of the agent, as it sent them.
     pub fn set_commands(&mut self, commands: Vec<Command>) {
-        self.slash.commands = commands;
+        self.slash.commands = with_own(commands);
     }
 
     /// The name after `/` when the cursor is in the first word of the input and it starts with `/`.

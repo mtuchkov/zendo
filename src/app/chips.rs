@@ -167,6 +167,13 @@ impl Composer {
         label
     }
 
+    /// `text` and a chip `label` with `context`, before what the input holds: the context goes only
+    /// with that text (SPEC-10).
+    pub fn put_first(&mut self, text: &str, label: &str, context: &str) {
+        let chip = Chip { label: format!("{OPEN}{label}{CLOSE}"), context: Some(escape(context)), attach: None };
+        self.put_back(&format!("{text} {}", super::shown_chip(&chip)));
+    }
+
     /// Questions that go back into the input, before what it holds: each chip in them is a chip
     /// again (CLAUDE-34, CLAUDE-62).
     pub fn put_back(&mut self, shown: &str) {
