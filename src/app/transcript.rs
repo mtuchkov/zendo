@@ -16,6 +16,10 @@ pub struct Transcript {
     col: usize,
     want: usize,
     anchor: Option<(usize, usize)>,
+    /// Where the mouse went down: a drag starts the selection there (PANES-50).
+    press: Option<(usize, usize)>,
+    /// Ctrl or Shift in the drag: whole lines, also in a table (PANES-43).
+    free: bool,
     /// The stop of the selection keys at the edge of a cell of a table (PANES-42).
     stop: crate::text::softstop::SoftStop,
     /// The shell blocks of the last frame: their first row, the row after them, their command.
@@ -55,7 +59,21 @@ impl Transcript {
     pub fn enter_at(&mut self, row: usize, col: usize) {
         self.on = true;
         self.anchor = None;
+        (self.press, self.free) = (Some((row, col)), false);
         self.place(row, col);
+    }
+
+    /// A drag of the mouse: the selection goes from the press to `row` and `col` (PANES-50).
+    pub fn drag_to(&mut self, row: usize, col: usize) {
+        if self.anchor.is_none() {
+            self.anchor = self.press;
+        }
+        self.place(row, col);
+    }
+
+    /// Ctrl or Shift in the drag: the selection takes whole lines, also in a table (PANES-43).
+    pub fn set_free(&mut self, free: bool) {
+        self.free = free;
     }
 
     pub fn blocks(&self) -> &[(usize, usize, String)] {
@@ -97,9 +115,18 @@ impl Transcript {
         self.rows.get(r).map_or(0, |l| l.trim_end().chars().count())
     }
 
-    /// The draw: the rows of the thread as plain text.
+    /// The draw: the rows of the thread as plain text. When they end above the cursor (another
+    /// thread, a shorter transcript), the cursor goes to the last row, and a selection that
+    /// started below them ends.
     pub fn show_rows(&mut self, rows: Vec<String>) {
         self.rows = rows;
+        if self.anchor.is_some_and(|(r, _)| r >= self.rows.len()) {
+            self.anchor = None;
+        }
+        if self.row >= self.rows.len() {
+            self.row = self.rows.len().saturating_sub(1);
+            self.col = self.col.min(self.len(self.row).saturating_sub(1));
+        }
     }
 
     /// The draw: the shell blocks of the thread.
@@ -122,12 +149,17 @@ impl Transcript {
         self.steps.iter().find(|(r, ..)| *r == row).map(|(_, i, u)| (*i, *u))
     }
 
-    /// The cursor on the last row with text.
+    /// The cursor on the last row with text, without a selection.
     pub fn to_end(&mut self) {
+        self.to_last_text();
+        (self.anchor, self.press, self.free) = (None, None, false);
+    }
+
+    /// The cursor on the last row with text; a selection keeps its start (PANES-54).
+    pub fn to_last_text(&mut self) {
         self.row = self.rows.iter().rposition(|r| !r.trim().is_empty()).unwrap_or(0);
         self.col = 0;
         self.want = 0;
-        self.anchor = None;
     }
 
     pub fn move_rows(&mut self, by: isize) {
@@ -188,6 +220,9 @@ impl Transcript {
 
     /// The selection, when it starts in a cell of a table with box borders (PANES-34).
     pub fn table(&self) -> Option<crate::text::boxtable::Range> {
+        if self.free {
+            return None;
+        }
         crate::text::boxtable::in_table(&self.rows, self.anchor?, (self.row, self.col))
     }
 

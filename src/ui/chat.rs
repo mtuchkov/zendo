@@ -55,19 +55,32 @@ pub(crate) fn draw_panel(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme
     f.render_widget(Paragraph::new(Line::from(vec![Span::styled(left, dim.add_modifier(Modifier::BOLD)), Span::raw(" ".repeat(pad)), Span::styled(scope, dim)])), head);
 
     let (mut lines, blocks, steps, chips) = panel_lines(app, t, w);
-    app.threads.transcript_mut().show_blocks(blocks);
-    app.threads.transcript_mut().show_steps(steps);
     if let Some(down) = app.link.down() {
         lines.extend(markdown::wrap(vec![Span::styled(format!("{down}. Run `zendo doctor` in a terminal to see why, then ask again. Log: .zendo/agent.log"), Style::new().fg(t.del))], w, "", ""));
     } else if !app.link.ready() && app.link.running() {
         lines.push(Line::styled(format!("starting {} {}", short_agent(&app.cfg.agent), SPIN[(app.writer.idle().as_millis() / 300) as usize % 4]), dim));
     }
     fr.regions.push((crate::text::select::Region::Panel, body));
-    let total = lines.len();
-    super::thread::draw_transcript(f, app, fr, t, body, lines, w);
+    // While the transcript has the keys, its rows stay, and new output waits below (PANES-51).
+    let hold = app.threads.transcript().on() && app.focus == Focus::Claude;
+    let (rows, new) = app.threads.view_rows(&app.key(), w, hold, crate::app::Rows { lines, blocks, steps, chips });
+    let total = rows.lines.len();
+    super::thread::draw_transcript(f, app, fr, t, body, rows.lines, w);
+    draw_new_rows(f, t, body, new);
     super::background::draw(f, app, fr, t, bg);
-    fr.transcript_chips = transcript_chip_rects(&chips, body, app.threads.view_start(total, body.height as usize));
+    fr.transcript_chips = transcript_chip_rects(&rows.chips, body, app.threads.view_start(total, body.height as usize));
     draw_input(f, app, fr, t, input, (in_h, in_w));
+}
+
+/// The count of the rows that wait below the frozen transcript, over its last row (PANES-53).
+fn draw_new_rows(f: &mut Frame, t: &Theme, body: Rect, new: usize) {
+    if new == 0 || body.height == 0 {
+        return;
+    }
+    let text = format!("↓ {new} new row{} · End", if new == 1 { "" } else { "s" });
+    let row = Rect { y: body.bottom() - 1, height: 1, ..body };
+    f.render_widget(Clear, row);
+    f.render_widget(Paragraph::new(Line::styled(text, Style::new().fg(t.acc))).style(Style::new().bg(t.panel)), row);
 }
 
 /// The input box: the text with its chips, or a hint while it is empty.

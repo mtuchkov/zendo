@@ -267,7 +267,6 @@ pub fn chip_spans_at(text: &str, offset: usize, base: Style, chip: [Style; 3], h
 /// and the cursor row and the selection show.
 pub(super) fn draw_transcript(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, body: Rect, lines: Vec<Line<'static>>, w: usize) {
     let h = body.height as usize;
-    app.threads.transcript_mut().show_rows(lines.iter().map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect()).collect());
     let on = app.threads.transcript().on() && app.focus == Focus::Claude;
     let start = app.threads.fit(lines.len(), h, on);
     let tr = app.threads.transcript();

@@ -53,7 +53,8 @@ async fn a_step_opens_and_closes() {
 }
 
 // ACT-6: a command shows no output until its step is open, then its last three lines, and its
-// exit code after it ends.
+// exit code after it ends. PANES-51, PANES-54: the cursor in the transcript freezes its rows; `End`
+// takes the end of the command in.
 #[tokio::test]
 async fn a_command_shows_its_output_and_exit_code() {
     let (root, mut a) = chat("act-command");
@@ -65,6 +66,9 @@ async fn a_command_shows_its_output_and_exit_code() {
     assert!(screen(&mut a).contains("│ $ make test"));
     let out: Vec<String> = (1..=5).map(|n| format!("out {n}")).collect();
     a.on_agent(tool("b1", "", "", ToolState::Failed, ToolInfo { output: out, exit: Some(1), ..Default::default() }));
+    let s = screen(&mut a);
+    assert!(!s.contains("exit 1") && s.contains("new row"), "the frozen rows wait for `End`: {s}");
+    key(&mut a, KeyCode::End);
     let s = screen(&mut a);
     assert!(s.contains("▾ make test · exit 1"), "{s}");
     assert!(s.contains("│ out 3") && s.contains("│ out 5") && !s.contains("out 2"), "the last three lines: {s}");

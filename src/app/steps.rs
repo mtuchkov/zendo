@@ -30,6 +30,8 @@ impl App {
                 uses.iter_mut().for_each(|u| u.open = open);
             }
         }
+        // The rows below the step move: the transcript freezes the new ones (PANES-56).
+        self.threads.refreeze(Refreeze::Step);
         true
     }
 
