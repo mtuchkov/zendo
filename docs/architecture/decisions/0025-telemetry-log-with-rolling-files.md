@@ -1,7 +1,8 @@
 ---
-status: "draft"
+status: "approved"
+approved: "2026-11-19"
 date: "2026-11-19"
-note: "Agent draft of the mechanism of the telemetry log that the user decided on 2026-11-19. Not reviewed by the user."
+note: "Agent draft of the mechanism of the telemetry log that the user decided on 2026-11-19. Approved by the user on 2026-11-19; implemented in zendo 0.124.0."
 sources:
   - "The user, 2026-11-19: telemetry accumulates as files with events, with a rolling rule of 50 files of 1 MB each, in a location that git ignores; later zendo sends it to an analytics service; the events stay in memory and a separate thread writes them."
   - "../../zendo/telemetry.md (TELEM-1 to TELEM-12)"
@@ -28,7 +29,7 @@ machine, and each writes events.
 
 ## Decision
 
-Proposal of the agent: files of each process, one limit for all files.
+Files of each process, one limit for all files.
 
 - Each process appends to its file `telemetry/<UTC time of the start of the file>-<process id>.jsonl`.
   The name sorts by age.
@@ -60,4 +61,4 @@ the files of each process; `a_slow_write_does_not_delay_the_screen` checks the w
 
 ## Decision record
 
-Proposed by the agent on 2026-11-19. Waits for the review of the user.
+Proposed by the agent on 2026-11-19. Approved by the user on 2026-11-19.

@@ -1,12 +1,12 @@
 ---
 status: "approved"
-approved: "2026-11-18"
+approved: "2026-11-19"
 revision: "1"
 date: "2026-11-14"
 parent: "cli.md"
 next: "init.md"
 level: "what the installer and zendo setup do on the machine"
-note: "Agent draft, split from commands.md on 2026-11-14. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. The flags: `--claude` of doctor is `--agent`, and `--agent CMD` is `--agent-cmd CMD`, on the request of the user on 2026-11-18 (approved by the user on 2026-11-18). CMD-21 (2026-11-19, from the fix of an empty XDG_DATA_HOME) is a proposal of the agent and is not reviewed by the user."
+note: "Agent draft, split from commands.md on 2026-11-14. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. The flags: `--claude` of doctor is `--agent`, and `--agent CMD` is `--agent-cmd CMD`, on the request of the user on 2026-11-18 (approved by the user on 2026-11-18). CMD-21 (2026-11-19, from the fix of an empty XDG_DATA_HOME) is a proposal of the agent, approved by the user on 2026-11-19."
 ---
 
 # Setup
