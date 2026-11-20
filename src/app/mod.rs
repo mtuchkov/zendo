@@ -37,6 +37,7 @@ mod input;
 mod modes;
 mod mouse;
 mod music;
+mod fresh;
 mod new;
 mod pointer;
 mod read;
@@ -51,9 +52,11 @@ mod tab;
 mod tasks;
 mod text_edit;
 mod thread;
+mod frozen;
 mod threads;
 mod transcript;
 mod transcript_keys;
+mod transcript_mouse;
 mod tree;
 mod undo;
 mod update;
@@ -91,6 +94,7 @@ pub use spec::{SPEC_BUTTON, spec_question, spec_task};
 pub use slash::Slash;
 pub use tab::{TAB_PAUSE, TabRun};
 pub use thread::*;
+pub use frozen::{Refreeze, Rows};
 pub use threads::Threads;
 pub use transcript::{CHAT_MARK, Transcript};
 pub use modes::Mode;
@@ -203,7 +207,9 @@ pub struct App {
 
     pub flash: Option<(String, Instant)>,
     /// The counts of the actions of the user; off until the start turns them on (USAGE-1).
-    pub usage: crate::usage::Usage,
+    pub telemetry: crate::telemetry::Telemetry,
+    /// The time of each action of the user; off until the start turns it on (RESP-1).
+    pub responsiveness: crate::responsiveness::Responsiveness,
     pub quit: bool,
     /// The Claude Code sessions of the agent sessions, in terminals that zendo owns.
     pub cli: crate::session::Sessions,

@@ -71,3 +71,18 @@ fn a_file_waits_once_for_its_meta() {
     assert!(w.meta_waits("a.md") && !w.meta_waits("b.md"));
     assert_eq!((w.next_meta().as_deref(), w.next_meta()), (Some("a.md"), None));
 }
+
+// SPEC-7, FLOAT-20: the note of a closed float that went to spec keeps the name of its file; the
+// mark goes by the file, so it holds for each way to spec.
+#[test]
+fn a_note_that_went_to_spec_keeps_its_name() {
+    let mut w = Writer::default();
+    let (first, second) = (Local::now(), Local::now() + chrono::Duration::seconds(1));
+    w.float_closed(first, "/r/docs/notes/a.md".into());
+    w.float_closed(second, "/r/docs/notes/b.md".into());
+    assert!(!w.keeps_name(first) && !w.keeps_name(second));
+    w.keep_name_of(Path::new("/r/docs/notes/a.md"));
+    assert!(w.keeps_name(first) && !w.keeps_name(second), "only the note that went to spec");
+    w.keep_name_of(Path::new("/r/docs/notes/none.md"));
+    assert!(!w.keeps_name(second), "a file of no closed float marks nothing");
+}

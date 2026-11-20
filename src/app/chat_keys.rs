@@ -37,10 +37,7 @@ impl App {
             }
             // In a code block, and after the fence that opens it, Enter is a new line (TEXT-10).
             Some("send") if self.composer().in_code() => self.composer_mut().input_mut().enter(true),
-            Some("send" | "send_now") if self.cli.running(self.state.session.min(SESSIONS - 1)) => {
-                self.remember_input();
-                self.send_to_cli();
-            }
+            Some("send" | "send_now") if self.cli.running(self.state.session.min(SESSIONS - 1)) => self.send_to_claude_code(),
             Some("send" | "send_now") => {
                 self.remember_input();
                 self.send_input();
@@ -50,6 +47,18 @@ impl App {
         }
         self.update_at();
         self.composer_mut().update_slash();
+    }
+
+    /// `enter` while Claude Code runs in the session: the input goes to Claude Code (SESSIONS-4).
+    /// A command of zendo does not go: zendo cannot start a new thread there, keeps the command
+    /// in the input and says why (CLAUDE-28, HISTORY-11).
+    fn send_to_claude_code(&mut self) {
+        if fresh::strip_new(self.composer().input().text().trim_start()).is_some() {
+            self.cli_blocks();
+            return;
+        }
+        self.remember_input();
+        self.send_to_cli();
     }
 
     /// `esc` while the agent answers: stop it, and put the queued questions back into the input
@@ -70,15 +79,9 @@ impl App {
     }
 
     fn new_thread(&mut self, key: String) {
-        self.link.send(Cmd::Forget { key: key.clone() });
-        // A new thread is a new Claude session: the name of the old one goes (NAMES-4).
-        if let Some(id) = self.state.take_session(&self.cfg.threads_key(), &key) {
-            self.state.names.remove(&id);
-        }
         // The messages of the old thread go into the common history (HISTORY-2).
         self.state.history.merge(self.state.session.min(SESSIONS - 1), chrono::Local::now());
-        self.state.save(&self.cfg.root);
-        self.threads.remove(&key);
+        self.fresh_thread(&key);
         self.flash("new thread");
     }
 
@@ -134,10 +137,14 @@ impl App {
 
     /// The message that goes now goes into the history of the active session, with its text
     /// chips (HISTORY-1, HISTORY-7). `/clear` starts a new conversation, as `ctrl-n` does: the
-    /// history of the session goes into the common history (HISTORY-2).
+    /// history of the session goes into the common history (HISTORY-2); `/new` goes first into the
+    /// history of the new thread (HISTORY-8).
     fn remember_input(&mut self) {
         let (text, chips) = self.composer_mut().history_entry();
         let session = self.state.session.min(SESSIONS - 1);
+        if fresh::strip_new(text.trim_start()).is_some() {
+            self.state.history.merge(session, chrono::Local::now());
+        }
         self.state.history.push(session, &text, chips, chrono::Local::now());
         if text.split_whitespace().next() == Some("/clear") {
             self.state.history.merge(session, chrono::Local::now());

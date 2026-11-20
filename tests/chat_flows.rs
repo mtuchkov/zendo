@@ -88,15 +88,21 @@ async fn ctrl_j_is_a_new_line_and_the_status_bar_says_so() {
 }
 
 // CLAUDE-28: slash commands pass through: the list comes from the agent, `/` shows it, `tab` takes one, and
-// the command goes to the agent as typed.
+// the command goes to the agent as typed. The `/new` of zendo shows in place of the `/new` of the agent
+// (ADR 0027).
 #[tokio::test]
 async fn slash_commands_come_from_the_agent_and_go_to_it_as_typed() {
     let root = repo("chat-slash", &files());
     let mut a = app(&root);
     a.open_file(root.join(A));
     a.open_panel();
-    until(&mut a, |a| !a.composer().slash().commands.is_empty()).await;
+    until(&mut a, |a| a.composer().slash().commands.iter().any(|c| c.name == "review")).await;
     a.focus = Focus::Claude;
+    typ(&mut a, "/ne");
+    let screen = draw(&mut a, 160, 30);
+    assert!(screen.iter().any(|r| r.contains("/new") && r.contains("a new thread")), "{screen:#?}");
+    assert!(!screen.iter().any(|r| r.contains("the new of the agent")), "{screen:#?}");
+    a.composer_mut().input_mut().take();
     typ(&mut a, "/rev");
     assert!(a.composer().slash().open, "`/` and a part of a name show the commands");
     let screen = draw(&mut a, 160, 30);
@@ -295,7 +301,7 @@ async fn the_first_tab_goes_to_the_sister_pane_of_the_chat() {
 
 /// The session ID that zendo keeps in the repository for the active thread.
 fn kept(a: &App) -> Option<String> {
-    zendo::setup::state::State::load(&a.cfg.root).session(&a.cfg.agent, &a.key())
+    zendo::setup::state::State::load(&a.cfg.root).session(&a.cfg.threads_key(), &a.key())
 }
 
 // CLAUDE-40: a session that the chat opens and that gets no question leaves no session ID, so the

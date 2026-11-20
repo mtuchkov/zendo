@@ -68,13 +68,24 @@ impl App {
     /// Ask in the one chat thread. `scope` is what the question is about: a file key, the new
     /// note, or all notes.
     pub fn ask(&mut self, question: String, scope: String) {
-        self.ask_question(Question { shown: question.clone(), text: question }, scope);
+        self.ask_question(Question { shown: question.clone(), text: question, doc: None }, scope);
+    }
+
+    /// Ask about the file `doc`, where it is: not about the open document or its version in the
+    /// checkout of the session (SPEC-1).
+    pub(crate) fn ask_about(&mut self, question: String, scope: String, doc: PathBuf) {
+        self.ask_question(Question { shown: question.clone(), text: question, doc: Some(doc) }, scope);
     }
 
     /// A question as the transcript shows it and as it goes to the agent (CLAUDE-59, CLAUDE-62).
     pub(crate) fn ask_question(&mut self, q: Question, scope: String) {
         let (shown, question) = (q.shown.trim().to_string(), q.text.trim().to_string());
-        if question.is_empty() || self.cli_blocks() {
+        // `/new` is a command of zendo: a new thread, then the text (HISTORY-8, ADR 0027). The
+        // queue keeps the command as the user typed it; the new thread shows the text (CLAUDE-34).
+        let text_of_new = fresh::strip_new(&question).map(str::to_string);
+        let is_new = text_of_new.is_some();
+        let question = text_of_new.unwrap_or(question);
+        if (question.is_empty() && !is_new) || self.cli_blocks() {
             return;
         }
         if self.cfg.offline {
@@ -89,13 +100,13 @@ impl App {
         let key = self.key();
         // A slash command goes to the agent as the user typed it.
         let command = question.starts_with('/');
-        let (text, file) = if command { (question.clone(), None) } else { self.prompt_text(&question, &scope, &key) };
+        let (text, file) = if command || question.is_empty() { (question.clone(), None) } else { self.prompt_text(&question, &scope, &key, is_new, q.doc) };
         let mut attach = self.composer_mut().take_attach();
         if let Some(p) = &file {
             attach.push(Attachment::File(p.clone()));
         }
         let sent = file.as_ref().map(|p| self.rel(p));
-        let out = Outgoing { question: shown, text, attach, sent, command };
+        let out = Outgoing { question: shown, text, attach, sent, command, n: self.threads.number(), fresh: is_new };
         self.threads.to_end();
         match self.threads.get_mut(&key).filter(|t| t.busy.is_some()) {
             Some(t) => t.queue.push(out),
@@ -105,10 +116,14 @@ impl App {
 
     /// Send a question to the agent now.
     pub(crate) fn dispatch(&mut self, key: String, out: Outgoing) {
+        if out.fresh {
+            return self.dispatch_fresh(key, out);
+        }
         let known = self.state.session(&self.cfg.threads_key(), &key);
         let t = self.thread(&key);
         t.push(Item::User(out.question));
         t.busy = Some(Instant::now());
+        t.turn = Some(out.n);
         t.news = t.busy;
         t.dropped = false;
         t.primed |= !out.command;
@@ -118,27 +133,26 @@ impl App {
     }
 
     /// The text of a question with its context, and the file to attach: the file on screen when
-    /// it did not go with one of the last ATTACH_EVERY questions.
-    fn prompt_text(&mut self, question: &str, scope: &str, key: &str) -> (String, Option<PathBuf>) {
+    /// it did not go with one of the last ATTACH_EVERY questions. `fresh`: for a new thread (`/new`).
+    /// `doc`: the file that the question is about, in place of the file on screen. A question in
+    /// the queue goes to the thread as the questions before it leave it (HISTORY-10).
+    fn prompt_text(&mut self, question: &str, scope: &str, key: &str, fresh: bool, doc: Option<PathBuf>) -> (String, Option<PathBuf>) {
         let mut text = String::new();
-        if !self.threads.get(key).is_some_and(|t| t.primed) {
+        if fresh || !self.threads.get(key).is_some_and(Thread::primed_for_next) {
             text.push_str(&state::prompt(&self.cfg.root));
             text.push_str("\n\n");
         }
         let mut file = None;
-        if scope == ALL_KEY {
+        if let Some(p) = doc {
+            file = self.file_lines(&p, key, fresh, &mut text);
+        } else if scope == ALL_KEY {
             text.push_str(&format!("Notes folder: {}\nSearch across all notes in that folder.\n", self.cfg.notes_dir.display()));
         } else if self.doc_line() == Some(false) {
             // The user unselected the open document: nothing of it goes (CLAUDE-55).
         } else if self.files.current().is_some_and(|p| !p.exists()) {
             // No version of the document in this session: no note file (FILES-40).
         } else if let Some(p) = self.files.current().map(|p| self.session_path(p)).filter(|_| scope != NEW_KEY) {
-            let rel = self.rel(&p);
-            if !self.threads.get(key).is_some_and(|t| t.sent_lately(&rel)) {
-                text.push_str(&self.rules_for(&p));
-                file = Some(p.clone());
-            }
-            text.push_str(&format!("Note file: {}\n", p.display()));
+            file = self.file_lines(&p, key, fresh, &mut text);
             if self.mode == Mode::Write
                 && let Some(line) = self.writer.editor().lines.get(self.writer.editor().row).filter(|l| !l.trim().is_empty()) {
                     text.push_str(&format!("Current line: {line}\n"));
@@ -155,6 +169,18 @@ impl App {
         }
         text.push_str(&format!("Question: {question}"));
         (text, file)
+    }
+
+    /// The lines of a question for the file `p`: its rules, when the file did not go with one of
+    /// the last questions, and its path. The file to attach, when it has to go.
+    fn file_lines(&self, p: &Path, key: &str, fresh: bool, text: &mut String) -> Option<PathBuf> {
+        let rel = self.rel(p);
+        let goes = fresh || !self.threads.get(key).is_some_and(|t| t.sent_lately_for_next(&rel));
+        if goes {
+            text.push_str(&self.rules_for(p));
+        }
+        text.push_str(&format!("Note file: {}\n", p.display()));
+        goes.then(|| p.to_path_buf())
     }
 
     /// The rules of project-structure.toml for a file: project rules first, then each folder.

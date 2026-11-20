@@ -40,6 +40,9 @@ pub struct Files {
     syncer: Option<Syncer>,
     /// The open document that the tree showed last (FILES-58); none: the tree shows it again.
     followed: Option<PathBuf>,
+    /// The note of a spec task: it shows as the user wrote it in each agent session, not in the
+    /// version of the session, until another document opens (SPEC-11).
+    as_is: Option<PathBuf>,
 }
 
 impl Files {
@@ -169,11 +172,23 @@ impl Files {
 
     /// Note `i` of the list is the open document.
     pub fn show_note(&mut self, i: usize) {
+        self.as_is = self.as_is.take().filter(|p| *p == self.notes[i].path);
         self.current = Some(self.notes[i].path.clone());
+    }
+
+    /// `path` shows as it is in each agent session, until another document opens (SPEC-11).
+    pub fn keep_as_is(&mut self, path: PathBuf) {
+        self.as_is = Some(path);
+    }
+
+    /// `p` is the document that shows as it is.
+    pub fn as_is(&self, p: &Path) -> bool {
+        self.as_is.as_deref() == Some(p)
     }
 
     /// The file is the open document; a file outside the notes is read.
     pub fn open(&mut self, path: PathBuf) {
+        self.as_is = self.as_is.take().filter(|p| *p == path);
         self.current = Some(path.clone());
         if !self.notes.iter().any(|n| n.path == path) && !self.extra.contains(&path) {
             self.extra.push(path);
@@ -187,13 +202,16 @@ impl Files {
         if !path.starts_with(&self.store.dir) && !self.extra.contains(&path) {
             self.extra.push(path.clone());
         }
+        self.as_is = self.as_is.take().filter(|p| *p == path);
         self.current = Some(path);
         self.reload();
     }
 
-    /// The float and the screen behind it each have an open document, or none.
-    pub(crate) fn swap_current(&mut self, other: &mut Option<PathBuf>) {
+    /// The float and the screen behind it each have an open document, or none, and its mark
+    /// that it shows as it is (SPEC-11).
+    pub(crate) fn swap_current(&mut self, other: &mut Option<PathBuf>, as_is: &mut Option<PathBuf>) {
         std::mem::swap(&mut self.current, other);
+        std::mem::swap(&mut self.as_is, as_is);
     }
 
 }

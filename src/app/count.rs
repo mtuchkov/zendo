@@ -1,7 +1,11 @@
-//! Usage counts: what the dispatch of a key or of the mouse tells the counts (docs/zendo/usage.md).
+//! The events of the actions: what the dispatch of a key or of the mouse tells the telemetry log
+//! (docs/zendo/usage.md, docs/zendo/telemetry.md) and the measurements (docs/zendo/responsiveness.md,
+//! RESP-2).
 use super::*;
 use crate::keys::Pane;
-use crate::usage::Trigger;
+use crate::responsiveness::Work;
+use crate::telemetry::Trigger;
+use std::collections::BTreeSet;
 
 /// The global actions that choose what the chat pane shows: an agent session or a terminal.
 pub(crate) fn session_action(act: &str) -> bool {
@@ -9,9 +13,54 @@ pub(crate) fn session_action(act: &str) -> bool {
 }
 
 impl App {
+    /// The input thread read an input event at `at`: the time of its actions starts (RESP-1).
+    pub fn input_at(&mut self, at: Instant) {
+        let now = self.in_flight();
+        self.responsiveness.input(at, &now);
+    }
+
+    /// The draw of the screen ended at `at`: the actions whose work ended get their times (RESP-1).
+    pub fn drawn_at(&mut self, at: Instant) {
+        let now = self.in_flight();
+        self.responsiveness.drawn(at, &now);
+        self.record();
+    }
+
+    /// The events of the actions that ended go to the log (TELEM-1).
+    fn record(&mut self) {
+        for e in self.responsiveness.take() {
+            self.telemetry.record(e);
+        }
+    }
+
+    /// At the exit: the actions that still wait get their events, and the log gets its last write
+    /// (RESP-9, TELEM-9).
+    pub fn end_telemetry(&mut self) {
+        self.responsiveness.end();
+        self.record();
+        self.telemetry.finish();
+    }
+
+    /// The work in the background that the user waits for: the walk and the search of the find
+    /// panel, and the answer to each question of each thread.
+    fn in_flight(&self) -> BTreeSet<Work> {
+        let f = &self.files.find;
+        let walk = f.walking(self.mode == Mode::Find).then_some(Work::Walk);
+        let search = f.searching().map(Work::Search);
+        let answers = self.threads.values().flat_map(|t| t.waiting()).map(Work::Answer);
+        walk.into_iter().chain(search).chain(answers).collect()
+    }
+
     /// A key ran the action `act` of the keymap pane `pane` (USAGE-1, USAGE-7).
     pub(crate) fn did(&mut self, pane: Pane, act: &str) {
-        self.usage.count(pane, act, Trigger::Key);
+        self.ran(pane, act, Trigger::Key);
+    }
+
+    /// The one place that every action of the keymap passes: its event and its time (USAGE-1,
+    /// RESP-1, RESP-2).
+    fn ran(&mut self, pane: Pane, act: &str, trigger: Trigger) {
+        self.responsiveness.ran(pane, act, trigger);
+        self.record();
     }
 
     /// A key ran the action of `pane` that it has there, if it has one.
@@ -23,7 +72,7 @@ impl App {
 
     /// The mouse did what the action `act` of `pane` does (USAGE-1).
     pub(crate) fn did_by_mouse(&mut self, pane: Pane, act: &str) {
-        self.usage.count(pane, act, Trigger::Mouse);
+        self.ran(pane, act, Trigger::Mouse);
     }
 
     /// The mouse selection is final: a copy, or with alt the text for the chat (PANES-44). The

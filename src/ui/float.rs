@@ -99,5 +99,10 @@ pub(crate) fn fit_head(text: &str, width: usize) -> String {
 /// The date and the time when the user opened the float, under the title (FLOAT-7).
 pub(crate) fn float_date(app: &App, t: &Theme) -> Vec<Line<'static>> {
     let Some(fl) = app.writer.float() else { return Vec::new() };
-    vec![Line::styled(fl.opened.format("%a %-d %b · %H:%M").to_string(), Style::new().fg(t.dim)), Line::raw("")]
+    vec![Line::styled(float_date_label(fl.opened), Style::new().fg(t.dim)), Line::raw("")]
+}
+
+/// The text of the line of the date of the float (FLOAT-7), where `[ → spec ]` stands (SPEC-6).
+pub(crate) fn float_date_label(opened: chrono::DateTime<chrono::Local>) -> String {
+    opened.format("%a %-d %b · %H:%M").to_string()
 }

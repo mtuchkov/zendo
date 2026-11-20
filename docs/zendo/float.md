@@ -1,13 +1,13 @@
 ---
 status: "draft"
 approved: "2026-11-17"
-revision: "6"
-date: "2026-11-17"
+revision: "7"
+date: "2026-11-19"
 parent: "zendo.md"
 prev: "note-to-spec.md"
 next: "float-title.md"
 level: "the new note in a float: how it opens, what it shows, how it closes"
-note: "Agent draft of the decisions of the user on 2026-11-13, approved by the user. Revision 2: the test names and kinds as in the code. Revision 3: FLOAT-16 (the float color of the theme), asked and reviewed by the user on 2026-11-14. Revision 4: FLOAT-16 states that the float stands out of the theme and that its text and code read on it, asked by the user on 2026-11-14 and approved on 2026-11-15. Revision 5: the note starts with an empty title line and the cursor on the body (FLOAT-17, FLOAT-22), and the title is in float-title.md, asked by the user on 2026-11-17, approved by the user on 2026-11-17. Revision 6: a long path loses its first chars to fit the buttons (FLOAT-24), asked by the user on 2026-11-17; not reviewed yet. 2026-11-18: the notes list is the Notes view of the tree (FILES-69); FLOAT-5 and FLOAT-15 name it."
+note: "Agent draft of the decisions of the user on 2026-11-13, approved by the user. Revision 2: the test names and kinds as in the code. Revision 3: FLOAT-16 (the float color of the theme), asked and reviewed by the user on 2026-11-14. Revision 4: FLOAT-16 states that the float stands out of the theme and that its text and code read on it, asked by the user on 2026-11-14 and approved on 2026-11-15. Revision 5: the note starts with an empty title line and the cursor on the body (FLOAT-17, FLOAT-22), and the title is in float-title.md, asked by the user on 2026-11-17, approved by the user on 2026-11-17. Revision 6: a long path loses its first chars to fit the buttons (FLOAT-24), asked by the user on 2026-11-17; not reviewed yet. 2026-11-18: the notes list is the Notes view of the tree (FILES-69); FLOAT-5 and FLOAT-15 name it. Revision 7, asked and approved by the user on 2026-11-19 (revision 6 waits for its review): FLOAT-3 and FLOAT-13 hold for `esc`; `[ → spec ]` closes the float and opens the note (SPEC-6)."
 ---
 
 # New note in a float
@@ -49,7 +49,8 @@ gets its name from the date and the title (NOTE-7). A note with no text makes no
 `esc` saves the note and closes the float. When the note has no `# ` title, the agent writes it
 ([Title of a new note](float-title.md)). After the float closes, the screen is as it was before: the same
 file, pane, mode, cursor and selection. The new note is in the Notes view of the tree and in the recent files
-([Find](find.md)); zendo does not open it in the note pane.
+([Find](find.md)); zendo does not open it in the note pane. `[ → spec ]` on the line of the date is the
+other way out: it closes the float and opens the note in the note pane ([Note to spec](note-to-spec.md)).
 
 ## Architecturally significant requirements
 
@@ -57,7 +58,7 @@ file, pane, mode, cursor and selection. The new note is in the Notes view of the
 | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | FLOAT-1 | Event    | When the user presses `alt-n` in any pane or mode, the system shall open a new note in write mode in a float over the open file.                         | User, 2026-11-13 |
 | FLOAT-2 | State    | While the float is open, the system shall show only the float with its note in normal colors, the screen behind in dim colors, and no key hints.         | User, 2026-11-13 |
-| FLOAT-3 | Event    | When the user closes the float, the system shall save the note and show the screen as it was before the float: the same file, pane, mode, cursor and selection. | Design           |
+| FLOAT-3 | Event    | When the user closes the float with `esc`, the system shall save the note and show the screen as it was before the float: the same file, pane, mode, cursor and selection. | Design           |
 | FLOAT-4 | Unwanted | If the user opens the float while the open file is in write mode, then the system shall save the open file first.                                      | Design           |
 
 ### Acceptance tests
@@ -102,7 +103,7 @@ file, pane, mode, cursor and selection. The new note is in the Notes view of the
 | FLOAT-10 | State      | While the float is open, the system shall do the keys of write mode in the float, and do nothing for the keys that open a pane or move the focus.   | Design           |
 | FLOAT-11 | State      | While the float is open, the system shall do nothing for `alt-n`.                                                                                   | Design           |
 | FLOAT-12 | Unwanted   | If the user closes the float and the note has no text, then the system shall make no file.                                                          | Design           |
-| FLOAT-13 | Event      | When the user closes the float, the system shall not open the new note in the note pane.                                                            | Design           |
+| FLOAT-13 | Event      | When the user closes the float with `esc`, the system shall not open the new note in the note pane.                                                            | Design           |
 | FLOAT-14 | State      | While a Claude Code session or a terminal is on the full screen, the system shall open the float over it when the user presses `alt-n`, and not send the key to the program. | User, 2026-11-13 |
 | FLOAT-15 | Event      | When the user opens a note that is already there, from the Notes view of the tree or elsewhere, the system shall show it in the note pane as every other file, not in the float. | User, 2026-11-13 |
 | FLOAT-17 | Event      | When the user opens the float, the system shall start the note with an empty title line, `# `, and an empty line, with the cursor on the first line of the body. | User, 2026-11-17 |

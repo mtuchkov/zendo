@@ -80,3 +80,28 @@ fn the_pinned_thread_swaps_with_the_one_of_the_float() {
     t.hide();
     assert!(!t.shown());
 }
+
+// PANES-58: a view that the user scrolled up keeps its rows when rows come or go below them; a
+// view at the end follows the new rows.
+#[test]
+fn a_scrolled_view_keeps_its_rows_when_rows_come_below() {
+    let mut t = Threads::default();
+    assert_eq!(t.fit(100, 20, false), 80);
+    assert_eq!(t.fit(105, 20, false), 85, "the end follows the new rows");
+    t.scroll_by(true, 30);
+    assert_eq!(t.fit(105, 20, false), 55);
+    assert_eq!(t.fit(110, 20, false), 55, "new rows below do not move the view");
+    assert_eq!(t.fit(109, 20, false), 55, "nor do rows that go");
+    t.scroll_by(false, 1000);
+    assert_eq!(t.fit(120, 20, false), 100, "back at the end, the view follows again");
+}
+
+// RESP-1: each question gets a number of its own, also in a new thread of the same key.
+#[test]
+fn each_question_gets_a_new_number() {
+    let mut t = Threads::default();
+    let a = t.number();
+    t.entry("a");
+    t.remove("a");
+    assert_eq!((a, t.number()), (1, 2), "a clear of a thread does not start the numbers again");
+}

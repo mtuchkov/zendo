@@ -183,8 +183,10 @@ impl App {
             self.reload_after_agent();
             return self.hold_turn_ended(&key);
         }
+        // `/new` alone sends nothing: the end of the answer rings as with an empty queue (ATTN-5).
+        let follows = t.question_waits();
         let next = (!t.queue.is_empty()).then(|| t.queue.remove(0));
-        self.chat_turn_ended(&key, &stop, next.is_some());
+        self.chat_turn_ended(&key, &stop, follows);
         if let Some(n) = (0..SESSIONS).find(|n| session_key(*n) == key) {
             self.board_turn_ended(n);
         }

@@ -40,3 +40,58 @@ fn the_last_tool_run_still_runs() {
     t.push(tools(Instant::now()));
     assert_eq!(took(&t.items[1]), None);
 }
+
+fn out(q: &str, n: usize) -> Outgoing {
+    Outgoing { question: q.into(), text: q.into(), attach: Vec::new(), sent: None, command: false, n, fresh: false }
+}
+
+// RESP-1: the questions that wait for an answer: the one of the turn, then the queue, each with its
+// own number, which stays when a queued question goes to the agent.
+#[test]
+fn each_question_without_an_answer_has_its_own_number() {
+    let mut t = Thread::default();
+    assert_eq!(t.waiting().collect::<Vec<_>>(), Vec::<usize>::new());
+    (t.busy, t.turn) = (Some(Instant::now()), Some(1));
+    t.queue = vec![out("b", 2), out("c", 3)];
+    assert_eq!(t.waiting().collect::<Vec<_>>(), [1, 2, 3]);
+    // The turn ends; the next question goes to the agent.
+    t.turn = Some(t.queue.remove(0).n);
+    assert_eq!(t.waiting().collect::<Vec<_>>(), [2, 3]);
+    // The agent exits: the turn ends, the queue still waits.
+    t.busy = None;
+    assert_eq!(t.waiting().collect::<Vec<_>>(), [3]);
+}
+
+/// A question of the queue: `/new` with or without text, or a plain question.
+fn queued(text: &str, fresh: bool, sent: Option<&str>) -> Outgoing {
+    Outgoing { question: text.into(), text: text.into(), attach: Vec::new(), sent: sent.map(str::to_string), command: false, n: 0, fresh }
+}
+
+// HISTORY-10: the next question goes to the thread as the queue leaves it: behind `/new` with no
+// text it is the first question of a new thread, and it knows only the files that went behind
+// that `/new`.
+#[test]
+fn the_next_question_sees_the_thread_behind_a_queued_new() {
+    let mut t = Thread { primed: true, ..Thread::default() };
+    t.files.push(Some("a.md".into()));
+    assert!(t.primed_for_next() && t.sent_lately_for_next("a.md"), "no `/new`: this thread");
+    t.queue.push(queued("one more", false, None));
+    assert!(t.primed_for_next() && t.sent_lately_for_next("a.md"), "a question in the queue: this thread");
+    t.queue.push(queued("", true, None));
+    assert!(!t.primed_for_next() && !t.sent_lately_for_next("a.md"), "behind `/new`: a new thread");
+    t.queue.push(queued("first", false, Some("b.md")));
+    assert!(t.primed_for_next() && t.sent_lately_for_next("b.md") && !t.sent_lately_for_next("a.md"), "behind its first question");
+    t.queue.push(queued("a task", true, None));
+    assert!(t.primed_for_next() && !t.sent_lately_for_next("b.md"), "`/new <text>` starts the next thread itself");
+}
+
+// ATTN-5, HISTORY-9: `/new` with no text is no question that waits.
+#[test]
+fn new_alone_is_no_question_that_waits() {
+    let mut t = Thread::default();
+    assert!(!t.question_waits());
+    t.queue.push(queued("", true, None));
+    assert!(!t.question_waits(), "`/new` alone sends nothing");
+    t.queue.push(queued("next", false, None));
+    assert!(t.question_waits());
+}

@@ -7,6 +7,10 @@ impl App {
     pub(crate) fn key_transcript(&mut self, act: Option<&str>) {
         let page = self.frame.view_height().saturating_sub(3).max(1) as isize;
         let Some(act) = act else { return };
+        // `bottom` takes the new rows into the frozen transcript (PANES-54).
+        if act == "bottom" {
+            return self.threads.refreeze(Refreeze::End);
+        }
         if self.threads.transcript_mut().key(act, page, Instant::now()) {
             return;
         }

@@ -59,6 +59,8 @@ pub struct Thread {
     pub opened: bool,
     /// Questions that wait for the end of the turn (CLAUDE-66).
     pub queue: Vec<Outgoing>,
+    /// The number of the question of the turn (`Outgoing::n`).
+    pub turn: Option<usize>,
     /// Questions that the chat sent to Claude Code: the hook does not show them again (CLIMSG-4).
     pub sent_to_cli: Vec<String>,
     /// The first item of the Claude session now, after a `/clear` in Claude Code (NAMES-4).
@@ -79,12 +81,47 @@ pub struct Outgoing {
     pub sent: Option<String>,
     /// A slash command: no context.
     pub command: bool,
+    /// The number of the question among the questions of this zendo process (`Threads::number`):
+    /// what the user waits for, until its answer ends (RESP-1).
+    pub n: usize,
+    /// `/new`: a new thread first; an empty `text` sends nothing (HISTORY-8, HISTORY-9). `question`
+    /// keeps `/new`, for the queue and for the way back into the chat input (CLAUDE-34).
+    pub fresh: bool,
 }
 
 impl Thread {
+    /// The numbers of the questions that wait for an answer: the one of the turn, then the queue.
+    /// A question keeps its number when it leaves the queue for the agent (RESP-1).
+    pub(crate) fn waiting(&self) -> impl Iterator<Item = usize> + '_ {
+        self.busy.and(self.turn).into_iter().chain(self.queue.iter().map(|o| o.n))
+    }
+
     /// The file went with one of the last ATTACH_EVERY questions.
     pub fn sent_lately(&self, rel: &str) -> bool {
         self.files.iter().rev().take(ATTACH_EVERY).any(|f| f.as_deref() == Some(rel))
+    }
+
+    /// The questions in the queue that go to a new thread: the last `/new` and the ones behind it
+    /// (HISTORY-10).
+    fn after_new(&self) -> Option<&[Outgoing]> {
+        self.queue.iter().rposition(|o| o.fresh).map(|i| &self.queue[i..])
+    }
+
+    /// The thread that the next question goes to has the prompt of zendo: this thread, or the new
+    /// thread of a `/new` in the queue when a question goes to it before.
+    pub fn primed_for_next(&self) -> bool {
+        self.after_new().map_or(self.primed, |q| q.iter().any(|o| !o.command && !o.text.is_empty()))
+    }
+
+    /// The file went with one of the last questions of the thread that the next question goes to.
+    pub fn sent_lately_for_next(&self, rel: &str) -> bool {
+        self.after_new().map_or_else(|| self.sent_lately(rel), |q| q.iter().any(|o| o.sent.as_deref() == Some(rel)))
+    }
+
+    /// A question of the queue goes to the agent after this turn. `/new` alone sends nothing
+    /// (HISTORY-9).
+    pub fn question_waits(&self) -> bool {
+        self.queue.iter().any(|o| !o.text.is_empty())
     }
 }
 

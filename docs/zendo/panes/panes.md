@@ -6,6 +6,7 @@ parent: "../zendo.md"
 next: "../notes.md"
 children:
   - "selection.md"
+  - "transcript-selection.md"
   - "keymap.md"
   - "text-input/text-input.md"
   - "key-change.md"
@@ -20,7 +21,7 @@ zendo has four panes: the file tree, the note, the chat with Claude and the delt
 main pane. The other panes open and close on the request of the user. Each pane has its own
 document for what it shows: [Notes](../notes.md), [File tree](../files/files.md), [Claude](../claude.md),
 [Work, delta and recaps](../work.md). Five topics that hold for all panes are child documents:
-[Text selection](selection.md), [Keys, hints and help](keymap.md), [Text input](text-input/text-input.md),
+[Text selection](selection.md), [Selection in the transcript](transcript-selection.md), [Keys, hints and help](keymap.md), [Text input](text-input/text-input.md),
 [Change a key](key-change.md) and [Key hints](key-hints.md).
 
 The user has two layout presets and no other layout settings. In wide screen, the open panes stand
@@ -83,4 +84,4 @@ Tests that verify detailed requirements: `the_delta_closes_the_tree_when_it_does
 `a_click_off_the_help_closes_it` and `a_click_off_the_find_panel_closes_it` (PANES-47).
 
 The other `PANES` identifiers are in [Text selection](selection.md) (PANES-3, PANES-13, PANES-34 to
-PANES-45) and in [Keys, hints and help](keymap.md) (PANES-16 to PANES-19, PANES-23 to PANES-33).
+PANES-45), in [Selection in the transcript](transcript-selection.md) (PANES-50 to PANES-58) and in [Keys, hints and help](keymap.md) (PANES-16 to PANES-19, PANES-23 to PANES-33).

@@ -94,7 +94,7 @@ impl App {
         if self.update.poll().is_some() {
             self.flash("a new version of zendo is available".to_string());
         }
-        self.usage.tick(Instant::now());
+        self.telemetry.tick(Instant::now());
         self.background_tick();
         self.check_disk();
         if self.state.tree && self.files.tree_stale() {

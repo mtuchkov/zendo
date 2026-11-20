@@ -48,6 +48,7 @@ fn commands(cx: &Cx, sid: &agent_client_protocol::v1::schema::SessionId) -> Resu
     let list = vec![
         AvailableCommand::new("review", "review the note").input(AvailableCommandInput::Unstructured(UnstructuredCommandInput::new("what to look at"))),
         AvailableCommand::new("compact", "make the thread short"),
+        AvailableCommand::new("new", "the new of the agent"),
     ];
     cx.send_notification(SessionNotification::new(sid.clone(), SessionUpdate::AvailableCommandsUpdate(AvailableCommandsUpdate::new(list))))
 }

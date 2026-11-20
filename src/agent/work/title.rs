@@ -136,15 +136,19 @@ impl App {
         };
         self.writer.float_closed(opened, path);
         // A question that runs for this float puts its title into the file.
-        let in_api = self.link.api_asks().iter().any(|q| matches!(q, Question::Title { opened: o, .. } if *o == opened));
-        let running = in_api || self.work.job().and_then(|j| j.title.as_ref()).is_some_and(|j| j.opened == opened);
-        if self.cfg.offline || running {
+        if self.cfg.offline || self.title_runs(opened) {
             return;
         }
         self.writer.ask_title(TitleJob { opened, old });
         if self.link.api().is_none() {
             self.ensure_agent();
         }
+    }
+
+    /// A question for the title of the float that opened at `opened` runs.
+    fn title_runs(&self, opened: DateTime<Local>) -> bool {
+        let in_api = self.link.api_asks().iter().any(|q| matches!(q, Question::Title { opened: o, .. } if *o == opened));
+        in_api || self.work.job().and_then(|j| j.title.as_ref()).is_some_and(|j| j.opened == opened)
     }
 
     /// The title turn ended in its throwaway session.
@@ -192,20 +196,24 @@ impl App {
         }
     }
 
-    /// The title into the file of a closed float (FLOAT-19, FLOAT-20).
+    /// The title into the file of a closed float (FLOAT-19, FLOAT-20). A note that went to spec
+    /// keeps the name of its file, and nothing but the note changes: an editor that holds the note
+    /// takes the title as a change from outside (SPEC-7).
     fn title_into_file(&mut self, tj: &TitleJob, title: &str) {
         let Some(path) = self.writer.closed_note(tj.opened).cloned() else { return };
         let Ok(now) = std::fs::read_to_string(&path) else { return };
-        let Some(new) = with_title(&now, title, tj.old.as_deref()) else { return };
+        // A note that went to spec gets a title only where it has none (SPEC-7).
+        let kept = self.writer.keeps_name(tj.opened);
+        let Some(new) = with_title(&now, title, tj.old.as_deref().filter(|_| !kept)) else { return };
         if let Err(e) = crate::atomic::write(&path, new) {
             self.flash(format!("cannot write the title into {}: {e}", path.display()));
             return;
         }
-        let target = self.name_by_title(&path, title);
+        let target = if kept { None } else { self.name_by_title(&path, title) };
         if let Some(t) = &target {
             self.writer.closed_moved(tj.opened, t.clone());
         }
-        self.reload();
+        self.reload_after_agent();
         self.flash(format!("added a title to {}", self.rel(target.as_ref().unwrap_or(&path))));
     }
 

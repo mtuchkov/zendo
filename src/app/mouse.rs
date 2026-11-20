@@ -82,6 +82,7 @@ impl App {
     /// A drag moves the end of the selection, until the button is up.
     pub(crate) fn drag_selection(&mut self, x: u16, y: u16, m: KeyModifiers) {
         self.pointer.drag(x, y, m);
+        self.drag_rows(x, y);
     }
 
     /// The button is up: the selection is final and goes to the clipboard, or with alt to the chat;
@@ -155,7 +156,7 @@ impl App {
         }
         match region {
             Region::Panel if self.focus == Focus::Claude && self.cli.pane.is_none() => {
-                self.threads.click(dy, rect.height as usize, dx);
+                self.click_rows(dy, rect.height as usize, dx);
                 self.click_step();
             }
             Region::Panel => {}

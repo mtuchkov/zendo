@@ -1,13 +1,13 @@
 ---
 status: "approved"
-approved: "2026-11-17"
-revision: "2"
-date: "2026-11-17"
+approved: "2026-11-19"
+revision: "3"
+date: "2026-11-19"
 parent: "zendo.md"
 prev: "float.md"
 next: "find.md"
 level: "the title of a new note in the float: when the agent writes it, where it goes, what it does not change"
-note: "Agent draft of the request of the user on 2026-11-17. Approved by the user on 2026-11-17. Revision 2 (approved by the user on 2026-11-17): the question for a title goes through the API of the agent, else a background session (FLOAT-18, NAMES-15, NAMES-16)."
+note: "Agent draft of the request of the user on 2026-11-17. Approved by the user on 2026-11-17. Revision 2 (approved by the user on 2026-11-17): the question for a title goes through the API of the agent, else a background session (FLOAT-18, NAMES-15, NAMES-16). Revision 3, from the decision of the user of 2026-11-19: a note that went to spec keeps the name of its file (FLOAT-20, SPEC-7); approved by the user on 2026-11-19."
 ---
 
 # Title of a new note
@@ -29,7 +29,8 @@ one then.
 title line away, zendo puts it as the first line, with an empty line under it. The cursor stays on
 the same char of the text, so the user types on. When the float is closed
 already, zendo puts the title into the file. Then zendo renames the file to the date and a short
-form of the title, as for a new note (NOTE-7).
+form of the title, as for a new note (NOTE-7). A note that went to spec keeps the name of its file,
+because the task of the agent names it ([Note to spec](note-to-spec.md)).
 
 **What zendo does not change.** A title that the user writes or changes is the title of the user.
 zendo does not replace it, and does not ask for another.
@@ -62,7 +63,7 @@ zendo does not replace it, and does not ask for another.
 
 | ID       | Pattern  | Requirement                                                                                                                                      | Source           |
 | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
-| FLOAT-20 | Event    | When a title of the agent goes into the note of a float, the system shall rename the file to the date and a short form of the title (NOTE-7).  | User, 2026-11-17 |
+| FLOAT-20 | Event    | When a title of the agent goes into the note of a float, the system shall rename the file to the date and a short form of the title (NOTE-7), unless the note went to spec before the title came (SPEC-7). | User, 2026-11-17; User, 2026-11-19 |
 | FLOAT-21 | Unwanted | If the user writes or changes the `# ` title of the note, then the system shall not change the title.                                           | User, 2026-11-17 |
 | FLOAT-23 | Ubiquitous | The system shall ask the name model for the title of a note at most once while the float is open, and once when it closes.                   | Design           |
 

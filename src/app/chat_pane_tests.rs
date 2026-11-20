@@ -48,7 +48,7 @@ fn background_changes_go_to_the_input_of_their_session() {
     let mut a = App::default();
     let img = PathBuf::from("/tmp/zendo-test-paste.png");
     a.chat.composer_mut(0).add_chip("Image #1".into(), None, Some(Attachment::Image(img.clone())), false);
-    a.thread(&session_key(0)).queue.push(Outgoing { question: "queued".into(), text: String::new(), attach: Vec::new(), sent: None, command: false });
+    a.thread(&session_key(0)).queue.push(Outgoing { question: "queued".into(), text: String::new(), attach: Vec::new(), sent: None, command: false, n: 1, fresh: false });
     a.state.session = 1;
     a.queue_to_input(&session_key(0));
     a.label_image(&img, "red car");

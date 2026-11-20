@@ -8,17 +8,24 @@ use crate::app::App;
 use anyhow::Result;
 use ratatui::crossterm::event::{self, DisableBracketedPaste, DisableFocusChange, DisableMouseCapture, EnableBracketedPaste, EnableFocusChange, EnableMouseCapture, Event};
 use ratatui::crossterm::execute;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
 
+/// An input event and the time when the input thread read it: the time of its actions starts
+/// there, so the wait in the queue is in it (RESP-1).
+pub struct Input {
+    pub event: Event,
+    pub read: Instant,
+}
+
 /// Terminal input runs on its own thread.
-pub fn spawn_input(tx: mpsc::UnboundedSender<Event>) {
+pub fn spawn_input(tx: mpsc::UnboundedSender<Input>) {
     std::thread::spawn(move || {
         loop {
             match event::poll(Duration::from_millis(100)) {
                 Ok(true) => match event::read() {
-                    Ok(e) => {
-                        if tx.send(e).is_err() {
+                    Ok(event) => {
+                        if tx.send(Input { event, read: Instant::now() }).is_err() {
                             return;
                         }
                     }
@@ -49,8 +56,8 @@ fn take_pointer(app: &mut App) -> bool {
 pub async fn run(
     term: &mut ratatui::DefaultTerminal,
     app: &mut App,
-    keys: &mut mpsc::UnboundedReceiver<Event>,
-    _keys_tx: mpsc::UnboundedSender<Event>,
+    keys: &mut mpsc::UnboundedReceiver<Input>,
+    _keys_tx: mpsc::UnboundedSender<Input>,
 ) -> Result<()> {
     let mut tick = tokio::time::interval(Duration::from_millis(250));
     // While a button blinks: a frame each 100 ms, 20 shades in each period (ATTN-3).
@@ -64,6 +71,7 @@ pub async fn run(
     app.start_tips();
     loop {
         term.draw(|f| app.draw(f))?;
+        app.drawn_at(Instant::now());
         cursor_shape(app);
         if std::mem::take(&mut app.attention.bells) > 0 {
             sound::ring();
@@ -78,8 +86,8 @@ pub async fn run(
             Some(e) = keys.recv() => {
                 on_input(app, e);
                 // A trackpad sends a burst of scroll events: take all that are here, then draw once.
-                let until = std::time::Instant::now() + Duration::from_millis(12);
-                while !app.quit && app.pointer.clip().is_none() && std::time::Instant::now() < until {
+                let until = Instant::now() + Duration::from_millis(12);
+                while !app.quit && app.pointer.clip().is_none() && Instant::now() < until {
                     match keys.try_recv() {
                         Ok(e) => on_input(app, e),
                         Err(_) => break,
@@ -105,13 +113,16 @@ pub async fn run(
             _ = printed.notified() => {},
             _ = found.notified() => app.poll_find(),
             _ = tick.tick() => app.tick(),
-            _ = pulse.tick(), if app.attention.blinking() => {},
+            // A drag at the edge of the transcript scrolls it (PANES-52).
+            _ = pulse.tick(), if app.attention.blinking() || app.edge_drag().is_some() => app.edge_scroll(),
         }
     }
 }
 
-fn on_input(app: &mut App, e: Event) {
-    match e {
+/// Handle one input event; the time of its actions starts at its read (RESP-1).
+pub fn on_input(app: &mut App, input: Input) {
+    app.input_at(input.read);
+    match input.event {
         // A key that goes up ends `m` or `u` held in read mode (FILES-45, FILES-47).
         Event::Key(k) => app.on_key(k),
         Event::Paste(s) => app.on_paste(s),

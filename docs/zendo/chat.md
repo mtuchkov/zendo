@@ -1,13 +1,13 @@
 ---
 status: "approved"
-approved: "2026-11-14"
-revision: "5"
-date: "2026-11-17"
+approved: "2026-11-19"
+revision: "6"
+date: "2026-11-19"
 parent: "zendo.md"
 prev: "board-watch.md"
 next: "chat-chips.md"
 level: "the chat input: lines, chips, attachments and @ file suggestions"
-note: "Split from claude.md; the user approved the requirements in the chat on 2026-11-14, with CLAUDE-17 for `Image #n` chips and CLAUDE-37 to CLAUDE-39 for image names. Revision 3: CLAUDE-41 and CLAUDE-42 (text chips, approved by the user on 2026-11-13 as CLAUDE-35 and CLAUDE-36 in feat/paste-chips) got new numbers, because main gave those numbers to other requirements. Revision 4: a link to the chip window and the open document in chat-chips.md, asked and approved by the user on 2026-11-17. Revision 5: the queue was CLAUDE-33, the same ID as a requirement of claude.md; it is now CLAUDE-66 (the user, 2026-11-17)."
+note: "Split from claude.md; the user approved the requirements in the chat on 2026-11-14, with CLAUDE-17 for `Image #n` chips and CLAUDE-37 to CLAUDE-39 for image names. Revision 3: CLAUDE-41 and CLAUDE-42 (text chips, approved by the user on 2026-11-13 as CLAUDE-35 and CLAUDE-36 in feat/paste-chips) got new numbers, because main gave those numbers to other requirements. Revision 4: a link to the chip window and the open document in chat-chips.md, asked and approved by the user on 2026-11-17. Revision 5: the queue was CLAUDE-33, the same ID as a requirement of claude.md; it is now CLAUDE-66 (the user, 2026-11-17). Revision 6, asked and approved by the user on 2026-11-19: CLAUDE-28 keeps the commands of zendo, `/new` (ADR 0027)."
 ---
 
 # Chat
@@ -47,7 +47,10 @@ agent session runs, the question goes to it (see [Sessions](sessions.md)).
 **Slash commands.** zendo passes the slash commands of the agent through. The agent sends its
 list (ACP `available_commands_update`). `/` and the start of a name at the start of the input show
 the 4 best commands with their descriptions; the arrows choose, `tab` (or `enter` on a name that is
-not complete) takes one. The command goes to the agent as the user typed it.
+not complete) takes one. The command goes to the agent as the user typed it. zendo has commands of
+its own, which it does itself and does not send: `/new` ([Chat history](chat-history.md)). They show
+in the list with the commands of the agent, and win over a command of the agent with the same name
+([ADR 0027](../architecture/decisions/0027-zendo-slash-commands.md)).
 
 **Attachments.** When the user drops files on the terminal, or pastes their paths, the chat input
 gets one chip for each file: `[image name]` for an image, `[file name]` for any other file. `ctrl-v`
@@ -70,7 +73,7 @@ data when the agent takes images, and every other file as a link to it.
 | CLAUDE-36 | Event      | When the user presses `tab` in the chat input or the transcript after another key, a click, a paste, or a pause of 2 seconds, the system shall move the keys to the other pane of the two; when the user presses more `tab`s, the system shall move the focus around the panes and back into the chat at the pane where the `tab`s started. | User, 2026-11-13 |
 | CLAUDE-66 | Event      | When the user sends a question while the agent answers, the system shall show it in a queue under the answer, and send it when the turn ends. | User, 2026-11-12 |
 | CLAUDE-34 | Event      | When the user presses `esc` while the agent answers, the system shall stop the answer and put the queued questions back into the chat input. | User, 2026-11-12 |
-| CLAUDE-28 | Event      | When the user types `/` at the start of the chat input, the system shall show the slash commands of the agent that match, and send a command to the agent as the user typed it. | User, 2026-11-12 |
+| CLAUDE-28 | Event      | When the user types `/` at the start of the chat input, the system shall show the slash commands of the agent and of zendo that match, do a command of zendo itself, and send a command of the agent to the agent as the user typed it. | User, 2026-11-12; User, 2026-11-19 |
 | CLAUDE-18 | Optional   | Where the agent takes images, the system shall send an attached image as image data; otherwise as a link to the file.         | User, 2026-11-12 |
 | CLAUDE-19 | Event      | When the user presses `enter` after a `\` at the end of the chat input, the system shall replace the `\` with a new line.    | User, 2026-11-12 |
 | CLAUDE-20 | Ubiquitous | The system shall label a text chip with the first 15 chars of its text.                                 | User, 2026-11-12 |
