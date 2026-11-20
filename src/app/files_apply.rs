@@ -38,7 +38,7 @@ impl App {
 
     /// The thread and the session of a deleted file go with it.
     fn file_deleted(&mut self, key: String) {
-        self.state.take_session(&self.cfg.agent, &key);
+        self.state.forget_note(&key);
         self.state.save(&self.cfg.root);
         self.threads.remove(&key);
         self.scan_tree();
@@ -70,8 +70,7 @@ impl App {
     /// thread of a file follow its new path.
     fn keys_moved(&mut self, old: &Path, target: &Path) {
         let (ok, nk) = (self.rel(old), self.rel(target));
-        if let Some(id) = self.state.take_session(&self.cfg.agent, &ok) {
-            self.state.set_session(&self.cfg.agent, &nk, id);
+        if self.state.move_note(&ok, &nk) {
             self.state.save(&self.cfg.root);
         }
         self.rename_session_docs(old, target);

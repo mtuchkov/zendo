@@ -22,7 +22,7 @@ path = \"/n\" # the clone
 machine = \"m\"
 
 # my env
-[env]
+[profile_dirs]
 A = \"1\"
 ";
 
@@ -53,17 +53,17 @@ fn a_setting_goes_before_the_first_table() {
     assert_eq!(save(text, |c| c.sound = Some(false)), format!("sound = false\n{text}"));
 }
 
-// CMD-19: a setting in a table, as the notes repo or NODE_OPTIONS of `zendo setup`, changes only
+// CMD-19: a setting in a table, as the notes repo or a folder of `[profile_dirs]`, changes only
 // its line in the table; the comments of the table and the lines after it stay. With an error in
 // the file and without.
 #[test]
 fn a_setting_in_a_table_changes_one_line() {
     let machine = save(BROKEN, |c| c.notes.as_mut().unwrap().machine = "laptop".into());
     assert_eq!(machine, BROKEN.replace("machine = \"m\"", "machine = \"laptop\""));
-    let env = save(BROKEN, |c| drop(c.env.insert("NODE_OPTIONS".into(), "--use-system-ca".into())));
+    let env = save(BROKEN, |c| drop(c.profile_dirs.insert("NODE_OPTIONS".into(), "--use-system-ca".into())));
     assert_eq!(env, BROKEN.replace("A = \"1\"\n", "A = \"1\"\nNODE_OPTIONS = \"--use-system-ca\"\n"));
-    let good = "[env]\n# proxy for work\nHTTPS_PROXY = \"http://p\" # office\n";
-    let env = save(good, |c| drop(c.env.insert("NODE_OPTIONS".into(), "x".into())));
+    let good = "[profile_dirs]\n# proxy for work\nHTTPS_PROXY = \"http://p\" # office\n";
+    let env = save(good, |c| drop(c.profile_dirs.insert("NODE_OPTIONS".into(), "x".into())));
     assert_eq!(env, format!("{good}NODE_OPTIONS = \"x\"\n"));
 }
 
@@ -123,7 +123,7 @@ fn a_removed_setting_takes_its_lines() {
 // CMD-17: a file with CRLF line endings reads as one with LF, also after a save.
 #[test]
 fn crlf_reads_back() {
-    let text = "# c\r\nagent = \"a\"\r\nsound = true\r\n\r\n[env]\r\nA = \"1\"\r\n";
+    let text = "# c\r\nagent = \"a\"\r\nsound = true\r\n\r\n[profile_dirs]\r\nA = \"1\"\r\n";
     let (cfg, problems) = read_text(text);
     assert!(problems.is_empty(), "{problems:?}");
     assert_eq!((cfg.agent.as_deref(), cfg.sound), (Some("a"), Some(true)));
@@ -152,9 +152,9 @@ fn a_dotted_setting_changes_its_line() {
 // CMD-19: a key with a control character is written as valid TOML, and reads back.
 #[test]
 fn a_key_with_a_control_character_reads_back() {
-    let out = save("sound = tru\n", |c| drop(c.env.insert("A\u{1b}B".into(), "1".into())));
+    let out = save("sound = tru\n", |c| drop(c.profile_dirs.insert("A\u{1b}B".into(), "1".into())));
     let (cfg, problems) = read_text(&out);
-    assert_eq!(cfg.env.get("A\u{1b}B").map(String::as_str), Some("1"), "{out}");
+    assert_eq!(cfg.profile_dirs.get("A\u{1b}B").map(String::as_str), Some("1"), "{out}");
     assert_eq!(problems.len(), 1, "only the old line with an error: {problems:?}");
 }
 

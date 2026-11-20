@@ -37,8 +37,8 @@ pub fn result(out: &str) -> Result<String, String> {
 }
 
 /// True when `claude auth status` at `path` reports a login (NAMES-21).
-pub fn logged_in(path: &Path) -> bool {
-    let out = Command::new(path).args(["auth", "status"]).stdin(Stdio::null()).output();
+pub fn logged_in(path: &Path, env: &std::collections::BTreeMap<String, String>) -> bool {
+    let out = Command::new(path).envs(env).args(["auth", "status"]).stdin(Stdio::null()).output();
     out.ok().and_then(|o| serde_json::from_slice::<Value>(&o.stdout).ok()).is_some_and(|v| v["loggedIn"] == true)
 }
 
@@ -46,7 +46,7 @@ pub fn logged_in(path: &Path) -> bool {
 /// part.
 pub fn ask(api: &Api, prompt: &str, image: Option<&Image>) -> Result<String, String> {
     let blocks = content(prompt, image);
-    let spawn = Command::new(&api.path).args(args(&api.model, api.effort.as_deref())).current_dir(std::env::temp_dir()).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn();
+    let spawn = Command::new(&api.path).envs(&api.env).args(args(&api.model, api.effort.as_deref())).current_dir(std::env::temp_dir()).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn();
     let mut child = spawn.map_err(|e| format!("claude: {e}"))?;
     let sent = child.stdin.take().map(|mut i| i.write_all(input(&blocks).as_bytes()));
     let mut out = child.stdout.take().ok_or("claude: no output")?;

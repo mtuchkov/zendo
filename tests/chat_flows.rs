@@ -301,7 +301,7 @@ async fn the_first_tab_goes_to_the_sister_pane_of_the_chat() {
 
 /// The session ID that zendo keeps in the repository for the active thread.
 fn kept(a: &App) -> Option<String> {
-    zendo::setup::state::State::load(&a.cfg.root).session(&a.cfg.agent, &a.key())
+    zendo::setup::state::State::load(&a.cfg.root).session(&a.cfg.threads_key(), &a.key())
 }
 
 // CLAUDE-40: a session that the chat opens and that gets no question leaves no session ID, so the

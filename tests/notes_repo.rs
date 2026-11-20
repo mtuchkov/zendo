@@ -35,7 +35,8 @@ fn world(name: &str) -> World {
     git(&notes, &["config", "user.name", "t"]);
     git(&notes, &["checkout", "-q", "-B", "main"]);
     std::fs::create_dir_all(home.join(".zendo")).unwrap();
-    let cfg = format!("[notes]\npath = \"{}\"\nmachine = \"m1\"\nsync_seconds = 15\n", notes.display());
+    // The user trusts the repository (TRUST-3): the agent of `zendo notes` works in it.
+    let cfg = format!("trusted_dirs = [\"{}\"]\n\n[notes]\npath = \"{}\"\nmachine = \"m1\"\nsync_seconds = 15\n", base.display(), notes.display());
     std::fs::write(home.join(".zendo/config.toml"), cfg).unwrap();
     World { base, home, root, notes }
 }
@@ -107,7 +108,7 @@ fn consolidate_merges_the_folders_of_one_origin() {
 #[test]
 fn without_a_notes_repo_the_commands_say_how_to_turn_it_on() {
     let w = world("off");
-    std::fs::remove_file(w.home.join(".zendo/config.toml")).unwrap();
+    std::fs::write(w.home.join(".zendo/config.toml"), format!("trusted_dirs = [\"{}\"]\n", w.base.display())).unwrap();
     let (ok, out) = zendo(&w, &["notes", "move"]);
     assert!(!ok && out.contains("zendo setup --notes-repo"), "{out}");
     let _ = std::fs::remove_dir_all(&w.base);

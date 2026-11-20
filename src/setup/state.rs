@@ -192,6 +192,17 @@ impl State {
     pub fn take_session(&mut self, agent: &str, note: &str) -> Option<String> {
         self.threads.get_mut(agent).and_then(|m| m.remove(note))
     }
+    /// The file `note` is gone: its thread goes in every agent and every profile (PROFILE-10).
+    pub fn forget_note(&mut self, note: &str) {
+        self.threads.values_mut().for_each(|m| drop(m.remove(note)));
+    }
+    /// The file `old` is now `new`: its thread moves in every agent and every profile
+    /// (PROFILE-10). False when it had no thread.
+    pub fn move_note(&mut self, old: &str, new: &str) -> bool {
+        let moved = |m: &mut BTreeMap<String, String>| m.remove(old).map(|id| m.insert(new.to_string(), id)).is_some();
+        // Every map moves its thread, so no short circuit.
+        self.threads.values_mut().map(moved).filter(|m| *m).count() > 0
+    }
 
     pub fn file(&mut self, rel: &str) -> &mut FileState {
         self.files.entry(rel.to_string()).or_default()

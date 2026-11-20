@@ -8,7 +8,7 @@ impl App {
         }
         let log = state::dir(&self.cfg.root);
         let _ = std::fs::create_dir_all(&log);
-        let (h, rx) = agent::spawn(self.cfg.agent.clone(), self.cfg.agent_env.clone(), self.cfg.root.clone(), Some(log.join("agent.log")));
+        let (h, rx) = agent::spawn(self.cfg.agent.clone(), self.cfg.agent_env.vars.clone(), self.cfg.root.clone(), Some(log.join("agent.log")));
         self.link.connect(h, rx);
     }
 
@@ -52,7 +52,7 @@ impl App {
     /// messages, and the agent sends its slash commands.
     pub(crate) fn open_session(&mut self) {
         let key = self.key();
-        let known = self.state.session(&self.cfg.agent, &key);
+        let known = self.state.session(&self.cfg.threads_key(), &key);
         let t = self.thread(&key);
         if t.opened || t.session.is_some() {
             return;
@@ -119,7 +119,7 @@ impl App {
         if out.fresh {
             return self.dispatch_fresh(key, out);
         }
-        let known = self.state.session(&self.cfg.agent, &key);
+        let known = self.state.session(&self.cfg.threads_key(), &key);
         let t = self.thread(&key);
         t.push(Item::User(out.question));
         t.busy = Some(Instant::now());

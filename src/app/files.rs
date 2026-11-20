@@ -121,7 +121,8 @@ impl App {
             self.save();
         }
         if self.flash.as_ref().is_some_and(|(_, t)| t.elapsed() > Duration::from_secs(4)) {
-            self.flash = None;
+            // The next message that waits, if there is one (ENV-7).
+            self.flash = self.said_later.pop_front().map(|m| (m, Instant::now()));
         }
     }
 

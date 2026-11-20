@@ -102,10 +102,12 @@ fn gitignore_change(root: &Path) -> Option<Change> {
     change("gitignore", path, text, format!(".gitignore: git ignores {IGNORED}, the local state of zendo"))
 }
 
-/// The files of instructions of the user: `CLAUDE.md` of Claude Code and `AGENTS.md` of Codex.
-pub(super) fn user_files() -> [PathBuf; 2] {
+/// The files of instructions of the user: `CLAUDE.md` of Claude Code and `AGENTS.md` of Codex, in
+/// the config folders that the agents of this run use: the folders of the profile, else the
+/// folders by default.
+pub(super) fn user_files(env: &BTreeMap<String, String>) -> [PathBuf; 2] {
     let home = PathBuf::from(std::env::var_os("HOME").unwrap_or_default());
-    let dir = |var: &str, name: &str| std::env::var_os(var).filter(|v| !v.is_empty()).map(PathBuf::from).unwrap_or_else(|| home.join(name));
+    let dir = |var: &str, name: &str| agent_var(env, var).map(PathBuf::from).unwrap_or_else(|| home.join(name));
     [dir("CLAUDE_CONFIG_DIR", ".claude").join("CLAUDE.md"), dir("CODEX_HOME", ".codex").join("AGENTS.md")]
 }
 

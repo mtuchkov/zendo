@@ -21,8 +21,27 @@ fn starts(d: &Path) -> Vec<String> {
     std::fs::read_to_string(d.join("log")).unwrap_or_default().split("\n---\n").filter(|s| !s.trim().is_empty()).map(String::from).collect()
 }
 
+/// No variables over the environment of zendo.
+static NO_ENV: BTreeMap<String, String> = BTreeMap::new();
+
 fn session<'a>(d: &'a Path, recipes: &'a Path) -> Session<'a> {
-    Session { program: "claude", recipes, terminal: "test-term", cwd: d }
+    Session { program: "claude", recipes, terminal: "test-term", cwd: d, env: &NO_ENV }
+}
+
+// ENV-1, PROFILE-7: the agent that writes the font recipe starts with the agent environment, so it
+// uses the account of the profile.
+#[test]
+fn the_agent_of_the_font_recipe_gets_the_agent_env() {
+    let d = folder("env");
+    let agent = d.join("probe");
+    std::fs::write(&agent, format!("#!/bin/sh\nprintf '%s' \"$CLAUDE_CONFIG_DIR\" > '{}'\n", d.join("seen").display())).unwrap();
+    std::fs::set_permissions(&agent, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let env = BTreeMap::from([("CLAUDE_CONFIG_DIR".to_string(), "/of-work".to_string())]);
+    let recipes = d.join("terminal-fonts.toml");
+    let s = Session { env: &env, ..session(&d, &recipes) };
+    s.start(&Out::new(), &|_| Some(agent.clone())).unwrap();
+    assert_eq!(std::fs::read_to_string(d.join("seen")).unwrap(), "/of-work");
+    let _ = std::fs::remove_dir_all(&d);
 }
 
 // FONT-22, FONT-26, FONT-27, FONT-28: no question and no agent without a terminal; no agent after
@@ -86,5 +105,16 @@ fn doctor_checks_the_recipe_and_repairs_it_with_claude() {
     assert!(recipe_doctor(&Out::new(), &s, true, &found), "the agent repaired it");
     assert_eq!(starts(&d).len(), 1);
     assert!(recipe_doctor(&Out::new(), &session(&d, &d.join("none.toml")), false, &found), "no recipe is no failure");
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+// ENV-1: zendo looks for the program of the agent on the PATH of the agent environment.
+#[test]
+fn the_program_of_the_agent_is_on_the_path_of_the_agent_env() {
+    let d = folder("path");
+    std::fs::write(d.join("zendo-test-agent"), "").unwrap();
+    let env = BTreeMap::from([("PATH".to_string(), d.display().to_string())]);
+    assert_eq!(find_program(&env, "zendo-test-agent"), Some(d.join("zendo-test-agent")));
+    assert_eq!(find_program(&NO_ENV, "zendo-test-agent"), None);
     let _ = std::fs::remove_dir_all(&d);
 }

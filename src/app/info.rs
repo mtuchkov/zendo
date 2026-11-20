@@ -136,6 +136,15 @@ impl App {
         self.flash = Some((s.into(), Instant::now()));
     }
 
+    /// Show `messages` one after another, each for the time of a flash, so that no message hides
+    /// another (ENV-7).
+    pub fn flash_each(&mut self, messages: impl IntoIterator<Item = String>) {
+        self.said_later.extend(messages);
+        if self.flash.is_none() {
+            self.flash = self.said_later.pop_front().map(|m| (m, Instant::now()));
+        }
+    }
+
     /// The width of the text column: the one of this repository, else the one of the config.
     pub fn column_width(&self) -> u16 {
         self.state.column.unwrap_or(self.width_default)

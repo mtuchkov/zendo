@@ -33,7 +33,7 @@ impl App {
     pub(crate) fn start_cli(&mut self, n: usize, prompt: Option<&str>) {
         let Some(cmd) = self.handoff_cli() else { return };
         let key = session_key(n);
-        let id = self.threads.get(&key).and_then(|t| t.session.clone()).or_else(|| self.state.session(&self.cfg.agent, &key));
+        let id = self.threads.get(&key).and_then(|t| t.session.clone()).or_else(|| self.state.session(&self.cfg.threads_key(), &key));
         let Some(id) = id else {
             return self.flash("no thread yet: ask something first");
         };

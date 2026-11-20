@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, bail};
+use anyhow::{Result, bail};
 use zendo::app::{App, Config};
 use zendo::setup::config::{self, UserConfig};
 use zendo::setup::doctor;
@@ -6,13 +6,15 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tokio::sync::mpsc;
 
-const HELP: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/help.txt"));
+#[path = "main_args.rs"]
+mod args;
+use args::{HELP, read_args};
 
 enum Run {
     Tui(Config),
     Setup(doctor::Paths, Option<String>, Option<String>),
     /// `zendo setup fonts` (FONT-7).
-    Fonts,
+    Fonts(config::AgentEnv),
     Notes(doctor::Paths, Option<String>, String),
     Init(doctor::Paths, Option<String>),
     Doctor(doctor::Paths, Option<String>, doctor::DoctorFlags),
@@ -33,86 +35,11 @@ fn repo_root(start: &Path, home: Option<&Path>) -> PathBuf {
     }
 }
 
-/// The command line.
-#[derive(Default)]
-struct Args {
-    sub: &'static str,
-    notes: String,
-    notes_set: bool,
-    agent: Option<String>,
-    live: bool,
-    fix: bool,
-    with_agent: bool,
-    offline: bool,
-    notes_repo: Option<String>,
-    action: String,
-    fonts: bool,
-}
-
-fn read_args() -> Result<Args> {
-    let mut o = Args { notes: std::env::var("ZENDO_NOTES").unwrap_or_else(|_| "docs/notes".into()), notes_set: std::env::var("ZENDO_NOTES").is_ok(), ..Default::default() };
-    let mut args = std::env::args().skip(1).peekable();
-    if let Some(first) = args.peek() {
-        o.sub = match first.as_str() {
-            "setup" => "setup",
-            "init" => "init",
-            "doctor" => "doctor",
-            "upgrade" => "upgrade",
-            "keymap" => "keymap",
-            "notes" => "notes",
-            _ => "",
-        };
-        if !o.sub.is_empty() {
-            args.next();
-        }
-    }
-    let sub = o.sub;
-    while let Some(a) = args.next() {
-        match a.as_str() {
-            "--live" if sub == "doctor" => o.live = true,
-            "--fix" if sub == "doctor" => o.fix = true,
-            "--agent" if sub == "doctor" => o.with_agent = true,
-            "--force" if sub == "upgrade" => o.live = true,
-            "--offline" if sub.is_empty() => o.offline = true,
-            "-V" | "--version" | "version" => {
-                println!("{}", doctor::version_line());
-                std::process::exit(0);
-            }
-            "-h" | "--help" => {
-                println!("{HELP}");
-                std::process::exit(0);
-            }
-            "--notes" => {
-                o.notes = args.next().context("--notes needs a folder")?;
-                o.notes_set = true;
-            }
-            "fonts" if sub == "setup" && !o.fonts => o.fonts = true,
-            "--notes-repo" if sub == "setup" => o.notes_repo = Some(args.next().context("--notes-repo needs a folder or a git URL")?),
-            "move" | "consolidate" if sub == "notes" && o.action.is_empty() => o.action = a.clone(),
-            "--agent-cmd" => o.agent = Some(args.next().context("--agent-cmd needs a command")?),
-            "--agent" => bail!("`--agent CMD` is now `--agent-cmd CMD`\n\n{HELP}"),
-            "--mock" => o.agent = Some(mock_agent()?),
-            other => bail!("unknown argument: {other}\n\n{HELP}"),
-        }
-    }
-    Ok(o)
-}
-
-/// The mock agent next to this binary.
-fn mock_agent() -> Result<String> {
-    let exe = std::env::current_exe()?;
-    let mock = exe.with_file_name(format!("zendo-mock-agent{}", std::env::consts::EXE_SUFFIX));
-    if !mock.exists() {
-        bail!("mock agent not found next to zendo: {}", mock.display());
-    }
-    Ok(config::quote(&mock))
-}
-
 fn parse() -> Result<Run> {
     let cwd = std::env::current_dir()?;
     let home = std::env::var_os("HOME").filter(|h| !h.is_empty()).map(PathBuf::from);
     let root = repo_root(&cwd, home.as_deref());
-    for (old, new) in config::move_old_folders(&root) {
+    if let Some((old, new)) = config::old_config_to_toml() {
         eprintln!("zendo: moved {} to {}", old.display(), new.display());
     }
     let a = read_args()?;
@@ -123,14 +50,33 @@ fn parse() -> Result<Run> {
         Some(n) => n.location(&root),
         None => repo_notes.clone(),
     };
-    let paths = doctor::Paths { root: root.clone(), notes_dir: notes_dir.clone(), repo_notes };
-    Ok(match a.sub {
-        "setup" if a.fonts => Run::Fonts,
-        "setup" => Run::Setup(paths, a.agent, a.notes_repo),
+    // One agent environment for the whole run, after the question about the trust (TRUST-2); a
+    // profile that is not there stops zendo (PROFILE-3).
+    match a.sub {
         "notes" if a.action.is_empty() => bail!("zendo notes needs move or consolidate\n\n{HELP}"),
+        "doctor" if a.with_agent && !a.fix => bail!("--agent needs --fix\n\n{HELP}"),
+        _ => {}
+    }
+    // `zendo init` reads no `.envrc` and starts no agent, so it needs no agent environment.
+    let env = match a.sub {
+        "upgrade" | "keymap" | "init" => config::AgentEnv::default(),
+        sub => {
+            let cmd = config::trust::Command { checks: matches!(sub, "doctor" | "setup"), saves: sub != "doctor" || a.fix };
+            run_env(&user, &cwd, home.as_deref(), a.profile.as_deref(), cmd)?
+        }
+    };
+    // TRUST-6: without the trust, no program of the checks starts in the folder: an agent, npm and
+    // npx take settings and programs from the folder where they start.
+    if env.untrusted.is_some() {
+        let dir = config::data_dir();
+        std::fs::create_dir_all(&dir).and_then(|()| std::env::set_current_dir(&dir)).map_err(|e| anyhow::anyhow!("cannot work in {}: {e}", dir.display()))?;
+    }
+    let paths = doctor::Paths { root: root.clone(), notes_dir: notes_dir.clone(), repo_notes, env: env.clone() };
+    Ok(match a.sub {
+        "setup" if a.fonts => Run::Fonts(env),
+        "setup" => Run::Setup(paths, a.agent, a.notes_repo),
         "notes" => Run::Notes(paths, a.agent, a.action),
         "init" => Run::Init(paths, a.agent),
-        "doctor" if a.with_agent && !a.fix => bail!("--agent needs --fix\n\n{HELP}"),
         "doctor" => Run::Doctor(paths, a.agent, doctor::DoctorFlags { live: a.live, fix: a.fix, agent: a.with_agent }),
         "upgrade" => Run::Upgrade(a.live),
         "keymap" => {
@@ -139,9 +85,19 @@ fn parse() -> Result<Run> {
         }
         _ => {
             let (agent, _) = config::resolve_agent(a.agent, &user);
-            Run::Tui(Config { root, notes_dir, agent, agent_env: config::agent_env(&user), offline: a.offline, notes_repo: notes_cfg, user_config: config::config_path() })
+            Run::Tui(Config { root, notes_dir, agent, agent_env: env, offline: a.offline, notes_repo: notes_cfg, user_config: config::config_path() })
         }
     })
+}
+
+/// The agent environment of this run of the command `cmd`. zendo asks about the trust only in a
+/// terminal (TRUST-2).
+fn run_env(user: &UserConfig, dir: &Path, home: Option<&Path>, profile: Option<&str>, cmd: config::trust::Command) -> Result<config::AgentEnv> {
+    use std::io::IsTerminal;
+    let (stdin, mut err) = (std::io::stdin(), std::io::stderr());
+    let mut input = stdin.lock();
+    let terminal = (stdin.is_terminal() && err.is_terminal()).then_some(config::trust::Terminal { input: &mut input, out: &mut err });
+    config::trust::run_env(user, (&config::config_path(), home), dir, profile, cmd, terminal).map_err(anyhow::Error::msg)
 }
 
 /// `zendo board watch --session N [--for ID] [--timeout S]`: the watch of the board (BOARD-20).
@@ -182,7 +138,7 @@ async fn main() -> Result<()> {
     let cfg = match parse()? {
         Run::Tui(cfg) => cfg,
         Run::Setup(paths, agent, notes_repo) => std::process::exit(if doctor::setup(&paths, agent, notes_repo).await { 0 } else { 1 }),
-        Run::Fonts => std::process::exit(if doctor::setup_fonts() { 0 } else { 1 }),
+        Run::Fonts(env) => std::process::exit(if doctor::setup_fonts(&env) { 0 } else { 1 }),
         Run::Notes(paths, agent, action) => std::process::exit(if doctor::notes(&paths, agent, &action).await { 0 } else { 1 }),
         Run::Init(paths, agent) => std::process::exit(if doctor::init(&paths, agent) { 0 } else { 1 }),
         Run::Doctor(paths, agent, flags) => std::process::exit(if doctor::doctor(&paths, agent, flags).await { 0 } else { 1 }),
@@ -235,7 +191,7 @@ async fn open_app(cfg: Config) -> Result<App> {
     } else {
         let log = zendo::setup::state::dir(&cfg.root);
         let _ = std::fs::create_dir_all(&log);
-        match doctor::preflight(&cfg.agent, &cfg.agent_env, &cfg.root, log.join("agent.log")).await {
+        match doctor::preflight(&cfg.agent, &cfg.agent_env.vars, &cfg.root, log.join("agent.log")).await {
             Some(l) => Some(l),
             None => std::process::exit(1),
         }
@@ -261,18 +217,22 @@ async fn open_app(cfg: Config) -> Result<App> {
     let stats = zendo::setup::config::UserConfig::load().stats();
     (app.telemetry, app.responsiveness) = (zendo::telemetry::Telemetry::for_process(stats), zendo::responsiveness::Responsiveness::for_process(stats));
     app.keys.legacy = !zendo::tui::kitty();
-    if !app.key_help.problems().is_empty() {
-        app.flash(format!("[keys] {} problem(s) · zendo doctor", app.key_help.problems().len()));
-    }
-    if old_notes > 0 {
-        app.flash(format!("{old_notes} note(s) in docs/notes are not in your notes repo · zendo notes move"));
-    }
+    let said = start_notices(app.key_help.problems().len(), &app.cfg.agent_env.problems, old_notes);
+    app.flash_each(said);
     app.update.watch(update_rx);
     if let Some(l) = live {
         app.link.connect(l.handle, l.events);
         app.link.set_name(l.name);
     }
     Ok(app)
+}
+
+/// What zendo says once at the start, a message for each problem: of the keys, of the agent
+/// environment, and the notes outside the notes repo. zendo shows them one after another (ENV-7).
+fn start_notices(keys: usize, env: &[String], old_notes: usize) -> Vec<String> {
+    let keys = (keys > 0).then(|| format!("[keys] {keys} problem(s) · zendo doctor"));
+    let notes = (old_notes > 0).then(|| format!("{old_notes} note(s) in docs/notes are not in your notes repo · zendo notes move"));
+    keys.into_iter().chain(env.iter().cloned()).chain(notes).collect()
 }
 
 /// `U` in the app: upgrade, then start the new zendo in place of this one, with the same arguments.

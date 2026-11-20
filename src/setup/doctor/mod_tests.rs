@@ -92,3 +92,24 @@ fn the_help_shows_the_details_of_the_version_only_for_a_build_with_changes() {
 fn an_upgrade_ends_with_doctor_fix() {
     assert_eq!(AFTER_UPGRADE, ["doctor", "--fix"]);
 }
+
+// ENV-5: an agent that starts after `zendo setup` saved `system_ca` gets the system CA in the same
+// run; without the setting, the agent environment as it is.
+#[test]
+fn the_system_ca_of_the_config_counts_in_the_same_run() {
+    let paths = Paths { root: PathBuf::new(), notes_dir: PathBuf::new(), repo_notes: PathBuf::new(), env: Default::default() };
+    let on = UserConfig { system_ca: Some(true), ..Default::default() };
+    assert!(agent_vars(&on, &paths)["NODE_OPTIONS"].contains(SYSTEM_CA));
+    assert!(!agent_vars(&UserConfig::default(), &paths).contains_key("NODE_OPTIONS"));
+}
+
+// ENV-1: the checks of the network and of the login look at the agent environment: a CA file and
+// an API key that only a profile sets count.
+#[test]
+fn the_checks_look_at_the_agent_environment() {
+    let env = BTreeMap::from([("NODE_EXTRA_CA_CERTS".to_string(), "/zendo-no-such/ca.pem".to_string()), ("ANTHROPIC_API_KEY".to_string(), "k".to_string())]);
+    let mut o = Out::new();
+    checks::check_network(&env, &mut o);
+    assert!(o.failed, "the CA file of the agent environment is missing");
+    assert!(has_api_key(&env));
+}

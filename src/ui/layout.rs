@@ -117,14 +117,19 @@ pub(crate) fn draw_top(f: &mut Frame, app: &mut App, fr: &mut Cache, t: &Theme, 
         Some(b) => format!("{b} · {left}"),
         None => left,
     };
-    f.render_widget(Paragraph::new(Line::from(vec![Span::raw("  "), Span::raw(left.clone())])).style(Style::new().fg(t.dim)), area);
+    // PROFILE-8: the profile of the agents stands first, as the badge of the pane in the status bar.
+    let badge = app.cfg.agent_env.profile.as_ref().map(|p| format!(" {p} "));
+    let lead = badge.as_ref().map_or(0, |b| b.width() + 2);
+    let badge = badge.map(|b| [Span::styled(b, Style::new().bg(t.ext.doc).fg(t.bg).add_modifier(Modifier::BOLD)), Span::raw("  ")]);
+    let spans = [Span::raw("  ")].into_iter().chain(badge.into_iter().flatten()).chain([Span::raw(left.clone())]);
+    f.render_widget(Paragraph::new(Line::from(spans.collect::<Vec<_>>())).style(Style::new().fg(t.dim)), area);
     let right = draw_top_right(f, app, fr, t, area);
 
     // CMD-11: a newer zendo shows as a message and the upgrade button, left of the other buttons.
     if app.update.latest().is_some() && matches!(app.mode, Mode::Read | Mode::Write) {
         let w = (UPGRADE_HINT.width() + 1 + UPGRADE.width()) as u16;
         let x = area.right().saturating_sub(right + 5 + w);
-        if x > area.x + left.width() as u16 + 4 {
+        if x > area.x + (lead + left.width()) as u16 + 4 {
             let line = Line::from(vec![Span::styled(format!("{UPGRADE_HINT} "), Style::new().fg(t.acc)), Span::styled(UPGRADE, switch(t, true))]);
             f.render_widget(Paragraph::new(line), Rect { x, width: w, ..area });
             let b = UPGRADE.width() as u16;

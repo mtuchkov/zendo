@@ -85,7 +85,7 @@ async fn the_spec_task_goes_to_the_lowest_free_session() {
     a.focus = Focus::Claude;
     typ(&mut a, "first question");
     key(&mut a, KeyCode::Enter);
-    until(&mut a, |a| a.threads.values().all(|t| t.busy.is_none()) && a.state.session(&a.cfg.agent, &session_key(0)).is_some()).await;
+    until(&mut a, |a| a.threads.values().all(|t| t.busy.is_none()) && a.state.session(&a.cfg.threads_key(), &session_key(0)).is_some()).await;
     a.switch_session(1);
     a.focus = Focus::Claude;
     typ(&mut a, "draft");

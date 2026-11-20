@@ -14,7 +14,7 @@ impl App {
     /// the old one goes (HISTORY-2, NAMES-4).
     pub(crate) fn fresh_thread(&mut self, key: &str) {
         self.link.send(Cmd::Forget { key: key.to_string() });
-        if let Some(id) = self.state.take_session(&self.cfg.agent, key) {
+        if let Some(id) = self.state.take_session(&self.cfg.threads_key(), key) {
             self.state.names.remove(&id);
         }
         self.state.save(&self.cfg.root);

@@ -27,3 +27,13 @@ fn repo_root_outside_a_repo_is_the_home_folder() {
     }
     let _ = std::fs::remove_dir_all(&d);
 }
+
+// ENV-7: the start has a message for the problems of the keys, for each problem of the agent
+// environment, and for the notes outside the notes repo; zendo shows them one after another.
+#[test]
+fn the_start_has_a_message_for_each_problem() {
+    let said = super::start_notices(2, &["/r/.envrc: zendo skipped line 5".to_string()], 3);
+    assert_eq!(said.len(), 3, "{said:?}");
+    assert!(said[0].contains("[keys] 2 problem(s)") && said[1].contains("skipped line 5") && said[2].contains("3 note(s)"), "{said:?}");
+    assert!(super::start_notices(0, &[], 0).is_empty());
+}

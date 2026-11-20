@@ -32,7 +32,7 @@ pub struct Asked {
 impl App {
     /// The session ID of the Claude session of agent session `n`.
     fn claude_session(&self, n: usize) -> Option<String> {
-        self.state.session(&self.cfg.agent, &session_key(n))
+        self.state.session(&self.cfg.threads_key(), &session_key(n))
     }
 
     /// The name of agent session `n`, if its Claude session has one (NAMES-3).
@@ -136,7 +136,7 @@ impl App {
         if let Some(name) = name {
             self.state.names.insert(id.clone(), name);
         }
-        self.state.set_session(&self.cfg.agent, &key, id.clone());
+        self.state.set_session(&self.cfg.threads_key(), &key, id.clone());
         self.state.save(&self.cfg.root);
         let t = self.thread(&key);
         t.session = Some(id);

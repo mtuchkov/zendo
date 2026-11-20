@@ -21,8 +21,9 @@ pub async fn doctor(paths: &Paths, agent_flag: Option<String>, flags: DoctorFlag
     // After an upgrade, `--fix` runs anywhere: outside a repository its checks are no failures.
     let ok = checks(paths, agent_flag, flags.live, flags.fix, &mut o).await && repaired;
     // The font recipe of this terminal: a broken one names the repair, and is no failure of doctor.
-    fonts::with_session(|s| fonts::recipe_doctor(&o, s, flags.fix && flags.agent, &fonts::find_program));
-    let pending: Vec<Change> = user_changes(&user_files()).into_iter().chain(project_changes(&paths.root, &agent)).collect();
+    let env = agent_vars(&UserConfig::load(), paths);
+    fonts::with_session(&env, |s| fonts::recipe_doctor(&o, s, flags.fix && flags.agent, &|name| fonts::find_program(&env, name)));
+    let pending: Vec<Change> = user_changes(&user_files(&paths.env.vars)).into_iter().chain(project_changes(&paths.root, &agent)).collect();
     for c in &pending {
         o.warn(c.label, format!("not up to date: {}", c.what));
     }
@@ -45,8 +46,8 @@ pub async fn doctor(paths: &Paths, agent_flag: Option<String>, flags: DoctorFlag
 /// repository (CMD-15); with `claude`, the rest of the structure file goes to Claude.
 async fn repair(paths: &Paths, agent_flag: Option<String>, agent: &str, claude: bool, o: &mut Out) -> bool {
     // An agent command of the user is not the pinned adapter: zendo installs nothing for it.
-    let adapter = agent_flag.is_some() || fix_adapter(o).await;
-    apply(user_changes(&user_files()), o);
+    let adapter = agent_flag.is_some() || fix_adapter(paths, o).await;
+    apply(user_changes(&user_files(&paths.env.vars)), o);
     apply(project_changes(&paths.root, agent), o);
     let structure = match structure_problem(&paths.root) {
         Some(problem) => fix_structure(paths, agent_flag, problem, claude, o).await || !claude,
@@ -57,16 +58,17 @@ async fn repair(paths: &Paths, agent_flag: Option<String>, agent: &str, claude: 
 
 pub(super) async fn checks(paths: &Paths, agent_flag: Option<String>, live: bool, quiet_outside_repo: bool, o: &mut Out) -> bool {
     let cfg = UserConfig::load();
-    let env = config::agent_env(&cfg);
+    let env = agent_vars(&cfg, paths);
     check_repo(paths, &cfg, quiet_outside_repo, o);
+    check_agent_env(&paths.env, o);
     check_settings(&cfg, o);
     check_music(&cfg, o);
     check_structure(paths, o);
     let (cmd, source) = check_config(&cfg, agent_flag, o);
-    check_network(o);
+    check_network(&env, o);
     check_node(&cmd, source, &env, o).await;
     let handoff = handoff_key(&cfg);
-    let kind = check_adapter(&cmd, source, &handoff, o);
+    let kind = check_adapter(&cmd, source, &env, &handoff, o);
     check_claude(kind, &env, &handoff, o).await;
     if let Some((h, mut rx)) = handshake(paths, &cmd, source, &env, o).await {
         if live {
@@ -171,8 +173,8 @@ fn check_config(cfg: &UserConfig, agent_flag: Option<String>, o: &mut Out) -> (S
     if !problems.is_empty() {
         o.hint("zendo reads every other setting. Fix these lines by hand.");
     } else if cpath.exists() {
-        let keys: Vec<String> = cfg.env.iter().map(|(k, v)| format!("{k}={v}")).collect();
-        o.ok("config", format!("{}{}", cpath.display(), if keys.is_empty() { String::new() } else { format!(" · {}", keys.join(" ")) }));
+        let names: Vec<&str> = cfg.profiles.keys().map(String::as_str).collect();
+        o.ok("config", format!("{}{}", cpath.display(), if names.is_empty() { String::new() } else { format!(" · profiles: {}", names.join(", ")) }));
     } else {
         o.warn("config", format!("{} not found (run `zendo setup`)", cpath.display()));
     }
@@ -183,11 +185,11 @@ fn check_config(cfg: &UserConfig, agent_flag: Option<String>, o: &mut Out) -> (S
     (cmd, source)
 }
 
-fn check_network(o: &mut Out) {
-    // Environment that changes how Node and npm connect.
+pub(super) fn check_network(env: &BTreeMap<String, String>, o: &mut Out) {
+    // The variables of the agents that change how Node and npm connect (ENV-1).
     let mut net = Vec::new();
     for k in ["HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "NO_PROXY", "NODE_OPTIONS", "NODE_EXTRA_CA_CERTS"] {
-        if let Ok(v) = std::env::var(k) {
+        if let Some(v) = agent_var(env, k).map(|v| v.to_string_lossy().into_owned()) {
             let shown = if k.contains("PROXY") || k.contains("proxy") { "set".to_string() } else { v.clone() };
             net.push(format!("{k}={shown}"));
             if k == "NODE_EXTRA_CA_CERTS" && !Path::new(&v).exists() {
@@ -215,4 +217,25 @@ pub(super) fn explain_log(o: &Out, log: &Path) {
         o.hint("The agent command was not found. Run `zendo setup`, or check --agent.");
     }
     o.more(format!("full log: {}", log.display()));
+}
+
+/// The profile of this run and the lines of `.envrc` that zendo skipped (PROFILE-7, ENV-7).
+fn check_agent_env(env: &config::AgentEnv, o: &mut Out) {
+    match &env.profile {
+        Some(p) => o.ok("profile", format!("{p}: {}", env.vars.keys().cloned().collect::<Vec<_>>().join(" "))),
+        None if env.vars.is_empty() => {}
+        None => o.ok("agent env", env.vars.keys().cloned().collect::<Vec<_>>().join(" ")),
+    }
+    agent_env_warnings(env, o);
+}
+
+/// What zendo says about the agent environment: the folder that is not trusted (TRUST-6), the
+/// skipped lines of `.envrc` (ENV-7), the profile that is not there (PROFILE-3).
+pub(super) fn agent_env_warnings(env: &config::AgentEnv, o: &mut Out) {
+    if let Some(said) = &env.untrusted {
+        o.warn("trust", said);
+    }
+    for p in &env.problems {
+        o.warn("agent env", p);
+    }
 }

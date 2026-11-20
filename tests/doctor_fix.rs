@@ -12,7 +12,15 @@ fn repo(name: &str) -> (PathBuf, PathBuf) {
     std::fs::create_dir_all(root.join("docs")).unwrap();
     std::fs::create_dir_all(root.join(".git")).unwrap();
     std::fs::write(root.join("README.md"), "# readme\n").unwrap();
+    trust(&base.join("home"), &base);
     (root, base.join("home"))
+}
+
+/// The user trusts `folder` (TRUST-3): the agent of the checks and of `--fix --agent` works in the
+/// repository.
+fn trust(home: &Path, folder: &Path) {
+    std::fs::create_dir_all(home.join(".zendo")).unwrap();
+    std::fs::write(home.join(".zendo/config.toml"), format!("trusted_dirs = [\"{}\"]\n", folder.display())).unwrap();
 }
 
 fn doctor(root: &Path, home: &Path, args: &[&str]) -> (bool, String) {

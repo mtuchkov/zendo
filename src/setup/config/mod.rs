@@ -1,11 +1,16 @@
 //! User config in `~/.zendo/config.toml`, written by `zendo setup`; the user can edit it.
 
+mod agent_env;
+mod envrc;
 mod keys_write;
 mod paths;
 mod profile;
 mod read;
+pub mod trust;
 mod write;
 
+pub use agent_env::{AgentEnv, SYSTEM_CA, add_system_ca, main_checkout, select_profile};
+pub use envrc::read_envrc;
 pub use keys_write::write_keys;
 pub use paths::*;
 pub use profile::*;
@@ -25,9 +30,19 @@ pub struct UserConfig {
     /// ACP agent command. Empty means: the installed adapter, else npx.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agent: Option<String>,
-    /// Extra environment for the agent and for npm, e.g. NODE_OPTIONS.
+    /// The variables of the agents, for each profile: `[profiles.work]` (PROFILE-1, PROFILE-5).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    pub env: BTreeMap<String, String>,
+    pub profiles: BTreeMap<String, BTreeMap<String, String>>,
+    /// The profile of the repositories in a folder: `"~/src/work" = "work"` (PROFILE-2).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub profile_dirs: BTreeMap<String, String>,
+    /// The folders that the user trusts, each with the folders in it (TRUST-3).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub trusted_dirs: Vec<String>,
+    /// Node.js uses the CA certificates of the system: `zendo setup` saves it when the npm registry
+    /// works only with them (ENV-5).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub system_ca: Option<bool>,
     /// A keymap file of the user, as `~/.zendo/keymap.toml`: its keys go in place of the defaults.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub keymap: Option<String>,
@@ -104,9 +119,6 @@ impl NotesRepo {
         Ok(dir)
     }
 }
-
-/// The old name of zendo. Its folders move to the new names once, on the first run.
-const OLD_NAME: &str = "dawn";
 
 const CONFIG_HEAD: &str = "# zendo config. `zendo setup` writes it, and you can edit it.\n\n";
 
@@ -264,19 +276,6 @@ pub fn resolve_agent(flag: Option<String>, cfg: &UserConfig) -> (String, Source)
         Some(p) => p.command(),
         None => (value, source),
     }
-}
-
-/// The config env merged over the process env, NODE_OPTIONS appended rather than replaced.
-pub fn agent_env(cfg: &UserConfig) -> BTreeMap<String, String> {
-    let mut env = cfg.env.clone();
-    if let (Some(extra), Ok(now)) = (env.get("NODE_OPTIONS").cloned(), std::env::var("NODE_OPTIONS")) {
-        if !now.contains(&extra) {
-            env.insert("NODE_OPTIONS".into(), format!("{now} {extra}"));
-        } else {
-            env.insert("NODE_OPTIONS".into(), now);
-        }
-    }
-    env
 }
 
 #[cfg(test)]

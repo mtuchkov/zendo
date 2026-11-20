@@ -27,7 +27,7 @@ impl Asked {
 impl MockClaude {
     /// The light model at the mock, with the model of the short name `short`.
     pub fn api(&self, short: &str) -> Api {
-        Api { path: self.path.clone(), model: api_model(short), effort: None }
+        Api { path: self.path.clone(), model: api_model(short), effort: None, env: Default::default() }
     }
 
     /// The questions so far, in their order.

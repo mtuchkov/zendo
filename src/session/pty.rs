@@ -63,15 +63,17 @@ fn nz(n: u16) -> NonZeroU16 {
 }
 
 impl Cli {
-    /// Start `cmd`, then `id`, in `cwd`, on a screen of `size`. Only Claude Code gets the hooks; a
-    /// tool without them has its state from the activity of its terminal (CODEXCLI-2, CODEXCLI-3).
-    pub fn spawn(cmd: &Command, resume: Resume, cwd: &Path, dir: &Path, n: usize, size: (u16, u16), notify: Arc<tokio::sync::Notify>) -> std::io::Result<Cli> {
+    /// Start `cmd`, then `id`, in `cwd`, on a screen of `size`, with the variables of the agents
+    /// `env` (ENV-1). Only Claude Code gets the hooks; a tool without them has its state from the
+    /// activity of its terminal (CODEXCLI-2, CODEXCLI-3).
+    pub fn spawn((cmd, env): (&Command, &std::collections::BTreeMap<String, String>), resume: Resume, cwd: &Path, dir: &Path, n: usize, size: (u16, u16), notify: Arc<tokio::sync::Notify>) -> std::io::Result<Cli> {
         std::fs::create_dir_all(dir)?;
         let state_file = dir.join(format!("{}.state", n + 1));
         let _ = std::fs::remove_file(&state_file);
         let messages = dir.join(format!("{}.messages", n + 1));
         let _ = std::fs::remove_file(&messages);
         let mut b = CommandBuilder::new(&cmd.program);
+        env.iter().for_each(|(k, v)| b.env(k, v));
         if cmd.claude {
             claude_options(&mut b, dir, n, &state_file, &messages)?;
         }
@@ -90,11 +92,12 @@ impl Cli {
         self.inbox.as_mut().map(Inbox::take).unwrap_or_default()
     }
 
-    /// Start the shell `program` of a terminal in `cwd`, with `home` as the home directory if it is
-    /// given (TERM-12). The shell starts as it is: zendo gives it no startup file and no variable for
-    /// its startup files (TERM-55).
-    pub fn spawn_shell(program: &str, cwd: &Path, home: Option<&Path>, size: (u16, u16), notify: Arc<tokio::sync::Notify>) -> std::io::Result<Cli> {
+    /// Start the shell `program` of a terminal in `cwd`, with the variables of the agents `env`
+    /// (ENV-1) and with `home` as the home directory if it is given (TERM-12). The shell starts as it
+    /// is: zendo gives it no startup file and no variable for its startup files (TERM-55).
+    pub fn spawn_shell((program, env): (&str, &std::collections::BTreeMap<String, String>), cwd: &Path, home: Option<&Path>, size: (u16, u16), notify: Arc<tokio::sync::Notify>) -> std::io::Result<Cli> {
         let mut b = CommandBuilder::new(program);
+        agent_env_for_shell(&mut b, env);
         for_terminal(&mut b, cwd, home);
         Cli::start(b, size, notify, PathBuf::new(), true)
     }
@@ -259,6 +262,15 @@ fn read_loop(mut reader: Box<dyn Read + Send>, screen: Screen, writer: Writer, l
         }
         notify.notify_one();
     });
+}
+
+/// The variables that select the startup files of a shell: zendo does not change them (TERM-55).
+const STARTUP_FILES: [&str; 3] = ["ZDOTDIR", "ENV", "BASH_ENV"];
+
+/// The variables of the agents for the shell of a terminal, so that an agent that the user starts
+/// there gets them (ENV-1); without the ones of the startup files of the shell (TERM-55).
+fn agent_env_for_shell(b: &mut CommandBuilder, env: &std::collections::BTreeMap<String, String>) {
+    env.iter().filter(|(k, _)| !STARTUP_FILES.contains(&k.as_str())).for_each(|(k, v)| b.env(k, v));
 }
 
 /// The shell of a terminal in `cwd`, with `home` if it is given. The terminal of zendo is an xterm,

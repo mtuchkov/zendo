@@ -77,7 +77,7 @@ impl App {
     /// Claude Code session, and an empty chat input (SPEC-9).
     fn free_session(&self) -> Option<usize> {
         let asked = |n: usize| self.threads.get(&session_key(n)).is_some_and(|t| t.busy.is_some() || t.items.iter().any(|i| matches!(i, Item::User(_))));
-        let kept = |n: usize| self.state.session(&self.cfg.agent, &session_key(n)).is_some();
+        let kept = |n: usize| self.state.session(&self.cfg.threads_key(), &session_key(n)).is_some();
         (0..SESSIONS).find(|&n| !kept(n) && !asked(n) && !self.cli.running(n) && self.chat.composer(n).is_blank())
     }
 

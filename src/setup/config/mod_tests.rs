@@ -10,27 +10,19 @@ fn the_profile_builds_the_command_line_of_the_handoff() {
     assert_eq!((claude.program.as_str(), claude.args, claude.claude), ("claude", vec!["--resume".to_string()], true));
 }
 
+// The JSON config of before 0.11.1 becomes the TOML config once.
 #[test]
-fn old_folders_move_to_the_new_name_once() {
+fn the_json_config_becomes_toml_once() {
     let base = std::env::temp_dir().join(format!("zendo-move-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&base);
-    let repo = base.join("repo");
-    for d in [".config/dawn", ".local/share/dawn/agent", ".cache/dawn/target", "repo/.dawn"] {
-        std::fs::create_dir_all(base.join(d)).unwrap();
-    }
-    let agent = format!("node {}/.local/share/dawn/agent/index.js", base.display());
-    std::fs::write(base.join(".config/dawn/config.json"), format!("{{\"agent\": \"{agent}\"}}")).unwrap();
+    let (legacy, config) = (base.join(".config/zendo"), base.join(".zendo/config.toml"));
+    std::fs::create_dir_all(&legacy).unwrap();
+    std::fs::write(legacy.join("config.json"), "{\"agent\": \"node /x/agent/index.js\"}").unwrap();
     // The folders are arguments: a test must not change `HOME` of the process, which the tests share.
-    let dirs = Dirs { legacy_config: base.join(".config/zendo"), data: base.join(".local/share/zendo"), cache: base.join(".cache/zendo"), config: base.join(".zendo/config.toml") };
-    assert_eq!(move_old_folders_in(&repo, &dirs).len(), 5);
-    for d in [".local/share/zendo/agent", ".cache/zendo/target", "repo/.zendo"] {
-        assert!(base.join(d).is_dir(), "{d}");
-    }
-    assert!(!base.join(".config/zendo").exists(), "the JSON config became TOML, and its folder is gone");
-    let text = std::fs::read_to_string(base.join(".zendo/config.toml")).unwrap();
-    assert!(text.contains("/.local/share/zendo/agent/") && !text.contains("/dawn/"), "{text}");
-    std::fs::create_dir_all(base.join(".local/share/dawn")).unwrap();
-    assert!(move_old_folders_in(&repo, &dirs).is_empty(), "a folder moves only once");
+    assert_eq!(json_config_to_toml(&legacy, &config), Some((legacy.join("config.json"), config.clone())));
+    assert!(!legacy.exists(), "the JSON config became TOML, and its folder is gone");
+    assert!(std::fs::read_to_string(&config).unwrap().contains("node /x/agent/index.js"));
+    assert_eq!(json_config_to_toml(&legacy, &config), None, "the config moves only once");
     let _ = std::fs::remove_dir_all(&base);
 }
 

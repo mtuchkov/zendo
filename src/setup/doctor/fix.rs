@@ -105,7 +105,7 @@ pub(super) async fn fix_structure(paths: &Paths, agent_flag: Option<String>, pro
 
     let only = |p: &Path| same_file(p, &target);
     let rule = format!("only {} may change", crate::docs::structure::FILE);
-    let Some(answer) = claude_task(&paths.root, agent_flag, "doctor-fix", prompt, &only, (&rule, "is fixing the file…"), o).await else {
+    let Some(answer) = claude_task(paths, agent_flag, "doctor-fix", prompt, &only, (&rule, "is fixing the file…"), o).await else {
         return false;
     };
     report_fix(paths, before.as_deref(), Some(answer.trim()), o)
@@ -113,11 +113,16 @@ pub(super) async fn fix_structure(paths: &Paths, agent_flag: Option<String>, pro
 
 /// Run one prompt with Claude and wait for the answer. Claude may read files. It may edit only the
 /// paths that `allowed` accepts; zendo refuses every other edit and every command.
-pub(super) async fn claude_task(root: &Path, agent_flag: Option<String>, key: &str, prompt: String, allowed: &dyn Fn(&Path) -> bool, (rule, doing): (&str, &str), o: &mut Out) -> Option<String> {
+pub(super) async fn claude_task(paths: &Paths, agent_flag: Option<String>, key: &str, prompt: String, allowed: &dyn Fn(&Path) -> bool, (rule, doing): (&str, &str), o: &mut Out) -> Option<String> {
+    // TRUST-1: no agent gets a task in a repository that is not trusted.
+    if paths.env.untrusted.is_some() {
+        o.fail("trust", "the folder is not trusted, so zendo gives no task in it to an agent");
+        return None;
+    }
     let cfg = UserConfig::load();
-    let env = config::agent_env(&cfg);
     let (cmd, _) = config::resolve_agent(agent_flag, &cfg);
-    let (h, mut rx) = agent::spawn(cmd, env, root.to_path_buf(), Some(config::data_dir().join("doctor.log")));
+    let root = &paths.root;
+    let (h, mut rx) = agent::spawn(cmd, agent_vars(&cfg, paths), root.to_path_buf(), Some(config::data_dir().join("doctor.log")));
     match tokio::time::timeout(Duration::from_secs(60), rx.recv()).await {
         Ok(Some(Event::Ready { agent, .. })) => o.ok("claude", format!("{agent} {doing}")),
         _ => {
