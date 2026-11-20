@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "claude.md"
 next: "envrc.md"
 level: "the environment that zendo gives to the agents it starts: its sources, their order, the worktrees"
-note: "Agent draft from the decisions of the user on 2026-11-19 in chat. Approved by the user on 2026-11-20. Revision 2: the shell of a terminal gets the agent environment too (the user, 2026-11-20). Revision 3, after the code review of 2026-11-20: the reading of `.envrc` (ENV-4, ENV-7) moved to envrc.md; zendo reads `.envrc` only in a trusted folder, and outside a repository too (ENV-10; the user, 2026-11-20); the shell without the system CA in ENV-5 is a fix of the agent, for the review of the user."
+note: "Agent draft from the decisions of the user on 2026-11-19 in chat. Approved by the user on 2026-11-20. Revision 2: the shell of a terminal gets the agent environment too (the user, 2026-11-20). Revision 3, after the code review of 2026-11-20: the reading of `.envrc` (ENV-4, ENV-7) moved to envrc.md; zendo reads `.envrc` only in a trusted folder, and outside a repository too (ENV-10; the user, 2026-11-20); the shell without the system CA in ENV-5 is a fix of the agent. The user approved revision 3 on 2026-11-20 in chat."
 ---
 
 # Agent environment

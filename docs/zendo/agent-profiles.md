@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "envrc.md"
 next: "trust.md"
 level: "the profiles of the agent environment: their tables, their selection by flag or by folder, and the threads that they own"
-note: "Agent draft from the decisions of the user on 2026-11-19 in chat. Approved by the user on 2026-11-20. Revision 2: each profile keeps threads of its own in place of the refusal of PROFILE-4 (the user, 2026-11-20). Revision 3: PROFILE-8, the name of the profile in the top line (the user, 2026-11-20). Revision 4, after the code review of 2026-11-20: the commands that check the machine go on without a profile that is not there (PROFILE-3; the user, 2026-11-20); PROFILE-9 and PROFILE-10 are fixes of the agent, for the review of the user."
+note: "Agent draft from the decisions of the user on 2026-11-19 in chat. Approved by the user on 2026-11-20. Revision 2: each profile keeps threads of its own in place of the refusal of PROFILE-4 (the user, 2026-11-20). Revision 3: PROFILE-8, the name of the profile in the top line (the user, 2026-11-20). Revision 4, after the code review of 2026-11-20: the commands that check the machine go on without a profile that is not there (PROFILE-3; the user, 2026-11-20); PROFILE-9 and PROFILE-10 are fixes of the agent. The user approved revision 4 on 2026-11-20 in chat."
 ---
 
 # Agent profiles

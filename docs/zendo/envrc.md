@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "agent-env.md"
 next: "agent-profiles.md"
 level: "how zendo reads the `.envrc` file: the lines that it takes, the values, the lines that it skips"
-note: "Split from agent-env.md on 2026-11-20, after the code review of the agent environment. ENV-4 and ENV-7 are as the user approved them on 2026-11-20; ENV-8 is the decision of the user of 2026-11-20 in chat; ENV-9 is a fix of the agent, for the review of the user."
+note: "Split from agent-env.md on 2026-11-20, after the code review of the agent environment. ENV-4 and ENV-7 are as the user approved them on 2026-11-20; ENV-8 is the decision of the user of 2026-11-20 in chat; ENV-9 is a fix of the agent. The user approved the document on 2026-11-20 in chat."
 ---
 
 # The `.envrc` file

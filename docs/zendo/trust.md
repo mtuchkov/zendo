@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "agent-profiles.md"
 next: "questions.md"
 level: "the trust of the user in the folder where zendo works: the question, the list of the trusted folders, what zendo does not do without the trust"
-note: "Agent draft from the decision of the user on 2026-11-20 in chat; approved by the user on 2026-11-20 in chat, with two changes: `zendo doctor` and `zendo setup` ask too, and zendo asks about every new folder. For the review of the user: no saved answer for `zendo doctor` without `--fix` (CMD-14) and for the home folder."
+note: "Agent draft from the decision of the user on 2026-11-20 in chat; approved by the user on 2026-11-20 in chat, with two changes: `zendo doctor` and `zendo setup` ask too, and zendo asks about every new folder. Decisions of the agent that the user approved on 2026-11-20 in chat: no saved answer for `zendo doctor` without `--fix` (CMD-14) and for the home folder."
 ---
 
 # Trusted folders
