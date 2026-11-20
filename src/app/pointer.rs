@@ -11,6 +11,10 @@ pub type Grab = (Focus, u16, bool);
 #[derive(Default)]
 pub struct Pointer {
     sel: Option<Selection>,
+    /// The selection is one of the rows of the chat transcript, not of the screen (PANES-50).
+    rows: bool,
+    /// The pointer in the last drag, also outside the pane: the edge scroll (PANES-52).
+    at: (u16, u16),
     grab: Option<Grab>,
     /// Take the text of the selection at the next draw (PANES-44).
     copy_pending: bool,
@@ -30,7 +34,26 @@ impl Pointer {
 
     /// A press starts a selection, or with `None` ends the one before.
     pub fn press(&mut self, sel: Option<Selection>) {
-        self.sel = sel;
+        (self.sel, self.rows) = (sel, false);
+    }
+
+    /// The selection of the press is one of the rows of the chat transcript (PANES-50).
+    pub fn in_rows(&mut self) {
+        self.rows = true;
+    }
+
+    pub fn rows(&self) -> bool {
+        self.rows
+    }
+
+    /// The pointer in the last drag.
+    pub fn at(&self) -> (u16, u16) {
+        self.at
+    }
+
+    /// A selection grows: the button is down.
+    pub fn dragging(&self) -> bool {
+        self.sel.is_some_and(|s| !s.done)
     }
 
     pub fn clear(&mut self) {
@@ -54,6 +77,7 @@ impl Pointer {
 
     /// A drag moves the end of the selection, until the button is up.
     pub fn drag(&mut self, x: u16, y: u16, m: KeyModifiers) {
+        self.at = (x, y);
         self.hold(m);
         if let Some(s) = self.live() {
             s.drag(x, y);

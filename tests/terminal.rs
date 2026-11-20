@@ -18,10 +18,13 @@ fn app_with_shell(name: &str) -> (std::path::PathBuf, App) {
 }
 
 /// An answer of the agent with one ` ```sh ` block, and the cursor of the transcript in that block.
+/// `End` takes the answer into a transcript that already has the keys (PANES-51, PANES-54).
 fn answer(a: &mut App, command: &str) {
     a.thread(&session_key(0)).items.push(Item::Agent(format!("Run this:\n\n```sh\n{command}\n```\n")));
     a.focus = Focus::Claude;
     a.threads.transcript_mut().focus(true);
+    draw(a, 120, 40);
+    key(a, KeyCode::End);
     draw(a, 120, 40);
     let row = a.threads.transcript().blocks().last().expect("a shell block").0 + 1;
     a.threads.transcript_mut().place(row, 0);

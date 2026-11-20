@@ -3,7 +3,7 @@ status: "draft"
 revision: "1"
 date: "2026-11-14"
 parent: "panes.md"
-next: "keymap.md"
+next: "transcript-selection.md"
 level: "how the user selects and copies text in the panes: the mouse, tables, the selection keys"
 note: "Agent draft, split from panes.md on 2026-11-14; no requirement changed. PANES-34 to PANES-45 are agent drafts. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---

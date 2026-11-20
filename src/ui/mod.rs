@@ -142,6 +142,14 @@ fn draw_into(f: &mut Frame, app: &mut App, fr: &mut Cache) {
 /// The mouse selection on top of the frame; after the release, its text goes to the clipboard.
 fn draw_selection(f: &mut Frame, app: &mut App, t: &Theme) {
     let Some(sel) = app.pointer.sel() else { return };
+    // A selection in the transcript is one of its rows: the transcript paints it (PANES-50).
+    if app.pointer.rows() {
+        if app.pointer.take_copy_request() {
+            let text = app.threads.transcript().text();
+            if sel.chat { app.pointer.send_to_chat(text) } else { app.pointer.copy(text) }
+        }
+        return;
+    }
     if app.pointer.take_copy_request() {
         let text = sel.text(f.buffer_mut());
         if sel.chat {

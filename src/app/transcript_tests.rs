@@ -77,3 +77,27 @@ fn the_transcript_takes_its_own_keys_and_leaves_the_rest() {
     assert!(x.key("back", 5, now) && x.selection().is_none() && x.on(), "back drops the selection first");
     assert!(x.key("back", 5, now) && !x.on(), "then the keys go back to the input");
 }
+
+// PANES-55: when the rows of a new frame end above the cursor, the cursor goes to the last row,
+// and a selection that started below them ends; the guard of ADR 0026 in `show_rows`.
+#[test]
+fn the_cursor_stays_in_the_rows_when_they_get_fewer() {
+    let mut x = t(&["a"; 17]);
+    x.place(16, 9);
+    x.anchor = Some((12, 0));
+    x.show_rows(["one", "two", "three", "", "five", "six"].map(String::from).to_vec());
+    assert_eq!(x.cursor(), (5, 2), "the last row, at most its last char");
+    assert_eq!(x.selection(), None, "the anchor is not in the rows");
+    x.move_word(false);
+    assert_eq!(x.text(), "five\nsix");
+}
+
+// PANES-51: rows that stay keep the cursor and the selection where they are.
+#[test]
+fn the_cursor_stays_put_when_its_row_stays() {
+    let mut x = t(&["one", "two", "three"]);
+    x.place(1, 2);
+    x.anchor = Some((0, 1));
+    x.show_rows(vec!["one".into(), "two".into(), "three".into(), "four".into()]);
+    assert_eq!((x.cursor(), x.anchor), ((1, 2), Some((0, 1))));
+}

@@ -1,6 +1,7 @@
 //! The chat threads, and how the chat pane shows them: the transcript cursor, the pinned thread,
 //! and the scroll (ADR 0008). The threads do not see the app.
-use super::{Thread, Transcript};
+use super::frozen::Freeze;
+use super::{Refreeze, Rows, Thread, Transcript};
 use std::collections::HashMap;
 
 #[derive(Default)]
@@ -12,6 +13,10 @@ pub struct Threads {
     pinned: Option<String>,
     /// The rows between the end of the thread and the bottom of the view.
     scroll: usize,
+    /// The rows of the thread at the last draw.
+    total: Option<usize>,
+    /// The rows of the transcript while it has the keys or a selection (PANES-51).
+    freeze: Freeze,
     details: bool,
     /// The chat pane is open.
     shown: bool,
@@ -122,6 +127,12 @@ impl Threads {
     /// The draw of the chat pane: the first row of `total` rows in a view of `h` rows. While the
     /// transcript has the keys (`on`), the view follows its cursor.
     pub fn fit(&mut self, total: usize, h: usize, on: bool) -> usize {
+        // A view away from the end keeps its rows when rows come or go below them (PANES-58).
+        if let Some(before) = self.total.replace(total)
+            && self.scroll > 0
+        {
+            self.scroll = (self.scroll + total).saturating_sub(before);
+        }
         let max = total.saturating_sub(h);
         let bottom = max - self.scroll.min(max);
         let row = self.transcript.cursor().0;
@@ -139,11 +150,33 @@ impl Threads {
     /// A click on row `y` and column `x` of a view of `h` rows: the transcript gets the keys, with
     /// the cursor under the pointer, so the view does not move (PANES-46).
     pub fn click(&mut self, y: usize, h: usize, x: usize) {
-        let rows = self.transcript.rows();
-        let max = rows.len().saturating_sub(h);
-        let row = (max - self.scroll.min(max) + y).min(rows.len().saturating_sub(1));
-        let col = rows.get(row).map_or(0, |r| crate::text::select::col_at(r, x));
+        let (row, col) = self.under(y, h, x);
         self.transcript.enter_at(row, col);
+    }
+
+    /// A drag to row `y` and column `x` of a view of `h` rows: the selection grows to the char
+    /// there (PANES-50).
+    pub fn drag(&mut self, y: usize, h: usize, x: usize) {
+        let (row, col) = self.under(y, h, x);
+        self.transcript.drag_to(row, col);
+    }
+
+    /// The row and the char of the transcript at row `y` and column `x` of a view of `h` rows.
+    fn under(&self, y: usize, h: usize, x: usize) -> (usize, usize) {
+        let rows = self.transcript.rows();
+        let row = (self.view_start(rows.len(), h) + y).min(rows.len().saturating_sub(1));
+        (row, rows.get(row).map_or(0, |r| crate::text::select::col_at(r, x)))
+    }
+
+    /// The rows to draw of the thread `key` at `width`, and the number of new rows below them.
+    /// While `hold`, the rows stay as they were (PANES-51); the transcript gets them.
+    pub fn view_rows(&mut self, key: &str, width: usize, hold: bool, live: Rows) -> (Rows, usize) {
+        self.freeze.view((key, width), hold, live, &mut self.transcript)
+    }
+
+    /// The next draw freezes the rows again (PANES-54, PANES-56).
+    pub fn refreeze(&mut self, why: Refreeze) {
+        self.freeze.refreeze(why);
     }
 }
 

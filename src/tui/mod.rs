@@ -113,7 +113,8 @@ pub async fn run(
             _ = printed.notified() => {},
             _ = found.notified() => app.poll_find(),
             _ = tick.tick() => app.tick(),
-            _ = pulse.tick(), if app.attention.blinking() => {},
+            // A drag at the edge of the transcript scrolls it (PANES-52).
+            _ = pulse.tick(), if app.attention.blinking() || app.edge_drag().is_some() => app.edge_scroll(),
         }
     }
 }
