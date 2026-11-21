@@ -39,6 +39,9 @@ exception. A key that does not work in one place is not global: it is a key of e
 panels use the same key for the same action. A text input needs the printable symbols, so only
 combinations such as `ctrl-…` and `alt-…` can be global.
 
+`/` is such a key of the panels, not a global key (User, 2026-11-21): it opens the find panel where
+the panel takes no text (FIND-22), and in write mode it is a symbol (FIND-23).
+
 **Sequences with time.** A run of `tab` is `{ count, last_at }` in the model of the panel. The
 time comes in the message of the key ([MSG-3](messages.md)), so "is the pause long enough" is a
 comparison in `update`.
@@ -94,6 +97,5 @@ comparison in `update`.
 
 | Open question | Affects | Answered by |
 | ------------- | ------- | ----------- |
-| [Find: modes](../find-modes.md) names `/` a global key, and `/` is a printable symbol. Is it a key of each panel that takes no text, or does it get a combination? | KEYMAP-3, KEYMAP-4 | User |
 | What does zendo do when the keymap of the user gives a printable symbol to a global action: keep the default key and tell the user, as PANES-19 does? | KEYMAP-4 | User |
 | `esc` stays fixed and is not in the keymap (PANES-48). Is it a key of each panel, or a global key outside the keymap? | KEYMAP-3, KEYMAP-5 | User |

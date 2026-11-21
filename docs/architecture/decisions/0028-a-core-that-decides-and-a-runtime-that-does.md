@@ -5,6 +5,7 @@ note: "Agent draft. The decision is of the user (2026-11-20); the record, its op
 sources:
   - "The user, 2026-11-20: the TUI follows The Elm Architecture; all IO is asynchronous and never blocks the UI."
   - "The user, 2026-11-20: docs/book is the target architecture; specifications take the place of docs/architecture/tui-architecture."
+  - "The user, 2026-11-21: the book takes priority over an older specification or decision; this is a redesign."
   - "../../book/zendo-book.md"
   - "../../zendo/internals/internals.md"
   - "../../zendo/responsiveness.md (RESP-1, RESP-2), ../../zendo/failures.md (FAIL-1, FAIL-2)"
@@ -62,7 +63,8 @@ record is the draft of that decision.
 
 ## Consequences
 
-- This record takes the place of ADR 0008 when the user approves it. The `Effect` type becomes the
+- The book takes priority over an older decision (User, 2026-11-21). This record takes the place
+  of ADR 0008 when the user approves it. The `Effect` type becomes the
   out-message of a component (COMP-3). The `Frame` sub-state goes: `layout` gives the sizes to
   `update` and to `view` (LAYOUT-2), and the hit map of the runtime takes the mouse (MOUSE-1).
 - The decisions of ADR 0009 and ADR 0017 for the user stay: git and the search do not stall the
@@ -72,8 +74,8 @@ record is the draft of that decision.
   RESP-2 do not change.
 - The frozen rows of ADR 0026 stay state of the model.
 - The writes of user data get a queue for each path, and a write in place: see ADR 0029.
-- The move needs a milestone document with its steps and its temporary behavior. Until the code
-  moves, the internals specifications stay `draft`, and no test names their requirements.
+- The move of the code needs a milestone document; it is not a part of this change (User,
+  2026-11-21). Until the code moves, no test names the requirements of the internals.
 - Limitation: the budget of 8 ms finds a slow `update` by measurement; nothing prevents it
   (BUDGET-1).
 

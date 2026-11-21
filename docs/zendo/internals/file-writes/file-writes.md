@@ -7,8 +7,9 @@ prev: "../frame-and-budget.md"
 next: "../document/document.md"
 children:
   - "other-writers.md"
+  - "write-conflicts.md"
 level: "the write of user data by the runtime: the queue of a path, the write itself, a failure, the saved state, the exit"
-note: "Agent draft from the chapter File writes and external consistency of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. The write in place differs from the design of failures.md: see the open points and ADR 0029."
+note: "Agent draft from the chapter File writes and external consistency of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. The write in place is the decision of the user of 2026-11-21 (the book takes priority, ADR 0029); failures.md follows it in its revision 2."
 ---
 
 # File writes
@@ -16,9 +17,10 @@ note: "Agent draft from the chapter File writes and external consistency of the 
 Sources: the chapter [File writes and external consistency](../../../book/14-file-writes.md) of the
 zendo book.
 
-Parent: [Internals of the TUI](../internals.md). Child: [Other writers](other-writers.md), for a
-file that a different program changes. The [failure default](../../failures.md) holds for each
-write (FAIL-1 to FAIL-3).
+Parent: [Internals of the TUI](../internals.md). Children: [Other writers](other-writers.md), for a
+file that a different program changes, and [Write conflicts](write-conflicts.md). The [failure default](../../failures.md) holds for each
+write (FAIL-1 to FAIL-3, FAIL-7). The decision for the write in place is in
+[ADR 0029](../../../architecture/decisions/0029-user-data-written-in-place-with-a-backup.md).
 
 The write of notes and of the config is the most dangerous IO: an error can lose data of the user.
 It has rules on top of the usual [commands](../commands.md).
@@ -113,6 +115,5 @@ time, the screen draws and shows "saving…".
 
 | Open question | Affects | Answered by |
 | ------------- | ------- | ----------- |
-| The [failure default](../../failures.md) says that a file never stays half written; its design is a temporary file and a rename. The write in place changes both: see [ADR 0029](../../../architecture/decisions/0029-user-data-written-in-place-with-a-backup.md). | WRITE-5, WRITE-6, WRITE-8, FAIL-2 | User |
-| zendo stopped during a write, and `name~` stays. What does zendo do with it at the next start? | WRITE-8, FAIL-2 | User |
+| zendo stopped during a write, and `name~` stays (FAIL-7). Does zendo then ask the user to choose between the file and `name~`, as for a conflict (WRITE-19, WRITE-20)? | WRITE-8, FAIL-7 | User |
 | The file tree, find, git and the watch of the folder (WRITE-16) see `name~`. Which of them hide it? | WRITE-8 | User |

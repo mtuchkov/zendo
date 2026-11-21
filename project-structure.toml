@@ -117,7 +117,7 @@ claude = "Keep the core free of IO: no file system, network, clock, process or t
 
 [[entry]]
 path = "docs/zendo/internals/file-writes"
-about = "The writes of user data: file-writes.md is the parent; its child is the file that a different program changes."
+about = "The writes of user data: file-writes.md is the parent; its children are the file that a different program changes, and the conflicts with unsaved text."
 
 [[entry]]
 path = "docs/zendo/internals/document"

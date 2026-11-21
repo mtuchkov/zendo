@@ -38,6 +38,10 @@ sends tens of scroll events. The runtime applies all the events that wait, and t
 The executor starts each command as a tokio task. When the task is complete, the result comes into
 the loop as a message.
 
+The executor takes the place of the threads and the polls that single features had before: the
+thread of git with its poll in the tick (ADR 0009), and the worker thread of find (ADR 0017). What
+the user gets from them stays (User, 2026-11-21: the book takes priority).
+
 In Rust, "async" does not mean "does not block". These APIs are synchronous: `std::fs`, the walk
 of files with `ignore`, the highlight with `syntect`, the diff with `similar`, the PTY read, the
 keyboard read. A task that calls one of them directly holds a tokio thread and makes other tasks
@@ -95,9 +99,3 @@ the result comes, the view shows the old result from the cache or a placeholder
 | ASYNC-6 | Ubiquitous | The executor shall handle these calls as blocking calls: the file system, the walk of files, the highlight, the diff, the PTY read and the keyboard read. | User, 2026-11-20 |
 | ASYNC-7 | Ubiquitous | Each PTY and the keyboard shall read in a permanent thread of their own that only wakes the UI loop. | User, 2026-11-20 |
 | ASYNC-8 | Ubiquitous | The UI loop shall not draw a frame for each message of a batch. | User, 2026-11-20 |
-
-## Open points
-
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| ADR 0009 (git on a thread, with a poll in the tick) and ADR 0017 (one worker thread of find) give mechanisms of the code before this architecture. Do commands and subscriptions take their place, with the same behavior for the user? | ASYNC-3, ASYNC-5, FIND-36 | User |

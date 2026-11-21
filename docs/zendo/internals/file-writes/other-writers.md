@@ -3,7 +3,8 @@ status: "draft"
 revision: "1"
 date: "2026-11-21"
 parent: "file-writes.md"
-level: "a file that a different program changes: the base hash of a write, the conflict, the watch of the folder, the lock"
+next: "write-conflicts.md"
+level: "a file that a different program changes: the base hash of a write, the watch of the folder, the lock"
 note: "Agent draft from the part Other writers of the chapter File writes and external consistency of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
@@ -12,8 +13,8 @@ note: "Agent draft from the part Other writers of the chapter File writes and ex
 Sources: the part "Other writers" of the chapter
 [File writes and external consistency](../../../book/14-file-writes.md) of the zendo book.
 
-Parent: [File writes](file-writes.md). The undo of a change from outside is in
-[Undo in documents](../../panes/text-input/undo-documents.md).
+Parent: [File writes](file-writes.md). What zendo does when the editor has unsaved text is in
+[Write conflicts](write-conflicts.md).
 
 ## The base of a write
 
@@ -28,9 +29,7 @@ not impossible.
 ## A change on the disk
 
 A [subscription](../subscriptions.md) to the file sends a message when the file changes. If the
-document has no unsaved changes, the model reads the file again. If it has unsaved changes, the
-model keeps the conflict, and the user decides: keep the text of the editor, take the text of the
-disk, or merge them.
+document has no unsaved changes, the model reads the file again.
 
 After its own write, the model sets the base to the new hash. So the event about its own write
 changes nothing.
@@ -47,14 +46,13 @@ for them, only the check of the hash remains.
 | -- | ------- | ----------- | ------ |
 | WRITE-10 | Unwanted | If the hash of the file on the disk is not the base of a write, then the executor shall not write, and shall send the conflict message. | User, 2026-11-20 |
 | WRITE-11 | Event | When the file of a document without unsaved changes changes on the disk, the model shall read the file again. | User, 2026-11-20 |
-| WRITE-12 | Unwanted | If the file of a document with unsaved changes changes on the disk, then the model shall keep the conflict and both texts until the user decides: keep the text of the editor, take the text of the disk, or merge them. | User, 2026-11-20 |
 
 ### Acceptance tests
 
 **`a_write_over_a_changed_file_does_not_happen`** (unit test, not written yet; verifies WRITE-10)
 
-- Given a file in a folder of the test, a write command with the hash of its content as the base,
-  and a different program that changed the file after the read.
+- Given a file, a write command with the hash of its content as the base, and a different program
+  that changed the file after the read.
 - When the executor does the command.
 - Then the file has the content of the different program, and the conflict message comes.
 
@@ -63,13 +61,6 @@ for them, only the check of the hash remains.
 - Given an open note with no unsaved changes.
 - When the fake disk sends the event that the file changed, with new content.
 - Then the note shows the new content, and the base is the hash of the new content.
-
-**`a_change_from_outside_keeps_unsaved_text`** (scenario test with fake services, not written yet; verifies WRITE-12)
-
-- Given an open note in write mode with a word that is not saved.
-- When the fake disk sends the event that the file changed.
-- Then the editor still has the word, the screen shows the conflict with the three choices, and the
-  disk gets no write before the user decides.
 
 ## Detailed requirements
 
@@ -85,6 +76,4 @@ for them, only the check of the hash remains.
 
 | Open question | Affects | Answered by |
 | ------------- | ------- | ----------- |
-| UNDO-13 moves unsaved text over a change from outside with OT and asks no question. WRITE-12 lets the user decide. Is the OT merge the default, with the question only when it cannot merge? | WRITE-12, UNDO-13 | User |
-| UNDO-15 looks at the file at three moments: the open, the focus of the terminal, and before each save. Does the watch of the folder take the place of the first two? | WRITE-16, UNDO-15 | User |
-| Is the conflict of WRITE-10 the same state of the model as the conflict of WRITE-12, with the same three choices? | WRITE-10, WRITE-12 | User |
+| UNDO-15 looks at the file at the open, at the focus of the terminal, and before each save. Does the watch of the folder take the place of the first two? | WRITE-16, UNDO-15 | User |

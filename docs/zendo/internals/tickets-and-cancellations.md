@@ -51,6 +51,10 @@ the CPU. So a new ticket also cancels the task of the old one. The two functions
 the ticket is the guarantee of correctness, and it always works; the cancellation only saves work.
 A task can finish before its cancellation, and then its answer comes all the same.
 
+An abort handle stops a task only where the task waits. A blocking call
+([ASYNC-3](async-io.md)), such as a search, does not wait: it checks a stop flag between its steps
+(User, 2026-11-21).
+
 For a stream, the runtime stops the source when its subscription is gone
 ([SUB-2](subscriptions.md)).
 
@@ -93,9 +97,4 @@ For a stream, the runtime stops the source when its subscription is gone
 | TICKET-7 | Event | When a component closes, the runtime shall cancel the tasks of all its tickets. | User, 2026-11-20 |
 | TICKET-8 | Ubiquitous | The runtime shall cancel a task through the abort handle of the task. | User, 2026-11-20 |
 | TICKET-9 | Ubiquitous | A result for the cache of the view shall need no ticket: its key shall be the hash of its input. | User, 2026-11-20 |
-
-## Open points
-
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| A cancellation through the abort handle stops a task only at a wait. Does a blocking call (ASYNC-3), such as a search, also check a stop flag, as the worker of ADR 0017 checks the number of the query between files? | TICKET-6, TICKET-8, FIND-40 | User |
+| TICKET-10 | Ubiquitous | A blocking call that can run long shall check a stop flag between its steps, and the cancellation of its ticket shall set that flag. | User, 2026-11-21 |

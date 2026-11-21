@@ -39,7 +39,8 @@ IO ([Responsiveness](../responsiveness.md)), a failure loses no data of the user
 
 The book explains each idea. The specification with the name of the chapter states the idea as
 requirements with acceptance tests. The book is the target: a difference between a chapter and its
-specification is a defect of the specification.
+specification is a defect of the specification. Where the book differs from an older specification
+or decision record, the book takes priority (User, 2026-11-21).
 
 ## The parts
 
@@ -107,5 +108,3 @@ messages through their parent. The UI loop waits only for messages, so no IO can
 | Open question | Affects | Answered by |
 | ------------- | ------- | ----------- |
 | No milestone document plans the move of the code of zendo 0.126 to this architecture. Which steps does the move have, and which temporary behavior? | All children | User |
-| ADR 0008 (sub-states, effects and the frame cache) describes the code before this architecture. Does ADR 0028 supersede it? | MODEL-2, MOUSE-2, COMP-3 | User |
-| The book writes a file in place, with a backup. FAIL-2 and `zendo::atomic` use a temporary file and a rename. See ADR 0029. | WRITE-5, WRITE-6, WRITE-8 | User |
