@@ -1,3 +1,11 @@
+---
+review:
+  reviewer: "agent, new context"
+  date: "2026-11-20"
+  passes: 1
+  result: "pass"
+  hash: "sha256:a3defa4c368c2f0fc2a4e6605937dea6f713378bfea94d5e7d9ee5bba7ad72fc"
+---
 # Chapter 12: Tickets and cancellations
 
 When all is asynchronous, a new problem occurs: answers come **at the wrong time**. Sometimes they
@@ -29,13 +37,13 @@ pub struct Latest<T> {
 }
 ```
 
-- `start()` gives a new ticket: the version of the request. The command takes the ticket, and its
+- `start()` gives a new ticket. The command takes the ticket, and its
   answer returns it.
 - `resolve(ticket, value)` writes the value only if the ticket is the latest one. If not, it
   discards the value.
 - The value is private, thus there is no other way to write it.
 
-A component does not compare versions itself. It only declares the field as `Latest<T>`. In the
+A component does not compare tickets itself. It only declares the field as `Latest<T>`. In the
 example with find, the results are `Latest<Vec<Item>>`. The answer to search number 1 has an old
 ticket, thus `resolve` discards it.
 

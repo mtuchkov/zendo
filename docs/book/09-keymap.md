@@ -1,9 +1,17 @@
+---
+review:
+  reviewer: "agent, new context"
+  date: "2026-11-20"
+  passes: 1
+  result: "pass"
+  hash: "sha256:049a1f4b15a9773d072538efa8bb43cd16630b007503d04f396658dd2b776f5f"
+---
 # Chapter 9: The keymap
 
 One key can have different meanings. In the tree, `y` means "yes, delete". In the editor, it is
 only a letter. The question is: which part gets the key push?
 
-The keymap tells which key gives which action. It is data from the config.
+The keymap tells which key gives which action.
 
 **The key separately from the action**
 
@@ -25,7 +33,7 @@ the key, then nothing occurs. The keymap of a panel depends on its mode.
 **Global keys**
 
 A global key works in all panels, in all modes and in all overlays, with no exception. If a key
-does not work in one place, then it is not global: it is a key of each panel, and the panels only
+does not work in one place, then it is not global. It is a key of each panel, and the panels only
 use the same key for the same action.
 
 Thus a global key cannot be a letter or a different printable symbol, because a text input needs

@@ -1,3 +1,11 @@
+---
+review:
+  reviewer: "agent, new context"
+  date: "2026-11-20"
+  passes: 1
+  result: "pass"
+  hash: "sha256:c6e17596091a42eb6c2cf8a0248d9a0982135fd280fff09508c3d407e95fe008"
+---
 # Chapter 3: Commands (Cmd)
 
 A message describes what *occurred*. A command describes what *to do*. They are a mirror pair.

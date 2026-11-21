@@ -136,6 +136,21 @@ Rules:
 - IF a critic rejects a fix, THEN the agent shall change the fix and get a new critic review.
 - WHEN every finding has an outcome, the agent shall set the status of the report to `completed`.
 
+## Book
+
+`docs/book` holds the zendo book: the architecture of the TUI, explained one chapter at a time.
+
+- The book has its own rules in [docs/book/AGENTS.md](docs/book/AGENTS.md). The style rules of this
+  file do not apply to the book: EARS, the two-page limit, the Keep the Altitude rule, and the
+  `status` field of the front matter.
+- WHEN the agent changes a file of the book, a reviewer shall review the change with the skill
+  [.skills/zendo-book-reviewer/SKILL.md](.skills/zendo-book-reviewer/SKILL.md), at least one pass.
+  A reviewer is a person or an agent with a new context that did not write the change.
+- The reviewer shall record the review in the front matter of the file: the reviewer, the date, the
+  number of passes, the result, and the hash of the whole file with an empty `hash` field.
+- `tests/book_review.rs` checks in `cargo test` that the hash in each review is the hash of the
+  current file. An edit after the review, also an edit of the review data, fails the test.
+
 ## Commits
 
 - Each commit message shall follow [.skills/git-commit/SKILL.md](.skills/git-commit/SKILL.md): a

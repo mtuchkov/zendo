@@ -1,9 +1,17 @@
+---
+review:
+  reviewer: "agent, new context"
+  date: "2026-11-20"
+  passes: 2
+  result: "pass"
+  hash: "sha256:18885a56ffecb00c1920e66ab94cb54b2dbb80b1b3783375eda750f7b43c5a7f"
+---
 # Chapter 10: Subscriptions
 
 A command is a single action: "delete the file", "send the answer". But many events come as a
-**stream**: the agent sends text in parts, a terminal prints, files on the disk change. Streams need a different thing: a subscription.
+**stream**: the agent sends text in parts, a session prints, files on the disk change. Streams need a different thing: a subscription.
 
-**How it is in TEA.** The core does not poll. It tells **what it must listen to now**:
+**How it is in this architecture.** The core does not poll. It tells **what it must listen to now**:
 
 ```rust
 fn subscriptions(model: &Model) -> Vec<Sub>
@@ -31,11 +39,11 @@ compares the new list with the old list:
 Thus each subscription has an identity (`Pty(2)` is always session 2). Without an identity, it is
 not possible to compare.
 
-**The sources push the events themselves.** When a PTY prints, a message comes. When a file
+**The sources push the events themselves.** When a session prints, a message comes. When a file
 changes, a message comes. Nothing asks "is there news?". The events come immediately, and only when
 they exist.
 
-The main benefit: the life cycle of the sources is declarative. You do not need to remember "start
+The main benefit: the model alone decides which sources run. You do not need to remember "start
 the source here" and "do not forget to stop it there". The model says "the session is open", and
 the source exists. When the session closes, the source stops. It is not possible to forget to stop
 it.

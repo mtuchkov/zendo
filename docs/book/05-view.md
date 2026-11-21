@@ -1,3 +1,11 @@
+---
+review:
+  reviewer: "agent, new context"
+  date: "2026-11-20"
+  passes: 1
+  result: "pass"
+  hash: "sha256:73ba97d7532386f5a1116fd9c450f0c4e1a4c3550a6b134a80c56316caf86334"
+---
 # Chapter 5: The view: the screen as a function of the model
 
 `view` takes the model and builds the screen from it:
@@ -19,9 +27,9 @@ the screen. Make a model, call `view` on `TestBackend`, and compare the lines.
 
 **Why the view must not change anything.** If the view does not change the state, then only
 `update` changes it. After each `update`, the model is already correct. A test sees the same state
-as the user. In this architecture, a separate pure function calculates the sizes of the panes
+as the user. In this architecture, a separate pure function calculates the sizes of the panels
 before the view. Then `update` corrects the scroll, and the view
-only shows. This is the next chapter.
+only shows. The chapter about layout tells how.
 
 **Expensive rendering.** Markdown, code highlight, diff: these are heavy. Do not calculate them
 again for each frame. Thus the view has a `Cache`: a finished result, attached to

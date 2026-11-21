@@ -1,14 +1,22 @@
+---
+review:
+  reviewer: "agent, new context"
+  date: "2026-11-20"
+  passes: 1
+  result: "pass"
+  hash: "sha256:1f8f95b6ef17fc8a165790a698472e90529773bed1a2b25f237f3b65768c5ca6"
+---
 # Chapter 11: Async IO: the UI loop never waits
 
 This topic is large, thus it has two parts. This part tells how the loop works and which part does
-the commands. The next part tells what to do with answers that come late.
+the commands. The chapter about tickets and cancellations tells what to do with answers that come late.
 
 **The UI loop**
 
 The loop of the runtime does the same steps again and again:
 
-1. It waits for a message (a key, an answer of a command, an event of a subscription) or for the
-   frame timer.
+1. It waits for a message or for the frame timer. A message is a key, an answer of a command, or an
+   event of a subscription.
 2. It takes **all** the messages that are ready, and gives each message to `update`.
 3. It gives the commands from `update` to the executor.
 4. It draws the frame one time.
@@ -40,4 +48,4 @@ For the UI, there is no difference: it waits for the disk, or it calculates the 
 file for 200 ms. In both cases, the frame is late. Thus a heavy calculation is also a command:
 `Cmd::RenderMarkdown`, `Cmd::Diff`, `Cmd::Highlight`. While there is no result, the view shows the
 old result from the cache or a placeholder. The user sees the screen immediately, and the exact
-version comes a moment later.
+result comes a moment later.

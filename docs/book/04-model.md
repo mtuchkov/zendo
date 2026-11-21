@@ -1,13 +1,21 @@
+---
+review:
+  reviewer: "agent, new context"
+  date: "2026-11-20"
+  passes: 1
+  result: "pass"
+  hash: "sha256:bc7724fe5fe425d77256d7243890d6ceb7d2bc513939064c8eb58cbeac7006ba"
+---
 # Chapter 4: The model (Model)
 
-The model is all the state of the application in one place: the open documents, the cursor, the
-selection, the chats, the mode, the size of the screen, the write queue. If a thing has an effect
+The model is all the state of the application in one place. It has the open documents, the cursor,
+the selection, the chats, the mode, the size of the screen and the write queue. If a thing has an effect
 on what the user sees, it is in the model.
 
 **The model is only data.** It has no channels, no handles of processes, and no file descriptors.
 The handle of the agent, the PTY, the find thread: all of these live in the runtime and in the
 services. The model keeps only what is known about them: "the agent is connected", "session 3 is
-busy", "the search runs, query number 17".
+busy", "search number 17 runs".
 
 **The model is the only source of truth.** The screen keeps no state of its own. The screen is
 always built again from the model. Thus the screen and the data cannot be different.
