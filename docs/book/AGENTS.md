@@ -4,6 +4,12 @@ The book explains the architecture of the zendo TUI, one chapter at a time. Thes
 style rules of the root [AGENTS.md](../../AGENTS.md) for this folder: EARS, the two-page limit, the
 Keep the Altitude rule, and the `status` field of the front matter do not apply here.
 
+## Changes
+
+- Only the user starts a change of the book.
+- An agent changes a file of the book only with the explicit permission of the user for that
+  change. An agent does not change the book on its own, also when a change looks small or obvious.
+
 ## Style
 
 - Write in Simplified Technical English: short sentences, active voice, one topic in each sentence.
