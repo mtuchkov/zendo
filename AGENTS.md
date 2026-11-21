@@ -143,6 +143,8 @@ Rules:
 - The book has its own rules in [docs/book/AGENTS.md](docs/book/AGENTS.md). The style rules of this
   file do not apply to the book: EARS, the two-page limit, the Keep the Altitude rule, and the
   `status` field of the front matter.
+- Only the user starts a change of the book. The agent shall change a file of the book only with
+  the explicit permission of the user for that change.
 - WHEN the agent changes a file of the book, a reviewer shall review the change with the skill
   [.skills/zendo-book-reviewer/SKILL.md](.skills/zendo-book-reviewer/SKILL.md), at least one pass.
   A reviewer is a person or an agent with a new context that did not write the change.
