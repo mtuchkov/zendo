@@ -6,7 +6,7 @@ parent: "zendo.md"
 prev: "files/files.md"
 next: "claude.md"
 level: "visits that count as work, the delta pane, recaps"
-note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user."
+note: "Rewrite of the reference of zendo 0.9.1. Not reviewed by the user."
 ---
 
 # Work, delta and recaps

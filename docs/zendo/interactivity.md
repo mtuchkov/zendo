@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "live-status.md"
 next: "background.md"
 level: "what the user can do during a turn without Claude Code: steer the turn, open a step, take the next question, change the mode"
-note: "Agent draft from the request of the user on 2026-11-18 in chat: a more interactive chat. The status line is in live-status.md. Revision 2: no queue during a turn; a key makes the agent read the steering now (User, 2026-11-18). Revision 3: `ctrl-s` stays, a click opens a step, the keys do not clash (User, 2026-11-18). Background processes and their stop are in background.md (User, 2026-11-18). Approved by the user on 2026-11-18."
+note: "Draft from the request of the user on 2026-11-18 in chat: a more interactive chat. The status line is in live-status.md. Revision 2: no queue during a turn; a key makes the agent read the steering now (User, 2026-11-18). Revision 3: `ctrl-s` stays, a click opens a step, the keys do not clash (User, 2026-11-18). Background processes and their stop are in background.md (User, 2026-11-18). Approved by the user on 2026-11-18."
 ---
 
 # Interactivity of the chat

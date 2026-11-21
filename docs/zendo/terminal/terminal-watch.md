@@ -6,7 +6,7 @@ parent: "terminal.md"
 prev: "terminal-output.md"
 next: "terminal-mouse.md"
 level: "watched commands: the play-and-watch button, what output goes to the agent, push and pull, the check-in, the end of a watch"
-note: "Agent draft from the requests of the user on 2026-11-17. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. See ADR 0018."
+note: "Draft from the requests of the user on 2026-11-17. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. See ADR 0018."
 ---
 
 # Watched commands

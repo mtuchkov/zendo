@@ -1,10 +1,9 @@
 ---
 review:
-  reviewer: "agent, new context"
-  date: "2026-11-20"
+  date: "2026-11-21"
   passes: 1
   result: "pass"
-  hash: "sha256:a3defa4c368c2f0fc2a4e6605937dea6f713378bfea94d5e7d9ee5bba7ad72fc"
+  hash: "sha256:7eb93601bae31713b21f40e43b4d84af6cc1743e84b4c170f75789bf3225dfe1"
 ---
 # Chapter 12: Tickets and cancellations
 

@@ -33,7 +33,7 @@ work before the daemon of ADR 0022 exists, and keep its tools when the daemon co
 
 ## Decision
 
-Draft of the agent, from the discussion with the user on 2026-11-18: the first option, before the
+Draft, from the discussion with the user on 2026-11-18: the first option, before the
 daemon.
 
 - **The journal is the contract.** `~/.zendo/board/journal.jsonl` holds one JSON event on each
@@ -90,7 +90,3 @@ daemon.
 - A unit test appends from many threads under the lock and checks that no line breaks.
 - A check with real Claude: session 3 finds with `sessions` that a branch belongs to session 2, and
   assigns it a task.
-
-## Decision record
-
-Draft of the agent, 2026-11-18. Not reviewed by the user.

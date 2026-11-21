@@ -1,10 +1,9 @@
 ---
 review:
-  reviewer: "agent, new context"
-  date: "2026-11-20"
+  date: "2026-11-21"
   passes: 1
   result: "pass"
-  hash: "sha256:049a1f4b15a9773d072538efa8bb43cd16630b007503d04f396658dd2b776f5f"
+  hash: "sha256:ae9e4393c5c44e2e3466f9d7f5d289dbf86351d0ec0601a7452e9d92213e827e"
 ---
 # Chapter 9: The keymap
 

@@ -6,7 +6,7 @@ date: "2026-11-18"
 parent: "zendo.md"
 prev: "fonts-recipe.md"
 level: "the format of the recipe of the terminal font: the ways to set a font, the size, and how zendo finds the current terminal"
-note: "Agent draft of the decisions of the user on 2026-11-18, split from fonts-recipe.md: a whole file for COSMIC, the size for GNOME, the terminal from more than TERM_PROGRAM; no special case for tmux. Approved by the user on 2026-11-18. Implemented in zendo 0.116.0."
+note: "Draft of the decisions of the user on 2026-11-18, split from fonts-recipe.md: a whole file for COSMIC, the size for GNOME, the terminal from more than TERM_PROGRAM; no special case for tmux. Approved by the user on 2026-11-18. Implemented in zendo 0.116.0."
 ---
 
 # Font recipe format

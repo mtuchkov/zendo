@@ -35,7 +35,3 @@ Claude.
 ## Verification
 
 `cargo test` runs on each change.
-
-## Decision record
-
-The user chose Rust on 2026-11-11. This record is not reviewed by the user.

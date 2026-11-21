@@ -1,19 +1,19 @@
 ---
 status: "implemented"
 approved: "2026-11-17"
-revision: "1"
+revision: "2"
 date: "2026-11-17"
 parent: "zendo.md"
 prev: "find.md"
 next: "find-ids.md"
-level: "the modes of the find panel and the global `/` key"
-note: "Design that the user decided and approved on 2026-11-17. A design for the search in the text of code and for an index comes later, in its own document."
+level: "the modes of the find panel and the `/` key"
+note: "Design that the user decided and approved on 2026-11-17. A design for the search in the text of code and for an index comes later, in its own document. Revision 2, from the user on 2026-11-21: `/` is not a global key (KEYMAP-3); it is a key of each pane and mode that takes no text. Only the wording changed; no requirement changed."
 ---
 
 # Find: modes and the `/` key
 
-The find panel is in [Find](find.md). This document adds the modes of the panel and makes `/` a
-global key.
+The find panel is in [Find](find.md). This document adds the modes of the panel and the `/` key
+of each pane and mode that takes no text.
 
 ## Modes
 

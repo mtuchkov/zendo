@@ -6,7 +6,7 @@ parent: "zendo.md"
 prev: "notes.md"
 next: "say.md"
 level: "write mode: the live view, hard wrap, the cursor between modes, edit keys"
-note: "Agent draft, split from notes.md. Not reviewed by the user."
+note: "Draft, split from notes.md. Not reviewed by the user."
 ---
 
 # Write mode

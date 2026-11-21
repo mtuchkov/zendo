@@ -84,7 +84,3 @@ Approved by the user on 2026-11-18: v2 behind `--experimental`.
   names and the output from the agent.
 - A check with real Claude and the pinned adapter confirms the background list and the stop of
   one item on v2.
-
-## Decision record
-
-Draft of the agent, 2026-11-18. Approved by the user on 2026-11-18 in chat, with PR #26.

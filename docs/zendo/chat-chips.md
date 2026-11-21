@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "chat.md"
 next: "chat-messages.md"
 level: "what the user sees of a chip and of the open document before a question goes: the chip window, images, the choice of the open document"
-note: "Agent draft of the requests of the user on 2026-11-17, with the answers of the user to the open questions in the chat on 2026-11-17. Approved by the user on 2026-11-17."
+note: "Draft of the requests of the user on 2026-11-17, with the answers of the user to the open questions in the chat on 2026-11-17. Approved by the user on 2026-11-17."
 ---
 
 # Chips and the open document

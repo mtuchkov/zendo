@@ -30,7 +30,6 @@ Keep the Altitude rule, and the `status` field of the front matter do not apply 
   ```yaml
   ---
   review:
-    reviewer: "agent, new context"
     date: "2026-11-20"
     passes: 1
     result: "pass"

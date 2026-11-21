@@ -1,10 +1,9 @@
 ---
 review:
-  reviewer: "agent, new context"
-  date: "2026-11-20"
+  date: "2026-11-21"
   passes: 1
   result: "pass"
-  hash: "sha256:c6e17596091a42eb6c2cf8a0248d9a0982135fd280fff09508c3d407e95fe008"
+  hash: "sha256:703d41fed89e90e8d02fdd50f9e2c3958b282f5acc9ef04aaa06a302280d1d77"
 ---
 # Chapter 3: Commands (Cmd)
 

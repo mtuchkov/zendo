@@ -35,7 +35,3 @@ zendo keeps its state in `.zendo/db.json` in the root of the repository. The fol
 ## Verification
 
 `state_stays_in_the_repository` (not written yet), see [zendo](../../zendo/zendo.md).
-
-## Decision record
-
-Not reviewed by the user.

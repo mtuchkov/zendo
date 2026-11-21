@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "board-leases.md"
 next: "chat.md"
 level: "the watch of the message board: a command that prints the messages and posts of a session while its turn runs, for the Monitor tool of Claude Code"
-note: "Agent draft from the request of the user on 2026-11-18 in chat: a command that Claude can attach the Monitor tool to. Revision 2 follows revision 2 of board.md: channels, responses, posts. The identifiers of revision 1 were proposals that the user did not review, so this revision assigns them again. The user approved the plan and asked to implement it on 2026-11-18; the code implements it, and the check with real Claude is not done yet."
+note: "Draft from the request of the user on 2026-11-18 in chat: a command that Claude can attach the Monitor tool to. Revision 2 follows revision 2 of board.md: channels, responses, posts. The identifiers of revision 1 were proposals that the user did not review, so this revision assigns them again. The user approved the plan and asked to implement it on 2026-11-18; the code implements it, and the check with real Claude is not done yet."
 ---
 
 # Watch the board

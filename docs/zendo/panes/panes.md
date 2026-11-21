@@ -12,7 +12,7 @@ children:
   - "key-change.md"
   - "key-hints.md"
 level: "the panes as a whole: layouts, widths, hiding, focus, scrolling, themes"
-note: "Agent rewrite of the reference of zendo 0.9.1. Revision 5 moves this document to panes/panes.md, and the selection and the keys to its children selection.md and keymap.md, to keep each document within two pages; no requirement changed. Revision 6 adds PANES-46: a click in a pane moves the focus and the keys there, and PANES-47: a click off a panel over the screen closes it. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Rewrite of the reference of zendo 0.9.1. Revision 5 moves this document to panes/panes.md, and the selection and the keys to its children selection.md and keymap.md, to keep each document within two pages; no requirement changed. Revision 6 adds PANES-46: a click in a pane moves the focus and the keys there, and PANES-47: a click off a panel over the screen closes it. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Panes and layouts

@@ -6,7 +6,7 @@ parent: "zendo.md"
 prev: "threads.md"
 next: "session-names/session-names.md"
 level: "Claude Code sessions that zendo runs: open, leave, states, up to five at a time"
-note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Revision 12: SESSIONS-1 lets zendo take a quiet session back to the agent (back-to-the-agent.md, User, 2026-11-18)."
+note: "Draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Revision 12: SESSIONS-1 lets zendo take a quiet session back to the agent (back-to-the-agent.md, User, 2026-11-18)."
 ---
 
 # Sessions

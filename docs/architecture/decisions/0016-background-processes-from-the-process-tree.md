@@ -69,7 +69,3 @@ Approved by the user on 2026-11-18: the third option, with the data of the agent
 - A test checks that an MCP server of the mock agent does not show.
 - A check with real Claude on Linux and on macOS confirms a dev server that the agent starts in
   the background.
-
-## Decision record
-
-Draft of the agent, 2026-11-18. Approved by the user on 2026-11-18 in chat, with PR #26.

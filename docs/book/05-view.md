@@ -1,10 +1,9 @@
 ---
 review:
-  reviewer: "agent, new context"
-  date: "2026-11-20"
+  date: "2026-11-21"
   passes: 1
   result: "pass"
-  hash: "sha256:73ba97d7532386f5a1116fd9c450f0c4e1a4c3550a6b134a80c56316caf86334"
+  hash: "sha256:e766c9177ff21cdf4fb3d50ce339fdcf90966776c23b5594a2b2f498d37ec24d"
 ---
 # Chapter 5: The view: the screen as a function of the model
 

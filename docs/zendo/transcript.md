@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "checklist.md"
 next: "live-status.md"
 level: "what the transcript of a thread shows around its messages: the time of each message, and the question of the turn in the view at the top of the pane"
-note: "Agent draft from the request of the user on 2026-11-18 in chat: show the time of each message of the user and of Claude on the right, and keep the question of the user at the top of the transcript. Revision 2: the answers of the user on 2026-11-18 (no time for earlier sessions, the question of the turn in the view, 24-hour time). Revision 3: the checklist of the turn shows above the question at the top (User, 2026-11-18). Approved by the user on 2026-11-18."
+note: "Draft from the request of the user on 2026-11-18 in chat: show the time of each message of the user and of Claude on the right, and keep the question of the user at the top of the transcript. Revision 2: the answers of the user on 2026-11-18 (no time for earlier sessions, the question of the turn in the view, 24-hour time). Revision 3: the checklist of the turn shows above the question at the top (User, 2026-11-18). Approved by the user on 2026-11-18."
 ---
 
 # Transcript

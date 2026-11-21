@@ -31,7 +31,3 @@ The [responsible component] shall [the source-supported obligation introduced by
 ## Verification
 
 [Checks that establish the intended outcome and evidence locations.]
-
-## Decision record
-
-[Decision maker, review date, approval evidence, and replacement decision if superseded.]

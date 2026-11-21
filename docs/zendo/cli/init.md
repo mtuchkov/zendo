@@ -6,7 +6,7 @@ parent: "cli.md"
 prev: "setup.md"
 next: "doctor.md"
 level: "what zendo init writes in a repository"
-note: "Agent draft from the requests of the user on 2026-11-14. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Draft from the requests of the user on 2026-11-14. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Init

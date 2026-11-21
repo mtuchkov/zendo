@@ -1,10 +1,9 @@
 ---
 review:
-  reviewer: "agent, new context"
-  date: "2026-11-20"
-  passes: 2
+  date: "2026-11-21"
+  passes: 1
   result: "pass"
-  hash: "sha256:18885a56ffecb00c1920e66ab94cb54b2dbb80b1b3783375eda750f7b43c5a7f"
+  hash: "sha256:b222dcb2fdb11b812b4ee11a8fe2cf2c24918a0b6d07fc237d6d6e2fe490e2e1"
 ---
 # Chapter 10: Subscriptions
 

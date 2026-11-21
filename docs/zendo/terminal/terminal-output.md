@@ -6,7 +6,7 @@ parent: "terminal.md"
 prev: "terminal-view.md"
 next: "terminal-watch.md"
 level: "the result of the last command of a terminal: how zendo finds it, and how the user puts it into the chat of an agent session"
-note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. A child of terminal.md. Revision 2 changed TERM-25: a watched command also gives its output to the agent (terminal-watch.md, user, 2026-11-17). Revision 4 (user, 2026-11-18, in chat; not reviewed): TERM-26 and TERM-27 changed, TERM-74 to TERM-76 added."
+note: "Draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. A child of terminal.md. Revision 2 changed TERM-25: a watched command also gives its output to the agent (terminal-watch.md, user, 2026-11-17). Revision 4 (user, 2026-11-18, in chat; not reviewed): TERM-26 and TERM-27 changed, TERM-74 to TERM-76 added."
 ---
 
 # Terminal output
