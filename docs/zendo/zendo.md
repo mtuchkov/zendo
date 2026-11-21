@@ -1,7 +1,7 @@
 ---
 status: "draft"
-revision: "1"
-date: "2026-11-11"
+revision: "2"
+date: "2026-11-21"
 children:
   - "panes/panes.md"
   - "notes.md"
@@ -60,7 +60,7 @@ children:
   - "telemetry.md"
   - "internals/internals.md"
 level: "what zendo is, its parts, and the qualities that hold for all parts"
-note: "Rewrite of the reference of zendo 0.9.1. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Rewrite of the reference of zendo 0.9.1. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Revision 2, from the user on 2026-11-21: zendo does not wait for Claude at the start, and the status bar shows when Claude does not answer (ZENDO-2 changed)."
 ---
 
 # zendo
@@ -134,8 +134,9 @@ titles, git commits from zendo, mouse clicks that move the cursor of the editor.
 
 ## How zendo works
 
-The user starts `zendo` in a repository. zendo starts the Claude Code adapter as an Agent Client
-Protocol (ACP) agent and checks that Claude answers before it opens the screen. The screen shows the
+The user starts `zendo` in a repository. zendo opens the screen and starts the Claude Code adapter as an
+Agent Client Protocol (ACP) agent. It does not wait for Claude: if Claude does not answer, the
+status bar says so. The screen shows the
 file tree, the open file, the chat with Claude and the delta of the file. The user reads and writes
 markdown files of the repository. When the user asks, Claude gets the file, the selection and the
 rules of the project. Claude edits the files without a question to the user.
@@ -166,7 +167,7 @@ zendo keeps its state in the repository, in a folder that git ignores.
 | ID     | Pattern    | Requirement                                                                                                                        | Source           |
 | ------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | ZENDO-1 | Ubiquitous | The system shall keep the notes of the user as markdown files in the repository of the user, or in the private notes repo of the user. | User, 2026-11-11 |
-| ZENDO-2 | Unwanted   | If Claude does not answer at the start, then the system shall not open the screen, and shall show the failed step and its fix.     | User, 2026-11-11 |
+| ZENDO-2 | Unwanted   | If Claude does not answer at the start, then the system shall open the screen with no wait for Claude, and shall show the failure in the status bar. | User, 2026-11-21 |
 | ZENDO-3 | Optional   | Where the user starts zendo with `--offline`, the system shall open without Claude.                                                 | Design           |
 | ZENDO-5 | Unwanted   | If every part that zendo needs is installed, then `zendo setup`, `zendo doctor` and the start of zendo shall not use the network.      | User, 2026-11-11 |
 | ZENDO-6 | Optional   | Where a repository has `project-structure.toml`, the system shall use it in that repository.                                       | User, 2026-11-11 |
@@ -180,11 +181,12 @@ zendo keeps its state in the repository, in a folder that git ignores.
 - When the user saves a new note.
 - Then the notes folder holds one markdown file with the text of the note, and nothing else changed.
 
-**`start_check_fails_without_claude`** (mock agent, not written yet; verifies ZENDO-2)
+**`the_screen_opens_when_claude_does_not_answer`** (mock agent, not written yet; verifies ZENDO-2)
 
-- Given an agent command that exits at once.
+- Given an agent command that exits at once, and in a second run an agent that gives no answer.
 - When the user starts zendo.
-- Then zendo does not open the screen, prints the failed step and its fix, and exits with an error.
+- Then the screen opens with no wait in both runs, and the status bar shows that Claude does not
+  answer.
 
 **`offline_start_needs_no_agent`** (terminal check, not written yet; verifies ZENDO-3)
 

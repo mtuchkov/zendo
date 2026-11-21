@@ -62,10 +62,11 @@ fn without_hash(text: &str) -> String {
 /// What is wrong with the review of one file, or nothing.
 fn problem(text: &str) -> Option<String> {
     let Some((front, _)) = split(text) else { return Some("no front matter".into()) };
-    for key in ["reviewer", "date"] {
-        if field(front, key).is_none_or(str::is_empty) {
-            return Some(format!("no `review.{key}`"));
-        }
+    if field(front, "reviewer").is_some() {
+        return Some("`review.reviewer` names who did the review: remove it (AGENTS.md, No AI attribution)".into());
+    }
+    if field(front, "date").is_none_or(str::is_empty) {
+        return Some("no `review.date`".into());
     }
     if field(front, "passes").and_then(|p| p.parse::<u32>().ok()).is_none_or(|p| p < 1) {
         return Some("`review.passes` is not 1 or more".into());
@@ -85,7 +86,7 @@ fn problem(text: &str) -> Option<String> {
 fn reviewed(passes: &str, result: &str, body: &str) -> String {
     let file = |hash: &str| {
         format!(
-            "---\nreview:\n  reviewer: \"agent\"\n  date: \"2026-11-20\"\n  passes: {passes}\n  result: \"{result}\"\n  hash: \"{hash}\"\n---\n{body}"
+            "---\nreview:\n  date: \"2026-11-20\"\n  passes: {passes}\n  result: \"{result}\"\n  hash: \"{hash}\"\n---\n{body}"
         )
     };
     file(&format!("sha256:{}", sha256(&file(""))))
@@ -118,6 +119,15 @@ fn an_edit_of_the_review_data_fails_the_check() {
     let file = reviewed("1", "pass", "Text.\n");
     let edited = file.replace("2026-11-20", "2026-11-21");
     assert!(problem(&edited).is_some_and(|p| p.contains("changed after the review")));
+}
+
+// AGENTS.md, No AI attribution: the review data does not name who did the review.
+#[test]
+fn a_review_names_no_reviewer() {
+    let file = reviewed("1", "pass", "Text.\n");
+    assert_eq!(problem(&file), None);
+    let named = file.replace("review:\n", "review:\n  reviewer: \"a name\"\n");
+    assert!(problem(&named).is_some_and(|p| p.contains("review.reviewer")));
 }
 
 #[test]

@@ -1,10 +1,9 @@
 ---
 review:
-  reviewer: "agent, new context"
-  date: "2026-11-20"
+  date: "2026-11-21"
   passes: 1
   result: "pass"
-  hash: "sha256:4b5febe29d186654bf9c3a0d85027430812ccc0d2684fabf1bcaaad2fc2c163f"
+  hash: "sha256:e51a9aa3757052254f2cbf6598c2adee6c99be8444463138ded8af05a0b5a882"
 ---
 # Chapter 15: The document: text, geometry and decoration
 

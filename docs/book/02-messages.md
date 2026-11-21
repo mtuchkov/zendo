@@ -1,10 +1,9 @@
 ---
 review:
-  reviewer: "agent, new context"
-  date: "2026-11-20"
+  date: "2026-11-21"
   passes: 1
   result: "pass"
-  hash: "sha256:298244c02d3889673a8e529a2c85d14a788756ff9afc1c624f8f93b2ea10c92e"
+  hash: "sha256:85c919ecbf24bbda6d16551aa7fb3028e1b55da1920101b8ac70c6537ac7b346"
 ---
 # Chapter 2: Messages (Msg)
 

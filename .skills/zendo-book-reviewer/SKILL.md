@@ -42,7 +42,6 @@ Compare before and after. A check fails when the change makes the file worse tha
 ```yaml
 ---
 review:
-  reviewer: "agent, new context"
   date: "YYYY-MM-DD"
   passes: 1
   result: "pass"
@@ -50,6 +49,7 @@ review:
 ---
 ```
 
+- The review data does not name the reviewer (AGENTS.md, No AI attribution).
 - `passes` counts your passes on this change, the last one included.
 - Write the front matter with `hash: ""` first. Then get the hash with
   `sh .skills/zendo-book-reviewer/scripts/hash.sh <file>` and put it in. The hash covers the whole

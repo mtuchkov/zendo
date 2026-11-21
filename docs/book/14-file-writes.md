@@ -1,10 +1,9 @@
 ---
 review:
-  reviewer: "agent, new context"
-  date: "2026-11-20"
-  passes: 2
+  date: "2026-11-21"
+  passes: 1
   result: "pass"
-  hash: "sha256:588b91c47048de970b297bc94d2a530744857dc080018ac97eb6df422b0682b6"
+  hash: "sha256:5820906e5dd704e705961358559dd539354554525f006d2bff46b87c8a6a7088"
 ---
 # Chapter 14: File writes and external consistency
 

@@ -1,10 +1,9 @@
 ---
 review:
-  reviewer: "agent, new context"
-  date: "2026-11-20"
+  date: "2026-11-21"
   passes: 1
   result: "pass"
-  hash: "sha256:a1e3a2bf637eb97e8905b6f01ab4ae565d783d994ba06d000852a94b9b32790c"
+  hash: "sha256:d976739a38db4c38964336e4a7dc1dba0230718d51ebe81818354e93e40e6a50"
 ---
 # The zendo book: the architecture of the TUI
 

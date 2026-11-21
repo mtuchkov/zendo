@@ -1,10 +1,9 @@
 ---
 review:
-  reviewer: "agent, new context"
-  date: "2026-11-20"
+  date: "2026-11-21"
   passes: 1
   result: "pass"
-  hash: "sha256:bc7724fe5fe425d77256d7243890d6ceb7d2bc513939064c8eb58cbeac7006ba"
+  hash: "sha256:0eb7968af73339dbf3e9198498f605d8d05c326250ccf80c9b7427ff52726d26"
 ---
 # Chapter 4: The model (Model)
 

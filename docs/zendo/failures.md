@@ -33,9 +33,8 @@ the file from the backup of the write. If zendo itself stops during a write, the
 the file and keeps that content.
 
 A specification states a failure requirement only where its feature does something different from
-this default. Examples of such differences today: when Claude does not answer at the start, zendo
-does not open the screen (ZENDO-2); a line of the config with an error costs only its own setting
-(CMD-17).
+this default. An example of such a difference today: a line of the config with an error costs only
+its own setting (CMD-17).
 
 ## Architecturally significant requirements
 

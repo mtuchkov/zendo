@@ -166,7 +166,7 @@ Rules:
 - WHEN the agent changes a file of the book, a reviewer shall review the change with the skill
   [.skills/zendo-book-reviewer/SKILL.md](.skills/zendo-book-reviewer/SKILL.md), at least one pass.
   A reviewer is a person or an agent with a new context that did not write the change.
-- The reviewer shall record the review in the front matter of the file: the reviewer, the date, the
+- The reviewer shall record the review in the front matter of the file: the date, the
   number of passes, the result, and the hash of the whole file with an empty `hash` field.
 - `tests/book_review.rs` checks in `cargo test` that the hash in each review is the hash of the
   current file. An edit after the review, also an edit of the review data, fails the test.

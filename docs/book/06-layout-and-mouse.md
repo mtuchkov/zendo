@@ -1,10 +1,9 @@
 ---
 review:
-  reviewer: "agent, new context"
-  date: "2026-11-20"
+  date: "2026-11-21"
   passes: 1
   result: "pass"
-  hash: "sha256:28e519874fd242718954dee9f1112abd869fe17f9ddcbfd388d35ab849f84ca5"
+  hash: "sha256:45be174ef6ac50c73f70f282028399f8603ba5ac441eea56a2edd5276992c042"
 ---
 # Chapter 6: Layout and the mouse
 
