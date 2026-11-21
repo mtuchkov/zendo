@@ -34,6 +34,10 @@ loses neither text:
 - zendo shows which changes of `name~` are lost with the version from outside, and Claude explains
   them.
 
+While a file has a `name~` that is not reconciled, zendo does not write that file: the backup of
+a new write would replace the text in `name~`. The requests wait in the queue of the path
+([WRITE-2](file-writes.md)) until the user decides (User, 2026-11-21).
+
 A conflict that the executor finds before a write ([WRITE-10](other-writers.md)) goes the same way
 (Design). So does the backup `name~` that a stopped write left: it is for the reconcile at the
 recovery ([WRITE-23](file-writes.md)).
@@ -59,6 +63,7 @@ Until that step, each conflict gets the choice between the two versions.
 | -- | ------- | ----------- | ------ |
 | WRITE-12 | Unwanted | If the file of a document with unsaved changes changes on the disk, and OT can move the unsaved text over the change, then the system shall merge the two and shall ask no question. | User, 2026-11-21; UNDO-13 |
 | WRITE-18 | Unwanted | If the unsaved text of a document and a change of its file on the disk conflict, then the system shall lose neither text, and the user shall decide. | User, 2026-11-21 |
+| WRITE-26 | State | While a file has a `name~` that is not reconciled, from a conflict or from a write that did not end, the system shall not write that file. | User, 2026-11-21 |
 
 ### Acceptance tests
 
@@ -75,6 +80,13 @@ Until that step, each conflict gets the choice between the two versions.
 - Then the file has the version from outside, `name~` has the text of zendo, and the screen asks
   the user to choose a version and shows the changes of `name~` that can be lost.
 
+**`no_write_while_a_backup_waits`** (scenario test with fake services, not written yet; verifies WRITE-26)
+
+- Given a note with a conflict: `name~` holds the text of zendo, and the user did not decide.
+- When the user types a word, and the delay of the save goes by.
+- Then the disk gets no write of the note, and `name~` still holds its text; after the user
+  chooses a version, the waiting write runs.
+
 ## Detailed requirements
 
 | ID | Pattern | Requirement | Source |
@@ -83,9 +95,3 @@ Until that step, each conflict gets the choice between the two versions.
 | WRITE-20 | Event | When the system asks the user to choose a version, the system shall show the changes of `name~` that are lost with the version from outside, and Claude shall explain them. | User, 2026-11-21 |
 | WRITE-21 | Optional | Where the file is under git, the system shall give a conflict to the conflict resolution of git. | User, 2026-11-21 |
 | WRITE-22 | Optional | Where the file is not under git, the system shall count the change from outside as made at the modified time of the file, shall split its own operations into those before and those after that time, shall apply as many as it can, and shall show the edits that can be lost before it asks the user. | User, 2026-11-21 |
-
-## Open points
-
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| `name~` is also the backup of a write (WRITE-8). Can a conflict and a backup need the name at the same time? | WRITE-8, WRITE-19 | User |
