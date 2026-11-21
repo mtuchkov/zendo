@@ -118,6 +118,20 @@ main = true
 template = "docs/guides/templates/adr-template.md"
 
 [[entry]]
+path = "docs/architecture/tui-architecture"
+label = "TUI architecture"
+about = "The architecture of the TUI, The Elm Architecture with all IO outside the UI loop: tui-architecture.md is the parent; its children are the components, keys and view, and the asynchronous IO."
+claude = "Keep the core free of IO: no file system, clock, process or tokio. Record a decision that changes this architecture as a decision record in docs/architecture/decisions."
+main = true
+
+[[entry]]
+path = "docs/book"
+label = "Book"
+about = "The zendo book: the architecture of the TUI explained one chapter at a time. zendo-book.md is the table of contents; each chapter is a file of its own."
+claude = "Write the book in Simplified Technical English, as explanation, not as requirements. Describe only the target architecture. Keep the table of contents in zendo-book.md in step with the chapter files."
+main = true
+
+[[entry]]
 path = "docs/milestones"
 label = "Milestones"
 about = "One document for each milestone: scope, temporary behavior, acceptance."
