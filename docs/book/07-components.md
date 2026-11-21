@@ -1,9 +1,17 @@
+---
+review:
+  reviewer: "agent, new context"
+  date: "2026-11-20"
+  passes: 1
+  result: "pass"
+  hash: "sha256:467ed69fc429ef11e859c1bb17232fe0c148ea992b4ab92a4516ece2b82c0862"
+---
 # Chapter 7: Components
 
 The model of zendo is large: the editor, the reader, the chat, the file tree, find, the terminals,
 the board, the status bar. Thus the model is divided into **components**.
 
-**A component is a small TEA inside the large one.** Each component has its own:
+**A component is a small core inside the large one.** Each component has its own:
 
 - model (`tree::Model`);
 - messages (`tree::Msg`);

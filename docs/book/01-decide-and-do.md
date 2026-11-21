@@ -1,3 +1,11 @@
+---
+review:
+  reviewer: "agent, new context"
+  date: "2026-11-20"
+  passes: 1
+  result: "pass"
+  hash: "sha256:6e4de2bd9822213f43991b8df057aa7d5cbd6152eb05ffe4a3b5189c07d95915"
+---
 # Chapter 1: Core and Runtime
 
 All of the architecture is based on one division. The application has two parts.

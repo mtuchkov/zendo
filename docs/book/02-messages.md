@@ -1,3 +1,11 @@
+---
+review:
+  reviewer: "agent, new context"
+  date: "2026-11-20"
+  passes: 1
+  result: "pass"
+  hash: "sha256:298244c02d3889673a8e529a2c85d14a788756ff9afc1c624f8f93b2ea10c92e"
+---
 # Chapter 2: Messages (Msg)
 
 The core does nothing itself. Then how does it know that an event occurred? Through messages.
@@ -7,7 +15,7 @@ not a function. It is a record of an event. For example:
 
 - the user pushed `ctrl-s`;
 - the agent sent a part of the text;
-- the file is read, and here is its content;
+- the runtime read the file, and here is its content;
 - the write to the disk failed;
 - 100 ms went by, and here is the time now.
 
@@ -42,4 +50,4 @@ Why this is important:
 
 An example from zendo. In this architecture, a key push in the file tree is only a `Msg::Key`.
 The core decides "it is necessary to delete the file", but the core does not delete the file
-itself. How the core asks for this is the next chapter.
+itself. The chapter about commands tells how the core asks for this.

@@ -1,3 +1,11 @@
+---
+review:
+  reviewer: "agent, new context"
+  date: "2026-11-20"
+  passes: 1
+  result: "pass"
+  hash: "sha256:8bd42f5e632bc309b41d30cd6ab418f7acc3195be495eb44c5a9d294b7218a0e"
+---
 # Chapter 13: The frame and the time budget
 
 Two places remain where the UI can still stop, also when all commands are asynchronous.
@@ -30,8 +38,7 @@ Thus the core has a **budget: 8 ms** for `update` and `view` together. This is h
 How the budget is checked:
 
 - **The runtime measures each message in one place.** It measures the time from the arrival of the
-  `Msg` to the end of the frame. The code of the components has no measurements (this is RESP-1 and
-  RESP-2).
+  `Msg` to the end of the frame. The code of the components has no measurements.
 - **If a message goes over the budget, then the runtime writes a record in the telemetry** with the
   type of the message. Thus you see more than "it is slow": you see "`Msg::Editor(Paste)` is slow on
   a 2 MB file".
@@ -39,6 +46,6 @@ How the budget is checked:
   test pushes keys and checks that the screen changes within the budget. If a person adds a wait for
   IO into the loop by mistake, then this test fails.
 
-An honest note from the document: the budget and the telemetry **find** a slow `update`, but they do
+An honest note: the budget and the telemetry **find** a slow `update`, but they do
 not **prevent** it. This is the only place where the architecture uses measurement, not
 construction.

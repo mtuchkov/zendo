@@ -1,3 +1,11 @@
+---
+review:
+  reviewer: "agent, new context"
+  date: "2026-11-20"
+  passes: 1
+  result: "pass"
+  hash: "sha256:a1e3a2bf637eb97e8905b6f01ab4ae565d783d994ba06d000852a94b9b32790c"
+---
 # The zendo book: the architecture of the TUI
 
 This book explains the architecture of the zendo TUI. Each chapter explains one idea.

@@ -1,3 +1,11 @@
+---
+review:
+  reviewer: "agent, new context"
+  date: "2026-11-20"
+  passes: 2
+  result: "pass"
+  hash: "sha256:588b91c47048de970b297bc94d2a530744857dc080018ac97eb6df422b0682b6"
+---
 # Chapter 14: File writes and external consistency
 
 The write of notes and of the config is the most dangerous IO: an error here
@@ -15,7 +23,7 @@ Thus each path has **its own queue**:
 - of the waiting requests, **only the last one** stays. A was written, and B and C waited: the
   runtime writes C immediately and skips B.
 
-The result: no races and no unnecessary writes. The disk always has the newest version.
+The result: no races and no unnecessary writes. The disk always has the newest text.
 
 **The user sees that a write runs**
 
@@ -28,7 +36,7 @@ saved it, but it is not saved".
 2. It truncates the file and writes the new content in place. The write is synchronous: when it
    ends, the data is on the disk.
 3. If the write succeeds, then the executor deletes the backup. If it fails, then the executor
-   restores the file from the backup (FAIL-2).
+   restores the file from the backup.
 
 The file keeps its identity: its links, its owner and its permissions stay, and a watcher of the
 file sees the change. If zendo stops during the write, then the backup stays on the disk. A reader
@@ -40,7 +48,7 @@ If the write fails:
 
 - the runtime sends `Msg::WriteFailed`;
 - the model **keeps the data marked as not saved**. The text stays in the editor;
-- the status bar shows the error (FAIL-1).
+- the status bar shows the error.
 
 The user lost nothing and can try again.
 
@@ -58,15 +66,15 @@ base. Before the write, the executor reads the hash again. If the hash is not th
 executor does not write, and it sends `Msg::WriteConflict`.
 
 A subscription to the file sends `Msg::FileChanged`. If the document has no unsaved changes, then
-the model reads the file again. If it has unsaved changes, then the model keeps the conflict, and
-the user decides: keep the text of the editor, take the text of the disk, or merge them. After its
+the model reads the file again. If it has unsaved changes, then the model keeps the conflict.
+The user decides: keep the text of the editor, take the text of the disk, or merge them. After its
 own write, the model sets the base to the new hash, thus the event about its own write changes
 nothing.
 
-A small window remains between the check and the write. The check makes a race rare and visible,
+A short time remains between the check and the write. The check makes a race rare and visible,
 but not impossible.
 
-The subscription watches the folder of the file, not the file: a different program can replace the
+The subscription watches the folder of the file, not the file. A different program can replace the
 file with a rename, and only the folder sees this. An advisory lock prevents a race between two
 zendo processes. Other programs do not use the lock, thus for them only the check of the hash
 remains.
