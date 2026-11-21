@@ -6,7 +6,7 @@ parent: "internals.md"
 prev: "layout-and-mouse.md"
 next: "active-panel-and-overlays.md"
 level: "the division of the model into components, their isolation, and the messages between them through the parent"
-note: "Agent draft from the chapter Components of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Draft from the chapter Components of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Components

@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "interactivity.md"
 next: "terminal/terminal.md"
 level: "the background processes of the agent and of Claude Code: that they still run, which ones, their end, their stop, and the quit"
-note: "Agent draft from the request of the user on 2026-11-18 in chat: show that background processes still run, and which ones; much asked for. It replaces ACT-12, INTER-4 and INTER-12, which are retired. Approved by the user on 2026-11-18. Revision 2, agent draft from the user on 2026-11-18 in chat: the line counted processes that it did not show and an MCP server; quit again did not quit; a click on the mark shall open the list of all processes (BG-11, BG-12, BG-4, BG-5). Revision 2 approved by the user on 2026-11-18. Revision 3 (user, 2026-11-18, in chat; the text waits for the review of the user): BG-13 and BG-14, no `ps` and no signal 0 (ADR 0023)."
+note: "Draft from the request of the user on 2026-11-18 in chat: show that background processes still run, and which ones; much asked for. It replaces ACT-12, INTER-4 and INTER-12, which are retired. Approved by the user on 2026-11-18. Revision 2, draft from the user on 2026-11-18 in chat: the line counted processes that it did not show and an MCP server; quit again did not quit; a click on the mark shall open the list of all processes (BG-11, BG-12, BG-4, BG-5). Revision 2 approved by the user on 2026-11-18. Revision 3 (user, 2026-11-18, in chat; the text waits for the review of the user): BG-13 and BG-14, no `ps` and no signal 0 (ADR 0023)."
 ---
 
 # Background processes

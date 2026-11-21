@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "chat-messages.md"
 next: "activity.md"
 level: "the history of the messages of the user: per zendo session, the common history, and the arrows that go through it"
-note: "Agent draft of the request of the user on 2026-11-18. Revision 2: text chips in the history, `/clear` as a new thread, and a thread that sees the common history of its start, asked by the user on 2026-11-18. Approved by the user on 2026-11-18. Revision 3, asked and approved by the user on 2026-11-19: `/new <text>`, a command of zendo (HISTORY-8 to HISTORY-10, ADR 0027). HISTORY-8 to HISTORY-10 are new identifiers that the user approved. Revision 4, after the code review of 2026-11-19: the queue keeps `/new` as typed, and a question behind it goes to the new thread (HISTORY-10); `/new` does not go to Claude Code (HISTORY-11, a new identifier); approved by the user on 2026-11-19."
+note: "Draft of the request of the user on 2026-11-18. Revision 2: text chips in the history, `/clear` as a new thread, and a thread that sees the common history of its start, asked by the user on 2026-11-18. Approved by the user on 2026-11-18. Revision 3, asked and approved by the user on 2026-11-19: `/new <text>`, a command of zendo (HISTORY-8 to HISTORY-10, ADR 0027). HISTORY-8 to HISTORY-10 are new identifiers that the user approved. Revision 4, after the code review of 2026-11-19: the queue keeps `/new` as typed, and a question behind it goes to the new thread (HISTORY-10); `/new` does not go to Claude Code (HISTORY-11, a new identifier); approved by the user on 2026-11-19."
 ---
 
 # Chat history

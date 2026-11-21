@@ -6,7 +6,7 @@ parent: "internals.md"
 prev: "components.md"
 next: "keymap.md"
 level: "the one active panel, the mode as a part of its panel, and the stack of overlays"
-note: "Agent draft from the chapter The active panel and overlays of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Draft from the chapter The active panel and overlays of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # The active panel and overlays

@@ -5,7 +5,7 @@ date: "2026-11-21"
 parent: "document.md"
 next: "annotations.md"
 level: "the open of a document, the parse after an edit up to the visible part of the screen, the identity of a block, and the answer of a parse"
-note: "Agent draft from the parts about the open, the edit and the parse of the chapter The document of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Draft from the parts about the open, the edit and the parse of the chapter The document of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # The document: open, edit and parse

@@ -12,7 +12,7 @@ children:
   - "terminal-watch.md"
   - "terminal-mouse.md"
 level: "the terminals of zendo as a whole: what a terminal is, how many, who runs a command"
-note: "Agent draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Revision 3: split into children by topic (user, 2026-11-12). Depends on Sessions (sessions.md, draft) and ADR 0005. Revision 5: the child terminal-watch.md, ADR 0018; TERM-2 takes `Run in zendo shell` of ADR 0019 (user, 2026-11-17)."
+note: "Draft from the requests of the user on 2026-11-12. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Revision 3: split into children by topic (user, 2026-11-12). Depends on Sessions (sessions.md, draft) and ADR 0005. Revision 5: the child terminal-watch.md, ADR 0018; TERM-2 takes `Run in zendo shell` of ADR 0019 (user, 2026-11-17)."
 ---
 
 # Terminal

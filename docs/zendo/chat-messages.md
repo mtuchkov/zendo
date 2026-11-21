@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "chat-chips.md"
 next: "chat-history.md"
 level: "how the chips of a question go to the agent and to Claude Code, and how the transcript shows them"
-note: "Agent draft of the requests of the user on 2026-11-17, with the answers of the user to the open questions in the chat on 2026-11-17, and the escapes of CLAUDE-61 asked by the user on 2026-11-17. Approved by the user on 2026-11-17. Revision 2 (agent, 2026-11-17, not reviewed yet): a pasted text in the input keeps a run of `\\` at its end; the transcript keeps the label of a chip of its own questions; the test names as in the code."
+note: "Draft of the requests of the user on 2026-11-17, with the answers of the user to the open questions in the chat on 2026-11-17, and the escapes of CLAUDE-61 asked by the user on 2026-11-17. Approved by the user on 2026-11-17. Revision 2 (2026-11-17, not reviewed yet): a pasted text in the input keeps a run of `\\` at its end; the transcript keeps the label of a chip of its own questions; the test names as in the code."
 ---
 
 # Chips in a question

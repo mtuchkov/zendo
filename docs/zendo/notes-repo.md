@@ -6,7 +6,7 @@ parent: "zendo.md"
 prev: "find-regex.md"
 next: "length.md"
 level: "where the notes live when the user has a private notes repo, and how zendo keeps it in sync"
-note: "Agent draft of the design that the user decided on 2026-11-11. Not reviewed by the user."
+note: "Draft of the design that the user decided on 2026-11-11. Not reviewed by the user."
 ---
 
 # Notes repo

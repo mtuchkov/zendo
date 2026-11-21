@@ -8,7 +8,7 @@ children:
   - "document-edits.md"
   - "annotations.md"
 level: "the layers of a document and the part that owns each layer: the text and the geometry in the model, the decoration in the cache of the view"
-note: "Agent draft from the chapter The document of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Draft from the chapter The document of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # The document

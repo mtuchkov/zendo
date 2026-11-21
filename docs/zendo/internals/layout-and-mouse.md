@@ -6,7 +6,7 @@ parent: "internals.md"
 prev: "view.md"
 next: "components.md"
 level: "the sizes of the panels without a draw, and the way of a mouse click to a message"
-note: "Agent draft from the chapter Layout and the mouse of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Draft from the chapter Layout and the mouse of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Layout and the mouse

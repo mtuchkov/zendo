@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "zendo-session.md"
 next: "board-posts.md"
 level: "the message board between zendo sessions: its purpose, channels, the kinds of messages, delivery and limits"
-note: "Agent draft from the discussion with the user on 2026-11-18 in chat. Revision 2 replaces revision 1: channels with owners, questions and tasks with answers and task statuses, squash and a limit per sender, posts in board-posts.md, a journal for each user (ADR 0021, ADR 0022). Open points closed by the agent as Design after the user asked for no more questions: a task goes to one inbox, a fuse holds a chain of turns. The identifiers of revision 1 were proposals that the user did not review, so this revision assigns them again. The user approved the plan and asked to implement it on 2026-11-18; the code implements it, and the check with real Claude is not done yet."
+note: "Draft from the discussion with the user on 2026-11-18 in chat. Revision 2 replaces revision 1: channels with owners, questions and tasks with answers and task statuses, squash and a limit per sender, posts in board-posts.md, a journal for each user (ADR 0021, ADR 0022). Open points closed by the agent as Design after the user asked for no more questions: a task goes to one inbox, a fuse holds a chain of turns. The identifiers of revision 1 were proposals that the user did not review, so this revision assigns them again. The user approved the plan and asked to implement it on 2026-11-18; the code implements it, and the check with real Claude is not done yet."
 ---
 
 # Message board

@@ -6,7 +6,7 @@ parent: "internals.md"
 prev: "model.md"
 next: "layout-and-mouse.md"
 level: "the view as a function of the model: read only, the whole frame, the cache of expensive results, animation"
-note: "Agent draft from the chapter The view of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Draft from the chapter The view of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # The view

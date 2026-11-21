@@ -6,7 +6,7 @@ date: "2026-11-18"
 parent: "text-input.md"
 prev: "undo.md"
 level: "undo in documents: the saves in the loglet, .zendo/db.log.json, and the changes of the file from outside zendo"
-note: "Written by the agent from the requests of the user on 2026-11-18; revision 2: the change is appended to the loglet, and the unsaved text stays out of it; revision 3 took the documents part of undo.md. Approved by the user on 2026-11-18. The code implements the requirements; the acceptance tests in tests/undo.rs pass."
+note: "Written from the requests of the user on 2026-11-18; revision 2: the change is appended to the loglet, and the unsaved text stays out of it; revision 3 took the documents part of undo.md. Approved by the user on 2026-11-18. The code implements the requirements; the acceptance tests in tests/undo.rs pass."
 ---
 
 # Undo in documents

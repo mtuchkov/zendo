@@ -5,7 +5,7 @@ date: "2026-11-21"
 parent: "document.md"
 prev: "document-edits.md"
 level: "data that looks like decoration but changes the geometry: where it lives, and how the text does not jump when it comes"
-note: "Agent draft from the part Annotations of the chapter The document of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Draft from the part Annotations of the chapter The document of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # The document: annotations

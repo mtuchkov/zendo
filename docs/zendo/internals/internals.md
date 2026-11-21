@@ -20,7 +20,7 @@ children:
   - "file-writes/file-writes.md"
   - "document/document.md"
 level: "the parts of the TUI and the path of an event through them; one child for each chapter of the zendo book"
-note: "Agent draft from the zendo book, which the user named the target architecture on 2026-11-20. It takes the place of docs/architecture/tui-architecture. Not reviewed by the user. The requirement IDs of the children are proposals until the user reviews them."
+note: "Draft from the zendo book, which the user named the target architecture on 2026-11-20. It takes the place of docs/architecture/tui-architecture. Not reviewed by the user. The requirement IDs of the children are proposals until the user reviews them."
 ---
 
 # Internals of the TUI

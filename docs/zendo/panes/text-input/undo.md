@@ -7,7 +7,7 @@ parent: "text-input.md"
 prev: "date-selector.md"
 next: "undo-documents.md"
 level: "undo and redo in every input: the keys, the loglets, where zendo keeps them"
-note: "Written by the agent from the requests of the user on 2026-11-18; revision 2 moved the changes from outside to their own document; revision 3 moved all of the documents to undo-documents.md. Approved by the user on 2026-11-18. The code implements the requirements; the acceptance tests in tests/undo.rs pass."
+note: "Written from the requests of the user on 2026-11-18; revision 2 moved the changes from outside to their own document; revision 3 moved all of the documents to undo-documents.md. Approved by the user on 2026-11-18. The code implements the requirements; the acceptance tests in tests/undo.rs pass."
 ---
 
 # Undo and redo

@@ -6,7 +6,7 @@ parent: "internals.md"
 prev: "commands.md"
 next: "view.md"
 level: "the model as the one place of the state: what it holds, who changes it, and its shape"
-note: "Agent draft from the chapter The model (Model) of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Draft from the chapter The model (Model) of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # The model

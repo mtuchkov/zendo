@@ -6,7 +6,7 @@ parent: "internals.md"
 prev: "subscriptions.md"
 next: "tickets-and-cancellations.md"
 level: "the UI loop that never waits, the executor of commands, blocking calls, and heavy calculations as commands"
-note: "Agent draft from the chapter Async IO of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Draft from the chapter Async IO of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Async IO

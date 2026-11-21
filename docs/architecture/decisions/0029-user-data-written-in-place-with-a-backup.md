@@ -1,7 +1,7 @@
 ---
 status: "draft"
 date: "2026-11-21"
-note: "Agent draft. The decision is of the user (2026-11-21): the zendo book takes priority over the failure default of 2026-11-18. The record, its options and its consequences wait for the review of the user."
+note: "Draft. The decision is of the user (2026-11-21): the zendo book takes priority over the failure default of 2026-11-18. The record, its options and its consequences wait for the review of the user."
 sources:
   - "The user, 2026-11-21: the book takes priority; this is a redesign."
   - "../../book/14-file-writes.md (How a file is written)"
@@ -47,8 +47,7 @@ what FAIL-2 promises when zendo stops during a write.
 ## Decision
 
 The user decided on 2026-11-21: option B, as the book describes it. The book takes priority over
-the failure default. The third rule is a proposal of the agent (Design); the book does not state
-it.
+the failure default. The third rule is a proposal (Design); the book does not state it.
 
 - The executor shall write user data in place, with a backup, through one function. That function
   shall stay the only way to write user data.
@@ -84,8 +83,3 @@ it.
 - A test for a backup that a stopped zendo left, after the open point has an answer.
 
 None is written yet.
-
-## Decision record
-
-Decided by the user on 2026-11-21 in the chat: "book takes priority". Record drafted by the agent
-on 2026-11-21. The record and revision 2 of the failure default wait for the review of the user.

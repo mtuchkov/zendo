@@ -1,7 +1,7 @@
 ---
 status: "draft"
 date: "2026-11-18"
-note: "The user chose the decision in chat on 2026-11-18. This record is an agent draft and is not reviewed by the user."
+note: "The user chose the decision in chat on 2026-11-18. This record is a draft and is not reviewed by the user."
 sources:
   - "The user, 2026-11-18: end a command when the terminal is free and quiet for 300 ms; load no script into the shell."
   - "auditd on the machine of the user, 2026-11-18 15:41:29 and 21:27:29: falcon-sensor-bpf sent SIGKILL to zendo and to the zsh that zendo had just started."
@@ -63,7 +63,3 @@ The user chose the third option on 2026-11-18.
 - `alt_o_puts_the_result_into_the_input_and_does_not_send_it` checks the marks of a `.bashrc` of the
   user.
 - On the machine of the user, auditd shows no SIGKILL from Falcon to zendo when terminals open.
-
-## Decision record
-
-Draft of the agent, 2026-11-18, from the decision of the user in chat.

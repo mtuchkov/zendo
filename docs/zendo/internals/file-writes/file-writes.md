@@ -9,7 +9,7 @@ children:
   - "other-writers.md"
   - "write-conflicts.md"
 level: "the write of user data by the runtime: the queue of a path, the write itself, a failure, the saved state, the exit"
-note: "Agent draft from the chapter File writes and external consistency of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. The write in place is the decision of the user of 2026-11-21 (the book takes priority, ADR 0029); failures.md follows it in its revision 2."
+note: "Draft from the chapter File writes and external consistency of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. The write in place is the decision of the user of 2026-11-21 (the book takes priority, ADR 0029); failures.md follows it in its revision 2."
 ---
 
 # File writes

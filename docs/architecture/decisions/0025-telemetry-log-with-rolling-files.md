@@ -2,7 +2,7 @@
 status: "approved"
 approved: "2026-11-19"
 date: "2026-11-19"
-note: "Agent draft of the mechanism of the telemetry log that the user decided on 2026-11-19. Approved by the user on 2026-11-19; implemented in zendo 0.124.0."
+note: "Draft of the mechanism of the telemetry log that the user decided on 2026-11-19. Approved by the user on 2026-11-19; implemented in zendo 0.124.0."
 sources:
   - "The user, 2026-11-19: telemetry accumulates as files with events, with a rolling rule of 50 files of 1 MB each, in a location that git ignores; later zendo sends it to an analytics service; the events stay in memory and a separate thread writes them."
   - "../../zendo/telemetry.md (TELEM-1 to TELEM-12)"
@@ -58,7 +58,3 @@ Files of each process, one limit for all files.
 
 `the_log_keeps_at_most_50_files_of_1_mb` and `two_processes_write_two_files` check the rolling and
 the files of each process; `a_slow_write_does_not_delay_the_screen` checks the writer thread.
-
-## Decision record
-
-Proposed by the agent on 2026-11-19. Approved by the user on 2026-11-19.

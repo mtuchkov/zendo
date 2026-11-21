@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "transcript.md"
 next: "interactivity.md"
 level: "how the status line of a turn shows that the agent is alive: the thought, the waits of the agent, the pulse"
-note: "Agent draft from the request of the user on 2026-11-18 in chat: a more alive status. Split from Interactivity of the chat to keep each document within two pages. Approved by the user on 2026-11-18."
+note: "Draft from the request of the user on 2026-11-18 in chat: a more alive status. Split from Interactivity of the chat to keep each document within two pages. Approved by the user on 2026-11-18."
 ---
 
 # A status line that is alive

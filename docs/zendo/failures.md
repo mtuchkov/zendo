@@ -4,7 +4,7 @@ revision: "2"
 date: "2026-11-21"
 parent: "zendo.md"
 level: "what zendo does when a dependency fails, for every feature"
-note: "Agent draft of the failure default that AGENTS.md asks for, from the defects that reached main from 2026-11-12 to 2026-11-17 and the behavior of zendo 0.113. Updated with the atomic write of zendo 0.113.6. Revision 1 was approved by the user on 2026-11-18. Revision 2, agent draft from the decision of the user of 2026-11-21 that the zendo book takes priority: a write of user data is in place, with a backup (ADR 0029); FAIL-2 changed, FAIL-7 is new, the section Design follows the book. Revision 2 is not reviewed by the user. The code of zendo 0.126 implements revision 1: a temporary file and a rename."
+note: "Draft of the failure default that AGENTS.md asks for, from the defects that reached main from 2026-11-12 to 2026-11-17 and the behavior of zendo 0.113. Updated with the atomic write of zendo 0.113.6. Revision 1 was approved by the user on 2026-11-18. Revision 2, draft from the decision of the user of 2026-11-21 that the zendo book takes priority: a write of user data is in place, with a backup (ADR 0029); FAIL-2 changed, FAIL-7 is new, the section Design follows the book. Revision 2 is not reviewed by the user. The code of zendo 0.126 implements revision 1: a temporary file and a rename."
 ---
 
 # Failure default

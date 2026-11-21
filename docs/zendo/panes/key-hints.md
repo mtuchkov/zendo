@@ -6,7 +6,7 @@ date: "2026-11-18"
 parent: "panes.md"
 prev: "key-change.md"
 level: "how a light model suggests free keys in the key float, without a wait for the user"
-note: "Agent draft, moved out of key-change.md on 2026-11-18 to keep each document within two pages; the IDs did not change. Approved by the user on 2026-11-18. Implemented in zendo 0.93.0."
+note: "Draft, moved out of key-change.md on 2026-11-18 to keep each document within two pages; the IDs did not change. Approved by the user on 2026-11-18. Implemented in zendo 0.93.0."
 ---
 
 # Key hints

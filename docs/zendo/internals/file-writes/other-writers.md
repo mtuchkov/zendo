@@ -5,7 +5,7 @@ date: "2026-11-21"
 parent: "file-writes.md"
 next: "write-conflicts.md"
 level: "a file that a different program changes: the base hash of a write, the watch of the folder, the lock"
-note: "Agent draft from the part Other writers of the chapter File writes and external consistency of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Draft from the part Other writers of the chapter File writes and external consistency of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Other writers

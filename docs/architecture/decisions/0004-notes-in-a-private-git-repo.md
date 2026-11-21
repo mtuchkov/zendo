@@ -45,7 +45,3 @@ files.
 
 The tests in `src/sync.rs` with a bare remote and two clones, and `tests/notes_repo.rs` with the
 mock agent.
-
-## Decision record
-
-The user decided the design on 2026-11-11. This record is not reviewed by the user.

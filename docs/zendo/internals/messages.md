@@ -6,7 +6,7 @@ parent: "internals.md"
 prev: "core-and-runtime.md"
 next: "commands.md"
 level: "the message as the one input of the core: what a message is, the time in it, and the replay of messages"
-note: "Agent draft from the chapter Messages (Msg) of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Draft from the chapter Messages (Msg) of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Messages

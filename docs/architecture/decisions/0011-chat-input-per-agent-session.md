@@ -89,10 +89,3 @@ The second option is chosen.
 - `src/app/chat_pane_tests.rs`: the save and the load of the drafts; the drafts are due 2 s after
   the last change; the name of an image pasted in session 0 labels its chip, and the queue of
   session 0 goes into its input, while session 1 is active (CLAUDE-47).
-
-## Decision record
-
-Proposed by the agent on 2026-11-17 from the requests of the user in the chat. The user chose to
-keep the drafts across a restart, and a red chip for a gone file, and approved the record on 2026-11-17.
-On 2026-11-18 the agent brought it in line with chat-history.md and undo.md (the place in the
-history and the loglet of the input) and with the sessions from 0; not reviewed yet.

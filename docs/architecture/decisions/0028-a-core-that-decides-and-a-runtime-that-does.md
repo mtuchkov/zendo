@@ -1,7 +1,7 @@
 ---
 status: "draft"
 date: "2026-11-21"
-note: "Agent draft. The decision is of the user (2026-11-20); the record, its options and its consequences wait for the review of the user."
+note: "Draft. The decision is of the user (2026-11-20); the record, its options and its consequences wait for the review of the user."
 sources:
   - "The user, 2026-11-20: the TUI follows The Elm Architecture; all IO is asynchronous and never blocks the UI."
   - "The user, 2026-11-20: docs/book is the target architecture; specifications take the place of docs/architecture/tui-architecture."
@@ -91,9 +91,3 @@ The acceptance tests of the internals specifications. The main ones:
 - `a_late_answer_of_an_old_request_does_not_show` (TICKET-1).
 
 None is written yet.
-
-## Decision record
-
-Decided by the user on 2026-11-20, in the zendo book and in the request for these specifications.
-Record drafted by the agent on 2026-11-21. It waits for the review of the user. The agent did not
-change the status of ADR 0008.

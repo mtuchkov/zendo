@@ -6,7 +6,7 @@ parent: "internals.md"
 prev: "keymap.md"
 next: "async-io.md"
 level: "the streams of events: the model tells which sources run, and the runtime starts and stops them"
-note: "Agent draft from the chapter Subscriptions of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Draft from the chapter Subscriptions of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Subscriptions

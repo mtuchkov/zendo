@@ -2,7 +2,7 @@
 status: "approved"
 approved: "2026-11-19"
 date: "2026-11-19"
-note: "Agent draft of the decision of the user on 2026-11-19 in the chat about note to spec; approved by the user on 2026-11-19. The numbers 0024 to 0026 are taken by records of other sessions that are not in main yet."
+note: "Draft of the decision of the user on 2026-11-19 in the chat about note to spec; approved by the user on 2026-11-19. The numbers 0024 to 0026 are taken by records of other sessions that are not in main yet."
 sources:
   - "../../zendo/chat.md (CLAUDE-28): zendo passes the slash commands of the agent through"
   - "../../zendo/chat-history.md (HISTORY-2, HISTORY-8 to HISTORY-10): `ctrl-n`, `/clear` and `/new`"
@@ -56,7 +56,3 @@ context of the input (HISTORY-8). It waits in the queue while the session answer
 - A test of `chat-history.md`: `/new <text>` starts a new thread and sends the text with its
   context; `/new` alone sends nothing; `/new` while the session answers waits for the turn end.
 - The test of CLAUDE-28: `/new` shows in the suggestions, and an agent command `/new` does not.
-
-## Decision record
-
-Decision maker: the user, 2026-11-19, in the chat; the user approved the record the same day.

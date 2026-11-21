@@ -88,7 +88,3 @@ Approved by the user on 2026-11-18: the second option.
 - A test checks the capabilities that zendo sends in the handshake.
 - A check with real Claude confirms the steering, the question tool, and the output of a command
   with the pinned adapter.
-
-## Decision record
-
-Draft of the agent, 2026-11-18. Approved by the user on 2026-11-18 in chat, with PR #26.

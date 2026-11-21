@@ -5,7 +5,7 @@ date: "2026-11-21"
 parent: "file-writes.md"
 prev: "other-writers.md"
 level: "unsaved text and a change of the file from outside: the silent merge, the conflict with its two versions, and the later reconcile"
-note: "Agent draft from the decisions of the user of 2026-11-21 on conflicts, and from the part Other writers of the chapter File writes and external consistency of the zendo book. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Draft from the decisions of the user of 2026-11-21 on conflicts, and from the part Other writers of the chapter File writes and external consistency of the zendo book. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Write conflicts

@@ -97,9 +97,3 @@ ADR 0001 stays: zendo gives the agent no terminal capability.
 - A unit test: a command and an output with `</zendo_command_result>` stay inside the tag.
 - `zendo doctor --live` with real Claude: a `▶▶` block wakes the agent, and the agent reads more
   with `command_result`.
-
-## Decision record
-
-Proposed by the agent on 2026-11-17 from the requests of the user in the chat. The user chose push
-and pull together. The tag format, the folder of the watches and the file lock are proposals of the
-agent. Not reviewed by the user.

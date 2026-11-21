@@ -17,7 +17,7 @@ children:
   - "files-session-doc.md"
   - "files-branch.md"
 level: "the file tree pane as a whole: which files it lists, that it has views, what opening a file does"
-note: "Agent rewrite of the reference of zendo 0.9.1. Revision 2 adds FILES-25 (the notes of the notes repo), approved by the user. Revision 3: split into children by topic (user, 2026-11-14); no requirement changed. The children files-worktree.md and files-worktree-recap.md were approved on 2026-11-14."
+note: "Rewrite of the reference of zendo 0.9.1. Revision 2 adds FILES-25 (the notes of the notes repo), approved by the user. Revision 3: split into children by topic (user, 2026-11-14); no requirement changed. The children files-worktree.md and files-worktree-recap.md were approved on 2026-11-14."
 ---
 
 # File tree

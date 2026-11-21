@@ -29,7 +29,7 @@ of sessions.
 
 ## Decision
 
-Draft of the agent, accepted by the user in chat on 2026-11-18: one daemon for each user.
+Draft, accepted by the user in chat on 2026-11-18: one daemon for each user.
 
 - The daemon holds the sessions of every repository: the PTYs, the screens, the agents and the
   Claude Code sessions. Each UI connects to it through one socket in `~/.zendo/`, and shows the
@@ -52,8 +52,3 @@ Draft of the agent, accepted by the user in chat on 2026-11-18: one daemon for e
 - The exit check of phase 2 runs with two repositories: the user closes both UIs during a turn of
   Claude Code in each, opens them again, and both turns go on.
 - A post from repository A shows in a session of repository B through the daemon.
-
-## Decision record
-
-Draft of the agent, 2026-11-18. The user accepted the choice of one daemon for each user in chat on
-2026-11-18; the record is not reviewed by the user.

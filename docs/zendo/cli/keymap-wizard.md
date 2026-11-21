@@ -7,7 +7,7 @@ parent: "cli.md"
 prev: "doctor.md"
 next: "upgrade.md"
 level: "the keymap check of doctor, the wizard of --keys that moves clashing keys, and its offer at setup"
-note: "Agent draft from the note of the user `2026-11-15-keymap-wizard.md` and the answers of the user on 2026-11-15, approved by the user on 2026-11-15."
+note: "Draft from the note of the user `2026-11-15-keymap-wizard.md` and the answers of the user on 2026-11-15, approved by the user on 2026-11-15."
 ---
 
 # Keymap check and wizard

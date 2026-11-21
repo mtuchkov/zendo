@@ -7,7 +7,7 @@ parent: "panes.md"
 prev: "selection.md"
 next: "keymap.md"
 level: "the selection and the cursor in the chat transcript: what they hold, and what new output does to them"
-note: "Agent draft from the design of the user in the chat on 2026-11-19, after a panic: the cursor of the transcript pointed past its rows. The user approved PANES-50 to PANES-58 on 2026-11-19. The decision is in ADR 0026. Implemented in zendo 0.126.0."
+note: "Draft from the design of the user in the chat on 2026-11-19, after a panic: the cursor of the transcript pointed past its rows. The user approved PANES-50 to PANES-58 on 2026-11-19. The decision is in ADR 0026. Implemented in zendo 0.126.0."
 ---
 
 # Selection in the transcript

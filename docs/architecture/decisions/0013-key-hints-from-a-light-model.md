@@ -59,7 +59,3 @@ Accepted: the second option, with the rules as the first and last layer.
 `a_late_answer_does_not_change_the_float` (REKEY-5) and
 `a_suggestion_that_clashes_is_not_shown` (REKEY-7) in
 [Change a key](../../zendo/panes/key-change.md) and [Key hints](../../zendo/panes/key-hints.md).
-
-## Decision record
-
-Proposed by the agent on 2026-11-17 from the request of the user. The user chose the direct API on 2026-11-17 and `haiku` with low effort on 2026-11-18 in the chat; approved by the user on 2026-11-18 in the chat.

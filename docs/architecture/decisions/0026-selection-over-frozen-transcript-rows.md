@@ -67,8 +67,3 @@ pane.
 The acceptance tests of [Selection in the transcript](../../zendo/panes/transcript-selection.md):
 `a_selection_in_the_transcript_reaches_rows_out_of_view`, `new_output_waits_below_a_selection`,
 `a_shorter_thread_starts_the_transcript_over`.
-
-## Decision record
-
-Proposed by the agent on 2026-11-19 from the design of the user in the chat. Approved by the user
-in the chat on 2026-11-19.

@@ -6,7 +6,7 @@ parent: "internals.md"
 prev: "tickets-and-cancellations.md"
 next: "file-writes/file-writes.md"
 level: "the two last places where the UI can stop: the write of the frame to the terminal, and a slow update"
-note: "Agent draft from the chapter The frame and the time budget of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Draft from the chapter The frame and the time budget of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # The frame and the time budget

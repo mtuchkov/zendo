@@ -6,7 +6,7 @@ parent: "internals.md"
 prev: "active-panel-and-overlays.md"
 next: "subscriptions.md"
 level: "the way of a key to a message: the key, the action, the active panel, the global keys, and sequences with time"
-note: "Agent draft from the chapter The keymap of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Draft from the chapter The keymap of the zendo book, the target architecture (User, 2026-11-20). Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # The keymap

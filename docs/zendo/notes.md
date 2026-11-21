@@ -6,7 +6,7 @@ parent: "zendo.md"
 prev: "panes/panes.md"
 next: "write.md"
 level: "the note pane: read mode and write mode"
-note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user."
+note: "Rewrite of the reference of zendo 0.9.1. Not reviewed by the user."
 ---
 
 # Notes

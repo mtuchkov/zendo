@@ -5,7 +5,7 @@ revision: "2"
 date: "2026-11-19"
 parent: "zendo.md"
 level: "what the telemetry log of zendo holds, where it is, how large it grows, and when zendo writes it"
-note: "Agent draft of the decisions of the user of 2026-11-19: the telemetry is a log of events, in files with a rolling rule of 50 files of 1 MB, in the data folder; a later step sends it to an analytics service, only after the user agrees; the log holds only statistics of the use of zendo, with nothing that identifies the user; the old folders of the summaries go. The log takes the place of the files of the usage counts and of the times of the actions; their requirements of the files move here. Approved by the user on 2026-11-19; implemented in zendo 0.124.0. Revision 2, from the decision of the user of 2026-11-19: zendo asks for the agreement in a popup at its first try to send the log; the service and the send come later."
+note: "Draft of the decisions of the user of 2026-11-19: the telemetry is a log of events, in files with a rolling rule of 50 files of 1 MB, in the data folder; a later step sends it to an analytics service, only after the user agrees; the log holds only statistics of the use of zendo, with nothing that identifies the user; the old folders of the summaries go. The log takes the place of the files of the usage counts and of the times of the actions; their requirements of the files move here. Approved by the user on 2026-11-19; implemented in zendo 0.124.0. Revision 2, from the decision of the user of 2026-11-19: zendo asks for the agreement in a popup at its first try to send the log; the service and the send come later."
 ---
 
 # Telemetry log

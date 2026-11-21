@@ -6,7 +6,7 @@ parent: "zendo.md"
 prev: "cli/cli.md"
 next: "lofi.md"
 level: "what a visitor of the landing page sees, hears and does, and the decisions of the user that shaped it"
-note: "Agent draft from the requests of the user on 2026-11-13, after site/index.html was built. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Draft from the requests of the user on 2026-11-13, after site/index.html was built. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Landing page

@@ -12,7 +12,7 @@ children:
   - "keymap-wizard.md"
   - "upgrade.md"
 level: "the commands around zendo and the job of each one: setup, init, doctor, upgrade"
-note: "Agent draft. Revision 2 splits commands.md into this parent and one child for each command, from the requests of the user on 2026-11-14. The user approved CMD-17, CMD-18 and CMD-19 on 2026-11-15; the rest is not reviewed by the user, and its requirement IDs are proposals until the user reviews this document."
+note: "Draft. Revision 2 splits commands.md into this parent and one child for each command, from the requests of the user on 2026-11-14. The user approved CMD-17, CMD-18 and CMD-19 on 2026-11-15; the rest is not reviewed by the user, and its requirement IDs are proposals until the user reviews this document."
 ---
 
 # Commands

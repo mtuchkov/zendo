@@ -92,8 +92,3 @@ Where the result differs from the note, or settles what it left open:
 - `App` has 29 fields, and no field of the frame cache.
 - No file in `src/ui/` assigns to a field of `App`.
 - Each sub-state has a `*_tests.rs` file that builds it without an `App`.
-
-## Decision record
-
-Proposed by the agent from the note of the user, 2026-11-15. The user decided points 3 and 4 on
-2026-11-15, and asked the agent to finish the split on its own. The user approved the record on 2026-11-16.

@@ -44,7 +44,3 @@ after the user allows each edit.
 
 `edit_is_proposed_and_applied_only_after_allow` and `shell_is_blocked_and_resume_replays` in
 `tests/acp_mock.rs`; `zendo doctor --live` with real Claude.
-
-## Decision record
-
-Not reviewed by the user.
