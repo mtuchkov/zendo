@@ -45,7 +45,8 @@ Until a write is complete, the status bar shows it.
 A write changes only the content of the one file that its command names (FAIL-3). The file keeps
 its identity: its links, its owner and its permissions stay, and a watcher of the file sees the
 change. The cost: a reader can see a partial file during the write, and the backup
-stays on the disk if zendo stops during the write.
+stays on the disk if zendo stops during the write. That backup is not lost: zendo uses it for the
+reconcile at the recovery (User, 2026-11-21).
 
 ## A failure, the saved state, the exit
 
@@ -110,10 +111,10 @@ time, the screen draws and shows "saving…".
 | -- | ------- | ----------- | ------ |
 | WRITE-8 | Event | When the executor writes a file, it shall copy the file to the backup `name~`, write the new content in place and to the disk, and then delete the backup. | User, 2026-11-20 |
 | WRITE-9 | Ubiquitous | The saved part of the model shall have a version; when the version changes, the runtime shall write the file after a debounce, and no component shall start the save. | User, 2026-11-20 |
+| WRITE-23 | Event | When zendo finds the backup `name~` of a write that did not end, the system shall reconcile the file and the backup as the two versions of a conflict (WRITE-18 to WRITE-20). | User, 2026-11-21 |
 
 ## Open points
 
 | Open question | Affects | Answered by |
 | ------------- | ------- | ----------- |
-| zendo stopped during a write, and `name~` stays (FAIL-7). Does zendo then ask the user to choose between the file and `name~`, as for a conflict (WRITE-19, WRITE-20)? | WRITE-8, FAIL-7 | User |
 | The file tree, find, git and the watch of the folder (WRITE-16) see `name~`. Which of them hide it? | WRITE-8 | User |

@@ -36,14 +36,22 @@ The write of a frame is not a part of the cycle: a slow terminal does not look l
 - **A slow cycle.** A cycle over the budget gets one record: the time of the cycle, the time of
   the `view`, and the times of its messages by type. The record shows both cases: one heavy paste,
   and 50 small messages that together are too slow.
-- **A slow update.** An `update` call that alone goes over the budget gets a record of its own,
-  with the type of its message (User, 2026-11-21).
+- **A slow update.** An `update` call that alone takes half of the budget or more, 4 ms, gets a
+  record of its own, with the type of its message (User, 2026-11-21).
 - **A slow write.** The write of a frame over its limit gets a record (User, 2026-11-21).
 - **The distribution of the writes.** The runtime also collects the time of each write in a
   t-digest. The digest collects one minute, and then goes to the telemetry as one record (User,
   2026-11-21). A record for each frame is too much for the log. A t-digest needs no choice of
   buckets, and an analytics service can join the digests of many minutes and read the quantiles
-  later.
+  later. The record holds the centroids of the digest, each with its mean and its count.
+
+Design: a digest has at most 100 centroids. In a test with 60 minutes of simulated writes, up to
+3,600 for each minute, 100 centroids gave a rank error of about 0.1 percentage points or less from
+p50 to p99.9, for one minute and for the joined hour, at about 1 KB for each record. 50 centroids
+gave two to three times the error; 200 gave two times the size.
+
+Each record is one event of the log, with the fields of TELEM-6 and a field that names its kind
+(Design).
 
 No record holds text of the user, a file name or a path (TELEM-7).
 
@@ -57,15 +65,14 @@ BUDGET-3 of [The frame and the time budget](frame-and-budget.md) cover the measu
 | FRAME-5 | Ubiquitous | The runtime shall measure the write of a frame to the terminal as a measurement of its own, apart from the budget. | User, 2026-11-21 |
 | FRAME-8 | Unwanted | If the write of a frame takes longer than its limit, then the runtime shall write a record of the write in the telemetry. | User, 2026-11-21 |
 | FRAME-9 | Ubiquitous | The runtime shall collect the time of each write of a frame in a t-digest for each interval of one minute, and shall write the digest of each interval that has a write to the telemetry as one record. | User, 2026-11-21 |
+| FRAME-10 | Ubiquitous | The record of a digest shall hold the centroids of the digest, each with its mean and its count, and at most 100 centroids. | User, 2026-11-21; Design |
 | BUDGET-4 | Ubiquitous | A record of a measurement shall hold nothing that identifies the user (TELEM-7). | TELEM-7 |
 | BUDGET-5 | Ubiquitous | The record of a slow cycle shall hold the time of the cycle, the time of the `view`, and for each type of message in the cycle its count, the sum of its `update` times and its longest `update`. | Design |
-| BUDGET-6 | Unwanted | If one `update` call alone goes over the budget, then the runtime shall write a record of that call in the telemetry, with the type of its message and its time. | User, 2026-11-21 |
+| BUDGET-6 | Unwanted | If one `update` call takes half of the budget or more, then the runtime shall write a record of that call in the telemetry, with the type of its message and its time. | User, 2026-11-21 |
+| BUDGET-7 | Ubiquitous | Each record of a measurement shall be one event of the telemetry log, with a field that names its kind. | Design |
 
 ## Open points
 
 | Open question | Affects | Answered by |
 | ------------- | ------- | ----------- |
 | What is the limit of a slow write? | FRAME-8 | User |
-| Which form does the digest have in its record: the centroids, each with its mean and its count? And which compression does the digest use? | FRAME-9 | User |
-| Is "slow" for one `update` the whole budget of 8 ms, or a smaller limit? | BUDGET-6 | User |
-| [Telemetry log](../telemetry.md) states one kind of event, the action of the keymap (TELEM-1). These records are new kinds of event. Does the telemetry specification get a revision for them? | FRAME-8, FRAME-9, BUDGET-3, BUDGET-6 | User |

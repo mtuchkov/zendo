@@ -1,11 +1,11 @@
 ---
 status: "implemented"
 approved: "2026-11-19"
-revision: "2"
-date: "2026-11-19"
+revision: "3"
+date: "2026-11-21"
 parent: "zendo.md"
 level: "what the telemetry log of zendo holds, where it is, how large it grows, and when zendo writes it"
-note: "Draft of the decisions of the user of 2026-11-19: the telemetry is a log of events, in files with a rolling rule of 50 files of 1 MB, in the data folder; a later step sends it to an analytics service, only after the user agrees; the log holds only statistics of the use of zendo, with nothing that identifies the user; the old folders of the summaries go. The log takes the place of the files of the usage counts and of the times of the actions; their requirements of the files move here. Approved by the user on 2026-11-19; implemented in zendo 0.124.0. Revision 2, from the decision of the user of 2026-11-19: zendo asks for the agreement in a popup at its first try to send the log; the service and the send come later."
+note: "Draft of the decisions of the user of 2026-11-19: the telemetry is a log of events, in files with a rolling rule of 50 files of 1 MB, in the data folder; a later step sends it to an analytics service, only after the user agrees; the log holds only statistics of the use of zendo, with nothing that identifies the user; the old folders of the summaries go. The log takes the place of the files of the usage counts and of the times of the actions; their requirements of the files move here. Approved by the user on 2026-11-19; implemented in zendo 0.124.0. Revision 2, from the decision of the user of 2026-11-19: zendo asks for the agreement in a popup at its first try to send the log; the service and the send come later. Revision 3, from the decision of the user of 2026-11-21: the log also holds the events of the measurements of the TUI, which the internals state; no requirement changed."
 ---
 
 # Telemetry log
@@ -23,6 +23,10 @@ Each action of the keymap becomes one event: its keymap pane, its action name an
 ([Responsiveness of actions](responsiveness.md)). The log holds events, not counts: the analytics
 service makes the counts and the distributions (User, 2026-11-19). An event holds only statistics
 of the use of zendo, and nothing that identifies the user (User, 2026-11-19).
+
+The log also holds the events of the measurements of the TUI (User, 2026-11-21): see
+[The frame and the time budget: measurements](internals/frame-and-budget-measurements.md). The
+rules of this document hold for each kind of event.
 
 Design: each event is one line of JSON:
 

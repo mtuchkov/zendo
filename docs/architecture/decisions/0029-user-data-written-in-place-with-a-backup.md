@@ -47,15 +47,15 @@ what FAIL-2 promises when zendo stops during a write.
 ## Decision
 
 The user decided on 2026-11-21: option B, as the book describes it. The book takes priority over
-the failure default. The third rule is a proposal (Design); the book does not state it.
+the failure default. The third rule is of the user (2026-11-21): a backup that stays is for the
+reconcile at the recovery.
 
 - The executor shall write user data in place, with a backup, through one function. That function
   shall stay the only way to write user data.
 - IF the write of the new content fails, THEN the executor shall restore the file from the backup
   and delete the backup. With this, FAIL-2 holds for a write that ends with an error.
-- IF zendo finds a backup `name~` of a write that did not end, THEN zendo shall keep both files and
-  shall ask the user to choose a version, as it does for a conflict (WRITE-19, WRITE-20). This is
-  an open point of [File writes](../../zendo/internals/file-writes/file-writes.md).
+- WHEN zendo finds a backup `name~` of a write that did not end, zendo shall reconcile the file and
+  the backup as the two versions of a conflict (WRITE-23, with WRITE-18 to WRITE-20).
 
 ## Consequences
 
@@ -80,6 +80,6 @@ the failure default. The third rule is a proposal (Design); the book does not st
   and the permissions stay.
 - `a_failed_write_restores_the_file` (WRITE-6): a write that stops after half of the content
   leaves the old content and no backup.
-- A test for a backup that a stopped zendo left, after the open point has an answer.
+- A test for the reconcile of a backup that a stopped zendo left (WRITE-23).
 
 None is written yet.

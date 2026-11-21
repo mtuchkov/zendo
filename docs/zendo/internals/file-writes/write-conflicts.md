@@ -35,14 +35,16 @@ loses neither text:
   them.
 
 A conflict that the executor finds before a write ([WRITE-10](other-writers.md)) goes the same way
-(Design).
+(Design). So does the backup `name~` that a stopped write left: it is for the reconcile at the
+recovery ([WRITE-23](file-writes.md)).
 
 ## The later step
 
 The user planned a reconcile for a later step (User, 2026-11-21). It makes the choice of the user
 smaller:
 
-- For a file under git, zendo gives the conflict to the conflict resolution of git.
+- For a file under git, zendo gives the conflict to the conflict resolution of git. How it does
+  this is parked (User, 2026-11-21).
 - For each other file, zendo counts the change from outside as made at the modified time of the
   file. It splits its own operations into those before and those after that time, applies as many
   as it can, shows the edits that can be lost, and asks the user.
@@ -87,6 +89,5 @@ Until that step, each conflict gets the choice between the two versions.
 | ------------- | ------- | ----------- |
 | WRITE-19 is the first step, and WRITE-21 and WRITE-22 come later. Which milestone document names the steps? | WRITE-19, WRITE-21, WRITE-22 | User |
 | `name~` is also the backup of a write (WRITE-8). Can a conflict and a backup need the name at the same time? | WRITE-8, WRITE-19 | User |
-| How does zendo give a conflict to git: with conflict markers in the file? | WRITE-21 | User |
 | What does the three-way merge view show, and which key opens it? | WRITE-22 | User |
 | What does the user see when Claude is off and cannot explain the lost changes? | WRITE-20 | User |

@@ -41,7 +41,8 @@ IO ([Responsiveness](../responsiveness.md)), a failure loses no data of the user
 The book explains each idea. The specification with the name of the chapter states the idea as
 requirements with acceptance tests. The book is the target: a difference between a chapter and its
 specification is a defect of the specification. Where the book differs from an older specification
-or decision record, the book takes priority (User, 2026-11-21).
+or decision record, the book takes priority (User, 2026-11-21). A decision of the user that is newer
+than a chapter takes priority over the chapter, and the specification names the difference.
 
 ## The parts
 

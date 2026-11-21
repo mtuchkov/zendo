@@ -35,8 +35,8 @@ it, the runtime knows when the screen shows a result (RESP-1).
 
 [Async IO](async-io.md) does not protect from slow code in the core.
 
-So the core has a budget: 8 ms for one cycle of the UI loop, for all `update` calls of the cycle
-and the `view` together. The frame ends when the buffer is filled. The write to the terminal is a
+So the core has a budget: 8 ms for a frame. A cycle of the UI loop gives one frame, so the budget
+is for all `update` calls of the cycle and the `view` together: half of a frame at 60 Hz. The frame ends when the buffer is filled. The write to the terminal is a
 measurement of its own, so a slow terminal does not look like a slow core.
 
 The runtime measures in one place: each `update` call, and each cycle. A cycle over the budget

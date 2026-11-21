@@ -30,7 +30,7 @@ zendo stays up when a dependency fails. It shows the failure once, says what fix
 change user data because of the failure. When the dependency works again, the failure goes from the
 screen. A write of user data that fails leaves the file with the content that it had: zendo restores
 the file from the backup of the write. If zendo itself stops during a write, the backup stays beside
-the file and keeps that content.
+the file and keeps that content; zendo uses it for the reconcile at the recovery (WRITE-23).
 
 A specification states a failure requirement only where its feature does something different from
 this default. An example of such a difference today: a line of the config with an error costs only
