@@ -105,9 +105,3 @@ messages through their parent. The UI loop waits only for messages, so no IO can
   time. The fake disk and the fake terminal are such services.
 - **Source check**: a unit test that reads the source code of zendo, as
   `actions_hold_no_measurement_code` does for RESP-2.
-
-## Open points
-
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| No milestone document plans the move of the code of zendo 0.126 to this architecture. Which steps does the move have, and which temporary behavior? | All children | User |

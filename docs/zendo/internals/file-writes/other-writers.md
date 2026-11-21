@@ -37,6 +37,9 @@ changes nothing.
 The subscription watches the folder of the file, not the file: a different program can replace the
 file with a rename, and only the folder sees this.
 
+The watch works together with the checks of UNDO-15, at the open of the file, at the focus of the
+terminal and before each save. It does not take their place (User, 2026-11-21).
+
 An advisory lock prevents a race between two zendo processes. Other programs do not use the lock;
 for them, only the check of the hash remains.
 
@@ -71,9 +74,4 @@ for them, only the check of the hash remains.
 | WRITE-15 | Ubiquitous | The executor shall read the hash of the file again directly before each write. | User, 2026-11-20 |
 | WRITE-16 | Ubiquitous | The subscription to a file shall watch the folder of the file, so that it sees a file that a rename replaced. | User, 2026-11-20 |
 | WRITE-17 | Ubiquitous | An advisory lock shall prevent two zendo processes from writing one file at the same time. | User, 2026-11-20 |
-
-## Open points
-
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| UNDO-15 looks at the file at the open, at the focus of the terminal, and before each save. Does the watch of the folder take the place of the first two? | WRITE-16, UNDO-15 | User |
+| WRITE-25 | Ubiquitous | The watch of the folder shall work together with the checks of UNDO-15, and shall not take their place. | User, 2026-11-21 |

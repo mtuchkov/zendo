@@ -48,7 +48,8 @@ smaller:
 - For each other file, zendo counts the change from outside as made at the modified time of the
   file. It splits its own operations into those before and those after that time, applies as many
   as it can, shows the edits that can be lost, and asks the user.
-- A three-way merge view shows the versions.
+- A three-way merge view shows the versions. It is deferred, and with it the case where Claude
+  is off and cannot explain the lost changes (User, 2026-11-21).
 
 Until that step, each conflict gets the choice between the two versions.
 
@@ -87,7 +88,4 @@ Until that step, each conflict gets the choice between the two versions.
 
 | Open question | Affects | Answered by |
 | ------------- | ------- | ----------- |
-| WRITE-19 is the first step, and WRITE-21 and WRITE-22 come later. Which milestone document names the steps? | WRITE-19, WRITE-21, WRITE-22 | User |
 | `name~` is also the backup of a write (WRITE-8). Can a conflict and a backup need the name at the same time? | WRITE-8, WRITE-19 | User |
-| What does the three-way merge view show, and which key opens it? | WRITE-22 | User |
-| What does the user see when Claude is off and cannot explain the lost changes? | WRITE-20 | User |

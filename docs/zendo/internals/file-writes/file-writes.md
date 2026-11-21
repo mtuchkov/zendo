@@ -112,9 +112,4 @@ time, the screen draws and shows "saving…".
 | WRITE-8 | Event | When the executor writes a file, it shall copy the file to the backup `name~`, write the new content in place and to the disk, and then delete the backup. | User, 2026-11-20 |
 | WRITE-9 | Ubiquitous | The saved part of the model shall have a version; when the version changes, the runtime shall write the file after a debounce, and no component shall start the save. | User, 2026-11-20 |
 | WRITE-23 | Event | When zendo finds the backup `name~` of a write that did not end, the system shall reconcile the file and the backup as the two versions of a conflict (WRITE-18 to WRITE-20). | User, 2026-11-21 |
-
-## Open points
-
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| The file tree, find, git and the watch of the folder (WRITE-16) see `name~`. Which of them hide it? | WRITE-8 | User |
+| WRITE-24 | Ubiquitous | The file tree, find, the git status and the watch of the folder shall not show a backup `name~`, and shall not take it as a change from outside. | User, 2026-11-21 |
