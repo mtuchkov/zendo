@@ -110,19 +110,26 @@ path = "docs/zendo/files"
 about = "The file tree of zendo: files.md is the parent; its children are the views, the actions on a file, the code files, the views of the worktree of an agent session, and its recap."
 
 [[entry]]
+path = "docs/zendo/internals"
+label = "Internals"
+about = "The internals of the TUI, a core that decides and a runtime that does, with all IO outside the UI loop: internals.md is the parent; its children are one specification for each chapter of the book, with the name of the chapter."
+claude = "Keep the core free of IO: no file system, network, clock, process or tokio. Name a specification after its chapter of docs/book, and keep it in step with that chapter. Record a decision that changes this architecture as a decision record in docs/architecture/decisions."
+
+[[entry]]
+path = "docs/zendo/internals/file-writes"
+about = "The writes of user data: file-writes.md is the parent; its child is the file that a different program changes."
+
+[[entry]]
+path = "docs/zendo/internals/document"
+about = "The document: document.md is the parent; its children are the open, edit and parse, and the annotations."
+
+[[entry]]
 path = "docs/architecture/decisions"
 label = "Decisions"
 about = "Architecture decision records, one file for each decision."
 claude = "Record architecture decisions here, not in specifications. Use docs/guides/templates/adr-template.md."
 main = true
 template = "docs/guides/templates/adr-template.md"
-
-[[entry]]
-path = "docs/architecture/tui-architecture"
-label = "TUI architecture"
-about = "The architecture of the TUI, The Elm Architecture with all IO outside the UI loop: tui-architecture.md is the parent; its children are the components, keys and view, and the asynchronous IO."
-claude = "Keep the core free of IO: no file system, clock, process or tokio. Record a decision that changes this architecture as a decision record in docs/architecture/decisions."
-main = true
 
 [[entry]]
 path = "docs/book"

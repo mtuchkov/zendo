@@ -58,6 +58,7 @@ children:
   - "failures.md"
   - "responsiveness.md"
   - "telemetry.md"
+  - "internals/internals.md"
 level: "what zendo is, its parts, and the qualities that hold for all parts"
 note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
@@ -121,6 +122,7 @@ user on 2026-11-11, and the code of zendo 0.9.3.
 | [Failure default](failures.md)               | What zendo does when a dependency fails, for every feature       |
 | [Responsiveness of actions](responsiveness.md) | The time that the user waits for the result of each action, measured in one place |
 | [Telemetry log](telemetry.md)                | The events of the actions in rolling files in the data folder, for a later analytics service |
+| [Internals of the TUI](internals/internals.md) | The core and the runtime of the TUI: one specification for each chapter of the zendo book |
 
 ## Scope
 
