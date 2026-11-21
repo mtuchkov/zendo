@@ -99,5 +99,5 @@ cancels the command. If the command finished before, `update` discards its answe
 
 | Open question | Affects | Answered by |
 | ------------- | ------- | ----------- |
-| How large is the margin after the visible part: a number of rows, or of screens? | DOC-10 | User |
-| "A scroll waits for the answer": does the screen stay, or does it show the old geometry of the tail? | DOC-17 | User |
+| How large is the margin after the visible part? It must be enough for a scroll, and can be larger while the UI loop is not busy (User, 2026-11-21). | DOC-10 | A test of the implementation |
+| A scroll into an old tail: does the screen stay, or does it show the old geometry of the tail? | DOC-17 | A test of the implementation |

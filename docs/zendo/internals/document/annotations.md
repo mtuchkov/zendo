@@ -81,9 +81,3 @@ text.
 | DOC-22 | Ubiquitous | The cursor shall go over an annotation and shall not go into it. | User, 2026-11-20 |
 | DOC-23 | Event | When the user clicks an annotation, the core shall get the message of that annotation. | User, 2026-11-20 |
 | DOC-24 | Event | When the data of an annotation comes, `update` shall apply it only if its ticket and its version are both current. | User, 2026-11-20 |
-
-## Open points
-
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| zendo shows no annotation today. Which one comes first, and which specification of [zendo](../../zendo.md) states what the user sees of it? | DOC-19 to DOC-24 | User |
