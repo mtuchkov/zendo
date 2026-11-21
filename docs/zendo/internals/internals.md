@@ -17,6 +17,7 @@ children:
   - "async-io.md"
   - "tickets-and-cancellations.md"
   - "frame-and-budget.md"
+  - "frame-and-budget-measurements.md"
   - "file-writes/file-writes.md"
   - "document/document.md"
 level: "the parts of the TUI and the path of an event through them; one child for each chapter of the zendo book"
@@ -88,6 +89,7 @@ messages through their parent. The UI loop waits only for messages, so no IO can
 | [Async IO](async-io.md) | [Async IO](../../book/11-async-io.md) | ASYNC |
 | [Tickets and cancellations](tickets-and-cancellations.md) | [Tickets and cancellations](../../book/12-tickets-and-cancellations.md) | TICKET |
 | [The frame and the time budget](frame-and-budget.md) | [The frame and the time budget](../../book/13-frame-and-budget.md) | FRAME, BUDGET |
+| [The frame and the time budget: measurements](frame-and-budget-measurements.md) | [The frame and the time budget](../../book/13-frame-and-budget.md) | FRAME, BUDGET |
 | [File writes](file-writes/file-writes.md) | [File writes and external consistency](../../book/14-file-writes.md) | WRITE |
 | [The document](document/document.md) | [The document](../../book/15-document.md) | DOC |
 

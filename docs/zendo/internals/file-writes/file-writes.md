@@ -3,7 +3,7 @@ status: "draft"
 revision: "1"
 date: "2026-11-21"
 parent: "../internals.md"
-prev: "../frame-and-budget.md"
+prev: "../frame-and-budget-measurements.md"
 next: "../document/document.md"
 children:
   - "other-writers.md"

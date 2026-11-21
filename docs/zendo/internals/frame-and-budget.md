@@ -4,7 +4,7 @@ revision: "1"
 date: "2026-11-21"
 parent: "internals.md"
 prev: "tickets-and-cancellations.md"
-next: "file-writes/file-writes.md"
+next: "frame-and-budget-measurements.md"
 level: "the two last places where the UI can stop: the write of the frame to the terminal, and a slow update"
 note: "Draft from the chapter The frame and the time budget of the zendo book, the target architecture (User, 2026-11-20), and from the decisions of the user of 2026-11-21 on the end of the frame, the cycle and the measurement of the write. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
@@ -14,9 +14,9 @@ note: "Draft from the chapter The frame and the time budget of the zendo book, t
 Sources: the chapter [The frame and the time budget](../../book/13-frame-and-budget.md) of the
 zendo book; the decisions of the user on 2026-11-21.
 
-Parent: [Internals of the TUI](internals.md). The time that the user waits for an action is in
-[Responsiveness of actions](../responsiveness.md); the log is in
-[Telemetry log](../telemetry.md).
+Parent: [Internals of the TUI](internals.md). The records of the measurements are in
+[Measurements](frame-and-budget-measurements.md). The time that the user waits for an action is in
+[Responsiveness of actions](../responsiveness.md).
 
 ## The write to the terminal is IO
 
@@ -40,7 +40,8 @@ and the `view` together. The frame ends when the buffer is filled. The write to 
 measurement of its own, so a slow terminal does not look like a slow core.
 
 The runtime measures in one place: each `update` call, and each cycle. A cycle over the budget
-gets one record in the telemetry, with the time of each type of message in it.
+gets a record in the telemetry, and a slow `update` gets one too: see
+[Measurements](frame-and-budget-measurements.md).
 
 The budget finds a slow `update`; it does not prevent it.
 
@@ -93,15 +94,5 @@ The budget finds a slow `update`; it does not prevent it.
 | -- | ------- | ----------- | ------ |
 | FRAME-3 | Ubiquitous | The UI loop shall build each frame in a buffer in memory and give it to the writer through a channel that holds one frame. | User, 2026-11-20 |
 | FRAME-4 | Ubiquitous | The writer shall keep the last frame that it wrote and shall send only the difference to the terminal. | User, 2026-11-20 |
-| FRAME-5 | Ubiquitous | The runtime shall measure the write of a frame to the terminal as a measurement of its own, apart from the budget. | User, 2026-11-21 |
 | FRAME-6 | Ubiquitous | Each frame shall have a number, and the writer shall tell the number of the last frame that it wrote. | User, 2026-11-21 |
 | FRAME-7 | Ubiquitous | For RESP-1, the draw of the screen that shows a result shall end when the writer wrote the first frame that is not older than the frame with the result. | User, 2026-11-21 |
-| BUDGET-4 | Ubiquitous | The record of a slow cycle shall hold nothing that identifies the user (TELEM-7). | TELEM-7 |
-| BUDGET-5 | Ubiquitous | The record of a slow cycle shall hold the time of the cycle, the time of the `view`, and for each type of message in the cycle its count, the sum of its `update` times and its longest `update`. | Design |
-
-## Open points
-
-| Open question | Affects | Answered by |
-| ------------- | ------- | ----------- |
-| BUDGET-5 puts the times of the updates into the record of the cycle. Is a record for each slow `update` also necessary? | BUDGET-3, BUDGET-5 | User |
-| Does the time of a write go to the telemetry for each frame, or only over a limit? | FRAME-5 | User |
