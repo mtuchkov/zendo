@@ -80,7 +80,3 @@ Accepted: operations from a diff, kept in loglets, with operational transformati
 `undo_keeps_the_change_of_the_agent` (UNDO-14) in
 [Undo in documents](../../zendo/panes/text-input/undo-documents.md); the unit tests of
 `src/text/ot.rs` and `src/text/loglet.rs`.
-
-## Decision record
-
-Proposed by the agent on 2026-11-18 from the requests of the user, revised with the user in the chat (external changes as operations with a question; only saved text in the loglet of a document); approved by the user on 2026-11-18 in the chat.

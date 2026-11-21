@@ -6,7 +6,7 @@ parent: "zendo.md"
 prev: "claude.md"
 next: "threads.md"
 level: "the questions of the agent before a tool call: which ones zendo answers, the quick action in the chat, its keys, a shell command in a terminal of zendo"
-note: "Agent draft from the requests of the user on 2026-11-17. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Replaces CLAUDE-3 and CLAUDE-33. See ADR 0019. ASK-14 (a mark on a command that ran without a question) is withdrawn: the user does not want it (2026-11-17); the ID is not reused. The answers of the user on 2026-11-18: `up` goes to the options first (ASK-5), and not for Claude Code in a terminal: ASK-16 is withdrawn, and the ID is not reused."
+note: "Draft from the requests of the user on 2026-11-17. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Replaces CLAUDE-3 and CLAUDE-33. See ADR 0019. ASK-14 (a mark on a command that ran without a question) is withdrawn: the user does not want it (2026-11-17); the ID is not reused. The answers of the user on 2026-11-18: `up` goes to the options first (ASK-5), and not for Claude Code in a terminal: ASK-16 is withdrawn, and the ID is not reused."
 ---
 
 # Questions of the agent

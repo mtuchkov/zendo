@@ -1,10 +1,9 @@
 ---
 review:
-  reviewer: "agent, new context"
-  date: "2026-11-20"
+  date: "2026-11-21"
   passes: 1
   result: "pass"
-  hash: "sha256:8bd42f5e632bc309b41d30cd6ab418f7acc3195be495eb44c5a9d294b7218a0e"
+  hash: "sha256:58ae23d4ceb435c982936e05fa53b4e0401ad432c72004993d2eaed2a349f523"
 ---
 # Chapter 13: The frame and the time budget
 

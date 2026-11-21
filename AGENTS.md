@@ -27,13 +27,15 @@ The project structure is the set of top-level folders, the folders of `docs/`, a
   also names the acceptance tests that the milestone must pass.
 - The agent shall record architecture decisions as
   decision records in `docs/architecture/decisions/`, not in specifications.
+- A decision record shall have no "Decision record" section at its end. The `status` and `approved`
+  fields of its front matter hold that information.
 - Each new independently testable requirement shall receive a unique, stable, subject-specific
   identifier in its authoritative specification. Plans, code, tests, and translations shall reuse
   that identifier rather than define a competing requirement.
 - The agent shall assign new requirement identifiers only in a user-reviewed high-level
   specification. Retired identifiers shall not be reused.
-- Agent drafts and templates shall remain non-authoritative until reviewed.
-- The `status` field of a document's YAML front matter shall hold one value of this enum: `draft` (agent-written and not reviewed by the user, including
+- Drafts and templates shall remain non-authoritative until reviewed.
+- The `status` field of a document's YAML front matter shall hold one value of this enum: `draft` (not reviewed by the user, including
   transcriptions and translations), `approved`, `implemented` (the code implements the document, and
   its acceptance is incomplete), `completed` (acceptance evidence is recorded), `rejected`, or
   `superseded`. The `approved` field shall hold the date of the user approval, and the `note` field
@@ -50,6 +52,22 @@ The project structure is the set of top-level folders, the folders of `docs/`, a
   shall be the file `<name>/<name>.md`, in a directory of the same name that holds its children. A
   document without children shall be a file in the directory of its parent and shall get no
   directory of its own. The agent shall not use `README.md` files as tree nodes.
+
+## No AI attribution
+
+The project has a policy of zero AI attribution.
+
+- No document, code file, comment, commit message or pull request shall name an AI agent, a model
+  or an AI tool as its author, its co-author or its source.
+- The agent shall not write a phrase such as "agent draft", "drafted by the agent", "written by the
+  agent", "proposed by the agent" or "generated with" in a document or in code.
+- The author of each commit shall be the user. A commit message and a pull request description
+  shall have no `Co-Authored-By` line, no link to an agent session, and no line that names an AI
+  tool.
+- A document that the user did not review has the status `draft`. The status tells it; no other
+  text shall tell who wrote the document.
+- This policy does not apply to text about what zendo does: the agent that zendo talks to is a part
+  of the product.
 
 ## Failure requirements
 
@@ -148,7 +166,7 @@ Rules:
 - WHEN the agent changes a file of the book, a reviewer shall review the change with the skill
   [.skills/zendo-book-reviewer/SKILL.md](.skills/zendo-book-reviewer/SKILL.md), at least one pass.
   A reviewer is a person or an agent with a new context that did not write the change.
-- The reviewer shall record the review in the front matter of the file: the reviewer, the date, the
+- The reviewer shall record the review in the front matter of the file: the date, the
   number of passes, the result, and the hash of the whole file with an empty `hash` field.
 - `tests/book_review.rs` checks in `cargo test` that the hash in each review is the hash of the
   current file. An edit after the review, also an edit of the review data, fails the test.

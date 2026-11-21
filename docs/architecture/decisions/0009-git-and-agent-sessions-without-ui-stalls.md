@@ -79,7 +79,3 @@ Proposal, not yet accepted:
   goes to the open file when git answers.
 - `replaced_and_forgotten_sessions_are_closed` in `tests/acp_mock.rs`: the mock agent gets
   `session/close` for a replaced and for a forgotten session.
-
-## Decision record
-
-Draft by the agent, 2026-11-17. It waits for the review of the user.

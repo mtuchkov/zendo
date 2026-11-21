@@ -108,11 +108,3 @@ an allowed command to the agent.
   `defaultMode` the adapter starts the session in `auto`.
 - `zendo doctor --live` with real Claude: a shell command of the agent asks, `Run in zendo shell` runs
   it in the `F5` terminal, and the agent continues with the output.
-
-## Decision record
-
-Proposed by the agent on 2026-11-17 from the requests of the user in the chat. The user chose the
-question in the chat, `up` to the options, and the run in a terminal of zendo. The user chose to follow
-the rules of Claude Code and Codex. The refusal to the agent and the report in `command_result` are
-proposals of the agent. Not reviewed
-by the user.

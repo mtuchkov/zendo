@@ -1,10 +1,9 @@
 ---
 review:
-  reviewer: "agent, new context"
-  date: "2026-11-20"
+  date: "2026-11-21"
   passes: 1
   result: "pass"
-  hash: "sha256:c0dc1aa0819bddc1a47ee36c2394816346093276d1140e53495f0b84435c8bde"
+  hash: "sha256:164ae240f56cff4798f38ee8562c46efaf2084a328bd440b4b4d448e7371f4b3"
 ---
 # Chapter 8: The active panel and overlays
 

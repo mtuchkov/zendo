@@ -87,9 +87,3 @@ Accepted: the direct API with a fallback to the throwaway session.
 - `src/agent/api/api_tests.rs`: the choice of the API and of the credential, the `ant` token, the
   bodies of the requests, the parse of the answers, and the model names.
 - `src/agent/api/cli_tests.rs`: the flags of `claude -p`, its input line, its login, its result.
-
-## Decision record
-
-Proposed by the agent on 2026-11-17 from the requests of the user in the chat. The user chose the
-fallback to the throwaway session, the `ant` sign-in and `claude -p`, and approved the record on
-2026-11-17. zendo 0.82.0 to 0.84.0 implement it.

@@ -1,10 +1,9 @@
 ---
 review:
-  reviewer: "agent, new context"
-  date: "2026-11-20"
+  date: "2026-11-21"
   passes: 1
   result: "pass"
-  hash: "sha256:467ed69fc429ef11e859c1bb17232fe0c148ea992b4ab92a4516ece2b82c0862"
+  hash: "sha256:8e624afed166184285d8d238d6e32046f9118f3b699e9240156e870d9798cbcd"
 ---
 # Chapter 7: Components
 

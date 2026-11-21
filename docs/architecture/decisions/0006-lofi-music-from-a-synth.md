@@ -95,9 +95,3 @@ every 16 bars. The user removed both on 2026-11-13 (LOFI-6, LOFI-7).
 - `lofi without audio` (LOFI-3), `lofi toggles` (LOFI-8, LOFI-10), `lofi asks at the first start`
   (LOFI-11, LOFI-12) and `lofi chime in the key` (LOFI-13): tests with a mock audio output.
 - A listen by the user, next to the landing page, before this record becomes `approved`.
-
-## Decision record
-
-Draft by the agent on 2026-11-13, at the request of the user. Revised on 2026-11-14 with the answers
-of the user: no file of the user, `cpal` only on macOS, a system player on Linux, the chime in the
-synth. Approved by the user on 2026-11-14.

@@ -1,20 +1,20 @@
 ---
 status: "draft"
 approved: "2026-11-18"
-revision: "6"
-date: "2026-11-18"
+revision: "7"
+date: "2026-11-21"
 parent: "zendo.md"
 prev: "work.md"
 next: "questions.md"
 level: "the connection to Claude: what zendo sends, what Claude may do, the agents, failures"
-note: "Agent rewrite of the reference of zendo 0.9.1. Not reviewed by the user. Revision 4 moved the threads to threads.md. Revision 5: CLAUDE-26 names the choice of the open document (chat-chips.md), asked by the user on 2026-11-17; not reviewed yet. The flags: `--claude` of doctor is `--agent`, and `--agent CMD` is `--agent-cmd CMD`, on the request of the user on 2026-11-18 (approved by the user on 2026-11-18). Revision 6 (agent draft, not reviewed): the questions of the agent moved to questions.md; CLAUDE-3, CLAUDE-12 and CLAUDE-33 retired (the user, 2026-11-17)."
+note: "Rewrite of the reference of zendo 0.9.1. Not reviewed by the user. Revision 4 moved the threads to threads.md. Revision 5: CLAUDE-26 names the choice of the open document (chat-chips.md), asked by the user on 2026-11-17; not reviewed yet. The flags: `--claude` of doctor is `--agent`, and `--agent CMD` is `--agent-cmd CMD`, on the request of the user on 2026-11-18 (approved by the user on 2026-11-18). Revision 6 (draft, not reviewed): the questions of the agent moved to questions.md; CLAUDE-3, CLAUDE-12 and CLAUDE-33 retired (the user, 2026-11-17). Revision 7, from the user on 2026-11-21: zendo does not wait for Claude at the start (CLAUDE-1, ZENDO-2); not reviewed."
 ---
 
 # Claude
 
 zendo is an Agent Client Protocol (ACP) client. It starts the Claude Code adapter in the root of the
-repository. The adapter uses the Claude Code login of the user. zendo checks the connection before
-it opens the screen. See [ADR 0001](../architecture/decisions/0001-claude-through-acp.md).
+repository. The adapter uses the Claude Code login of the user. zendo opens the screen with no wait
+for the connection. See [ADR 0001](../architecture/decisions/0001-claude-through-acp.md).
 
 **What zendo sends.** With the first question of a thread, zendo sends the instructions of the user
 from `.zendo/prompt.md`, when that file exists. With each question, zendo sends the name of the open
@@ -28,7 +28,8 @@ other tool call, a shell command too, waits for the user in the chat
 ([Questions of the agent](questions.md)). The agent gets the output of a command that the user runs
 with `▶▶` or allows ([Watched commands](terminal/terminal-watch.md)).
 
-**When Claude is not available.** At the start, zendo does not open (ZENDO-2). While zendo runs, the
+**When Claude is not available.** At the start, zendo opens with no wait, and the status bar shows
+that Claude does not answer (ZENDO-2). While zendo runs, the
 chat shows why the agent stopped, and zendo starts it again with the next question.
 
 **Agents.** zendo works with Claude (the default) and with Codex (`zendo setup --agent-cmd codex`), each
@@ -44,11 +45,11 @@ Claude Code sessions that run in the background while the user works in zendo ar
 
 | ID       | Pattern  | Requirement                                                                                                                                 | Source                 |
 | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| CLAUDE-1 | Event    | When zendo starts without `--offline`, the system shall start the agent and finish the ACP handshake and the login check before it opens the screen. | ZENDO-2           |
+| CLAUDE-1 | Event    | When zendo starts without `--offline`, the system shall start the agent, and shall open the screen with no wait for the ACP handshake and the login check. | ZENDO-2; User, 2026-11-21 |
 
 ### Acceptance tests
 
-**`start_check_fails_without_claude`** (mock agent, not written yet; verifies CLAUDE-1). See
+**`the_screen_opens_when_claude_does_not_answer`** (mock agent, not written yet; verifies CLAUDE-1). See
 [zendo](zendo.md).
 
 The tests of the questions of the agent (ASK-1 to ASK-7) are in

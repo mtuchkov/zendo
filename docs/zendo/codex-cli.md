@@ -6,7 +6,7 @@ parent: "zendo.md"
 prev: "cli-activity.md"
 next: "back-to-the-agent.md"
 level: "the hand-off of a Codex thread to `codex resume` in a terminal of zendo, and what differs from a Claude Code session"
-note: "Agent draft from the requirements of the user on 2026-11-18 in chat. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
+note: "Draft from the requirements of the user on 2026-11-18 in chat. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Codex in its terminal

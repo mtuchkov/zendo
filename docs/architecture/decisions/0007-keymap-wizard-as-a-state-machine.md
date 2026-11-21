@@ -51,7 +51,3 @@ rules when the agent is not available.
 `the_wizard_shows_only_checked_suggestions` (WIZARD-4) and
 `the_wizard_writes_only_after_the_confirmation` (WIZARD-5) in
 [Keymap check and wizard](../../zendo/cli/keymap-wizard.md).
-
-## Decision record
-
-Proposed by the agent on 2026-11-15 from the note of the user; approved by the user on 2026-11-15 in the chat.

@@ -6,7 +6,7 @@ parent: "zendo.md"
 prev: "back-to-the-agent.md"
 next: "board.md"
 level: "what a zendo session is, its id, and what zendo tells the agent of a session"
-note: "Agent draft, split from sessions.md on 2026-11-14 to keep it within two pages. The definition of the zendo session is new text. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Revision 2: zendo session 1 works in the main checkout and has no worktree (SESSIONS-23), on the request of the user on 2026-11-18. Revision 3: the ids count from 0; zendo session 0 works in the main checkout, and zendo session N in `.worktrees/N` (the user, 2026-11-18). Revision 4: the tools `command_result` and `end_watch` (terminal-watch.md, ADR 0018)."
+note: "Draft, split from sessions.md on 2026-11-14 to keep it within two pages. The definition of the zendo session is new text. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. Revision 2: zendo session 1 works in the main checkout and has no worktree (SESSIONS-23), on the request of the user on 2026-11-18. Revision 3: the ids count from 0; zendo session 0 works in the main checkout, and zendo session N in `.worktrees/N` (the user, 2026-11-18). Revision 4: the tools `command_result` and `end_watch` (terminal-watch.md, ADR 0018)."
 ---
 
 # zendo session

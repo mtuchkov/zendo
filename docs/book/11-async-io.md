@@ -1,10 +1,9 @@
 ---
 review:
-  reviewer: "agent, new context"
-  date: "2026-11-20"
+  date: "2026-11-21"
   passes: 1
   result: "pass"
-  hash: "sha256:1f8f95b6ef17fc8a165790a698472e90529773bed1a2b25f237f3b65768c5ca6"
+  hash: "sha256:5ae7408f267d63e4c3f67e618d20d3aba0b679a658141d31e1a4a548a429e5af"
 ---
 # Chapter 11: Async IO: the UI loop never waits
 

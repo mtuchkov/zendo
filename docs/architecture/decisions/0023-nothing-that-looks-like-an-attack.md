@@ -1,7 +1,7 @@
 ---
 status: "draft"
 date: "2026-11-18"
-note: "The user chose the decision in chat on 2026-11-18. This record is an agent draft and is not reviewed by the user."
+note: "The user chose the decision in chat on 2026-11-18. This record is a draft and is not reviewed by the user."
 sources:
   - "The user, 2026-11-18: a list of what zendo does that an endpoint security product counts as an attack, with a cleanup for each; light model only through `claude -p`; the update check once a day; a native macOS path, built but not tested on a Mac."
   - "ADR 0018: CrowdStrike Falcon killed zendo and its zsh on 2026-11-18."
@@ -75,7 +75,3 @@ The user chose the third option on 2026-11-18.
 - `the_update_check_asks_github_once_a_day` (CMD-20) and `ssh_accepts_no_new_host_key`.
 - `cargo check --target aarch64-apple-darwin` and `cargo clippy --target aarch64-apple-darwin`.
 - On the machine of the user, auditd shows no SIGKILL from Falcon to zendo.
-
-## Decision record
-
-Draft of the agent, 2026-11-18, from the decision of the user in chat.

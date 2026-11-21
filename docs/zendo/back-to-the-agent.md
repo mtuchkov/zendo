@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "codex-cli.md"
 next: "zendo-session.md"
 level: "when zendo ends a quiet Claude Code session by itself, so that the thread goes back to the agent of the chat through ACP"
-note: "Agent draft from the request of the user on 2026-11-18 in chat: when the user is back in the chat for long enough, catch a good pause of the Claude Code session and switch the thread back to ACP. It changes SESSIONS-1. Approved by the user on 2026-11-18."
+note: "Draft from the request of the user on 2026-11-18 in chat: when the user is back in the chat for long enough, catch a good pause of the Claude Code session and switch the thread back to ACP. It changes SESSIONS-1. Approved by the user on 2026-11-18."
 ---
 
 # Back to the agent

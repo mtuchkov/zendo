@@ -7,7 +7,7 @@ parent: "cli.md"
 prev: "init.md"
 next: "keymap-wizard.md"
 level: "what zendo doctor checks, and what its flags --fix, --agent and --live add"
-note: "Agent draft from the requests of the user on 2026-11-14, split from commands.md. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. The flags: `--claude` of doctor is `--agent`, and `--agent CMD` is `--agent-cmd CMD`, on the request of the user on 2026-11-18 (approved by the user on 2026-11-18)."
+note: "Draft from the requests of the user on 2026-11-14, split from commands.md. Not reviewed by the user. The requirement IDs are proposals until the user reviews this document. The flags: `--claude` of doctor is `--agent`, and `--agent CMD` is `--agent-cmd CMD`, on the request of the user on 2026-11-18 (approved by the user on 2026-11-18)."
 ---
 
 # Doctor

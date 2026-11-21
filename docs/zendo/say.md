@@ -6,7 +6,7 @@ parent: "zendo.md"
 prev: "write.md"
 next: "notes-list.md"
 level: "say it here: the agent turns an idea into text at a place in the note"
-note: "Agent draft. Not reviewed by the user."
+note: "Draft. Not reviewed by the user."
 ---
 
 # Say it here

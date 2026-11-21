@@ -2,7 +2,7 @@
 status: "approved"
 approved: "2026-11-19"
 date: "2026-11-19"
-note: "Agent draft of the mechanism that the open point of docs/zendo/responsiveness.md asked an ADR for, revised after the code review of 2026-11-19 and for the telemetry log. Approved by the user on 2026-11-19."
+note: "Draft of the mechanism that the open point of docs/zendo/responsiveness.md asked an ADR for, revised after the code review of 2026-11-19 and for the telemetry log. Approved by the user on 2026-11-19."
 sources:
   - "../../zendo/responsiveness.md (RESP-1, RESP-2, RESP-9)"
   - "../../zendo/telemetry.md (TELEM-1, TELEM-5)"
@@ -77,7 +77,3 @@ real keys through the app; `an_action_waits_for_the_work_that_it_started` checks
 of the agent; `the_time_starts_at_the_read_of_the_event` checks the time in the queue. The unit
 tests check the queue of questions, two inputs before one draw, a new search, and the exit.
 `a_slow_write_does_not_delay_the_screen` checks the writer thread.
-
-## Decision record
-
-Proposed by the agent on 2026-11-19. Approved by the user on 2026-11-19.

@@ -88,8 +88,3 @@ Proposal: a `PermissionRequest` hook that waits for the user, with the ACP answe
   `no_gives_the_text_of_zendo`, `a_late_answer_goes_through_acp`.
 - `zendo doctor --live` with real Claude: `Run in zendo shell` on `echo zendo-42` gives the agent
   `zendo-42` as the shell result.
-
-## Decision record
-
-Proposed by the agent on 2026-11-17 after the question of the user and the test above. Not
-reviewed by the user.

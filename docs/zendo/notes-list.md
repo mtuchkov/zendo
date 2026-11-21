@@ -6,7 +6,7 @@ parent: "zendo.md"
 prev: "say.md"
 next: "note-to-spec.md"
 level: "notes: titles, tags and links, the notes list, search"
-note: "Agent draft, split from notes.md. Not reviewed by the user. 2026-11-18: the notes list moves into the tree as the Notes view (files-view-column.md); NOTE-15 retired."
+note: "Draft, split from notes.md. Not reviewed by the user. 2026-11-18: the notes list moves into the tree as the Notes view (files-view-column.md); NOTE-15 retired."
 ---
 
 # Notes list and search

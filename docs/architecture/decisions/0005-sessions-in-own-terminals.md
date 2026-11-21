@@ -64,7 +64,3 @@ as the agent module does for ACP.
 The acceptance tests of [Sessions](../../zendo/sessions.md) with the mock command line, in
 `cargo test` (`tests/sessions.rs`, with `zendo-mock-cli`); a manual check with real Claude Code at
 80 × 24 and 200 × 50.
-
-## Decision record
-
-Not reviewed by the user.

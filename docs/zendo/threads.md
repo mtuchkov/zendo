@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "questions.md"
 next: "sessions.md"
 level: "the threads of the chat: the five agent sessions, how the user chooses one, and how zendo keeps and resumes them"
-note: "Split from claude.md, revision 4, by topic. Agent rewrite of the reference of zendo 0.9.1. Revision 2: the chat input of each agent session (CLAUDE-43 to CLAUDE-47, ADR 0011), asked by the user on 2026-11-17. The user approved the document on 2026-11-17. Revision 3: the sessions count from 0, session 0 in the main checkout (the user, 2026-11-18)."
+note: "Split from claude.md, revision 4, by topic. Rewrite of the reference of zendo 0.9.1. Revision 2: the chat input of each agent session (CLAUDE-43 to CLAUDE-47, ADR 0011), asked by the user on 2026-11-17. The user approved the document on 2026-11-17. Revision 3: the sessions count from 0, session 0 in the main checkout (the user, 2026-11-18)."
 ---
 
 # Threads

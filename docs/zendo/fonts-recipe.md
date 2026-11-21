@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "fonts-tip.md"
 next: "fonts-recipe-format.md"
 level: "how zendo learns to set the font of the terminal: the recipe that the agent writes, and how zendo doctor checks and repairs it"
-note: "Agent draft of the decisions of the user on 2026-11-18: a recipe from Claude, made in an interactive Claude session by `zendo setup fonts`, checked by `zendo doctor`, repaired by `zendo doctor --fix --agent`; Codex in the same way as Claude. Approved by the user on 2026-11-18. Implemented in zendo 0.116.0."
+note: "Draft of the decisions of the user on 2026-11-18: a recipe from Claude, made in an interactive Claude session by `zendo setup fonts`, checked by `zendo doctor`, repaired by `zendo doctor --fix --agent`; Codex in the same way as Claude. Approved by the user on 2026-11-18. Implemented in zendo 0.116.0."
 ---
 
 # Font recipe

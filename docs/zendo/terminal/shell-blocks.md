@@ -6,7 +6,7 @@ date: "2026-11-18"
 parent: "terminal.md"
 next: "terminal-view.md"
 level: "shell blocks in the transcript: what a shell block is, the play buttons, F5 and alt-F5, which terminal takes a block"
-note: "From the requests of the user on 2026-11-12, split from terminal.md. Revision 2 (the user, 2026-11-17): TERM-11 refers to TERM-52 for `F5` in a terminal; the user approved it and marked it implemented on 2026-11-18. Revision 3 (agent draft from the requests of the user on 2026-11-17, not reviewed): `alt-F5` and `▶▶` run and watch (terminal-watch.md); a terminal belongs to a session while its watch runs and 10 min after it."
+note: "From the requests of the user on 2026-11-12, split from terminal.md. Revision 2 (the user, 2026-11-17): TERM-11 refers to TERM-52 for `F5` in a terminal; the user approved it and marked it implemented on 2026-11-18. Revision 3 (draft from the requests of the user on 2026-11-17, not reviewed): `alt-F5` and `▶▶` run and watch (terminal-watch.md); a terminal belongs to a session while its watch runs and 10 min after it."
 ---
 
 # Shell blocks

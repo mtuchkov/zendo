@@ -6,7 +6,7 @@ parent: "zendo.md"
 prev: "handoff.md"
 next: "cli-activity.md"
 level: "the messages of a running Claude Code session in the chat of its agent session: where they come from, what shows, when they go"
-note: "Agent draft from the decision of the user on 2026-11-13 in chat. Revision 3: CLIMSG-8 keeps the thoughts, the tool results and the work of a subagent out of the transcript only; cli-activity.md shows them (User, 2026-11-18). Not reviewed by the user as a document. The requirement IDs are proposals until the user reviews this document."
+note: "Draft from the decision of the user on 2026-11-13 in chat. Revision 3: CLIMSG-8 keeps the thoughts, the tool results and the work of a subagent out of the transcript only; cli-activity.md shows them (User, 2026-11-18). Not reviewed by the user as a document. The requirement IDs are proposals until the user reviews this document."
 ---
 
 # Claude Code messages in the chat

@@ -1,10 +1,9 @@
 ---
 review:
-  reviewer: "agent, new context"
-  date: "2026-11-20"
+  date: "2026-11-21"
   passes: 1
   result: "pass"
-  hash: "sha256:6e4de2bd9822213f43991b8df057aa7d5cbd6152eb05ffe4a3b5189c07d95915"
+  hash: "sha256:fd7b1eddf8ddbd097596ae6119f7529bf9437f2e4f6d2109d0f84bd0d338a89d"
 ---
 # Chapter 1: Core and Runtime
 

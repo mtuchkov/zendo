@@ -7,7 +7,7 @@ parent: "zendo.md"
 prev: "float.md"
 next: "find.md"
 level: "the title of a new note in the float: when the agent writes it, where it goes, what it does not change"
-note: "Agent draft of the request of the user on 2026-11-17. Approved by the user on 2026-11-17. Revision 2 (approved by the user on 2026-11-17): the question for a title goes through the API of the agent, else a background session (FLOAT-18, NAMES-15, NAMES-16). Revision 3, from the decision of the user of 2026-11-19: a note that went to spec keeps the name of its file (FLOAT-20, SPEC-7); approved by the user on 2026-11-19."
+note: "Draft of the request of the user on 2026-11-17. Approved by the user on 2026-11-17. Revision 2 (approved by the user on 2026-11-17): the question for a title goes through the API of the agent, else a background session (FLOAT-18, NAMES-15, NAMES-16). Revision 3, from the decision of the user of 2026-11-19: a note that went to spec keeps the name of its file (FLOAT-20, SPEC-7); approved by the user on 2026-11-19."
 ---
 
 # Title of a new note
